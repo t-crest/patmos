@@ -80,11 +80,34 @@ int main() {
     //shift left is fixed!!!
     *shiftLeft = 1;
 
+    //store sin: 1 second betwen -1 and 1
+    storeSin(sinArray, Fs, 0, ONE_16b);
 
     printf("calculating Fc modulation array...\n");
     //calculate sin array of FCs
+    float arrayDivider = (float)Fs/(float)WAHWAH_PERIOD;
+    printf("Array Divider is: %f\n", arrayDivider);
+    float mult1 = WAHWAH_FC_CEN;
+    float mult2 = ((float)WAHWAH_FC_AMP)/ONE_16b;
+    printf("Downsampling sin...\n");
+    for(int i=0; i<WAHWAH_PERIOD; i++) {
+        //offset = WAHWAH_FC_CEN, amplitude = WAHWAH_FC_AMP
+        usedArray1[i] = mult1 + mult2*sinArray[(int)floor(i*arrayDivider)];
+    }
+    printf("Done 1st...\n");
+    mult1 = WAHWAH_FB_CEN;
+    mult2 = ((float)WAHWAH_FB_AMP)/ONE_16b;
+    printf("Downsampling sin...\n");
+    for(int i=0; i<WAHWAH_PERIOD; i++) {
+        //offset = WAHWAH_FC_CEN, amplitude = WAHWAH_FC_AMP
+        usedArray2[i] = mult1 + mult2*sinArray[(int)floor(i*arrayDivider)];
+    }
+    printf("Done 2nd!\n");
+    /*
+    // old way
     storeSin(usedArray1, WAHWAH_PERIOD, WAHWAH_FC_CEN, WAHWAH_FC_AMP);
     storeSin(usedArray2, WAHWAH_PERIOD, WAHWAH_FB_CEN, WAHWAH_FB_AMP);
+    */
 
     // calculate all-pass filter coefficients
     printf("calculating modulation coefficients...\n");

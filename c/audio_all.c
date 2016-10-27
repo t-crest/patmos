@@ -19,6 +19,15 @@
 const int CHORUS1_P = 52083; // 1 second
 const int CHORUS2_P = 40000; // ~0.8 seconds
 
+//WAHWAH: taken from crybaby example (more or less):
+#define WAHWAH_PERIOD 30000
+#define WAHWAH_FC_CEN 1200
+#define WAHWAH_FC_AMP 900
+#define WAHWAH_FB_CEN 330
+#define WAHWAH_FB_AMP 300
+const int WAHWAH_DRY = ONE_16b * 0.2;
+const int WAHWAH_WET = ONE_16b * 0.8;
+
 //-----------------LOCATION IN SCRATCHPAD MEMORY------------------------//
 #define FX_ADDR       0x00000000
 #define ACCUM_ADDR    ( FX_ADDR       + sizeof(int) )
@@ -81,7 +90,9 @@ int usedArray1[Fs]; //used by all effects
 int usedArray2[Fs];
 //FOR COMB FILTER EFFECTS:
 volatile short audio_buffer[(int)Fs/2][2]; //up to 1/2 second
-
+//for wahwah: modulation coefficients:
+short A_array[WAHWAH_PERIOD][FILTER_ORDER_1PLUS];
+short B_array[WAHWAH_PERIOD][FILTER_ORDER_1PLUS];
 
 
 int main() {
@@ -104,10 +115,42 @@ int main() {
     float arrayDivider;
     float mult1, mult2;
 
-    setup(1); // 1 for guitar, 0 for volca
-
     //store sin: 1 second betwen -1 and 1
     storeSin(sinArray, Fs, 0, ONE_16b);
+
+    //--------------------WAHWAH------------------------------
+    //shift left is fixed!!!
+    *shiftLeft = 1;
+    printf("calculating Modulation array for WAHWAH...\n");
+    //calculate sin array of FCs
+    arrayDivider = (float)Fs/(float)WAHWAH_PERIOD;
+    mult1 = WAHWAH_FC_CEN;
+    mult2 = ((float)WAHWAH_FC_AMP)/ONE_16b;
+    for(int i=0; i<WAHWAH_PERIOD; i++) {
+        //offset = WAHWAH_FC_CEN, amplitude = WAHWAH_FC_AMP
+        usedArray1[i] = mult1 + mult2*sinArray[(int)floor(i*arrayDivider)];
+    }
+    mult1 = WAHWAH_FB_CEN;
+    mult2 = ((float)WAHWAH_FB_AMP)/ONE_16b;
+    for(int i=0; i<WAHWAH_PERIOD; i++) {
+        //offset = WAHWAH_FC_CEN, amplitude = WAHWAH_FC_AMP
+        usedArray2[i] = mult1 + mult2*sinArray[(int)floor(i*arrayDivider)];
+    }
+    // calculate all-pass filter coefficients
+    printf("calculating modulation coefficients...\n");
+    for(int i=0; i<WAHWAH_PERIOD; i++) {
+        filter_coeff_bp_br(FILTER_ORDER_1PLUS, B, A, usedArray1[i], usedArray2[i], shiftLeft, 1);
+        B_array[i][2] = B[2];
+        B_array[i][1] = B[1];
+        B_array[i][0] = B[0];
+        A_array[i][1] = A[1];
+        A_array[i][0] = A[0];
+    }
+    printf("WAHWAH coefficients finished!\n");
+
+
+
+    setup(1); // 1 for guitar, 0 for volca
 
     // enable input and output
     *audioDacEnReg = 1;
@@ -341,9 +384,32 @@ int main() {
 
             if( (*FX == 6) || (*FX == 7) ) {
                 //WAH-WAH or PHASER
+                *mod_pnt1 = 0;
+                //first, fill filter buffer
+                for(*pnt=0; *pnt<(FILTER_ORDER_1PLUS-1); *pnt++) {
+                    getInputBufferSPM(&x_filter[*pnt][0], &x_filter[*pnt][1]);
+                }
                 while(*keyReg != 3) {
-                    printf("Effect not implemented yet\n");
-                    break;
+                    //MOD
+                    B[2] = B_array[*mod_pnt1][2]; //b0
+                    B[1] = B_array[*mod_pnt1][1]; //b1
+                    // b2 doesnt need to be updated: always 1
+                    A[1] = A_array[*mod_pnt1][1]; //a1
+                    A[0] = A_array[*mod_pnt1][0]; //a2
+                    *mod_pnt1 = (*mod_pnt1+1) % WAHWAH_PERIOD;
+                    //increment pointer
+                    *pnt = (*pnt+1) % FILTER_ORDER_1PLUS;
+                    //first, read last sample
+                    getInputBufferSPM(&x_filter[*pnt][0], &x_filter[*pnt][1]);
+                    //then, calculate filter
+                    filterIIR_2nd(*pnt, x_filter, y_filter, accum, B, A, *shiftLeft);
+                    //set output
+                    outputReg[0] = ( x_filter[*pnt][0] - y_filter[*pnt][0] ); // >> 1;
+                    outputReg[1] = ( x_filter[*pnt][1] - y_filter[*pnt][1] ); // >> 1;
+                    //mix with original: gains are set by macros
+                    outputReg[0] = ( (int)(WAHWAH_WET*outputReg[0]) >> 15 )  + ( (int)(WAHWAH_DRY*x_filter[*pnt][0]) >> 15 );
+                    outputReg[1] = ( (int)(WAHWAH_WET*outputReg[1]) >> 15 )  + ( (int)(WAHWAH_DRY*x_filter[*pnt][1]) >> 15 );
+                    setOutputBuffer((short)outputReg[0], (short)outputReg[1]);
                 }
             }
 
