@@ -99,8 +99,8 @@ int main() {
 
 
     //CPU cycles stuff
-    //int CPUcycles[1000] = {0};
-    //int cpu_pnt = 0;
+    int CPUcycles[1000] = {0};
+    int cpu_pnt = 0;
 
     *wah_pnt = 0;
     //first, fill filter buffer
@@ -132,20 +132,19 @@ int main() {
         outputReg[1] = ( (int)(WET_GAIN*outputReg[1]) >> 15 )  + ( (int)(DRY_GAIN*x_filter[*pnt][1]) >> 15 );
         setOutputBuffer((short)outputReg[0], (short)outputReg[1]);
 
-        /*
+
         CPUcycles[cpu_pnt] = get_cpu_cycles();
         cpu_pnt++;
         if(cpu_pnt == 1000) {
             break;
         }
-        */
+
     }
 
-    /*
     for(int i=1; i<1000; i++) {
         printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
-    */
+
 
     return 0;
 }

@@ -53,13 +53,6 @@ int main() {
 
     setup(0); //guitar enabled
 
-    // enable input and output
-    *audioDacEnReg = 1;
-    *audioAdcEnReg = 1;
-
-    setInputBufferSize(BUFFER_SIZE);
-    setOutputBufferSize(BUFFER_SIZE);
-
     //*shiftLeft = 0;
 
     //gains
@@ -83,6 +76,13 @@ int main() {
     int CPUcycles[1000] = {0};
     int cpu_pnt = 0;
 
+    // enable input and output
+    *audioDacEnReg = 1;
+    *audioAdcEnReg = 1;
+
+    setInputBufferSize(BUFFER_SIZE);
+    setOutputBufferSize(BUFFER_SIZE);
+
     *pnt = AUDIO_BUFFER_LENGTH - 1; //start on top
     //*ch_pnt = 0;
     *c1_pnt = 0;
@@ -91,30 +91,12 @@ int main() {
         // SINUSOIDAL MODULATION OF DELAY LENGTH
         del[0] = sinC1[*c1_pnt];
         del[1] = sinC2[*c2_pnt];
-        //printf("del[0]=%d, del[1]=%d\n", del[0], del[1]);
-
         *c1_pnt = (*c1_pnt + 1) % SIN1_PERIOD;
         *c2_pnt = (*c2_pnt + 1) % SIN2_PERIOD;
-        /*
-        if (*c1_pnt < (SIN1_PERIOD-1)) {
-            *c1_pnt = *c1_pnt + 1;
-        }
-        else {
-            *c1_pnt = 0;
-        }
-        if (*c2_pnt < (SIN2_PERIOD-1)) {
-            *c2_pnt = *c2_pnt + 1;
-        }
-        else {
-            *c2_pnt = 0;
-        }
-        */
-
-        //audiost, read sample
+        //audio, read sample
         getInputBuffer(&audio_buffer[*pnt][0], &audio_buffer[*pnt][1]);
         //calculate AUDIO comb filter
         combFilter_2nd(AUDIO_BUFFER_LENGTH, pnt, audio_buffer, y, accum, g, del);
-        //output sample
         setOutputBuffer(y[0], y[1]);
         //update pointer
         if(*pnt == 0) {
@@ -124,7 +106,6 @@ int main() {
             *pnt = *pnt - 1;
         }
 
-
         //store CPU Cycles
         CPUcycles[cpu_pnt] = get_cpu_cycles();
         cpu_pnt++;
@@ -132,15 +113,11 @@ int main() {
             break;
         }
 
-
     }
-
 
     for(int i=1; i<1000; i++) {
         printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
-
-
 
     return 0;
 }

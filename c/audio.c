@@ -237,6 +237,7 @@ int setOutputBuffer(short l, short r) {
 }
 
 
+//__attribute__((always_inline))
 int filterIIR_1st(int pnt_i, volatile _SPM short (*x)[2], volatile _SPM short (*y)[2], volatile _SPM int *accum, volatile _SPM short *B, volatile _SPM short *A, int shiftLeft) {
     int pnt; //pointer for x_filter
     accum[0] = 0;
@@ -268,6 +269,7 @@ int filterIIR_1st(int pnt_i, volatile _SPM short (*x)[2], volatile _SPM short (*
     return 0;
 }
 
+//__attribute__((always_inline))
 int filterIIR_2nd(int pnt_i, volatile _SPM short (*x)[2], volatile _SPM short (*y)[2], volatile _SPM int *accum, volatile _SPM short *B, volatile _SPM short *A, int shiftLeft) {
     int pnt; //pointer for x_filter
     accum[0] = 0;
@@ -489,6 +491,7 @@ int filter_coeff_hp_lp(int FILT_ORD_1PL, volatile _SPM short *B, volatile _SPM s
     return 0;
 }
 
+__attribute__((always_inline))
 int allpass_comb(int AP_BUFF_LEN, volatile _SPM int *pnt, volatile short (*ap_buffer)[2], volatile _SPM short *x, volatile _SPM short *y, volatile _SPM short *g, int printa) {
     int accum[2];
     int ap_pnt = (*pnt + AP_BUFF_LEN - 1) % AP_BUFF_LEN;
@@ -513,16 +516,16 @@ int allpass_comb(int AP_BUFF_LEN, volatile _SPM int *pnt, volatile short (*ap_bu
     return 0;
 }
 
+__attribute__((always_inline))
 int combFilter_1st(int AUDIO_BUFF_LEN, volatile _SPM int *pnt, volatile short (*audio_buffer)[2], volatile _SPM short *y, volatile _SPM int *accum, volatile _SPM short *g, volatile _SPM int *del) {
-    int audio_pnt; //pointer for audio_buffer
     accum[0] = 0;
     accum[1] = 0;
-    for(int i=0; i<2; i++) { //2 for 1st order
-        audio_pnt = (*pnt+del[i])%AUDIO_BUFF_LEN;
-        //printf("for pnt=%d and del=%d: audio_pnt=%d\n", *pnt, del[i], audio_pnt);
-        accum[0] += (g[i]*audio_buffer[audio_pnt][0]) >> 6;
-        accum[1] += (g[i]*audio_buffer[audio_pnt][1]) >> 6;
-    }
+    int audio_pnt = (*pnt+del[0])%AUDIO_BUFF_LEN;
+    accum[0] += (g[0]*audio_buffer[audio_pnt][0]) >> 6;
+    accum[1] += (g[0]*audio_buffer[audio_pnt][1]) >> 6;
+    audio_pnt = (*pnt+del[1])%AUDIO_BUFF_LEN;
+    accum[0] += (g[1]*audio_buffer[audio_pnt][0]) >> 6;
+    accum[1] += (g[1]*audio_buffer[audio_pnt][1]) >> 6;
     //accumulator limits: [ (2^(30-6-1))-1 , -(2^(30-6-1)) ]
     //accumulator limits: [ 0x7FFFFF, 0x800000 ]
     // digital saturation
@@ -542,16 +545,19 @@ int combFilter_1st(int AUDIO_BUFF_LEN, volatile _SPM int *pnt, volatile short (*
     return 0;
 }
 
+__attribute__((always_inline))
 int combFilter_2nd(int AUDIO_BUFF_LEN, volatile _SPM int *pnt, volatile short (*audio_buffer)[2], volatile _SPM short *y, volatile _SPM int *accum, volatile _SPM short *g, volatile _SPM int *del) {
-    int audio_pnt; //pointer for audio_buffer
     accum[0] = 0;
     accum[1] = 0;
-    for(int i=0; i<3; i++) { //3 for 2nd order
-        audio_pnt = (*pnt+del[i])%AUDIO_BUFF_LEN;
-        //printf("for pnt=%d and del=%d: audio_pnt=%d\n", *pnt, del[i], audio_pnt);
-        accum[0] += (g[i]*audio_buffer[audio_pnt][0]) >> 6;
-        accum[1] += (g[i]*audio_buffer[audio_pnt][1]) >> 6;
-    }
+    int audio_pnt = (*pnt+del[0])%AUDIO_BUFF_LEN;
+    accum[0] += (g[0]*audio_buffer[audio_pnt][0]) >> 6;
+    accum[1] += (g[0]*audio_buffer[audio_pnt][1]) >> 6;
+    audio_pnt = (*pnt+del[1])%AUDIO_BUFF_LEN;
+    accum[0] += (g[1]*audio_buffer[audio_pnt][0]) >> 6;
+    accum[1] += (g[1]*audio_buffer[audio_pnt][1]) >> 6;
+    audio_pnt = (*pnt+del[2])%AUDIO_BUFF_LEN;
+    accum[0] += (g[2]*audio_buffer[audio_pnt][0]) >> 6;
+    accum[1] += (g[2]*audio_buffer[audio_pnt][1]) >> 6;
     //accumulator limits: [ (2^(30-6-1))-1 , -(2^(30-6-1)) ]
     //accumulator limits: [ 0x7FFFFF, 0x800000 ]
     // digital saturation
@@ -574,6 +580,7 @@ int combFilter_2nd(int AUDIO_BUFF_LEN, volatile _SPM int *pnt, volatile short (*
 //from 1/2! to 1/8!, represented as Q.15
 const short MCLAURIN_FACTOR[7] = { 0x4000, 0x1555, 0x555, 0x111, 0x2d, 0x6, 0x1};
 
+__attribute__((always_inline))
 int distortion(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int *accum) {
     int neg;
     if(x[0] > 0) {
@@ -609,6 +616,7 @@ int distortion(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int
     return 0;
 }
 
+__attribute__((always_inline))
 int fuzz(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int *accum, const int K, const int KonePlus, const int shiftLeft) {
     int accum1;
     int accum2;
@@ -629,6 +637,7 @@ int fuzz(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int *accu
     return 0;
 }
 
+__attribute__((always_inline))
 int overdrive(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int *accum) {
     //THRESHOLD IS 1/3 = 0x2AAB
     //input abs:

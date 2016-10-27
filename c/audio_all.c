@@ -16,34 +16,35 @@
 #define VIBRATO_LENGTH 150
 
 //-----------------LOCATION IN SCRATCHPAD MEMORY------------------------//
-#define FX_ADDR     0x00000000
-#define ACCUM_ADDR   ( FX_ADDR      + sizeof(int) )
+#define FX_ADDR       0x00000000
+#define ACCUM_ADDR    ( FX_ADDR       + sizeof(int) )
 //for simple input/output:
-#define X_ADDR       ( ACCUM_ADDR   + 2 * sizeof(int) )
-#define Y_ADDR       ( X_ADDR       + 2 * sizeof(short) )
+#define X_ADDR        ( ACCUM_ADDR    + 2 * sizeof(int) )
+#define Y_ADDR        ( X_ADDR        + 2 * sizeof(short) )
 //for filter buffers:
-#define B_ADDR       ( Y_ADDR       + 2 * sizeof(short) )
+#define B_ADDR        ( Y_ADDR        + 2 * sizeof(short) )
 #if ( (FILTER_ORDER_1PLUS % 2) == 0 ) //if it's even
-#define A_ADDR       ( B_ADDR       + FILTER_ORDER_1PLUS * sizeof(short) )
-#define X_FILT_ADDR  ( A_ADDR       + FILTER_ORDER_1PLUS * sizeof(short) )
+#define A_ADDR        ( B_ADDR        + FILTER_ORDER_1PLUS * sizeof(short) )
+#define X_FILT_ADDR   ( A_ADDR        + FILTER_ORDER_1PLUS * sizeof(short) )
 #else //if it's odd, align with 4-byte word:
-#define A_ADDR       ( B_ADDR       + FILTER_ORDER_1PLUS * sizeof(short) + 2 )
-#define X_FILT_ADDR  ( A_ADDR       + FILTER_ORDER_1PLUS * sizeof(short) + 2 )
+#define A_ADDR        ( B_ADDR        + FILTER_ORDER_1PLUS * sizeof(short) + 2 )
+#define X_FILT_ADDR   ( A_ADDR        + FILTER_ORDER_1PLUS * sizeof(short) + 2 )
 #endif
-#define Y_FILT_ADDR  ( X_FILT_ADDR  + 2 * FILTER_ORDER_1PLUS * sizeof(short) )
-#define OUTREG_ADDR  ( Y_FILT_ADDR  + 2 * FILTER_ORDER_1PLUS * sizeof(short) )
-#define PNT_ADDR     ( OUTREG_ADDR  + 2 * sizeof(int) )
-#define MOD_PNT_ADDR ( PNT_ADDR     + sizeof(int) )
-#define SFTLFT_ADDR  ( MOD_PNT_ADDR + sizeof(int) )
-#define G_ADDR       ( SFTLFT_ADDR  + sizeof(int) )
+#define Y_FILT_ADDR   ( X_FILT_ADDR   + 2 * FILTER_ORDER_1PLUS * sizeof(short) )
+#define OUTREG_ADDR   ( Y_FILT_ADDR   + 2 * FILTER_ORDER_1PLUS * sizeof(short) )
+#define PNT_ADDR      ( OUTREG_ADDR   + 2 * sizeof(int) )
+#define MOD_PNT1_ADDR ( PNT_ADDR      + sizeof(int) )
+#define MOD_PNT2_ADDR ( MOD_PNT1_ADDR + sizeof(int) )
+#define SFTLFT_ADDR   ( MOD_PNT2_ADDR + sizeof(int) )
+#define G_ADDR        ( SFTLFT_ADDR   + sizeof(int) )
 #if ( (COMB_FILTER_ORDER_1PLUS % 2) == 0 ) //if it's even
-#define DEL_ADDR     ( G_ADDR       + COMB_FILTER_ORDER_1PLUS * sizeof(short) )
+#define DEL_ADDR      ( G_ADDR        + COMB_FILTER_ORDER_1PLUS * sizeof(short) )
 #else // if it's odd
-#define DEL_ADDR     ( G_ADDR       + COMB_FILTER_ORDER_1PLUS * sizeof(short) + 2 ) //to align with 4-byte word
+#define DEL_ADDR      ( G_ADDR        + COMB_FILTER_ORDER_1PLUS * sizeof(short) + 2 ) //to align with 4-byte word
 #endif
-#define TREM_P_ADDR  ( DEL_ADDR     + COMB_FILTER_ORDER_1PLUS * sizeof(int) )
-#define VIBR_P_ADDR  ( TREM_P_ADDR  + sizeof(int) )
-#define ECHO_L_ADDR  ( VIBR_P_ADDR  + sizeof(int) )
+#define TREM_P_ADDR   ( DEL_ADDR      + COMB_FILTER_ORDER_1PLUS * sizeof(int) )
+#define VIBR_P_ADDR   ( TREM_P_ADDR   + sizeof(int) )
+#define ECHO_L_ADDR   ( VIBR_P_ADDR   + sizeof(int) )
 
 //--------------------variables in local SPM------------------------------//
 volatile _SPM int *FX              = (volatile _SPM int *)        FX_ADDR;
@@ -59,7 +60,8 @@ volatile _SPM short (*y_filter)[2] = (volatile _SPM short (*)[2]) Y_FILT_ADDR; /
 volatile _SPM int *outputReg       = (volatile _SPM int *)        OUTREG_ADDR; //needed for BPF, wah,,,
 
 volatile _SPM int *pnt             = (volatile _SPM int *)        PNT_ADDR; // audio pointer
-volatile _SPM int *mod_pnt         = (volatile _SPM int *)        MOD_PNT_ADDR; // modulation pointer
+volatile _SPM int *mod_pnt1        = (volatile _SPM int *)        MOD_PNT1_ADDR; // modulation pointer 1
+volatile _SPM int *mod_pnt2        = (volatile _SPM int *)        MOD_PNT2_ADDR; // modulation pointer 2
 volatile _SPM int *shiftLeft       = (volatile _SPM int *)        SFTLFT_ADDR; //shift left amount;
 //for comb filter effects:
 volatile _SPM short *g             = (volatile _SPM short *)      G_ADDR; // g[COMB_FILTER_ORDER_1PLUS]: array of gains [... g2, g1, g0]
@@ -262,15 +264,15 @@ int main() {
 
             if(*FX == 2) {
                 //TREMOLO
-                *mod_pnt = 0;
+                *mod_pnt1 = 0;
                 while(*keyReg != 3) {
                     //update pointer
-                    *mod_pnt = (*mod_pnt + 1) % *TREMOLO_P;
+                    *mod_pnt1 = (*mod_pnt1 + 1) % *TREMOLO_P;
                     //get input
                     getInputBufferSPM(&x[0], &x[1]);
                     //modulate amplitude and set output
-                    y[0] = (x[0] * usedArray[*mod_pnt]) >> 15;
-                    y[1] = (x[1] * usedArray[*mod_pnt]) >> 15;
+                    y[0] = (x[0] * usedArray[*mod_pnt1]) >> 15;
+                    y[1] = (x[1] * usedArray[*mod_pnt1]) >> 15;
                     setOutputBuffer(y[0], y[1]);
                 }
             }
@@ -312,20 +314,15 @@ int main() {
             if(*FX == 8) {
                 //VIBRATO
                 *pnt = VIBRATO_LENGTH - 1; //start on top
-                *mod_pnt = 0;
+                *mod_pnt1 = 0;
                 while(*keyReg != 3) {
                     //update delay
-                    del[0] = usedArray[*mod_pnt];
-                    *mod_pnt = (*mod_pnt + 1) % *VIBRATO_P;
+                    del[0] = usedArray[*mod_pnt1];
+                    *mod_pnt1 = (*mod_pnt1 + 1) % *VIBRATO_P;
                     //first, read sample
                     getInputBuffer(&audio_buffer[*pnt][0], &audio_buffer[*pnt][1]);
-                    /*
                     //calculate FIR comb filter
                     combFilter_1st(VIBRATO_LENGTH, pnt, audio_buffer, y, accum, g, del);
-                    */
-                    //simple vibrato:
-                    y[0] = audio_buffer[(*pnt+del[0])%VIBRATO_LENGTH][0];
-                    y[1] = audio_buffer[(*pnt+del[0])%VIBRATO_LENGTH][1];
                     //output sample
                     setOutputBuffer(y[0], y[1]);
                     //update pointer

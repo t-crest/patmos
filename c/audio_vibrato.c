@@ -95,6 +95,7 @@ int main() {
     printf("MAXDIFF IS %d, DIFF AMOUNT IS %d\n", maxDiff, diffAmount);
     */
 
+
     //set gains: for VIBRATO: only 1st delayed signal
     g[1] = 0; // g0 = 0;
     g[0] = ONE_16b-1; // g1 = 1;
@@ -103,7 +104,7 @@ int main() {
     del[1] = 0; // always d0 = 0
 
     //CPU cycles stuff
-    //int CPUcycles[1000] = {0};
+    int CPUcycles[1000] = {0};
 
     *pnt = FIR_BUFFER_LENGTH - 1; //start on top
     *v_pnt = 0;
@@ -113,13 +114,8 @@ int main() {
         *v_pnt = (*v_pnt + 1) % VIBRATO_PERIOD;
         //first, read sample
         getInputBuffer(&fir_buffer[*pnt][0], &fir_buffer[*pnt][1]);
-        /*
         //calculate FIR comb filter
         combFilter_1st(FIR_BUFFER_LENGTH, pnt, fir_buffer, y, accum, g, del);
-        */
-        //simple vibrato:
-        y[0] = fir_buffer[(*pnt+del[0])%FIR_BUFFER_LENGTH][0];
-        y[1] = fir_buffer[(*pnt+del[0])%FIR_BUFFER_LENGTH][1];
         //output sample
         setOutputBuffer(y[0], y[1]);
         //update pointer
@@ -129,20 +125,20 @@ int main() {
         else {
             *pnt = *pnt - 1;
         }
-        /*
+
         //store CPU Cycles
         CPUcycles[*v_pnt] = get_cpu_cycles();
         if(*v_pnt == 1000) {
             break;
         }
-        */
+
     }
-    /*
+
     //print CPU cycle time
     for(int i=1; i<1000; i++) {
         printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
-    */
+
 
     return 0;
 }
