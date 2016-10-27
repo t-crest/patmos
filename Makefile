@@ -160,7 +160,11 @@ hwsim:
 	$(MAKE) -C hardware test BOOTBUILDROOT=$(CURDIR) BOOTAPP=$(BOOTAPP)
 
 # Testing
-test: test_emu
+test: test_compile test_emu
+
+test_compile:
+	make emulator
+	
 test_sim: patsim
 	cd $(SIMBUILDDIR) && make test
 test_emu:

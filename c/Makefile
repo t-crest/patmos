@@ -115,8 +115,8 @@ $(BUILDDIR)/bootable-hello_sum_reduced.elf: bootable.h
 $(BUILDDIR)/bootable-mp_test.elf: bootable.h
 
 # touch the nocinit file
-$(NOCINIT):
-	touch $@
+#$(NOCINIT):
+#	touch $@
 
 # library for network-on-chip
 .PHONY: libnoc
