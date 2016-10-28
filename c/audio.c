@@ -237,6 +237,32 @@ int setOutputBuffer(short l, short r) {
 }
 
 
+
+//-----------------------VARIABLES IN SCRATCHPAD MEMORY------------------------//
+
+// LOCATION IN LOCAL SCRATCHPAD MEMORY
+#define ACCUM_ADDR  0x00000000
+#define DEL_ADDR    ( ACCUM_ADDR + 2 * sizeof(int) )
+#define FRAC_ADDR   ( DEL_ADDR   + sizeof(int) )
+#define PNT_ADDR    ( FRAC_ADDR  + sizeof(short) + 2 )
+#define V_PNT_ADDR  ( PNT_ADDR   + sizeof(int) )
+#define A_PNT_ADDR  ( V_PNT_ADDR + sizeof(int) )
+#define NA_PNT_ADDR ( A_PNT_ADDR + sizeof(int) )
+
+#define LAST_SPM_POS ( NA_PNT_ADDR + sizeof(int) )
+
+//SPM variables
+volatile _SPM int *accum             = (volatile _SPM int *)        ACCUM_ADDR;
+volatile _SPM int *del               = (volatile _SPM int *)        DEL_ADDR; // modulated delay
+volatile _SPM short *frac            = (volatile _SPM short *)      FRAC_ADDR; //fraction for interpol.
+volatile _SPM int *pnt               = (volatile _SPM int *)        PNT_ADDR; //audio input pointer
+volatile _SPM int *v_pnt             = (volatile _SPM int *)        V_PNT_ADDR; //vibrato array pointer
+volatile _SPM int *audio_pnt         = (volatile _SPM int *)        A_PNT_ADDR; //audio output pointer
+volatile _SPM int *n_audio_pnt       = (volatile _SPM int *)        NA_PNT_ADDR; //next audio o. pointer
+
+//---------------------------------------------------------------//
+
+
 //__attribute__((always_inline))
 int filterIIR_1st(int pnt_i, volatile _SPM short (*x)[2], volatile _SPM short (*y)[2], volatile _SPM int *accum, volatile _SPM short *B, volatile _SPM short *A, int shiftLeft) {
     int pnt; //pointer for x_filter
@@ -301,14 +327,13 @@ int filterIIR_2nd(int pnt_i, volatile _SPM short (*x)[2], volatile _SPM short (*
     return 0;
 }
 
-int storeSinInterpol(int *sinArray, int SIZE, int OFFSET, int AMP, short *fracArray, float *zeiger) {
+int storeSinInterpol(int *sinArray, short *fracArray, int SIZE, int OFFSET, int AMP) {
     printf("Storing sin array and frac array...\n");
-    //float zeiger;
+    float zeiger;
     for(int i=0; i<SIZE; i++) {
-        zeiger[i] = (float)OFFSET + ((float)AMP)*sin(2.0*M_PI* i / SIZE);
-        sinArray[i] = (int)floor(zeiger[i]);
-        fracArray[i] = (zeiger[i]-(float)sinArray[i])*(pow(2,15)-1);
-        //printf("zeiger=%f, sinArray[%d]=%d, fracArray[%d]=%d\n", zeiger, i, sinArray[i], i, fracArray[i]);
+        zeiger = (float)OFFSET + ((float)AMP)*sin(2.0*M_PI* i / SIZE);
+        sinArray[i] = (int)floor(zeiger);
+        fracArray[i] = (zeiger-(float)sinArray[i])*(pow(2,15)-1);
     }
     printf("Sin array and frac array storage done\n");
 
@@ -689,6 +714,42 @@ int overdrive(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int 
                 y[j] = x[j] << 1;
             }
         }
+    }
+
+    return 0;
+}
+
+
+
+
+
+
+
+
+//----------------------------COMPLETE AUDIO FUNCTIONS---------------------------------//
+
+__attribute__((always_inline))
+int audio_vibrato(int VIBR_P, volatile _SPM short *x, volatile _SPM short *y) {
+    //update delay pointers
+    *del = usedSin[*v_pnt];
+    *frac = fracArray[*v_pnt];
+    *v_pnt = (*v_pnt + 1) % VIBR_P;
+    //vibrato pointers:
+    *audio_pnt = (*pnt+*del)%FIR_BUFFER_LENGTH;
+    *n_audio_pnt = (*pnt+*del+1)%FIR_BUFFER_LENGTH;
+    for(int i=0; i<2; i++) { //stereo
+        //first, read sample
+        fir_buffer[*pnt][i] = x[i];
+        accum[i] =  (fir_buffer[*n_audio_pnt][i]*(*frac)) >> 15;
+        accum[i] += (fir_buffer[*audio_pnt][i]*(ONE_16b-*frac)) >> 15;
+        y[i] = accum[i] >> 0;
+    }
+    //update input pointer
+    if(*pnt == 0) {
+        *pnt = FIR_BUFFER_LENGTH - 1;
+    }
+    else {
+        *pnt = *pnt - 1;
     }
 
     return 0;

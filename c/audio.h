@@ -55,7 +55,7 @@ int     setInputBufferSize(int bufferSize);
 //audio operations
 int     filterIIR(int FILT_ORD_1PL, volatile _SPM int *pnt_i, volatile _SPM short (*x)[2], volatile _SPM short (*y)[2], volatile _SPM int *accum, volatile _SPM short *B, volatile _SPM short *A, int shiftLeft);
 int     storeSin(int *sinArray, int SIZE, int OFFSET, int AMP);
-int     storeSinInterpol(int *sinArray, int SIZE, int OFFSET, int AMP, short *fracArray, float *zeiger);
+int     storeSinInterpol(int *sinArray, short *fracArray, int SIZE, int OFFSET, int AMP);
 int     filter_coeff_bp_br(int FILT_ORD_1PL, volatile _SPM short *B, volatile _SPM short *A, int Fc, int Fb, volatile _SPM int *shiftLeft, int fixedShift);
 int     filter_coeff_hp_lp(int FILT_ORD_1PL, volatile _SPM short *B, volatile _SPM short *A, int Fc, float Q, volatile _SPM int *shiftLeft, int fixedShift, int type);
 int     combFilter_1st(int AUDIO_BUFF_LEN, volatile _SPM int *pnt, volatile short (*audio_buffer)[2], volatile _SPM short *y, volatile _SPM int *accum, volatile _SPM short *g, volatile _SPM int *del);
@@ -63,5 +63,15 @@ int     combFilter_2nd(int AUDIO_BUFF_LEN, volatile _SPM int *pnt, volatile shor
 int     distortion(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int *accum);
 int     fuzz(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int *accum, const int K, const int KonePlus, const int shiftLeft);
 int     overdrive(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int *accum);
+
+
+
+//----------------------------COMPLETE AUDIO FUNCTIONS---------------------------------//
+
+
+
+
+int audio_vibrato(int VIBR_P, volatile _SPM short *x, volatile _SPM short *y);
+
 
 #endif

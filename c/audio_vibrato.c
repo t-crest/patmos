@@ -21,41 +21,24 @@
 #include "audio.c"
 
 
-// LOCATION IN LOCAL SCRATCHPAD MEMORY
-#define ACCUM_ADDR 0x00000000
-#define Y_ADDR     ( ACCUM_ADDR  + 2 * sizeof(int) )
-#define G_ADDR     ( Y_ADDR      + 2 * sizeof(short) )
 
-#if ( (COMB_FILTER_ORDER_1PLUS % 2) == 0 ) //if it's even
-#define DEL_ADDR   ( G_ADDR      + COMB_FILTER_ORDER_1PLUS * sizeof(short) )
-#else // if it's odd
-#define DEL_ADDR   ( G_ADDR      + COMB_FILTER_ORDER_1PLUS * sizeof(short) + 2 ) //to align with 4-byte word
-#endif
+#define X_ADDR      LAST_SPM_POS
+#define Y_ADDR      ( X_ADDR     + 2 * sizeof(short) )
 
-#define PNT_ADDR   ( DEL_ADDR    + COMB_FILTER_ORDER_1PLUS * sizeof(int) )
-#define V_PNT_ADDR ( PNT_ADDR    + sizeof(int) )
-
-//SPM variables
-volatile _SPM int *accum             = (volatile _SPM int *)        ACCUM_ADDR;
+volatile _SPM short *x               = (volatile _SPM short *)      X_ADDR; // x[2]: input
 volatile _SPM short *y               = (volatile _SPM short *)      Y_ADDR; // y[2]: output
-volatile _SPM short *g               = (volatile _SPM short *)      G_ADDR; // g[COMB_FILTER_ORDER_1PLUS]: array of gains [... g2, g1, g0]
-volatile _SPM int *del               = (volatile _SPM int *)        DEL_ADDR; // del[COMB_FILTER_ORDER_1PLUS]: array of delays [...d2, d1, 0]
-volatile _SPM int *pnt               = (volatile _SPM int *)        PNT_ADDR; //pointer indicates last position of fir_buffer
-volatile _SPM int *v_pnt             = (volatile _SPM int *)        V_PNT_ADDR; //pointer for vibrato sin array
 
 //variables in external SRAM
 volatile short fir_buffer[FIR_BUFFER_LENGTH][2];
-//for sinus:
-int sinArray[Fs]; //maximum period: 1 secod
 //decide vibrato period here:
 const int VIBRATO_PERIOD = Fs/4;
-int usedArray[VIBRATO_PERIOD];
+//for sinus:
+int usedSin[VIBRATO_PERIOD];
 short fracArray[VIBRATO_PERIOD];
-float zeiger[VIBRATO_PERIOD];
 
 int main() {
 
-    setup(1); //for guitar
+    setup(0); //for guitar
 
     // enable input and output
     *audioDacEnReg = 1;
@@ -64,94 +47,19 @@ int main() {
     setInputBufferSize(BUFFER_SIZE);
     setOutputBufferSize(BUFFER_SIZE);
 
-    /*
-    //store sin: 1 second betwen -1 and 1
-    storeSin(sinArray, Fs, 0, ONE_16b);
-    //calculate interpolated array:
-    float arrayDivider = (float)Fs/(float)VIBRATO_PERIOD;
-    printf("Array Divider is: %f\n", arrayDivider);
-    float mult1 = (FIR_BUFFER_LENGTH-1)*0.5;
-    printf("Downsampling sin...\n");
-    for(int i=0; i<VIBRATO_PERIOD; i++) {
-        //offset = (FIR_BUFF-1)*0.5, amplitude = (FIR_BUFF-1)*0.5
-        usedArray[i] = mult1 + (mult1/ONE_16b)*sinArray[(int)floor(i*arrayDivider)];
-    }
-    printf("Done!\n");
-    */
     //old way:
-    storeSinInterpol(usedArray, VIBRATO_PERIOD, (FIR_BUFFER_LENGTH*0.5), ((FIR_BUFFER_LENGTH-4)*0.5), fracArray, zeiger);
-
-    for(int i=(int)(VIBRATO_PERIOD/4)-2; i<(int)(VIBRATO_PERIOD/4)+2; i++) {
-        printf("for %d: uA=%d, fA=%d, ze=%f\n", i, usedArray[i], fracArray[i], zeiger[i]);
-    }
-    for(int i=(int)(3*VIBRATO_PERIOD/4)-2; i<(int)(3*VIBRATO_PERIOD/4)+2; i++) {
-        printf("for %d: uA=%d, fA=%d, ze=%f\n", i, usedArray[i], fracArray[i], zeiger[i]);
-    }
-    /*
-    int maxDiff = 0;
-    int diffAmount = 0;
-    for(int i=0; i<VIBRATO_PERIOD; i++) {
-        if(usedArray[i] != usedArray2[i]) {
-            diffAmount++;
-            int diff = abs(usedArray[i]-usedArray2[i]);
-            printf("1 is %d, 2 is %d, difference is %d\n", usedArray[i], usedArray2[i], diff);
-            if(diff > maxDiff) {
-                maxDiff = diff;
-            }
-        }
-    }
-    printf("MAXDIFF IS %d, DIFF AMOUNT IS %d\n", maxDiff, diffAmount);
-    */
-
-
-    //set gains: for VIBRATO: only 1st delayed signal
-    g[1] = 0; // g0 = 0;
-    g[0] = ONE_16b-1; // g1 = 1;
-
-    //set delays: first, fixed:
-    del[1] = 0; // always d0 = 0
+    storeSinInterpol(usedSin, fracArray, VIBRATO_PERIOD, (FIR_BUFFER_LENGTH*0.5), ((FIR_BUFFER_LENGTH-4)*0.5));
 
     //CPU cycles stuff
     //int CPUcycles[1000] = {0};
 
+    //initialise vibrato variables
     *pnt = FIR_BUFFER_LENGTH - 1; //start on top
     *v_pnt = 0;
-    int audio_pnt;
-    short frac;
-    float zeig;
     while(*keyReg != 3) {
-        //update delay
-        del[0] = usedArray[*v_pnt];
-        frac = fracArray[*v_pnt];
-        zeig = zeiger[*v_pnt];
-        //printf("del[0]=%d, frac=%d, zeig=%f\n", del[0], frac, zeig);
-        *v_pnt = (*v_pnt + 1) % VIBRATO_PERIOD;
-        //first, read sample
-        getInputBuffer(&fir_buffer[*pnt][0], &fir_buffer[*pnt][1]);
-        //calculate FIR comb filter
-        //combFilter_1st(FIR_BUFFER_LENGTH, pnt, fir_buffer, y, accum, g, del);
-        //with interpolation:
-        audio_pnt = (*pnt+del[0])%FIR_BUFFER_LENGTH;
-        //printf("for pnt=%d, audio_pnt=%d:\n", *pnt, audio_pnt);
-        //printf("fir_buffer[%d][0]=%d, fir_buffer[%d][0]=%d\n", audio_pnt, fir_buffer[audio_pnt][0], audio_pnt+1, fir_buffer[audio_pnt+1][0]);
-        accum[0] =  (fir_buffer[(audio_pnt+1)%FIR_BUFFER_LENGTH][0]*frac) >> 15;
-        //printf("1st accum[0]=%d\n", accum[0]);
-        accum[0] += (fir_buffer[audio_pnt][0]*(ONE_16b+1-frac)) >> 15;
-        //printf("2nd accum[0]=%d\n", accum[0]);
-        y[0] = accum[0] >> 0;
-        //printf("out is y[0]=%d\n", y[0]);
-        accum[1] =  (fir_buffer[(audio_pnt+1)%FIR_BUFFER_LENGTH][1]*frac) >> 15;
-        accum[1] += (fir_buffer[audio_pnt][1]*(ONE_16b+1-frac)) >> 15;
-        y[1] = accum[1] >> 0;
-        //output sample
+        getInputBufferSPM(&x[0], &x[1]);
+        audio_vibrato(VIBRATO_PERIOD, x, y);
         setOutputBuffer(y[0], y[1]);
-        //update pointer
-        if(*pnt == 0) {
-            *pnt = FIR_BUFFER_LENGTH - 1;
-        }
-        else {
-            *pnt = *pnt - 1;
-        }
         /*
         //store CPU Cycles
         CPUcycles[*v_pnt] = get_cpu_cycles();
