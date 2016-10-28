@@ -50,7 +50,7 @@ int sinArray[Fs]; //maximum period: 1 secod
 //decide vibrato period here:
 const int VIBRATO_PERIOD = Fs/4;
 int usedArray[VIBRATO_PERIOD];
-int usedArray2[VIBRATO_PERIOD];
+short fracArray[VIBRATO_PERIOD];
 
 int main() {
 
@@ -63,10 +63,9 @@ int main() {
     setInputBufferSize(BUFFER_SIZE);
     setOutputBufferSize(BUFFER_SIZE);
 
-
+    /*
     //store sin: 1 second betwen -1 and 1
     storeSin(sinArray, Fs, 0, ONE_16b);
-
     //calculate interpolated array:
     float arrayDivider = (float)Fs/(float)VIBRATO_PERIOD;
     printf("Array Divider is: %f\n", arrayDivider);
@@ -77,9 +76,10 @@ int main() {
         usedArray[i] = mult1 + (mult1/ONE_16b)*sinArray[(int)floor(i*arrayDivider)];
     }
     printf("Done!\n");
-    /*
+    */
     //old way:
-    storeSin(usedArray2, VIBRATO_PERIOD, ((FIR_BUFFER_LENGTH-1)*0.5), ((FIR_BUFFER_LENGTH-1)*0.5));
+    storeSinInterpol(usedArray, VIBRATO_PERIOD, ((FIR_BUFFER_LENGTH-1)*0.5), ((FIR_BUFFER_LENGTH-1)*0.5), fracArray);
+    /*
     int maxDiff = 0;
     int diffAmount = 0;
     for(int i=0; i<VIBRATO_PERIOD; i++) {
@@ -108,14 +108,23 @@ int main() {
 
     *pnt = FIR_BUFFER_LENGTH - 1; //start on top
     *v_pnt = 0;
+    int audio_pnt;
+    short frac;
     while(*keyReg != 3) {
         //update delay
         del[0] = usedArray[*v_pnt];
+        frac = fracArray[*v_pnt];
         *v_pnt = (*v_pnt + 1) % VIBRATO_PERIOD;
         //first, read sample
         getInputBuffer(&fir_buffer[*pnt][0], &fir_buffer[*pnt][1]);
         //calculate FIR comb filter
-        combFilter_1st(FIR_BUFFER_LENGTH, pnt, fir_buffer, y, accum, g, del);
+        //combFilter_1st(FIR_BUFFER_LENGTH, pnt, fir_buffer, y, accum, g, del);
+        //with interpolation:
+        audio_pnt = (*pnt+del[0])%FIR_BUFFER_LENGTH;
+        accum[0] =  (fir_buffer[audio_pnt+1][0]*frac) >> 15;
+        y[0] = (accum[0] + fir_buffer[audio_pnt][0]*(ONE_16b-frac)) >> 15;
+        accum[1] =  (fir_buffer[audio_pnt+1][1]*frac) >> 15;
+        y[1] = (accum[1] + fir_buffer[audio_pnt][1]*(ONE_16b-frac)) >> 15;
         //output sample
         setOutputBuffer(y[0], y[1]);
         //update pointer
@@ -125,13 +134,13 @@ int main() {
         else {
             *pnt = *pnt - 1;
         }
-
+        /*
         //store CPU Cycles
         CPUcycles[*v_pnt] = get_cpu_cycles();
         if(*v_pnt == 1000) {
             break;
         }
-
+        */
     }
 
     //print CPU cycle time

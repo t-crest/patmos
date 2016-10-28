@@ -301,6 +301,19 @@ int filterIIR_2nd(int pnt_i, volatile _SPM short (*x)[2], volatile _SPM short (*
     return 0;
 }
 
+int storeSinInterpol(int *sinArray, int SIZE, int OFFSET, int AMP, short *fracArray) {
+    printf("Storing sin array and frac array...\n");
+    float zeiger;
+    for(int i=0; i<SIZE; i++) {
+        zeiger = (float)OFFSET + ((float)AMP)*sin(2.0*M_PI* i / SIZE);
+        sinArray[i] = (int)floor(zeiger);
+        fracArray[i] = (zeiger-(float)sinArray[i])*pow(2,15);
+    }
+    printf("Sin array and frac array storage done\n");
+
+    return 0;
+}
+
 int storeSin(int *sinArray, int SIZE, int OFFSET, int AMP) {
     printf("Storing sin array...\n");
     for(int i=0; i<SIZE; i++) {
