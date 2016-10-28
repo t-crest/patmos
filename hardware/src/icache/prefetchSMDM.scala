@@ -126,6 +126,7 @@ class PFSMDM extends Module {
         index_R := next_rom(index_R)
         status_R(depth_rom(index_R)) := Mux(((iteration_rom(index_R)) === UInt(1)), UInt(2), UInt(1)) 
 	iteration_outer_R(depth_rom(index_R)) := iteration_rom(index_R) - UInt(1)
+	en_seq := Mux((trigger_rom(index_R) === destination_rom(index_R)), Bool(true), Bool(false))  //loop is in one cache line
       } 
       when (loop_iteration && loops && (!change_state) && index_match && line_change) { //loop
         // next iteration of the outer loop
@@ -133,6 +134,7 @@ class PFSMDM extends Module {
         index_R := next_rom(index_R)
 	iteration_outer_R(depth_rom(index_R)) := iteration_outer_R(depth_rom(index_R)) - UInt(1)
 	status_R(depth_rom(index_R)) := Mux((iteration_outer_R(depth_rom(index_R)) === UInt(1)), UInt(2), UInt(1)) // if last iteration, change to exhausted
+	en_seq := Mux((trigger_rom(index_R) === destination_rom(index_R)), Bool(true), Bool(false)) // loop is in one cache line 
       }
       when (loop_exit && loops && (!change_state) && index_match && line_change) { //loop
         // loop is already "exhausted"
