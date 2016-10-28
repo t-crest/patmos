@@ -163,6 +163,7 @@ hwsim:
 test: test_compile test_emu
 
 test_compile:
+	make clean
 	make emulator
 	
 test_sim: patsim
