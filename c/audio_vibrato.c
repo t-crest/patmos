@@ -8,33 +8,25 @@
 #define BUFFER_SIZE 128
 #define Fs 52083 // Hz
 
-#define COMB_FILTER_ORDER_1PLUS 2
-
 /* Vibrato:
      -Buffer Length sets the amount of vibrato: amplitude of sin
      -Vibrato period sets the rate of the vibrato: period of sin
 */
 
-#define FIR_BUFFER_LENGTH 150 // for a delay of up to 10 150*10e3 / 52083 = ms
+#define VIBR_BUF_LEN 150 // for a delay of up to 10 150*10e3 / 52083 = ms
+const int VIBR_P = Fs/4;
 
 #include "audio.h"
 #include "audio.c"
 
 
-
-#define X_ADDR      LAST_SPM_POS
+//SPM addresses
+#define X_ADDR      0x00000000
 #define Y_ADDR      ( X_ADDR     + 2 * sizeof(short) )
-
+#define LAST_ADDR   ( Y_ADDR     + 2 * sizeof(short) )
+//SPM vars
 volatile _SPM short *x               = (volatile _SPM short *)      X_ADDR; // x[2]: input
 volatile _SPM short *y               = (volatile _SPM short *)      Y_ADDR; // y[2]: output
-
-//variables in external SRAM
-volatile short fir_buffer[FIR_BUFFER_LENGTH][2];
-//decide vibrato period here:
-const int VIBRATO_PERIOD = Fs/4;
-//for sinus:
-int usedSin[VIBRATO_PERIOD];
-short fracArray[VIBRATO_PERIOD];
 
 int main() {
 
@@ -48,14 +40,18 @@ int main() {
     setOutputBufferSize(BUFFER_SIZE);
 
     //old way:
-    storeSinInterpol(usedSin, fracArray, VIBRATO_PERIOD, (FIR_BUFFER_LENGTH*0.5), ((FIR_BUFFER_LENGTH-4)*0.5));
+    storeSinInterpol(vibrSin, vibrFrac, VIBR_P, (VIBRATO_LENGTH*0.5), ((VIBRATO_LENGTH-1)*0.5));
+
+    //initialise last SPM position pointer
+    int *ADDR;
+    *ADDR = LAST_ADDR;
+
+    int VIBR_ALLOC_AMOUNT = alloc_vibrato_vars(ADDR);
 
     //CPU cycles stuff
     //int CPUcycles[1000] = {0};
 
-    //initialise vibrato variables
-    *pnt = FIR_BUFFER_LENGTH - 1; //start on top
-    *v_pnt = 0;
+
     while(*keyReg != 3) {
         getInputBufferSPM(&x[0], &x[1]);
         audio_vibrato(VIBRATO_PERIOD, x, y);

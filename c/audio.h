@@ -70,7 +70,7 @@ int     overdrive(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM 
 
 
 
-
+int alloc_vibrato_vars(int *ADDR);
 int audio_vibrato(int VIBR_P, volatile _SPM short *x, volatile _SPM short *y);
 
 
