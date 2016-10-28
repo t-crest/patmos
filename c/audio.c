@@ -301,13 +301,14 @@ int filterIIR_2nd(int pnt_i, volatile _SPM short (*x)[2], volatile _SPM short (*
     return 0;
 }
 
-int storeSinInterpol(int *sinArray, int SIZE, int OFFSET, int AMP, short *fracArray) {
+int storeSinInterpol(int *sinArray, int SIZE, int OFFSET, int AMP, short *fracArray, float *zeiger) {
     printf("Storing sin array and frac array...\n");
-    float zeiger;
+    //float zeiger;
     for(int i=0; i<SIZE; i++) {
-        zeiger = (float)OFFSET + ((float)AMP)*sin(2.0*M_PI* i / SIZE);
-        sinArray[i] = (int)floor(zeiger);
-        fracArray[i] = (zeiger-(float)sinArray[i])*pow(2,15);
+        zeiger[i] = (float)OFFSET + ((float)AMP)*sin(2.0*M_PI* i / SIZE);
+        sinArray[i] = (int)floor(zeiger[i]);
+        fracArray[i] = (zeiger[i]-(float)sinArray[i])*(pow(2,15)-1);
+        //printf("zeiger=%f, sinArray[%d]=%d, fracArray[%d]=%d\n", zeiger, i, sinArray[i], i, fracArray[i]);
     }
     printf("Sin array and frac array storage done\n");
 

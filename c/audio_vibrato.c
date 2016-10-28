@@ -51,10 +51,11 @@ int sinArray[Fs]; //maximum period: 1 secod
 const int VIBRATO_PERIOD = Fs/4;
 int usedArray[VIBRATO_PERIOD];
 short fracArray[VIBRATO_PERIOD];
+float zeiger[VIBRATO_PERIOD];
 
 int main() {
 
-    setup(0); //for guitar
+    setup(1); //for guitar
 
     // enable input and output
     *audioDacEnReg = 1;
@@ -78,7 +79,14 @@ int main() {
     printf("Done!\n");
     */
     //old way:
-    storeSinInterpol(usedArray, VIBRATO_PERIOD, ((FIR_BUFFER_LENGTH-1)*0.5), ((FIR_BUFFER_LENGTH-1)*0.5), fracArray);
+    storeSinInterpol(usedArray, VIBRATO_PERIOD, (FIR_BUFFER_LENGTH*0.5), ((FIR_BUFFER_LENGTH-4)*0.5), fracArray, zeiger);
+
+    for(int i=(int)(VIBRATO_PERIOD/4)-2; i<(int)(VIBRATO_PERIOD/4)+2; i++) {
+        printf("for %d: uA=%d, fA=%d, ze=%f\n", i, usedArray[i], fracArray[i], zeiger[i]);
+    }
+    for(int i=(int)(3*VIBRATO_PERIOD/4)-2; i<(int)(3*VIBRATO_PERIOD/4)+2; i++) {
+        printf("for %d: uA=%d, fA=%d, ze=%f\n", i, usedArray[i], fracArray[i], zeiger[i]);
+    }
     /*
     int maxDiff = 0;
     int diffAmount = 0;
@@ -104,16 +112,19 @@ int main() {
     del[1] = 0; // always d0 = 0
 
     //CPU cycles stuff
-    int CPUcycles[1000] = {0};
+    //int CPUcycles[1000] = {0};
 
     *pnt = FIR_BUFFER_LENGTH - 1; //start on top
     *v_pnt = 0;
     int audio_pnt;
     short frac;
+    float zeig;
     while(*keyReg != 3) {
         //update delay
         del[0] = usedArray[*v_pnt];
         frac = fracArray[*v_pnt];
+        zeig = zeiger[*v_pnt];
+        //printf("del[0]=%d, frac=%d, zeig=%f\n", del[0], frac, zeig);
         *v_pnt = (*v_pnt + 1) % VIBRATO_PERIOD;
         //first, read sample
         getInputBuffer(&fir_buffer[*pnt][0], &fir_buffer[*pnt][1]);
@@ -121,10 +132,17 @@ int main() {
         //combFilter_1st(FIR_BUFFER_LENGTH, pnt, fir_buffer, y, accum, g, del);
         //with interpolation:
         audio_pnt = (*pnt+del[0])%FIR_BUFFER_LENGTH;
-        accum[0] =  (fir_buffer[audio_pnt+1][0]*frac) >> 15;
-        y[0] = (accum[0] + fir_buffer[audio_pnt][0]*(ONE_16b-frac)) >> 15;
-        accum[1] =  (fir_buffer[audio_pnt+1][1]*frac) >> 15;
-        y[1] = (accum[1] + fir_buffer[audio_pnt][1]*(ONE_16b-frac)) >> 15;
+        //printf("for pnt=%d, audio_pnt=%d:\n", *pnt, audio_pnt);
+        //printf("fir_buffer[%d][0]=%d, fir_buffer[%d][0]=%d\n", audio_pnt, fir_buffer[audio_pnt][0], audio_pnt+1, fir_buffer[audio_pnt+1][0]);
+        accum[0] =  (fir_buffer[(audio_pnt+1)%FIR_BUFFER_LENGTH][0]*frac) >> 15;
+        //printf("1st accum[0]=%d\n", accum[0]);
+        accum[0] += (fir_buffer[audio_pnt][0]*(ONE_16b+1-frac)) >> 15;
+        //printf("2nd accum[0]=%d\n", accum[0]);
+        y[0] = accum[0] >> 0;
+        //printf("out is y[0]=%d\n", y[0]);
+        accum[1] =  (fir_buffer[(audio_pnt+1)%FIR_BUFFER_LENGTH][1]*frac) >> 15;
+        accum[1] += (fir_buffer[audio_pnt][1]*(ONE_16b+1-frac)) >> 15;
+        y[1] = accum[1] >> 0;
         //output sample
         setOutputBuffer(y[0], y[1]);
         //update pointer
@@ -142,12 +160,12 @@ int main() {
         }
         */
     }
-
+    /*
     //print CPU cycle time
     for(int i=1; i<1000; i++) {
         printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
-
+    */
 
     return 0;
 }
