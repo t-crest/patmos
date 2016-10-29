@@ -77,7 +77,8 @@ int     overdrive(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM 
 const int CORES_AMOUNT = 4;
 int addr[CORES_AMOUNT] = {0};
 
-void readAudio(short *thisFX);
+void audioIn(short *thisFX);
+void audioOut(short *thisFX);
 
 struct Vibrato {
     //SPM variables
