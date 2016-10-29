@@ -5,6 +5,9 @@
 #ifndef AUDIO_H
 #define AUDIO_H
 
+#define ONE_16b 0x7FFF
+#define BUFFER_SIZE 128
+#define Fs 52083 // Hz
 
 //Leds
 volatile _SPM int *ledReg = (volatile _SPM int *) 0xF0090000;
@@ -68,10 +71,33 @@ int     overdrive(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM 
 
 //----------------------------COMPLETE AUDIO FUNCTIONS---------------------------------//
 
+#define VIBRATO_L 150 // modulation amount in samples (amp of sin)
+#define VIBRATO_P (int)(Fs/4) // period of vibrato (period of sin)
 
+const int CORES_AMOUNT = 4;
+int addr[CORES_AMOUNT] = {0};
 
-int alloc_vibrato_vars(int *ADDR);
-int audio_vibrato(int VIBR_P, volatile _SPM short *x, volatile _SPM short *y);
+void readAudio(short *thisFX);
+
+struct Vibrato {
+    //SPM variables
+    volatile _SPM short *x; //input audio x[2]
+    volatile _SPM short *y; //output audio y[2]
+    volatile _SPM int   *accum; //accummulator accum[2]
+    volatile _SPM int   *del; // delay
+    volatile _SPM short *frac; //fraction for interpol.
+    volatile _SPM int   *pnt; //audio input pointer
+    volatile _SPM int   *v_pnt; //vibrato array pointer
+    volatile _SPM int   *audio_pnt; //audio output pointer
+    volatile _SPM int   *n_audio_pnt; //next audio o. pointer
+    //SRAM variables
+    short audio_buff[VIBRATO_L][2];
+    int sinArray[VIBRATO_P];
+    short fracArray[VIBRATO_P];
+};
+
+int alloc_vibrato_vars(struct Vibrato *vibr, int coreNumber);
+int audio_vibrato(struct Vibrato *vibr);
 
 
 #endif
