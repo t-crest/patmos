@@ -698,15 +698,15 @@ int overdrive(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int 
 
 /*            GLOBAL VARS (external SRAM)          */
 
-void audioIn(short *thisFX) {
-    getInputBuffer(&thisFX[0], &thisFX[1]); // x[0], x[1]
+void audioIn(struct AudioFX *thisFX) {
+    getInputBufferSPM(&thisFX->x[0], &thisFX->x[1]);
 }
 
-void audioOut(short *thisFX) {
-    setOutputBuffer(thisFX[2], thisFX[3]); //y[0], y[1]
+void audioOut(struct AudioFX *thisFX) {
+    setOutputBuffer(thisFX->y[0], thisFX->y[1]);
 }
 
-int alloc_vibrato_vars(struct Vibrato *vibr, int coreNumber) {
+int alloc_vibrato_vars(struct Vibrato *vibrP, int coreNumber) {
     printf("---------------VIBRATO INITIALISATION---------------\n");
     printf("Last free position at SPM of core %d is %d\n", coreNumber, addr[coreNumber]);
     // LOCATION IN LOCAL SCRATCHPAD MEMORY
@@ -721,22 +721,22 @@ int alloc_vibrato_vars(struct Vibrato *vibr, int coreNumber) {
     const int VIBR_NA_PNT = VIBR_A_PNT + sizeof(int);
 
     //SPM variables
-    vibr->x           = ( volatile _SPM short *) VIBR_X;
-    vibr->y           = ( volatile _SPM short *) VIBR_Y;
-    vibr->accum       = ( volatile _SPM int *)   VIBR_ACCUM;
-    vibr->del         = ( volatile _SPM int *)   VIBR_DEL;
-    vibr->frac        = ( volatile _SPM short *) VIBR_FRAC;
-    vibr->pnt         = ( volatile _SPM int *)   VIBR_PNT;
-    vibr->v_pnt       = ( volatile _SPM int *)   VIBR_V_PNT;
-    vibr->audio_pnt   = ( volatile _SPM int *)   VIBR_A_PNT;
-    vibr->n_audio_pnt = ( volatile _SPM int *)   VIBR_NA_PNT;
+    vibrP->x           = ( volatile _SPM short *) VIBR_X;
+    vibrP->y           = ( volatile _SPM short *) VIBR_Y;
+    vibrP->accum       = ( volatile _SPM int *)   VIBR_ACCUM;
+    vibrP->del         = ( volatile _SPM int *)   VIBR_DEL;
+    vibrP->frac        = ( volatile _SPM short *) VIBR_FRAC;
+    vibrP->pnt         = ( volatile _SPM int *)   VIBR_PNT;
+    vibrP->v_pnt       = ( volatile _SPM int *)   VIBR_V_PNT;
+    vibrP->audio_pnt   = ( volatile _SPM int *)   VIBR_A_PNT;
+    vibrP->n_audio_pnt = ( volatile _SPM int *)   VIBR_NA_PNT;
 
     //modulation storage
-    storeSinInterpol(vibr->sinArray, vibr->fracArray, VIBRATO_P, (VIBRATO_L*0.5), ((VIBRATO_L-1)*0.5));
+    storeSinInterpol(vibrP->sinArray, vibrP->fracArray, VIBRATO_P, (VIBRATO_L*0.5), ((VIBRATO_L-1)*0.5));
 
     //initialise vibrato variables
-    *vibr->pnt = VIBRATO_L - 1; //start on top
-    *vibr->v_pnt = 0;
+    *vibrP->pnt = VIBRATO_L - 1; //start on top
+    *vibrP->v_pnt = 0;
 
     //return new address
     int ALLOC_AMOUNT = (VIBR_NA_PNT + sizeof(int)) - addr[coreNumber];
@@ -750,36 +750,30 @@ int alloc_vibrato_vars(struct Vibrato *vibr, int coreNumber) {
 
 
 __attribute__((always_inline))
-int audio_vibrato(struct Vibrato *vibr) {
+int audio_vibrato(struct Vibrato *vibrP) {
     //update delay pointers
-    *vibr->del = vibr->sinArray[*vibr->v_pnt];
-    *vibr->frac = vibr->fracArray[*vibr->v_pnt];
-    short frac1Minus = ONE_16b-*vibr->frac;
-    *vibr->v_pnt = ( *vibr->v_pnt + 1 )%VIBRATO_P;
+    *vibrP->del = vibrP->sinArray[*vibrP->v_pnt];
+    *vibrP->frac = vibrP->fracArray[*vibrP->v_pnt];
+    short frac1Minus = ONE_16b-*vibrP->frac;
+    *vibrP->v_pnt = ( *vibrP->v_pnt + 1 )%VIBRATO_P;
     //vibrato pointers:
-    *vibr->audio_pnt   = (*vibr->pnt+*vibr->del)%VIBRATO_L;
-    //printf("at v_pnt=%d: for pnt=%d, del=%d: audio_pnt=%d\n", *vibr->v_pnt, *vibr->pnt, *vibr->del, *vibr->audio_pnt);
-    *vibr->n_audio_pnt = (*vibr->pnt+*vibr->del+1)%VIBRATO_L;
-    //printf("at v_pnt=%d: for pnt=%d, del=%d: n_audio_pnt=%d\n", *vibr->v_pnt, *vibr->pnt, *vibr->del, *vibr->n_audio_pnt);
+    *vibrP->audio_pnt   = (*vibrP->pnt+*vibrP->del)%VIBRATO_L;
+    *vibrP->n_audio_pnt = (*vibrP->pnt+*vibrP->del+1)%VIBRATO_L;
 
     for(int i=0; i<2; i++) { //stereo
         //first, read sample
-        vibr->audio_buff[*vibr->pnt][i] = vibr->x[i];
-        //printf("input: %d (x[i]=%d)\n", vibr->audio_buff[*vibr->pnt][i], x[i]);
-        vibr->accum[i] =  (vibr->audio_buff[*vibr->n_audio_pnt][i]*(*vibr->frac));
-        //printf("1: accum[i]=%d for audio_buff[%d]=%d, frac=%d\n", vibr->accum[i], *vibr->n_audio_pnt, vibr->audio_buff[*vibr->n_audio_pnt][i], *vibr->frac);
-        vibr->accum[i] += (vibr->audio_buff[*vibr->audio_pnt][i]*(frac1Minus));
-        //printf("2: accum[i]=%d for audio_buff[%d]=%d, frac1Minus=%d\n", vibr->accum[i], *vibr->audio_pnt, vibr->audio_buff[*vibr->audio_pnt][i], frac1Minus);
-        vibr->y[i] = vibr->accum[i] >> 15;
-        //printf("output: %d\n", y[i]);
+        vibrP->audio_buff[*vibrP->pnt][i] = vibrP->x[i];
+        vibrP->accum[i] =  (vibrP->audio_buff[*vibrP->n_audio_pnt][i]*(*vibrP->frac));
+        vibrP->accum[i] += (vibrP->audio_buff[*vibrP->audio_pnt][i]*(frac1Minus));
+        vibrP->y[i] = vibrP->accum[i] >> 15;
     }
 
     //update input pointer
-    if(*vibr->pnt == 0) {
-        *vibr->pnt = VIBRATO_L - 1;
+    if(*vibrP->pnt == 0) {
+        *vibrP->pnt = VIBRATO_L - 1;
     }
     else {
-        *vibr->pnt = *vibr->pnt - 1;
+        *vibrP->pnt = *vibrP->pnt - 1;
     }
 
     return 0;

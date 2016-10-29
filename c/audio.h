@@ -77,8 +77,14 @@ int     overdrive(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM 
 const int CORES_AMOUNT = 4;
 int addr[CORES_AMOUNT] = {0};
 
-void audioIn(short *thisFX);
-void audioOut(short *thisFX);
+struct AudioFX {
+    //SPM variables
+    volatile _SPM short *x; //input audio x[2]
+    volatile _SPM short *y; //output audio y[2]
+};
+
+void audioIn(struct AudioFX *thisFX);
+void audioOut(struct AudioFX *thisFX);
 
 struct Vibrato {
     //SPM variables
@@ -97,8 +103,8 @@ struct Vibrato {
     short fracArray[VIBRATO_P];
 };
 
-int alloc_vibrato_vars(struct Vibrato *vibr, int coreNumber);
-int audio_vibrato(struct Vibrato *vibr);
+int alloc_vibrato_vars(struct Vibrato *vibrP, int coreNumber);
+int audio_vibrato(struct Vibrato *vibrP);
 
 
 #endif

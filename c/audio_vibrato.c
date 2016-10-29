@@ -25,6 +25,7 @@ int main() {
 
     struct Vibrato vibr1;
     struct Vibrato *vibr1Pnt = &vibr1;
+    struct AudioFX *vibr1FXPnt = (struct AudioFX *) vibr1Pnt;
     int VIBR_ALLOC_AMOUNT = alloc_vibrato_vars(vibr1Pnt, 0);
 
     //CPU cycles stuff
@@ -32,10 +33,9 @@ int main() {
     //int cpu_pnt = 0;
 
     while(*keyReg != 3) {
-        //getInputBufferSPM(&vibr1.x[0], &vibr1.x[1]);
-        audioIn((short *)vibr1Pnt);
+        audioIn(vibr1FXPnt);
         audio_vibrato(vibr1Pnt);
-        setOutputBuffer(vibr1.y[0], vibr1.y[1]);
+        audioOut(vibr1FXPnt);
         /*
         //store CPU Cycles
         CPUcycles[cpu_pnt] = get_cpu_cycles();
