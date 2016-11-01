@@ -74,6 +74,8 @@ int     overdrive(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM 
 #define VIBRATO_L 150 // modulation amount in samples (amp of sin)
 #define VIBRATO_P (int)(Fs/4) // period of vibrato (period of sin)
 
+#define FILTER_ORDER_1PLUS 3 //order of IIR filters
+
 const int CORES_AMOUNT = 4;
 int addr[CORES_AMOUNT] = {0};
 
@@ -85,6 +87,22 @@ struct AudioFX {
 
 void audioIn(struct AudioFX *thisFX);
 void audioOut(struct AudioFX *thisFX);
+
+struct HpfLpf {
+    //SPM variables
+    volatile _SPM short *x; //input audio x[2]
+    volatile _SPM short *y; //output audio y[2]
+    volatile _SPM int   *accum; //accummulator accum[2]
+    volatile _SPM short (*x_buf)[2]; // input buffer
+    volatile _SPM short (*y_buf)[2]; // output buffer
+    volatile _SPM short *A; // [a2, a1,  1]
+    volatile _SPM short *B; // [b2, b1, b0]
+    volatile _SPM int   *pnt; //audio input pointer
+    volatile _SPM int   *sftLft; //x or y buffer pointer
+};
+
+int alloc_hpfLpf_vars(struct HpfLpf *hpflpfP, int coreNumber, int Fc, float Q, int type);
+int audio_hpfLpf(struct HpfLpf *hpflpfP);
 
 struct Vibrato {
     //SPM variables

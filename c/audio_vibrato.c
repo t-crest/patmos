@@ -7,7 +7,8 @@
 #include "audio.h"
 #include "audio.c"
 
-/* Vibrato:
+/*
+   Vibrato:
      -Buffer Length sets the amount of vibrato: amplitude of sin
      -Vibrato period sets the rate of the vibrato: period of sin
 */

@@ -706,6 +706,65 @@ void audioOut(struct AudioFX *thisFX) {
     setOutputBuffer(thisFX->y[0], thisFX->y[1]);
 }
 
+int alloc_hpfLpf_vars(struct HpfLpf *hpflpfP, int coreNumber, int Fc, float Q, int type) {
+    printf("---------------HIGH-PASS/LOW-PASS INITIALISATION---------------\n");
+    printf("Last free position at SPM of core %d is %d\n", coreNumber, addr[coreNumber]);
+    // LOCATION IN LOCAL SCRATCHPAD MEMORY
+    const int HPLP_X     = addr[coreNumber];
+    const int HPLP_Y     = HPLP_X     + 2 * sizeof(short);
+    const int HPLP_ACCUM = HPLP_Y     + 2 * sizeof(short);
+    const int HPLP_XBUF  = HPLP_ACCUM + 2 * sizeof(int);
+    const int HPLP_YBUF  = HPLP_XBUF  + 6 * sizeof(short); // 3rd ord, stereo
+    const int HPLP_A     = HPLP_YBUF  + 6 * sizeof(short); // 3rd ord, stereo
+    const int HPLP_B     = HPLP_A     + 3 * sizeof(short) + 2; //match word
+    const int HPLP_PNT   = HPLP_B     + 3 * sizeof(short) + 2; //match word
+    const int HPLP_SLFT  = HPLP_PNT   + sizeof(int);
+
+    //SPM variables
+    hpflpfP->x      = (volatile _SPM short *)      HPLP_X;
+    hpflpfP->y      = (volatile _SPM short *)      HPLP_Y;
+    hpflpfP->accum  = (volatile _SPM int *)        HPLP_ACCUM;
+    hpflpfP->x_buf  = (volatile _SPM short (*)[2]) HPLP_XBUF;
+    hpflpfP->y_buf  = (volatile _SPM short (*)[2]) HPLP_YBUF;
+    hpflpfP->A      = (volatile _SPM short *)      HPLP_A;
+    hpflpfP->B      = (volatile _SPM short *)      HPLP_B;
+    hpflpfP->pnt    = (volatile _SPM int *)        HPLP_PNT;
+    hpflpfP->sftLft = (volatile _SPM int *)        HPLP_SLFT;
+
+    //calculate filter coefficients (3rd order)
+    filter_coeff_hp_lp(3, B, A, Fc, Q, sftLft, 0, type); //type: HPF or LPF
+
+    //return new address
+    int ALLOC_AMOUNT = (HPLP_SLFT + sizeof(int)) - addr[coreNumber];
+    addr[coreNumber] = (HPLP_SLFT + sizeof(int));
+    printf("%d bytes allocated in SPM of core %d\n", ALLOC_AMOUNT, coreNumber);
+    printf("Last free position at SPM of core %d is %d\n", coreNumber, addr[coreNumber]);
+    printf("---------------HIGH-PASS/LOW-PASS DONE!---------------\n");
+
+    //store 1st samples:
+    //first, fill filter buffer
+    for(*hpfLpfp->pnt=0; *hpfLpfp->pnt<2; *hpfLpfp->pnt++) {
+      getInputBufferSPM(&hpfLpfp->x_buf[*hpfLpfp->pnt][0], &hpfLpfP->x_buf[*hpfLpfp->pnt][1]);
+    }
+
+    return ALLOC_AMOUNT;
+}
+
+int audio_hpfLpf(struct HpfLpf *hpflpfP){
+    //increment pointer
+    *hpfLpfp->pnt = (*hpfLpfp->pnt+1) % 3;
+    //first, read sample
+    hpfLpfp->x_buf[*hpfLpfp->->pnt][0] = hpfLpfp->x[0];
+    hpfLpfp->x_buf[*hpfLpfp->->pnt][1] = hpfLpfp->x[1];
+    //then, calculate filter
+    filterIIR_2nd(*hpfLpfp->pnt, hpfLpfp->x_buf, hpfLpfp->y_buf, hpfLpfp->accum, hpfLpfp->B, hpfLpfp->A, *hpfLpfp->sftLft);
+    //set output
+    hpfLpfp->y[0] = hpfLpfp->y_buf[*hpfLpfp->pnt][0];
+    hpfLpfp->y[1] = hpfLpfp->y_buf[*hpfLpfp->pnt][1];
+
+    return 0;
+}
+
 int alloc_vibrato_vars(struct Vibrato *vibrP, int coreNumber) {
     printf("---------------VIBRATO INITIALISATION---------------\n");
     printf("Last free position at SPM of core %d is %d\n", coreNumber, addr[coreNumber]);
@@ -747,7 +806,6 @@ int alloc_vibrato_vars(struct Vibrato *vibrP, int coreNumber) {
 
     return ALLOC_AMOUNT;
 }
-
 
 __attribute__((always_inline))
 int audio_vibrato(struct Vibrato *vibrP) {
