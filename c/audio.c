@@ -244,27 +244,27 @@ int filterIIR_1st(int pnt_i, volatile _SPM short (*x)[2], volatile _SPM short (*
     accum[1] = 0;
     for(int i=0; i<2; i++) { //FILTER_ORDER_1PLUS = 2
         pnt = (pnt_i + i + 1) % 2; //FILTER_ORDER_1PLUS = 2
-        // SIGNED SHIFT (arithmetical): losing a 6-bit resolution
-        accum[0] += (B[i]*x[pnt][0]) >> 6;
-        accum[0] -= (A[i]*y[pnt][0]) >> 6;
-        accum[1] += (B[i]*x[pnt][1]) >> 6;
-        accum[1] -= (A[i]*y[pnt][1]) >> 6;
+        // SIGNED SHIFT (arithmetical): losing a 2-bit resolution
+        accum[0] += (B[i]*x[pnt][0]) >> 2;
+        accum[0] -= (A[i]*y[pnt][0]) >> 2;
+        accum[1] += (B[i]*x[pnt][1]) >> 2;
+        accum[1] -= (A[i]*y[pnt][1]) >> 2;
     }
-    //accumulator limits: [ (2^(30-6-1))-1 , -(2^(30-6-1)) ]
-    //accumulator limits: [ 0x7FFFFF, 0x800000 ]
+    //accumulator limits: [ (2^(30-2-1))-1 , -(2^(30-2-1)) ]
+    //accumulator limits: [ 0x7FFFFFF, 0x8000000 ]
     // digital saturation
     for(int i=0; i<2; i++) {
-        if (accum[i] > 0x7FFFFF) {
-            accum[i] = 0x7FFFFF;
+        if (accum[i] > 0x7FFFFFF) {
+            accum[i] = 0x7FFFFFF;
         }
         else {
-            if (accum[i] < -0x800000) {
-                accum[i] = -0x800000;
+            if (accum[i] < -0x8000000) {
+                accum[i] = -0x8000000;
             }
         }
     }
-    y[pnt_i][0] = accum[0] >> (9-shiftLeft);
-    y[pnt_i][1] = accum[1] >> (9-shiftLeft);
+    y[pnt_i][0] = accum[0] >> (13-shiftLeft);
+    y[pnt_i][1] = accum[1] >> (13-shiftLeft);
 
     return 0;
 }
@@ -276,27 +276,27 @@ int filterIIR_2nd(int pnt_i, volatile _SPM short (*x)[2], volatile _SPM short (*
     accum[1] = 0;
     for(int i=0; i<3; i++) { //FILTER_ORDER_1PLUS = 3
         pnt = (pnt_i + i + 1) % 3; //FILTER_ORDER_1PLUS = 3
-        // SIGNED SHIFT (arithmetical): losing a 6-bit resolution
-        accum[0] += (B[i]*x[pnt][0]) >> 6;
-        accum[0] -= (A[i]*y[pnt][0]) >> 6;
-        accum[1] += (B[i]*x[pnt][1]) >> 6;
-        accum[1] -= (A[i]*y[pnt][1]) >> 6;
+        // SIGNED SHIFT (arithmetical): losing a 2-bit resolution
+        accum[0] += (B[i]*x[pnt][0]) >> 2;
+        accum[0] -= (A[i]*y[pnt][0]) >> 2;
+        accum[1] += (B[i]*x[pnt][1]) >> 2;
+        accum[1] -= (A[i]*y[pnt][1]) >> 2;
     }
-    //accumulator limits: [ (2^(30-6-1))-1 , -(2^(30-6-1)) ]
-    //accumulator limits: [ 0x7FFFFF, 0x800000 ]
+    //accumulator limits: [ (2^(30-2-1))-1 , -(2^(30-2-1)) ]
+    //accumulator limits: [ 0x7FFFFFF, 0x8000000 ]
     // digital saturation
     for(int i=0; i<2; i++) {
-        if (accum[i] > 0x7FFFFF) {
-            accum[i] = 0x7FFFFF;
+        if (accum[i] > 0x7FFFFFF) {
+            accum[i] = 0x7FFFFFF;
         }
         else {
-            if (accum[i] < -0x800000) {
-                accum[i] = -0x800000;
+            if (accum[i] < -0x8000000) {
+                accum[i] = -0x8000000;
             }
         }
     }
-    y[pnt_i][0] = accum[0] >> (9-shiftLeft);
-    y[pnt_i][1] = accum[1] >> (9-shiftLeft);
+    y[pnt_i][0] = accum[0] >> (13-shiftLeft);
+    y[pnt_i][1] = accum[1] >> (13-shiftLeft);
 
     return 0;
 }
@@ -629,6 +629,7 @@ int distortion(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int
     return 0;
 }
 
+/*
 __attribute__((always_inline))
 int fuzz(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int *accum, const int K, const int KonePlus, const int shiftLeft) {
     int accum1;
@@ -649,7 +650,9 @@ int fuzz(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int *accu
 
     return 0;
 }
+*/
 
+/*
 __attribute__((always_inline))
 int overdrive(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int *accum) {
     //THRESHOLD IS 1/3 = 0x2AAB
@@ -692,7 +695,7 @@ int overdrive(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int 
 
     return 0;
 }
-
+*/
 
 //----------------------------COMPLETE AUDIO FUNCTIONS---------------------------------//
 
@@ -706,7 +709,7 @@ void audioOut(struct AudioFX *thisFX) {
     setOutputBuffer(thisFX->y[0], thisFX->y[1]);
 }
 
-int alloc_hpfLpf_vars(struct HpfLpf *hpflpfP, int coreNumber, int Fc, float Q, int type) {
+int alloc_hpfLpf_vars(struct HpfLpf *hpfLpfP, int coreNumber, int Fc, float Q, int type) {
     printf("---------------HIGH-PASS/LOW-PASS INITIALISATION---------------\n");
     printf("Last free position at SPM of core %d is %d\n", coreNumber, addr[coreNumber]);
     // LOCATION IN LOCAL SCRATCHPAD MEMORY
@@ -721,18 +724,18 @@ int alloc_hpfLpf_vars(struct HpfLpf *hpflpfP, int coreNumber, int Fc, float Q, i
     const int HPLP_SLFT  = HPLP_PNT   + sizeof(int);
 
     //SPM variables
-    hpflpfP->x      = (volatile _SPM short *)      HPLP_X;
-    hpflpfP->y      = (volatile _SPM short *)      HPLP_Y;
-    hpflpfP->accum  = (volatile _SPM int *)        HPLP_ACCUM;
-    hpflpfP->x_buf  = (volatile _SPM short (*)[2]) HPLP_XBUF;
-    hpflpfP->y_buf  = (volatile _SPM short (*)[2]) HPLP_YBUF;
-    hpflpfP->A      = (volatile _SPM short *)      HPLP_A;
-    hpflpfP->B      = (volatile _SPM short *)      HPLP_B;
-    hpflpfP->pnt    = (volatile _SPM int *)        HPLP_PNT;
-    hpflpfP->sftLft = (volatile _SPM int *)        HPLP_SLFT;
+    hpfLpfP->x      = (volatile _SPM short *)      HPLP_X;
+    hpfLpfP->y      = (volatile _SPM short *)      HPLP_Y;
+    hpfLpfP->accum  = (volatile _SPM int *)        HPLP_ACCUM;
+    hpfLpfP->x_buf  = (volatile _SPM short (*)[2]) HPLP_XBUF;
+    hpfLpfP->y_buf  = (volatile _SPM short (*)[2]) HPLP_YBUF;
+    hpfLpfP->A      = (volatile _SPM short *)      HPLP_A;
+    hpfLpfP->B      = (volatile _SPM short *)      HPLP_B;
+    hpfLpfP->pnt    = (volatile _SPM int *)        HPLP_PNT;
+    hpfLpfP->sftLft = (volatile _SPM int *)        HPLP_SLFT;
 
     //calculate filter coefficients (3rd order)
-    filter_coeff_hp_lp(3, B, A, Fc, Q, sftLft, 0, type); //type: HPF or LPF
+    filter_coeff_hp_lp(3, hpfLpfP->B, hpfLpfP->A, Fc, Q, hpfLpfP->sftLft, 0, type); //type: HPF or LPF
 
     //return new address
     int ALLOC_AMOUNT = (HPLP_SLFT + sizeof(int)) - addr[coreNumber];
@@ -743,24 +746,25 @@ int alloc_hpfLpf_vars(struct HpfLpf *hpflpfP, int coreNumber, int Fc, float Q, i
 
     //store 1st samples:
     //first, fill filter buffer
-    for(*hpfLpfp->pnt=0; *hpfLpfp->pnt<2; *hpfLpfp->pnt++) {
-      getInputBufferSPM(&hpfLpfp->x_buf[*hpfLpfp->pnt][0], &hpfLpfP->x_buf[*hpfLpfp->pnt][1]);
+    for(*hpfLpfP->pnt=0; *hpfLpfP->pnt<2; *hpfLpfP->pnt++) {
+      getInputBufferSPM(&hpfLpfP->x_buf[*hpfLpfP->pnt][0], &hpfLpfP->x_buf[*hpfLpfP->pnt][1]);
     }
 
     return ALLOC_AMOUNT;
 }
 
-int audio_hpfLpf(struct HpfLpf *hpflpfP){
+__attribute__((always_inline))
+int audio_hpfLpf(struct HpfLpf *hpfLpfP){
     //increment pointer
-    *hpfLpfp->pnt = (*hpfLpfp->pnt+1) % 3;
+    *hpfLpfP->pnt = (*hpfLpfP->pnt+1) % 3;
     //first, read sample
-    hpfLpfp->x_buf[*hpfLpfp->->pnt][0] = hpfLpfp->x[0];
-    hpfLpfp->x_buf[*hpfLpfp->->pnt][1] = hpfLpfp->x[1];
+    hpfLpfP->x_buf[*hpfLpfP->pnt][0] = hpfLpfP->x[0];
+    hpfLpfP->x_buf[*hpfLpfP->pnt][1] = hpfLpfP->x[1];
     //then, calculate filter
-    filterIIR_2nd(*hpfLpfp->pnt, hpfLpfp->x_buf, hpfLpfp->y_buf, hpfLpfp->accum, hpfLpfp->B, hpfLpfp->A, *hpfLpfp->sftLft);
+    filterIIR_2nd(*hpfLpfP->pnt, hpfLpfP->x_buf, hpfLpfP->y_buf, hpfLpfP->accum, hpfLpfP->B, hpfLpfP->A, *hpfLpfP->sftLft);
     //set output
-    hpfLpfp->y[0] = hpfLpfp->y_buf[*hpfLpfp->pnt][0];
-    hpfLpfp->y[1] = hpfLpfp->y_buf[*hpfLpfp->pnt][1];
+    hpfLpfP->y[0] = hpfLpfP->y_buf[*hpfLpfP->pnt][0];
+    hpfLpfP->y[1] = hpfLpfP->y_buf[*hpfLpfP->pnt][1];
 
     return 0;
 }
@@ -834,5 +838,124 @@ int audio_vibrato(struct Vibrato *vibrP) {
         *vibrP->pnt = *vibrP->pnt - 1;
     }
 
+    return 0;
+}
+
+int alloc_overdrive_vars(struct Overdrive *odP, int coreNumber) {
+    printf("---------------OVERDRIVE INITIALISATION---------------\n");
+    printf("Last free position at SPM of core %d is %d\n", coreNumber, addr[coreNumber]);
+    // LOCATION IN LOCAL SCRATCHPAD MEMORY
+    const int OD_X      = addr[coreNumber];
+    const int OD_Y      = OD_X     + 2 * sizeof(short);
+    const int OD_ACCUM  = OD_Y     + 2 * sizeof(short);
+    //SPM variables
+    odP->x        = ( volatile _SPM short *) OD_X;
+    odP->y        = ( volatile _SPM short *) OD_Y;
+    odP->accum    = ( volatile _SPM int *)   OD_ACCUM;
+
+    //return new address
+    int ALLOC_AMOUNT = (OD_ACCUM + 2 * sizeof(int)) - addr[coreNumber];
+    addr[coreNumber] = (OD_ACCUM + 2 * sizeof(int));
+    printf("%d bytes allocated in SPM of core %d\n", ALLOC_AMOUNT, coreNumber);
+    printf("Last free position at SPM of core %d is %d\n", coreNumber, addr[coreNumber]);
+    printf("---------------OVERDRIVE DONE!---------------\n");
+
+    return ALLOC_AMOUNT;
+}
+
+__attribute__((always_inline))
+int audio_overdrive(struct Overdrive *odP) {
+    //THRESHOLD IS 1/3 = 0x2AAB
+    //input abs:
+    unsigned int x_abs[2];
+    for(int j=0; j<2; j++) {
+        x_abs[j] = abs(odP->x[j]);
+        if(x_abs[j] > (2 * 0x2AAB)) { // saturation : y = 1
+            if (odP->x[j] > 0) {
+                odP->y[j] = 0x7FFF;
+            }
+            else {
+                odP->y[j] = 0x8000;
+            }
+        }
+        else {
+            if(x_abs[j] > 0x2AAB) { // smooth overdrive: y = ( 3 - (2-3*x)^2 ) / 3;
+                odP->accum[j] = (0x17FFF * x_abs[j]) >> 15 ; // result is 1 sign + 17 bits
+                odP->accum[j] = 0xFFFF - odP->accum[j];
+                odP->accum[j] = (odP->accum[j] * odP->accum[j]) >> 15;
+                odP->accum[j] = 0x17FFF - odP->accum[j];
+                odP->accum[j] = (odP->accum[j] * 0x2AAB) >> 15;
+                if(odP->x[j] > 0) { //positive
+                    if(odP->accum[j] > 32767) {
+                        odP->y[j] = 32767;
+                    }
+                    else {
+                        odP->y[j] = odP->accum[j];
+                    }
+                }
+                else { // negative
+                    odP->y[j] = -odP->accum[j];
+                }
+            }
+            else { // linear zone: y = 2*x
+                odP->y[j] = odP->x[j] << 1;
+            }
+        }
+    }
+    return 0;
+}
+
+int alloc_distortion_vars(struct Distortion *distP, int coreNumber, float amount) {
+    printf("---------------DISTORTION INITIALISATION---------------\n");
+    printf("Last free position at SPM of core %d is %d\n", coreNumber, addr[coreNumber]);
+    // LOCATION IN LOCAL SCRATCHPAD MEMORY
+    const int DIST_X      = addr[coreNumber];
+    const int DIST_Y      = DIST_X     + 2 * sizeof(short);
+    const int DIST_ACCUM  = DIST_Y     + 2 * sizeof(short);
+    const int DIST_K      = DIST_ACCUM + 2 * sizeof(int);
+    const int DIST_K1P    = DIST_K     + sizeof(int);
+    const int DIST_SFTLFT = DIST_K1P   + sizeof(int);
+    //SPM variables
+    distP->x        = ( volatile _SPM short *) DIST_X;
+    distP->y        = ( volatile _SPM short *) DIST_Y;
+    distP->accum    = ( volatile _SPM int *)   DIST_ACCUM;
+    distP->k        = ( volatile _SPM int *)   DIST_K;
+    distP->kOnePlus = ( volatile _SPM int *)   DIST_K1P;
+    distP->sftLft   = ( volatile _SPM int *)   DIST_SFTLFT;
+
+    //initialise k, kOnePlus, shiftLeft:
+    *distP->k = ( (2*amount)/(1-amount) ) * pow(2,15);
+    *distP->sftLft = 0;
+    while(*distP->k > ONE_16b) {
+        *distP->sftLft = *distP->sftLft + 1;
+        *distP->k = *distP->k >> 1;
+    }
+    *distP->kOnePlus = (int)( ( (2*amount)/(1-amount) + 1 ) * pow(2,15) ) >> *distP->sftLft;
+
+    //return new address
+    int ALLOC_AMOUNT = (DIST_SFTLFT + sizeof(int)) - addr[coreNumber];
+    addr[coreNumber] = (DIST_SFTLFT + sizeof(int));
+    printf("%d bytes allocated in SPM of core %d\n", ALLOC_AMOUNT, coreNumber);
+    printf("Last free position at SPM of core %d is %d\n", coreNumber, addr[coreNumber]);
+    printf("---------------DISTORTION DONE!---------------\n");
+
+    return ALLOC_AMOUNT;
+}
+
+__attribute__((always_inline))
+int audio_distortion(struct Distortion *distP) {
+    for(int j=0; j<2; j++) {
+        distP->accum[0] = (*distP->kOnePlus * distP->x[j]);// >> 15;
+        distP->accum[1] = (*distP->k * abs(distP->x[j])) >> 15;
+        distP->accum[1] = distP->accum[1] + ((ONE_16b+*distP->sftLft) >> *distP->sftLft);
+        distP->accum[0] = distP->accum[0] / distP->accum[1];
+        //reduce if it is poisitive only
+        if (distP->x[j] > 0) {
+            distP->y[j] = distP->accum[0] - 1;
+        }
+        else {
+            distP->y[j] = distP->accum[0];
+        }
+    }
     return 0;
 }

@@ -64,7 +64,7 @@ int     filter_coeff_hp_lp(int FILT_ORD_1PL, volatile _SPM short *B, volatile _S
 int     combFilter_1st(int AUDIO_BUFF_LEN, volatile _SPM int *pnt, volatile short (*audio_buffer)[2], volatile _SPM short *y, volatile _SPM int *accum, volatile _SPM short *g, volatile _SPM int *del);
 int     combFilter_2nd(int AUDIO_BUFF_LEN, volatile _SPM int *pnt, volatile short (*audio_buffer)[2], volatile _SPM short *y, volatile _SPM int *accum, volatile _SPM short *g, volatile _SPM int *del);
 int     distortion(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int *accum);
-int     fuzz(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int *accum, const int K, const int KonePlus, const int shiftLeft);
+//int     fuzz(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int *accum, const int K, const int KonePlus, const int shiftLeft);
 int     overdrive(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int *accum);
 
 
@@ -88,6 +88,11 @@ struct AudioFX {
 void audioIn(struct AudioFX *thisFX);
 void audioOut(struct AudioFX *thisFX);
 
+
+/*
+  High-Pass / Low-Pass filters (2nd order)
+*/
+
 struct HpfLpf {
     //SPM variables
     volatile _SPM short *x; //input audio x[2]
@@ -103,6 +108,11 @@ struct HpfLpf {
 
 int alloc_hpfLpf_vars(struct HpfLpf *hpflpfP, int coreNumber, int Fc, float Q, int type);
 int audio_hpfLpf(struct HpfLpf *hpflpfP);
+
+
+/*
+  Vibrato
+*/
 
 struct Vibrato {
     //SPM variables
@@ -123,6 +133,33 @@ struct Vibrato {
 
 int alloc_vibrato_vars(struct Vibrato *vibrP, int coreNumber);
 int audio_vibrato(struct Vibrato *vibrP);
+
+/*
+  Overdrive and distortion
+*/
+
+struct Overdrive {
+    //SPM variables
+    volatile _SPM short *x; //input audio x[2]
+    volatile _SPM short *y; //output audio y[2]
+    volatile _SPM int   *accum; //accummulator accum[2]
+};
+
+int alloc_overdrive_vars(struct Overdrive *odP, int coreNumber);
+int audio_overdrive(struct Overdrive *odP);
+
+struct Distortion {
+    //SPM variables
+    volatile _SPM short *x; //input audio x[2]
+    volatile _SPM short *y; //output audio y[2]
+    volatile _SPM int   *accum; //accummulator accum[2]
+    volatile _SPM int   *k; //for distortion
+    volatile _SPM int   *kOnePlus; //for distortion
+    volatile _SPM int   *sftLft; //shift left amount
+};
+
+int alloc_distortion_vars(struct Distortion *distP, int coreNumber, float amount);
+int audio_distortion(struct Distortion *distP);
 
 
 #endif
