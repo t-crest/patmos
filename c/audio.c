@@ -855,7 +855,6 @@ int audio_vibrato(struct Vibrato *vibrP) {
     //vibrato pointers:
     *vibrP->audio_pnt   = (*vibrP->pnt+*vibrP->del)%VIBRATO_L;
     *vibrP->n_audio_pnt = (*vibrP->pnt+*vibrP->del+1)%VIBRATO_L;
-
     for(int i=0; i<2; i++) { //stereo
         //first, read sample
         vibrP->audio_buff[*vibrP->pnt][i] = vibrP->x[i];
@@ -863,14 +862,13 @@ int audio_vibrato(struct Vibrato *vibrP) {
         vibrP->accum[i] += (vibrP->audio_buff[*vibrP->audio_pnt][i]*(frac1Minus));
         vibrP->y[i] = vibrP->accum[i] >> 15;
     }
-
     //update input pointer
     if(*vibrP->pnt == 0) {
         *vibrP->pnt = VIBRATO_L - 1;
     }
     else {
         *vibrP->pnt = *vibrP->pnt - 1;
-    }
+    };
 
     return 0;
 }

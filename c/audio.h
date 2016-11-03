@@ -1,6 +1,6 @@
 
 // for multicore platform with noc:
-//#define MULTICORE 1
+#define MULTICORE 1
 
 
 #ifndef AUDIO_H

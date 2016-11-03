@@ -16,10 +16,7 @@
 
 int main() {
 
-    setup(0); //for guitar
-
-    printf("SPM ADDRESS OFFSET IS: 0x%x\n", SPM_OFFSET);
-    printf("initial address in clore 0 is: 0x%x\n", addr[0]);
+    setup(0);
 
     // enable input and output
     *audioDacEnReg = 1;
@@ -37,7 +34,7 @@ int main() {
     //int CPUcycles[100] = {0};
     //int cpu_pnt = 0;
 
-    while(*keyReg != 3) {
+    while(1 /**keyReg != 3*/) {
         audioIn(vibr1FXPnt);
         audio_vibrato(vibr1Pnt);
         audioOut(vibr1FXPnt);
