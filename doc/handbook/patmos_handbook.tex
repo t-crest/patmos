@@ -1356,6 +1356,8 @@ delay slots. There are no restrictions with regard to the size or type
 of instructions in the delay slot. The only exception is that
 executing control-flow instructions in a delay slot may lead to
 unspecified behavior.
+Interrupts occurring during the delay slot are delayed until the
+branch has executed.
 
 \begin{table}[hb]
   \centering
