@@ -534,26 +534,26 @@ int combFilter_1st(int AUDIO_BUFF_LEN, volatile _SPM int *pnt, volatile short (*
     accum[0] = 0;
     accum[1] = 0;
     int audio_pnt = (*pnt+del[0])%AUDIO_BUFF_LEN;
-    accum[0] += (g[0]*audio_buffer[audio_pnt][0]) >> 6;
-    accum[1] += (g[0]*audio_buffer[audio_pnt][1]) >> 6;
+    accum[0] += (g[0]*audio_buffer[audio_pnt][0]) >> 2;
+    accum[1] += (g[0]*audio_buffer[audio_pnt][1]) >> 2;
     audio_pnt = (*pnt+del[1])%AUDIO_BUFF_LEN;
-    accum[0] += (g[1]*audio_buffer[audio_pnt][0]) >> 6;
-    accum[1] += (g[1]*audio_buffer[audio_pnt][1]) >> 6;
-    //accumulator limits: [ (2^(30-6-1))-1 , -(2^(30-6-1)) ]
-    //accumulator limits: [ 0x7FFFFF, 0x800000 ]
+    accum[0] += (g[1]*audio_buffer[audio_pnt][0]) >> 2;
+    accum[1] += (g[1]*audio_buffer[audio_pnt][1]) >> 2;
+    //accumulator limits: [ (2^(30-2-1))-1 , -(2^(30-2-1)) ]
+    //accumulator limits: [ 0x7FFFFFF, 0x8000000 ]
     // digital saturation
     for(int i=0; i<2; i++) {
-        if (accum[i] > 0x7FFFFF) {
-            accum[i] = 0x7FFFFF;
+        if (accum[i] > 0x7FFFFFF) {
+            accum[i] = 0x7FFFFFF;
         }
         else {
-            if (accum[i] < -0x800000) {
-                accum[i] = -0x800000;
+            if (accum[i] < -0x8000000) {
+                accum[i] = -0x8000000;
             }
         }
     }
-    y[0] = accum[0] >> 9;
-    y[1] = accum[1] >> 9;
+    y[0] = accum[0] >> 13;
+    y[1] = accum[1] >> 13;
 
     return 0;
 }
@@ -563,29 +563,29 @@ int combFilter_2nd(int AUDIO_BUFF_LEN, volatile _SPM int *pnt, volatile short (*
     accum[0] = 0;
     accum[1] = 0;
     int audio_pnt = (*pnt+del[0])%AUDIO_BUFF_LEN;
-    accum[0] += (g[0]*audio_buffer[audio_pnt][0]) >> 6;
-    accum[1] += (g[0]*audio_buffer[audio_pnt][1]) >> 6;
+    accum[0] += (g[0]*audio_buffer[audio_pnt][0]) >> 2;
+    accum[1] += (g[0]*audio_buffer[audio_pnt][1]) >> 2;
     audio_pnt = (*pnt+del[1])%AUDIO_BUFF_LEN;
-    accum[0] += (g[1]*audio_buffer[audio_pnt][0]) >> 6;
-    accum[1] += (g[1]*audio_buffer[audio_pnt][1]) >> 6;
+    accum[0] += (g[1]*audio_buffer[audio_pnt][0]) >> 2;
+    accum[1] += (g[1]*audio_buffer[audio_pnt][1]) >> 2;
     audio_pnt = (*pnt+del[2])%AUDIO_BUFF_LEN;
-    accum[0] += (g[2]*audio_buffer[audio_pnt][0]) >> 6;
-    accum[1] += (g[2]*audio_buffer[audio_pnt][1]) >> 6;
-    //accumulator limits: [ (2^(30-6-1))-1 , -(2^(30-6-1)) ]
-    //accumulator limits: [ 0x7FFFFF, 0x800000 ]
+    accum[0] += (g[2]*audio_buffer[audio_pnt][0]) >> 2;
+    accum[1] += (g[2]*audio_buffer[audio_pnt][1]) >> 2;
+    //accumulator limits: [ (2^(30-2-1))-1 , -(2^(30-2-1)) ]
+    //accumulator limits: [ 0x7FFFFFF, 0x8000000 ]
     // digital saturation
     for(int i=0; i<2; i++) {
-        if (accum[i] > 0x7FFFFF) {
-            accum[i] = 0x7FFFFF;
+        if (accum[i] > 0x7FFFFFF) {
+            accum[i] = 0x7FFFFFF;
         }
         else {
-            if (accum[i] < -0x800000) {
-                accum[i] = -0x800000;
+            if (accum[i] < -0x8000000) {
+                accum[i] = -0x8000000;
             }
         }
     }
-    y[0] = accum[0] >> 9;
-    y[1] = accum[1] >> 9;
+    y[0] = accum[0] >> 13;
+    y[1] = accum[1] >> 13;
 
     return 0;
 }
@@ -709,9 +709,25 @@ void audioOut(struct AudioFX *thisFX) {
     setOutputBuffer(thisFX->y[0], thisFX->y[1]);
 }
 
-int alloc_hpfLpf_vars(struct HpfLpf *hpfLpfP, int coreNumber, int Fc, float Q, int type) {
-    printf("---------------HIGH-PASS/LOW-PASS INITIALISATION---------------\n");
+void audioSend(struct AudioFX *sourceFX, struct AudioFX *destinationFX) {
+    destinationFX->x[0] = sourceFX->y[0];
+    destinationFX->x[1] = sourceFX->y[1];
+}
+
+// FOR PRINTING:
+int alloc_space(char *FX_NAME, int LAST_ADDR, int coreNumber) {
+    printf("---------------%s INITIALISATION---------------\n", FX_NAME);
     printf("Last free position at SPM of core %d is %d\n", coreNumber, addr[coreNumber]);
+    int ALLOC_AMOUNT = LAST_ADDR - addr[coreNumber];
+    addr[coreNumber] = LAST_ADDR;
+    printf("%d bytes allocated in SPM of core %d\n", ALLOC_AMOUNT, coreNumber);
+    printf("Last free position at SPM of core %d is %d\n", coreNumber, addr[coreNumber]);
+    printf("-------------------%s DONE!-------------------\n", FX_NAME);
+
+    return ALLOC_AMOUNT;
+}
+
+int alloc_hpfLpf_vars(struct HpfLpf *hpfLpfP, int coreNumber, int Fc, float Q, int type) {
     // LOCATION IN LOCAL SCRATCHPAD MEMORY
     const int HPLP_X     = addr[coreNumber];
     const int HPLP_Y     = HPLP_X     + 2 * sizeof(short);
@@ -738,11 +754,7 @@ int alloc_hpfLpf_vars(struct HpfLpf *hpfLpfP, int coreNumber, int Fc, float Q, i
     filter_coeff_hp_lp(3, hpfLpfP->B, hpfLpfP->A, Fc, Q, hpfLpfP->sftLft, 0, type); //type: HPF or LPF
 
     //return new address
-    int ALLOC_AMOUNT = (HPLP_SLFT + sizeof(int)) - addr[coreNumber];
-    addr[coreNumber] = (HPLP_SLFT + sizeof(int));
-    printf("%d bytes allocated in SPM of core %d\n", ALLOC_AMOUNT, coreNumber);
-    printf("Last free position at SPM of core %d is %d\n", coreNumber, addr[coreNumber]);
-    printf("---------------HIGH-PASS/LOW-PASS DONE!---------------\n");
+    int ALLOC_AMOUNT = alloc_space("HIGH-PASS/LOW-PASS", (HPLP_SLFT + sizeof(int)), coreNumber);
 
     //store 1st samples:
     //first, fill filter buffer
@@ -770,8 +782,6 @@ int audio_hpfLpf(struct HpfLpf *hpfLpfP){
 }
 
 int alloc_vibrato_vars(struct Vibrato *vibrP, int coreNumber) {
-    printf("---------------VIBRATO INITIALISATION---------------\n");
-    printf("Last free position at SPM of core %d is %d\n", coreNumber, addr[coreNumber]);
     // LOCATION IN LOCAL SCRATCHPAD MEMORY
     const int VIBR_X      = addr[coreNumber];
     const int VIBR_Y      = VIBR_X     + 2 * sizeof(short);
@@ -802,11 +812,7 @@ int alloc_vibrato_vars(struct Vibrato *vibrP, int coreNumber) {
     *vibrP->v_pnt = 0;
 
     //return new address
-    int ALLOC_AMOUNT = (VIBR_NA_PNT + sizeof(int)) - addr[coreNumber];
-    addr[coreNumber] = (VIBR_NA_PNT + sizeof(int));
-    printf("%d bytes allocated in SPM of core %d\n", ALLOC_AMOUNT, coreNumber);
-    printf("Last free position at SPM of core %d is %d\n", coreNumber, addr[coreNumber]);
-    printf("---------------VIBRATO DONE!---------------\n");
+    int ALLOC_AMOUNT = alloc_space("VIBRATO", (VIBR_NA_PNT + sizeof(int)), coreNumber);
 
     return ALLOC_AMOUNT;
 }
@@ -842,8 +848,6 @@ int audio_vibrato(struct Vibrato *vibrP) {
 }
 
 int alloc_overdrive_vars(struct Overdrive *odP, int coreNumber) {
-    printf("---------------OVERDRIVE INITIALISATION---------------\n");
-    printf("Last free position at SPM of core %d is %d\n", coreNumber, addr[coreNumber]);
     // LOCATION IN LOCAL SCRATCHPAD MEMORY
     const int OD_X      = addr[coreNumber];
     const int OD_Y      = OD_X     + 2 * sizeof(short);
@@ -854,11 +858,7 @@ int alloc_overdrive_vars(struct Overdrive *odP, int coreNumber) {
     odP->accum    = ( volatile _SPM int *)   OD_ACCUM;
 
     //return new address
-    int ALLOC_AMOUNT = (OD_ACCUM + 2 * sizeof(int)) - addr[coreNumber];
-    addr[coreNumber] = (OD_ACCUM + 2 * sizeof(int));
-    printf("%d bytes allocated in SPM of core %d\n", ALLOC_AMOUNT, coreNumber);
-    printf("Last free position at SPM of core %d is %d\n", coreNumber, addr[coreNumber]);
-    printf("---------------OVERDRIVE DONE!---------------\n");
+    int ALLOC_AMOUNT = alloc_space("OVERDRIVE", (OD_ACCUM + 2 * sizeof(int)), coreNumber);
 
     return ALLOC_AMOUNT;
 }
@@ -906,8 +906,6 @@ int audio_overdrive(struct Overdrive *odP) {
 }
 
 int alloc_distortion_vars(struct Distortion *distP, int coreNumber, float amount) {
-    printf("---------------DISTORTION INITIALISATION---------------\n");
-    printf("Last free position at SPM of core %d is %d\n", coreNumber, addr[coreNumber]);
     // LOCATION IN LOCAL SCRATCHPAD MEMORY
     const int DIST_X      = addr[coreNumber];
     const int DIST_Y      = DIST_X     + 2 * sizeof(short);
@@ -933,12 +931,7 @@ int alloc_distortion_vars(struct Distortion *distP, int coreNumber, float amount
     *distP->kOnePlus = (int)( ( (2*amount)/(1-amount) + 1 ) * pow(2,15) ) >> *distP->sftLft;
 
     //return new address
-    int ALLOC_AMOUNT = (DIST_SFTLFT + sizeof(int)) - addr[coreNumber];
-    addr[coreNumber] = (DIST_SFTLFT + sizeof(int));
-    printf("%d bytes allocated in SPM of core %d\n", ALLOC_AMOUNT, coreNumber);
-    printf("Last free position at SPM of core %d is %d\n", coreNumber, addr[coreNumber]);
-    printf("---------------DISTORTION DONE!---------------\n");
-
+    int ALLOC_AMOUNT = alloc_space("DISTORTION", (DIST_SFTLFT + sizeof(int)), coreNumber);
     return ALLOC_AMOUNT;
 }
 
@@ -957,5 +950,59 @@ int audio_distortion(struct Distortion *distP) {
             distP->y[j] = distP->accum[0];
         }
     }
+    return 0;
+}
+
+int alloc_delay_vars(struct IIRdelay *delP, int coreNumber) {
+    // LOCATION IN LOCAL SCRATCHPAD MEMORY
+    const int DEL_X      = addr[coreNumber];
+    const int DEL_Y      = DEL_X     + 2 * sizeof(short);
+    const int DEL_ACCUM  = DEL_Y     + 2 * sizeof(short);
+    const int DEL_G      = DEL_ACCUM + 2 * sizeof(int);
+    const int DEL_DEL    = DEL_G     + 2 * sizeof(short);
+    const int DEL_PNT    = DEL_DEL   + 2 * sizeof(int);
+
+    //SPM variables
+    delP->x     = ( volatile _SPM short *) DEL_X;
+    delP->y     = ( volatile _SPM short *) DEL_Y;
+    delP->accum = ( volatile _SPM int *)   DEL_ACCUM;
+    delP->g     = ( volatile _SPM short *) DEL_G;
+    delP->del   = ( volatile _SPM int *)   DEL_DEL;
+    delP->pnt   = ( volatile _SPM int *)   DEL_PNT;
+
+    //initialise delay variables
+    //set gains: for comb delay:
+    delP->g[1] = ONE_16b;       // g0 = 1
+    delP->g[0] = ONE_16b * 0.5; // g1 = 0.7
+    //set delays:
+    delP->del[1] = 0; // always d0 = 0
+    delP->del[0] = DELAY_L - 1; // d1 = as long as delay buffer
+    //pointer starts on top
+    *delP->pnt = DELAY_L - 1;
+
+    //return new address
+    int ALLOC_AMOUNT = alloc_space("DELAY", (DEL_PNT + sizeof(int)), coreNumber);
+
+    return ALLOC_AMOUNT;
+}
+
+__attribute__((always_inline))
+int audio_delay(struct IIRdelay *delP) {
+    //first, read sample
+    delP->audio_buff[*delP->pnt][0] = delP->x[0];
+    delP->audio_buff[*delP->pnt][1] = delP->x[1];
+    //calculate IIR comb filter
+    combFilter_1st(DELAY_L, delP->pnt, delP->audio_buff, delP->y, delP->accum, delP->g, delP->del);
+    //replace content on buffer
+    delP->audio_buff[*delP->pnt][0] = delP->y[0];
+    delP->audio_buff[*delP->pnt][1] = delP->y[1];
+    //update pointer
+    if(*delP->pnt == 0) {
+        *delP->pnt = DELAY_L - 1;
+    }
+    else {
+        *delP->pnt = *delP->pnt -1;
+    }
+
     return 0;
 }

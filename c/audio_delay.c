@@ -1,118 +1,59 @@
 #include <machine/spm.h>
 #include <machine/rtc.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
 #include "audio.h"
 #include "audio.c"
 
-
-
 /*
- * @file		Audio_Demo.c
- * @author	Daniel Sanz Ausin s142290 & Fabian Goerge s150957
- * @brief	Presentation demo.
- */
-
-short audioBufferL[52080] = {0}; //1 s maximum delay
-short audioBufferR[52080] = {0}; //1 s maximum delay
-int delayTime = 13020; // 250 ms
+  IIR comb delay:
+    -First, input data is stored in current position of buffer
+    -The COMB function used is the same as FIR
+    -The difference is that, after computing new y, this y value is replaced by the x value on the iir_buffer
+*/
 
 
 int main() {
 
-  setup();
 
-  setInputBufferSize(32);
-  setOutputBufferSize(32);
+    setup(0); //for guitar
 
-  short inL = 0;
-  short inR = 0;
-  *audioDacEnReg = 1;
-  *audioAdcEnReg = 1;
-  int length = sizeof(audioBufferL) / sizeof(short)-1;
-  int delayPosition = 0;
-  int p = 0;
-  int delayLim = delayTime - 1;
-  int currentKey = 0;
-  int volume = 0;
-  int volumeResult;
+    // enable input and output
+    *audioDacEnReg = 1;
+    *audioAdcEnReg = 1;
 
-  while(*keyReg != 3) {
+    setInputBufferSize(BUFFER_SIZE);
+    setOutputBufferSize(BUFFER_SIZE);
 
-    switch(*keyReg) {
-    case 14:
-      if (currentKey != 14) {
-        currentKey = 14;
-        volume ++;
-        volumeResult = changeVolume(volume);
-        if(volumeResult == -1) {
-          volume--;
-          printf("Volume already at max: %i dB\n", volume);
+    struct IIRdelay del1;
+    struct IIRdelay *del1Pnt = &del1;
+    struct AudioFX *del1FXPnt = (struct AudioFX *) del1Pnt;
+    int DEL_ALLOC_AMOUNT = alloc_delay_vars(del1Pnt, 0);
+
+    //CPU cycles stuff
+    //int CPUcycles[1000] = {0};
+    //int cpu_pnt = 0;
+
+    while(*keyReg != 3) {
+        audioIn(del1FXPnt);
+        audio_delay(del1Pnt);
+        audioOut(del1FXPnt);
+        /*
+        //store CPU Cycles
+        CPUcycles[cpu_pnt] = get_cpu_cycles();
+        cpu_pnt++;
+        if(cpu_pnt == 1000) {
+            break;
         }
-        else {
-          printf("Volume %i dB\n", volume);
-        }
-      }
-      break;
-    case 13:
-      if (currentKey != 13) {
-        currentKey = 13;
-        volume--;
-        volumeResult = changeVolume(volume);
-        if(volumeResult == -1) {
-          volume++;
-          printf("Volume already at min: %i dB\n", volume);
-        }
-        else {
-          printf("Volume %i dB\n", volume);
-        }
-      }
-      break;
-    case 6:
-      if (currentKey != 6) {
-        currentKey = 6;
-        delayTime = delayTime * 2;
-        if (delayTime > length) {
-          delayTime = length;
-          printf("Delay alreay at max: %i\n", delayTime);
-        }
-        else {
-          printf("Delay samples: %i\n", delayTime);
-        }
-        delayLim = delayTime - 1;
-      }
-      break;
-    case 5:
-      if (currentKey != 5) {
-        currentKey = 5;
-        if (delayTime > 1) {
-          delayTime = (int)(delayTime/2);
-          printf("Delay samples: %i\n", delayTime);
-        }
-        else {
-          printf("Delay alreay at min: %i\n", delayTime);
-        }
-        delayLim = delayTime - 1;
-      }
-      break;
-    default:
-      //waitSyncDac();
-      currentKey = 0;
-      if(p >= delayTime) {
-        p=0;
-      }
-      getInputBuffer(&inL,&inR);
-      if(p == delayLim) {
-        delayPosition = 0;
-      }
-      else {
-        delayPosition = p + 1;
-      }
-      //delayPosition = (p+1)%delayTime;
-      audioBufferL[p] = inL + (short)(audioBufferL[delayPosition] >> 2);
-      audioBufferR[p] = inR + (short)(audioBufferR[delayPosition] >> 2);
-      setOutputBuffer(audioBufferL[p],audioBufferR[p]);
-      p++;
+        */
     }
-  }
-  return 0;
+    /*
+    //print CPU cycle time
+    for(int i=1; i<1000; i++) {
+        printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
+    }
+    */
+    return 0;
 }

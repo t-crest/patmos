@@ -55,6 +55,7 @@ int     getInputBuffer(volatile short *l, volatile short *r);
 int     setOutputBufferSize(int bufferSize);
 int     setInputBufferSize(int bufferSize);
 
+/*
 //audio operations
 int     filterIIR(int FILT_ORD_1PL, volatile _SPM int *pnt_i, volatile _SPM short (*x)[2], volatile _SPM short (*y)[2], volatile _SPM int *accum, volatile _SPM short *B, volatile _SPM short *A, int shiftLeft);
 int     storeSin(int *sinArray, int SIZE, int OFFSET, int AMP);
@@ -64,9 +65,9 @@ int     filter_coeff_hp_lp(int FILT_ORD_1PL, volatile _SPM short *B, volatile _S
 int     combFilter_1st(int AUDIO_BUFF_LEN, volatile _SPM int *pnt, volatile short (*audio_buffer)[2], volatile _SPM short *y, volatile _SPM int *accum, volatile _SPM short *g, volatile _SPM int *del);
 int     combFilter_2nd(int AUDIO_BUFF_LEN, volatile _SPM int *pnt, volatile short (*audio_buffer)[2], volatile _SPM short *y, volatile _SPM int *accum, volatile _SPM short *g, volatile _SPM int *del);
 int     distortion(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int *accum);
-//int     fuzz(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int *accum, const int K, const int KonePlus, const int shiftLeft);
+int     fuzz(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int *accum, const int K, const int KonePlus, const int shiftLeft);
 int     overdrive(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int *accum);
-
+*/
 
 
 //----------------------------COMPLETE AUDIO FUNCTIONS---------------------------------//
@@ -75,6 +76,8 @@ int     overdrive(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM 
 #define VIBRATO_P (int)(Fs/4) // period of vibrato (period of sin)
 
 #define FILTER_ORDER_1PLUS 3 //order of IIR filters
+
+#define DELAY_L (int)(Fs/4) // for delay
 
 const int CORES_AMOUNT = 4;
 int addr[CORES_AMOUNT] = {0};
@@ -87,6 +90,9 @@ struct AudioFX {
 
 void audioIn(struct AudioFX *thisFX);
 void audioOut(struct AudioFX *thisFX);
+
+//same core:
+void audioSend(struct AudioFX *sourceFX, struct AudioFX *destinationFX);
 
 
 /*
@@ -161,5 +167,24 @@ struct Distortion {
 int alloc_distortion_vars(struct Distortion *distP, int coreNumber, float amount);
 int audio_distortion(struct Distortion *distP);
 
+
+/*
+  Delay
+*/
+
+struct IIRdelay {
+    //SPM variables
+    volatile _SPM short *x; //input audio x[2]
+    volatile _SPM short *y; //output audio y[2]
+    volatile _SPM int   *accum; //accummulator accum[2]
+    volatile _SPM short *g; //gains [g1, g0]
+    volatile _SPM int   *del; // delays [d1, d0]
+    volatile _SPM int   *pnt; //audio input pointer
+    //SRAM variables
+    short audio_buff[DELAY_L][2];
+};
+
+int alloc_delay_vars(struct IIRdelay *delP, int coreNumber);
+int audio_delay(struct IIRdelay *delP);
 
 #endif
