@@ -92,7 +92,7 @@ void audioIn(struct AudioFX *thisFX);
 void audioOut(struct AudioFX *thisFX);
 
 //same core:
-void audioSend(struct AudioFX *sourceFX, struct AudioFX *destinationFX);
+void audioChainCore(struct AudioFX *sourceFX, struct AudioFX *destinationFX);
 
 
 /*

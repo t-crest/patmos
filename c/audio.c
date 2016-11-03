@@ -709,14 +709,13 @@ void audioOut(struct AudioFX *thisFX) {
     setOutputBuffer(thisFX->y[0], thisFX->y[1]);
 }
 
-void audioSend(struct AudioFX *sourceFX, struct AudioFX *destinationFX) {
+void audioChainCore(struct AudioFX *sourceFX, struct AudioFX *destinationFX) {
     destinationFX->x[0] = sourceFX->y[0];
     destinationFX->x[1] = sourceFX->y[1];
 }
 
 // FOR PRINTING:
 int alloc_space(char *FX_NAME, int LAST_ADDR, int coreNumber) {
-    printf("---------------%s INITIALISATION---------------\n", FX_NAME);
     printf("Last free position at SPM of core %d is %d\n", coreNumber, addr[coreNumber]);
     int ALLOC_AMOUNT = LAST_ADDR - addr[coreNumber];
     addr[coreNumber] = LAST_ADDR;
@@ -728,6 +727,7 @@ int alloc_space(char *FX_NAME, int LAST_ADDR, int coreNumber) {
 }
 
 int alloc_hpfLpf_vars(struct HpfLpf *hpfLpfP, int coreNumber, int Fc, float Q, int type) {
+    printf("---------------HIGH-PASS/LOW-PASS INITIALISATION---------------\n");
     // LOCATION IN LOCAL SCRATCHPAD MEMORY
     const int HPLP_X     = addr[coreNumber];
     const int HPLP_Y     = HPLP_X     + 2 * sizeof(short);
@@ -782,6 +782,7 @@ int audio_hpfLpf(struct HpfLpf *hpfLpfP){
 }
 
 int alloc_vibrato_vars(struct Vibrato *vibrP, int coreNumber) {
+    printf("---------------VIBRATO INITIALISATION---------------\n");
     // LOCATION IN LOCAL SCRATCHPAD MEMORY
     const int VIBR_X      = addr[coreNumber];
     const int VIBR_Y      = VIBR_X     + 2 * sizeof(short);
@@ -806,6 +807,11 @@ int alloc_vibrato_vars(struct Vibrato *vibrP, int coreNumber) {
 
     //modulation storage
     storeSinInterpol(vibrP->sinArray, vibrP->fracArray, VIBRATO_P, (VIBRATO_L*0.5), ((VIBRATO_L-1)*0.5));
+    //empty buffer
+    for(int i=0; i<VIBRATO_L; i++) {
+        vibrP->audio_buff[i][0] = 0;
+        vibrP->audio_buff[i][1] = 0;
+    }
 
     //initialise vibrato variables
     *vibrP->pnt = VIBRATO_L - 1; //start on top
@@ -848,6 +854,7 @@ int audio_vibrato(struct Vibrato *vibrP) {
 }
 
 int alloc_overdrive_vars(struct Overdrive *odP, int coreNumber) {
+    printf("---------------OVERDRIVE INITIALISATION---------------\n");
     // LOCATION IN LOCAL SCRATCHPAD MEMORY
     const int OD_X      = addr[coreNumber];
     const int OD_Y      = OD_X     + 2 * sizeof(short);
@@ -906,6 +913,7 @@ int audio_overdrive(struct Overdrive *odP) {
 }
 
 int alloc_distortion_vars(struct Distortion *distP, int coreNumber, float amount) {
+    printf("---------------DISTORTION INITIALISATION---------------\n");
     // LOCATION IN LOCAL SCRATCHPAD MEMORY
     const int DIST_X      = addr[coreNumber];
     const int DIST_Y      = DIST_X     + 2 * sizeof(short);
@@ -954,6 +962,7 @@ int audio_distortion(struct Distortion *distP) {
 }
 
 int alloc_delay_vars(struct IIRdelay *delP, int coreNumber) {
+    printf("---------------DELAY INITIALISATION---------------\n");
     // LOCATION IN LOCAL SCRATCHPAD MEMORY
     const int DEL_X      = addr[coreNumber];
     const int DEL_Y      = DEL_X     + 2 * sizeof(short);
@@ -979,6 +988,12 @@ int alloc_delay_vars(struct IIRdelay *delP, int coreNumber) {
     delP->del[0] = DELAY_L - 1; // d1 = as long as delay buffer
     //pointer starts on top
     *delP->pnt = DELAY_L - 1;
+
+    //empty buffer
+    for(int i=0; i<DELAY_L; i++) {
+        delP->audio_buff[i][0] = 0;
+        delP->audio_buff[i][1] = 0;
+    }
 
     //return new address
     int ALLOC_AMOUNT = alloc_space("DELAY", (DEL_PNT + sizeof(int)), coreNumber);
