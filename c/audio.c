@@ -715,68 +715,90 @@ void audioChainCore(struct AudioFX *sourceFX, struct AudioFX *destinationFX) {
 }
 
 // FOR PRINTING:
-int alloc_space(char *FX_NAME, int LAST_ADDR, int coreNumber) {
-    printf("Last free position at SPM of core %d is %d\n", coreNumber, addr[coreNumber]);
-    int ALLOC_AMOUNT = LAST_ADDR - addr[coreNumber];
+int alloc_space(char *FX_NAME, unsigned int LAST_ADDR, int coreNumber) {
+    printf("Last free position at SPM of core %d is 0x%x\n", coreNumber, addr[coreNumber]);
+    unsigned int ALLOC_AMOUNT = LAST_ADDR - addr[coreNumber];
     addr[coreNumber] = LAST_ADDR;
     printf("%d bytes allocated in SPM of core %d\n", ALLOC_AMOUNT, coreNumber);
-    printf("Last free position at SPM of core %d is %d\n", coreNumber, addr[coreNumber]);
+    printf("Last free position at SPM of core %d is 0x%x\n", coreNumber, addr[coreNumber]);
     printf("-------------------%s DONE!-------------------\n", FX_NAME);
 
     return ALLOC_AMOUNT;
 }
 
-int alloc_hpfLpf_vars(struct HpfLpf *hpfLpfP, int coreNumber, int Fc, float Q, int type) {
-    printf("---------------HIGH-PASS/LOW-PASS INITIALISATION---------------\n");
+int alloc_filter_vars(struct Filter *filtP, int coreNumber, int Fc, float QorFb, int thisType) {
+    printf("---------------FILTER INITIALISATION---------------\n");
     // LOCATION IN LOCAL SCRATCHPAD MEMORY
-    const int HPLP_X     = addr[coreNumber];
-    const int HPLP_Y     = HPLP_X     + 2 * sizeof(short);
-    const int HPLP_ACCUM = HPLP_Y     + 2 * sizeof(short);
-    const int HPLP_XBUF  = HPLP_ACCUM + 2 * sizeof(int);
-    const int HPLP_YBUF  = HPLP_XBUF  + 6 * sizeof(short); // 3rd ord, stereo
-    const int HPLP_A     = HPLP_YBUF  + 6 * sizeof(short); // 3rd ord, stereo
-    const int HPLP_B     = HPLP_A     + 3 * sizeof(short) + 2; //match word
-    const int HPLP_PNT   = HPLP_B     + 3 * sizeof(short) + 2; //match word
-    const int HPLP_SLFT  = HPLP_PNT   + sizeof(int);
+    const unsigned int FILT_X     = addr[coreNumber];
+    const unsigned int FILT_Y     = FILT_X     + 2 * sizeof(short);
+    const unsigned int FILT_ACCUM = FILT_Y     + 2 * sizeof(short);
+    const unsigned int FILT_XBUF  = FILT_ACCUM + 2 * sizeof(int);
+    const unsigned int FILT_YBUF  = FILT_XBUF  + 6 * sizeof(short); // 3rd ord, stereo
+    const unsigned int FILT_A     = FILT_YBUF  + 6 * sizeof(short); // 3rd ord, stereo
+    const unsigned int FILT_B     = FILT_A     + 3 * sizeof(short) + 2; //match word
+    const unsigned int FILT_PNT   = FILT_B     + 3 * sizeof(short) + 2; //match word
+    const unsigned int FILT_SLFT  = FILT_PNT   + sizeof(int);
+    const unsigned int FILT_TYPE  = FILT_SLFT  + sizeof(int);
 
     //SPM variables
-    hpfLpfP->x      = (volatile _SPM short *)      HPLP_X;
-    hpfLpfP->y      = (volatile _SPM short *)      HPLP_Y;
-    hpfLpfP->accum  = (volatile _SPM int *)        HPLP_ACCUM;
-    hpfLpfP->x_buf  = (volatile _SPM short (*)[2]) HPLP_XBUF;
-    hpfLpfP->y_buf  = (volatile _SPM short (*)[2]) HPLP_YBUF;
-    hpfLpfP->A      = (volatile _SPM short *)      HPLP_A;
-    hpfLpfP->B      = (volatile _SPM short *)      HPLP_B;
-    hpfLpfP->pnt    = (volatile _SPM int *)        HPLP_PNT;
-    hpfLpfP->sftLft = (volatile _SPM int *)        HPLP_SLFT;
+    filtP->x      = (volatile _SPM short *)      FILT_X;
+    filtP->y      = (volatile _SPM short *)      FILT_Y;
+    filtP->accum  = (volatile _SPM int *)        FILT_ACCUM;
+    filtP->x_buf  = (volatile _SPM short (*)[2]) FILT_XBUF;
+    filtP->y_buf  = (volatile _SPM short (*)[2]) FILT_YBUF;
+    filtP->A      = (volatile _SPM short *)      FILT_A;
+    filtP->B      = (volatile _SPM short *)      FILT_B;
+    filtP->pnt    = (volatile _SPM int *)        FILT_PNT;
+    filtP->sftLft = (volatile _SPM int *)        FILT_SLFT;
+    filtP->type   = (volatile _SPM int *)        FILT_TYPE;
 
     //calculate filter coefficients (3rd order)
-    filter_coeff_hp_lp(3, hpfLpfP->B, hpfLpfP->A, Fc, Q, hpfLpfP->sftLft, 0, type); //type: HPF or LPF
-
+    *filtP->type = thisType;
+    if (*filtP->type < 2) { //HP or LP
+        filter_coeff_hp_lp(3, filtP->B, filtP->A, Fc, QorFb, filtP->sftLft, 0, thisType); //type: HPF or LPF
+    }
+    else { // 2 or 3: BP or BR
+        filter_coeff_bp_br(3, filtP->B, filtP->A, Fc, (int)QorFb,  filtP->sftLft, 0);
+    }
     //return new address
-    int ALLOC_AMOUNT = alloc_space("HIGH-PASS/LOW-PASS", (HPLP_SLFT + sizeof(int)), coreNumber);
+    int ALLOC_AMOUNT = alloc_space("FILTER", (FILT_TYPE + sizeof(int)), coreNumber);
 
     //store 1st samples:
     //first, fill filter buffer
-    for(*hpfLpfP->pnt=0; *hpfLpfP->pnt<2; *hpfLpfP->pnt++) {
-      getInputBufferSPM(&hpfLpfP->x_buf[*hpfLpfP->pnt][0], &hpfLpfP->x_buf[*hpfLpfP->pnt][1]);
+    for(*filtP->pnt=0; *filtP->pnt < 2; *filtP->pnt = *filtP->pnt + 1) {
+      getInputBufferSPM(&filtP->x_buf[*filtP->pnt][0], &filtP->x_buf[*filtP->pnt][1]);
     }
 
     return ALLOC_AMOUNT;
 }
 
 __attribute__((always_inline))
-int audio_hpfLpf(struct HpfLpf *hpfLpfP){
+int audio_filter(struct Filter *filtP){
     //increment pointer
-    *hpfLpfP->pnt = (*hpfLpfP->pnt+1) % 3;
+    *filtP->pnt = ( (*(filtP->pnt)) + 1 ) % 3;
     //first, read sample
-    hpfLpfP->x_buf[*hpfLpfP->pnt][0] = hpfLpfP->x[0];
-    hpfLpfP->x_buf[*hpfLpfP->pnt][1] = hpfLpfP->x[1];
+    filtP->x_buf[*filtP->pnt][0] = filtP->x[0];
+    filtP->x_buf[*filtP->pnt][1] = filtP->x[1];
     //then, calculate filter
-    filterIIR_2nd(*hpfLpfP->pnt, hpfLpfP->x_buf, hpfLpfP->y_buf, hpfLpfP->accum, hpfLpfP->B, hpfLpfP->A, *hpfLpfP->sftLft);
+    filterIIR_2nd(*filtP->pnt, filtP->x_buf, filtP->y_buf, filtP->accum, filtP->B, filtP->A, *filtP->sftLft);
+    //check if it is BP/BR
+    if(*filtP->type == 2) { //BP
+        filtP->accum[0] = ( (int)filtP->x[0] - (int)filtP->y_buf[*filtP->pnt][0] ) >> 1;
+        filtP->accum[1] = ( (int)filtP->x[1] - (int)filtP->y_buf[*filtP->pnt][1] ) >> 1;
+    }
+    else {
+        if(*filtP->type == 3) { //BR
+            filtP->accum[0] = ( (int)filtP->x[0] + (int)filtP->y_buf[*filtP->pnt][0] ) >> 1;
+            filtP->accum[1] = ( (int)filtP->x[1] + (int)filtP->y_buf[*filtP->pnt][1] ) >> 1;
+        }
+        else { //HP or LP
+            filtP->accum[0] = filtP->y_buf[*filtP->pnt][0];
+            filtP->accum[1] = filtP->y_buf[*filtP->pnt][1];
+        }
+    }
     //set output
-    hpfLpfP->y[0] = hpfLpfP->y_buf[*hpfLpfP->pnt][0];
-    hpfLpfP->y[1] = hpfLpfP->y_buf[*hpfLpfP->pnt][1];
+    filtP->y[0] = (short)filtP->accum[0];
+    filtP->y[1] = (short)filtP->accum[1];
 
     return 0;
 }
@@ -784,15 +806,15 @@ int audio_hpfLpf(struct HpfLpf *hpfLpfP){
 int alloc_vibrato_vars(struct Vibrato *vibrP, int coreNumber) {
     printf("---------------VIBRATO INITIALISATION---------------\n");
     // LOCATION IN LOCAL SCRATCHPAD MEMORY
-    const int VIBR_X      = addr[coreNumber];
-    const int VIBR_Y      = VIBR_X     + 2 * sizeof(short);
-    const int VIBR_ACCUM  = VIBR_Y     + 2 * sizeof(short);
-    const int VIBR_DEL    = VIBR_ACCUM + 2 * sizeof(int);
-    const int VIBR_FRAC   = VIBR_DEL   + sizeof(int);
-    const int VIBR_PNT    = VIBR_FRAC  + sizeof(short) + 2;
-    const int VIBR_V_PNT  = VIBR_PNT   + sizeof(int);
-    const int VIBR_A_PNT  = VIBR_V_PNT + sizeof(int);
-    const int VIBR_NA_PNT = VIBR_A_PNT + sizeof(int);
+    const unsigned int VIBR_X      = addr[coreNumber];
+    const unsigned int VIBR_Y      = VIBR_X     + 2 * sizeof(short);
+    const unsigned int VIBR_ACCUM  = VIBR_Y     + 2 * sizeof(short);
+    const unsigned int VIBR_DEL    = VIBR_ACCUM + 2 * sizeof(int);
+    const unsigned int VIBR_FRAC   = VIBR_DEL   + sizeof(int);
+    const unsigned int VIBR_PNT    = VIBR_FRAC  + sizeof(short) + 2;
+    const unsigned int VIBR_V_PNT  = VIBR_PNT   + sizeof(int);
+    const unsigned int VIBR_A_PNT  = VIBR_V_PNT + sizeof(int);
+    const unsigned int VIBR_NA_PNT = VIBR_A_PNT + sizeof(int);
 
     //SPM variables
     vibrP->x           = ( volatile _SPM short *) VIBR_X;
@@ -856,9 +878,9 @@ int audio_vibrato(struct Vibrato *vibrP) {
 int alloc_overdrive_vars(struct Overdrive *odP, int coreNumber) {
     printf("---------------OVERDRIVE INITIALISATION---------------\n");
     // LOCATION IN LOCAL SCRATCHPAD MEMORY
-    const int OD_X      = addr[coreNumber];
-    const int OD_Y      = OD_X     + 2 * sizeof(short);
-    const int OD_ACCUM  = OD_Y     + 2 * sizeof(short);
+    const unsigned int OD_X      = addr[coreNumber];
+    const unsigned int OD_Y      = OD_X     + 2 * sizeof(short);
+    const unsigned int OD_ACCUM  = OD_Y     + 2 * sizeof(short);
     //SPM variables
     odP->x        = ( volatile _SPM short *) OD_X;
     odP->y        = ( volatile _SPM short *) OD_Y;
@@ -915,12 +937,12 @@ int audio_overdrive(struct Overdrive *odP) {
 int alloc_distortion_vars(struct Distortion *distP, int coreNumber, float amount) {
     printf("---------------DISTORTION INITIALISATION---------------\n");
     // LOCATION IN LOCAL SCRATCHPAD MEMORY
-    const int DIST_X      = addr[coreNumber];
-    const int DIST_Y      = DIST_X     + 2 * sizeof(short);
-    const int DIST_ACCUM  = DIST_Y     + 2 * sizeof(short);
-    const int DIST_K      = DIST_ACCUM + 2 * sizeof(int);
-    const int DIST_K1P    = DIST_K     + sizeof(int);
-    const int DIST_SFTLFT = DIST_K1P   + sizeof(int);
+    const unsigned int DIST_X      = addr[coreNumber];
+    const unsigned int DIST_Y      = DIST_X     + 2 * sizeof(short);
+    const unsigned int DIST_ACCUM  = DIST_Y     + 2 * sizeof(short);
+    const unsigned int DIST_K      = DIST_ACCUM + 2 * sizeof(int);
+    const unsigned int DIST_K1P    = DIST_K     + sizeof(int);
+    const unsigned int DIST_SFTLFT = DIST_K1P   + sizeof(int);
     //SPM variables
     distP->x        = ( volatile _SPM short *) DIST_X;
     distP->y        = ( volatile _SPM short *) DIST_Y;
@@ -964,12 +986,12 @@ int audio_distortion(struct Distortion *distP) {
 int alloc_delay_vars(struct IIRdelay *delP, int coreNumber) {
     printf("---------------DELAY INITIALISATION---------------\n");
     // LOCATION IN LOCAL SCRATCHPAD MEMORY
-    const int DEL_X      = addr[coreNumber];
-    const int DEL_Y      = DEL_X     + 2 * sizeof(short);
-    const int DEL_ACCUM  = DEL_Y     + 2 * sizeof(short);
-    const int DEL_G      = DEL_ACCUM + 2 * sizeof(int);
-    const int DEL_DEL    = DEL_G     + 2 * sizeof(short);
-    const int DEL_PNT    = DEL_DEL   + 2 * sizeof(int);
+    const unsigned int DEL_X      = addr[coreNumber];
+    const unsigned int DEL_Y      = DEL_X     + 2 * sizeof(short);
+    const unsigned int DEL_ACCUM  = DEL_Y     + 2 * sizeof(short);
+    const unsigned int DEL_G      = DEL_ACCUM + 2 * sizeof(int);
+    const unsigned int DEL_DEL    = DEL_G     + 2 * sizeof(short);
+    const unsigned int DEL_PNT    = DEL_DEL   + 2 * sizeof(int);
 
     //SPM variables
     delP->x     = ( volatile _SPM short *) DEL_X;

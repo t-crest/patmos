@@ -1,45 +1,68 @@
-//#ifndef FILTER_ORDER_1PLUS
-//#define FILTER_ORDER_1PLUS 2
-//#endif
+
+// for multicore platform with noc:
+//#define MULTICORE 1
+
 
 #ifndef AUDIO_H
 #define AUDIO_H
+
+#include "libnoc/noc.h"
 
 #define ONE_16b 0x7FFF
 #define BUFFER_SIZE 128
 #define Fs 52083 // Hz
 
+// ADDRESSES FOR OCP
+#ifdef MULTICORE
+#define SPM_OFFSET   (unsigned int)NOC_SPM_BASE
+#else
+#define SPM_OFFSET   0
+#endif
+
+#define LED_ADDR       (volatile _SPM int *) 0xF0090000
+#define KEY_ADDR       (volatile _SPM int *) 0xF00A0000
+#define DACL_ADDR      (volatile _SPM int *) 0xF00B0000
+#define DACR_ADDR      (volatile _SPM int *) 0xF00B0010
+#define DACEN_ADDR     (volatile _SPM int *) 0xF00B0020
+#define DACBUFS_ADDR   (volatile _SPM int *) 0xF00B0040
+#define DACBUFWP_ADDR  (volatile _SPM int *) 0xF00B0050
+#define DACBUFFU_ADDR  (volatile _SPM int *) 0xF00B0060
+#define ADCL_ADDR      (volatile _SPM int *) 0xF00B0080
+#define ADCR_ADDR      (volatile _SPM int *) 0xF00B0090
+#define ADCEN_ADDR     (volatile _SPM int *) 0xF00B00A0
+#define ADCBUFS_ADDR   (volatile _SPM int *) 0xF00B00B0
+#define ADCBUFRP_ADDR  (volatile _SPM int *) 0xF00B00C0
+#define ADCBUFEM_ADDR  (volatile _SPM int *) 0xF00B00D0
+#define I2CDATA_ADDR   (volatile _SPM int *) 0xF00B00E0
+#define I2CADDR_ADDR   (volatile _SPM int *) 0xF00B00F0
+#define I2CACK_ADDR    (volatile _SPM int *) 0xF00B0100
+#define I2CREQ_ADDR    (volatile _SPM int *) 0xF00B0110
+
 //Leds
-volatile _SPM int *ledReg = (volatile _SPM int *) 0xF0090000;
-
+volatile _SPM int *ledReg = LED_ADDR;
 //Keys
-volatile _SPM int *keyReg = (volatile _SPM int *) 0xF00A0000;
-
+volatile _SPM int *keyReg = KEY_ADDR;
 //DAC
-volatile _SPM int *audioDacLReg	   = (volatile _SPM int *) 0xF00B0000;
-volatile _SPM int *audioDacRReg    = (volatile _SPM int *) 0xF00B0010;
-volatile _SPM int *audioDacEnReg   = (volatile _SPM int *) 0xF00B0020;
-
+volatile _SPM int *audioDacLReg	   = DACL_ADDR;
+volatile _SPM int *audioDacRReg    = DACR_ADDR;
+volatile _SPM int *audioDacEnReg   = DACEN_ADDR;
 //DAC buffer
-volatile _SPM int *audioDacBufferSizeReg        = (volatile _SPM int *) 0xF00B0040;
-volatile _SPM int *audioDacBufferWritePulseReg  = (volatile _SPM int *) 0xF00B0050;
-volatile _SPM int *audioDacBufferFullReg        = (volatile _SPM int *) 0xF00B0060;
-
+volatile _SPM int *audioDacBufferSizeReg        = DACBUFS_ADDR;
+volatile _SPM int *audioDacBufferWritePulseReg  = DACBUFWP_ADDR;
+volatile _SPM int *audioDacBufferFullReg        = DACBUFFU_ADDR;
 //ADC
-volatile _SPM int *audioAdcLReg	   = (volatile _SPM int *) 0xF00B0080;
-volatile _SPM int *audioAdcRReg	   = (volatile _SPM int *) 0xF00B0090;
-volatile _SPM int *audioAdcEnReg   = (volatile _SPM int *) 0xF00B00A0;
-
+volatile _SPM int *audioAdcLReg	   = ADCL_ADDR;
+volatile _SPM int *audioAdcRReg	   = ADCR_ADDR;
+volatile _SPM int *audioAdcEnReg   = ADCEN_ADDR;
 //ADC buffer
-volatile _SPM int *audioAdcBufferSizeReg      = (volatile _SPM int *) 0xF00B00B0;
-volatile _SPM int *audioAdcBufferReadPulseReg = (volatile _SPM int *) 0xF00B00C0;
-volatile _SPM int *audioAdcBufferEmptyReg     = (volatile _SPM int *) 0xF00B00D0;
-
+volatile _SPM int *audioAdcBufferSizeReg      = ADCBUFS_ADDR;
+volatile _SPM int *audioAdcBufferReadPulseReg = ADCBUFRP_ADDR;
+volatile _SPM int *audioAdcBufferEmptyReg     = ADCBUFEM_ADDR;
 //I2C
-volatile _SPM int *i2cDataReg = (volatile _SPM int *) 0xF00B00E0;
-volatile _SPM int *i2cAdrReg  = (volatile _SPM int *) 0xF00B00F0;
-volatile _SPM int *i2cAckReg  = (volatile _SPM int *) 0xF00B0100;
-volatile _SPM int *i2cReqReg  = (volatile _SPM int *) 0xF00B0110;
+volatile _SPM int *i2cDataReg = I2CDATA_ADDR;
+volatile _SPM int *i2cAdrReg  = I2CADDR_ADDR;
+volatile _SPM int *i2cAckReg  = I2CACK_ADDR;
+volatile _SPM int *i2cReqReg  = I2CREQ_ADDR;
 
 
 int 	writeToI2C(char* addrC,char* dataC);
@@ -72,6 +95,8 @@ int     overdrive(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM 
 
 //----------------------------COMPLETE AUDIO FUNCTIONS---------------------------------//
 
+
+
 #define VIBRATO_L 150 // modulation amount in samples (amp of sin)
 #define VIBRATO_P (int)(Fs/4) // period of vibrato (period of sin)
 
@@ -80,7 +105,7 @@ int     overdrive(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM 
 #define DELAY_L (int)(Fs/4) // for delay
 
 const int CORES_AMOUNT = 4;
-int addr[CORES_AMOUNT] = {0};
+unsigned int addr[CORES_AMOUNT] = {SPM_OFFSET};
 
 struct AudioFX {
     //SPM variables
@@ -99,7 +124,7 @@ void audioChainCore(struct AudioFX *sourceFX, struct AudioFX *destinationFX);
   High-Pass / Low-Pass filters (2nd order)
 */
 
-struct HpfLpf {
+struct Filter {
     //SPM variables
     volatile _SPM short *x; //input audio x[2]
     volatile _SPM short *y; //output audio y[2]
@@ -110,10 +135,11 @@ struct HpfLpf {
     volatile _SPM short *B; // [b2, b1, b0]
     volatile _SPM int   *pnt; //audio input pointer
     volatile _SPM int   *sftLft; //x or y buffer pointer
+    volatile _SPM int   *type; // to choose between HP, LP, BP or BR
 };
 
-int alloc_hpfLpf_vars(struct HpfLpf *hpflpfP, int coreNumber, int Fc, float Q, int type);
-int audio_hpfLpf(struct HpfLpf *hpflpfP);
+int alloc_filter_vars(struct Filter *filterP, int coreNumber, int Fc, float QorFb, int type);
+int audio_filter(struct Filter *filterP);
 
 
 /*

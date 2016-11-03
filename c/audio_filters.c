@@ -24,18 +24,24 @@ int main() {
     setInputBufferSize(BUFFER_SIZE);
     setOutputBufferSize(BUFFER_SIZE);
 
-    struct HpfLpf hpfLpf1;
-    struct HpfLpf *hpfLpf1Pnt = &hpfLpf1;
-    struct AudioFX *hpfLpf1FXPnt = (struct AudioFX *) hpfLpf1Pnt;
-    int HPFLPF_ALLOC_AMOUNT;
+    struct Filter filter1;
+    struct Filter *filter1Pnt = &filter1;
+    struct AudioFX *filter1FXPnt = (struct AudioFX *) filter1Pnt;
+    int FILTER_ALLOC_AMOUNT;
 
-    printf("Press KEY0 to play LPF and KEY1 for HPF\n");
+    printf("Press KEY0 to play LPF, KEY1 for HPF, KEY2 for BPF and KEY3 for BRF\n");
     while(*keyReg == 15);
     if(*keyReg == 14) {
-        HPFLPF_ALLOC_AMOUNT = alloc_hpfLpf_vars(hpfLpf1Pnt, 0, 600, 0.707, 0); //LPF
+        FILTER_ALLOC_AMOUNT = alloc_filter_vars(filter1Pnt, 0, 600, 0.707, 0); //LPF
     }
     if(*keyReg == 13) {
-        HPFLPF_ALLOC_AMOUNT = alloc_hpfLpf_vars(hpfLpf1Pnt, 0, 5000, 0.707, 1); //HPF
+        FILTER_ALLOC_AMOUNT = alloc_filter_vars(filter1Pnt, 0, 5000, 0.707, 1); //HPF
+    }
+    if(*keyReg == 11) {
+        FILTER_ALLOC_AMOUNT = alloc_filter_vars(filter1Pnt, 0, 1000, 300, 2); //BPF
+    }
+    if(*keyReg == 7) {
+        FILTER_ALLOC_AMOUNT = alloc_filter_vars(filter1Pnt, 0, 500, 2000, 3); //BRF
     }
     printf("Done!\n");
 
@@ -44,9 +50,9 @@ int main() {
     //int cpu_pnt = 0;
 
     while(*keyReg != 3) {
-        audioIn(hpfLpf1FXPnt);
-        audio_hpfLpf(hpfLpf1Pnt);
-        audioOut(hpfLpf1FXPnt);
+        audioIn(filter1FXPnt);
+        audio_filter(filter1Pnt);
+        audioOut(filter1FXPnt);
         /*
         //store CPU Cycles
         CPUcycles[cpu_pnt] = get_cpu_cycles();

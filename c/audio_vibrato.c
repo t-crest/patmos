@@ -7,6 +7,7 @@
 #include "audio.h"
 #include "audio.c"
 
+
 /*
    Vibrato:
      -Buffer Length sets the amount of vibrato: amplitude of sin
@@ -16,6 +17,9 @@
 int main() {
 
     setup(0); //for guitar
+
+    printf("SPM ADDRESS OFFSET IS: 0x%x\n", SPM_OFFSET);
+    printf("initial address in clore 0 is: 0x%x\n", addr[0]);
 
     // enable input and output
     *audioDacEnReg = 1;
