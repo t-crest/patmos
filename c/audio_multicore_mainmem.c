@@ -9,20 +9,35 @@
 
 
 
-void thread1_blink(void* args) {
-    int **intArgs = (int **) args;
-    int *ledOnTimeP = intArgs[0];
-    int *ledOffTimeP = intArgs[1];
-    volatile _UNCACHED int *exit = (volatile _UNCACHED int *) intArgs[2];
+void thread1_delay(void* args) {
+    volatile _UNCACHED int **inArgs = (volatile _UNCACHED int **) args;
+    volatile _UNCACHED int *left      = inArgs[0];
+    volatile _UNCACHED int *right     = inArgs[1];
+    volatile _UNCACHED int *syncToken = inArgs[2];
+    volatile _UNCACHED int *exit      = inArgs[3];
+
+    struct IIRdelay del1;
+    struct IIRdelay *del1Pnt = &del1;
+    int DEL_ALLOC_AMOUNT = alloc_delay_vars(del1Pnt, 0);
+
+
     while(*exit == 0) {
-        for (int i=0; i<(*ledOnTimeP * 500000); i++) {
-            //keep led ON
-            *ledReg = 1;
+        //wait for sync (except if exit)
+        while(*syncToken == 0) {
+            if(*exit != 0) {
+                break;
+            }
         }
-        for (int i=0; i<(*ledOffTimeP * 500000); i++) {
-            //keep led OFF
-            *ledReg = 0;
-        }
+        //write input
+        del1Pnt->x[0] = *left;
+        del1Pnt->x[1] = *right;
+        //compute delay
+        audio_delay(del1Pnt);
+        //write output
+        *left  = del1Pnt->y[0];
+        *right = del1Pnt->y[1];
+        //pass token
+        *syncToken = 0;
     }
 
     // exit with return value
@@ -39,20 +54,25 @@ int main() {
     //create corethread type var
     corethread_t threadOne = (corethread_t) 1;
     //arguments to thread 1 function
-    int ledOnTime = 15; //no time unit
-    int ledOffTime = 5; //no time unit
-    volatile _UNCACHED int *exit;
-    *exit = 0; //
-    int (*thread1_args[3]);
-    thread1_args[0] = &ledOnTime;
-    thread1_args[1] = &ledOffTime;
-    thread1_args[2] = (int *) exit;
+    int left, right, syncToken, exit = 0;
+    volatile _UNCACHED int *leftP      = (volatile _UNCACHED int *) &left;
+    volatile _UNCACHED int *rightP     = (volatile _UNCACHED int *) &right;
+    volatile _UNCACHED int *syncTokenP = (volatile _UNCACHED int *) &syncToken;
+    volatile _UNCACHED int *exitP      = (volatile _UNCACHED int *) &exit;
+    volatile _UNCACHED int (*thread1_args[4]);
+    thread1_args[0] = leftP;
+    thread1_args[1] = rightP;
+    thread1_args[2] = syncTokenP;
+    thread1_args[3] = exitP;
     printf("starting thread...\n");
     //set thread function
-    corethread_create(&threadOne, &thread1_blink, (void*) thread1_args);
+    corethread_create(&threadOne, &thread1_delay, (void*) thread1_args);
     //start thread on slave core 1
 
-
+    //AudioFX struct: contains no effect
+    struct AudioFX audio1FX;
+    struct AudioFX *audio1FXPnt = &audio1FX;
+    int AUDIO_ALLOC_AMOUNT = alloc_dry_vars(audio1FXPnt, 0);
 
     setup(0); //guitar?
 
@@ -60,28 +80,50 @@ int main() {
     *audioDacEnReg = 1;
     *audioAdcEnReg = 1;
 
-    setInputBufferSize(32);
-    setOutputBufferSize(32);
+    setInputBufferSize(BUFFER_SIZE);
+    setOutputBufferSize(BUFFER_SIZE);
 
-    //AudioFX struct: contains no effect
-    struct AudioFX audio1FX;
-    struct AudioFX *audio1FXPnt = &audio1FX;
-    int AUDIO_ALLOC_AMOUNT = alloc_dry_vars(audio1FXPnt, 0);
-
+    //CPU cycles stuff
+    //int CPUcycles[1000] = {0};
+    //int cpu_pnt = 0;
 
     while(*keyReg != 3) {
+        //put input in x
         audioIn(audio1FXPnt);
-        audio_dry(audio1FXPnt);
+        //write from x to memory
+        *leftP  = audio1FXPnt->x[0];
+        *rightP = audio1FXPnt->x[1];
+        //pass token
+        *syncTokenP = 1;
+        //wait for thread 1 to finish computation
+        while(*syncTokenP == 1);
+        //printf("printf synto is %d\n", syncToken);
+        audio1FXPnt->y[0] = *leftP;
+        audio1FXPnt->y[1] = *rightP;
+        //put y in output
         audioOut(audio1FXPnt);
+        /*
+        //store CPU Cycles
+        CPUcycles[cpu_pnt] = get_cpu_cycles();
+        cpu_pnt++;
+        if(cpu_pnt == 1000) {
+            break;
+        }
+        */
     }
+
     //exit stuff
     printf("exit here!\n");
-    *exit = 1;
+    exit = 1;
     printf("waiting for thread 1 to finish...\n");
     //join with thread 1
     int *retval;
     corethread_join(threadOne, (void **)&retval);
     printf("thread 1 finished!\n");
-
+    /*
+    for(int i=1; i<1000; i++) {
+        printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
+    }
+    */
     return 0;
 }

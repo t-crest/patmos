@@ -22,8 +22,8 @@ int main() {
     *audioDacEnReg = 1;
     *audioAdcEnReg = 1;
 
-    setInputBufferSize(32);
-    setOutputBufferSize(32);
+    setInputBufferSize(BUFFER_SIZE);
+    setOutputBufferSize(BUFFER_SIZE);
 
     //AudioFX struct: contains no effect
     struct AudioFX audio1FX;
