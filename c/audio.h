@@ -1,7 +1,4 @@
 
-// for multicore platform with noc:
-#define MULTICORE 1
-
 
 #ifndef AUDIO_H
 #define AUDIO_H
@@ -12,12 +9,20 @@
 #define BUFFER_SIZE 128
 #define Fs 52083 // Hz
 
+// for multicore platform with noc:
+#define MULTICORE 0
+
 // ADDRESSES FOR OCP
-#ifdef MULTICORE
+#if ( MULTICORE == 1 )
 #define SPM_OFFSET   (unsigned int)NOC_SPM_BASE
 #else
 #define SPM_OFFSET   0
 #endif
+
+//multicore stuff
+const int CORES_AMOUNT = 4;
+unsigned int addr[CORES_AMOUNT] = {SPM_OFFSET};
+
 
 #define LED_ADDR       (volatile _SPM int *) 0xF0090000
 #define KEY_ADDR       (volatile _SPM int *) 0xF00A0000
@@ -96,16 +101,16 @@ int     overdrive(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM 
 //----------------------------COMPLETE AUDIO FUNCTIONS---------------------------------//
 
 
-
+//for vibrato:
 #define VIBRATO_L 150 // modulation amount in samples (amp of sin)
 #define VIBRATO_P (int)(Fs/4) // period of vibrato (period of sin)
-
-#define FILTER_ORDER_1PLUS 3 //order of IIR filters
-
-#define DELAY_L (int)(Fs/4) // for delay
-
-const int CORES_AMOUNT = 4;
-unsigned int addr[CORES_AMOUNT] = {SPM_OFFSET};
+//#define FILTER_ORDER_1PLUS 3 //order of IIR filters
+// for delay
+#define DELAY_L (int)(Fs/4)
+//for chorus
+#define CHORUS_P1 Fs //period of 1st chorus
+#define CHORUS_P2 (int)(4*Fs/5) //period of 2nd chorus
+#define CHORUS_L  2083 // modulation amount in samples
 
 struct AudioFX {
     //SPM variables
@@ -212,5 +217,29 @@ struct IIRdelay {
 
 int alloc_delay_vars(struct IIRdelay *delP, int coreNumber);
 int audio_delay(struct IIRdelay *delP);
+
+/*
+  Chorus
+*/
+
+struct Chorus {
+    //SPM variables
+    volatile _SPM short *x; //input audio x[2]
+    volatile _SPM short *y; //output audio y[2]
+    volatile _SPM int   *accum; //accummulator accum[2]
+    volatile _SPM short *g; // gains [g2, g1, g0]
+    volatile _SPM int   *del; // delays [d2, d1, d0]
+    volatile _SPM int   *pnt; //audio input pointer
+    volatile _SPM int   *c1_pnt; //1st mod array pointer
+    volatile _SPM int   *c2_pnt; //2nd mod array pointer
+    //SRAM variables
+    short audio_buff[CHORUS_L][2];
+    int modArray1[CHORUS_P1];
+    int modArray2[CHORUS_P2];
+};
+
+int alloc_chorus_vars(struct Chorus *chorP, int coreNumber);
+int audio_chorus(struct Chorus *chorP);
+
 
 #endif

@@ -1041,3 +1041,77 @@ int audio_delay(struct IIRdelay *delP) {
 
     return 0;
 }
+
+int alloc_chorus_vars(struct Chorus *chorP, int coreNumber) {
+    printf("---------------CHORUS INITIALISATION---------------\n");
+    // LOCATION IN LOCAL SCRATCHPAD MEMORY
+    const unsigned int CHOR_X      = addr[coreNumber];
+    const unsigned int CHOR_Y      = CHOR_X      + 2 * sizeof(short);
+    const unsigned int CHOR_ACCUM  = CHOR_Y      + 2 * sizeof(short);
+    const unsigned int CHOR_G      = CHOR_ACCUM  + 2 * sizeof(int);
+    const unsigned int CHOR_DEL    = CHOR_G      + 3 * sizeof(short) + 2;
+    const unsigned int CHOR_PNT    = CHOR_DEL    + 3 * sizeof(int);
+    const unsigned int CHOR_C1_PNT = CHOR_PNT    + sizeof(int);
+    const unsigned int CHOR_C2_PNT = CHOR_C1_PNT + sizeof(int);
+
+    //SPM variables
+    chorP->x      = ( volatile _SPM short *) CHOR_X;
+    chorP->y      = ( volatile _SPM short *) CHOR_Y;
+    chorP->accum  = ( volatile _SPM int *)   CHOR_ACCUM;
+    chorP->g      = ( volatile _SPM short *) CHOR_G;
+    chorP->del    = ( volatile _SPM int *)   CHOR_DEL;
+    chorP->pnt    = ( volatile _SPM int *)   CHOR_PNT;
+    chorP->c1_pnt = ( volatile _SPM int *)   CHOR_C1_PNT;
+    chorP->c2_pnt = ( volatile _SPM int *)   CHOR_C2_PNT;
+
+    //initialise chorus variables
+    //set gains:
+    chorP->g[2] = ONE_16b * 0.45; //g0
+    chorP->g[1] = ONE_16b * 0.4;  //g1
+    chorP->g[0] = ONE_16b * 0.4;  //g2
+    //set delays:
+    chorP->del[2] = 0; // always d0 = 0
+    //calculate modulation arrays
+    storeSin(chorP->modArray1, CHORUS_P1, ( CHORUS_L*0.6 ), ( CHORUS_L * 0.02) );
+    storeSin(chorP->modArray2, CHORUS_P2, ( CHORUS_L*0.4 ), ( CHORUS_L * 0.012) );
+
+
+    //empty buffer
+    for(int i=0; i<CHORUS_L; i++) {
+        chorP->audio_buff[i][0] = 0;
+        chorP->audio_buff[i][1] = 0;
+    }
+
+     //pointers:
+    *chorP->pnt = CHORUS_L - 1; //starts on top
+    *chorP->c1_pnt = 0;
+    *chorP->c2_pnt = 0;
+
+    //return new address
+    int ALLOC_AMOUNT = alloc_space("CHORUS", (CHOR_C2_PNT + sizeof(int)), coreNumber);
+
+    return ALLOC_AMOUNT;
+}
+
+__attribute__((always_inline))
+int audio_chorus(struct Chorus *chorP) {
+    // SINUSOIDAL MODULATION OF DELAY LENGTH
+    chorP->del[0] = chorP->modArray1[*chorP->c1_pnt];
+    chorP->del[1] = chorP->modArray2[*chorP->c2_pnt];
+    *chorP->c1_pnt = (*chorP->c1_pnt + 1) % CHORUS_P1;
+    *chorP->c2_pnt = (*chorP->c2_pnt + 1) % CHORUS_P2;
+    //first, read sample
+    chorP->audio_buff[*chorP->pnt][0] = chorP->x[0];
+    chorP->audio_buff[*chorP->pnt][1] = chorP->x[1];
+    //calculate AUDIO comb filter
+    combFilter_2nd(CHORUS_L, chorP->pnt, chorP->audio_buff, chorP->y, chorP->accum, chorP->g, chorP->del);
+    //update pointer
+    if(*chorP->pnt == 0) {
+        *chorP->pnt = CHORUS_L - 1;
+    }
+    else {
+        *chorP->pnt = *chorP->pnt - 1;
+    }
+
+    return 0;
+}
