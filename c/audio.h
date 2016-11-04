@@ -1,19 +1,19 @@
 
 
-#ifndef AUDIO_H
-#define AUDIO_H
+#ifndef _AUDIO_H_
+#define _AUDIO_H_
 
-#include "libnoc/noc.h"
+// for multicore platform with noc:
+#define MULTICORE 1
 
 #define ONE_16b 0x7FFF
 #define BUFFER_SIZE 128
 #define Fs 52083 // Hz
 
-// for multicore platform with noc:
-#define MULTICORE 1
-
 // ADDRESSES FOR OCP
 #if ( MULTICORE == 1 )
+#include "libnoc/noc.h"
+#include "libcorethread/corethread.h"
 #define SPM_OFFSET   (unsigned int)NOC_SPM_BASE
 #else
 #define SPM_OFFSET   0
@@ -230,4 +230,4 @@ int alloc_chorus_vars(struct Chorus *chorP, int coreNumber);
 int audio_chorus(struct Chorus *chorP);
 
 
-#endif
+#endif /* _AUDIO_H_ */

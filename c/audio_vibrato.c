@@ -7,7 +7,6 @@
 #include "audio.h"
 #include "audio.c"
 
-
 /*
    Vibrato:
      -Buffer Length sets the amount of vibrato: amplitude of sin
