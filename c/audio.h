@@ -10,7 +10,7 @@
 #define Fs 52083 // Hz
 
 // for multicore platform with noc:
-#define MULTICORE 0
+#define MULTICORE 1
 
 // ADDRESSES FOR OCP
 #if ( MULTICORE == 1 )
@@ -73,29 +73,12 @@ volatile _SPM int *i2cReqReg  = I2CREQ_ADDR;
 int 	writeToI2C(char* addrC,char* dataC);
 void 	setup(int guitar);
 int 	changeVolume(int vol);
-void 	waitSyncDac();
-void 	waitSyncAdc();
-
 
 int 	setOutputBuffer(short l, short r);
 int 	getInputBufferSPM(volatile _SPM short *l, volatile _SPM short *r);
 int     getInputBuffer(volatile short *l, volatile short *r);
 int     setOutputBufferSize(int bufferSize);
 int     setInputBufferSize(int bufferSize);
-
-/*
-//audio operations
-int     filterIIR(int FILT_ORD_1PL, volatile _SPM int *pnt_i, volatile _SPM short (*x)[2], volatile _SPM short (*y)[2], volatile _SPM int *accum, volatile _SPM short *B, volatile _SPM short *A, int shiftLeft);
-int     storeSin(int *sinArray, int SIZE, int OFFSET, int AMP);
-int     storeSinInterpol(int *sinArray, short *fracArray, int SIZE, int OFFSET, int AMP);
-int     filter_coeff_bp_br(int FILT_ORD_1PL, volatile _SPM short *B, volatile _SPM short *A, int Fc, int Fb, volatile _SPM int *shiftLeft, int fixedShift);
-int     filter_coeff_hp_lp(int FILT_ORD_1PL, volatile _SPM short *B, volatile _SPM short *A, int Fc, float Q, volatile _SPM int *shiftLeft, int fixedShift, int type);
-int     combFilter_1st(int AUDIO_BUFF_LEN, volatile _SPM int *pnt, volatile short (*audio_buffer)[2], volatile _SPM short *y, volatile _SPM int *accum, volatile _SPM short *g, volatile _SPM int *del);
-int     combFilter_2nd(int AUDIO_BUFF_LEN, volatile _SPM int *pnt, volatile short (*audio_buffer)[2], volatile _SPM short *y, volatile _SPM int *accum, volatile _SPM short *g, volatile _SPM int *del);
-int     distortion(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int *accum);
-int     fuzz(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int *accum, const int K, const int KonePlus, const int shiftLeft);
-int     overdrive(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int *accum);
-*/
 
 
 //----------------------------COMPLETE AUDIO FUNCTIONS---------------------------------//
@@ -112,6 +95,10 @@ int     overdrive(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM 
 #define CHORUS_P2 (int)(4*Fs/5) //period of 2nd chorus
 #define CHORUS_L  2083 // modulation amount in samples
 
+/*
+  GENERAL
+*/
+
 struct AudioFX {
     //SPM variables
     volatile _SPM short *x; //input audio x[2]
@@ -120,10 +107,11 @@ struct AudioFX {
 
 void audioIn(struct AudioFX *thisFX);
 void audioOut(struct AudioFX *thisFX);
-
 //same core:
 void audioChainCore(struct AudioFX *sourceFX, struct AudioFX *destinationFX);
-
+//for dry audio
+int alloc_dry_vars(struct AudioFX *audioP, int coreNumber);
+int audio_dry(struct AudioFX *audioP);
 
 /*
   High-Pass / Low-Pass filters (2nd order)

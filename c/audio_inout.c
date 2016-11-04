@@ -1,16 +1,9 @@
-const int NOC_MASTER = 0;
-#define CORETHREAD_INIT
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdbool.h>
-#include <machine/patmos.h>
-#include "libnoc/noc.h"
-#include "libcorethread/corethread.h"
-#include <math.h>
 #include <machine/spm.h>
 #include <machine/rtc.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
 #include "audio.h"
 #include "audio.c"
 
@@ -23,29 +16,25 @@ const int NOC_MASTER = 0;
 
 int main() {
 
-    short highest;
-    highest = 0;
-
     setup(0); //guitar?
-
-    setInputBufferSize(32);
-    setOutputBufferSize(32);
-
-    short inL = 0;
-    short inR = 0;
 
     // enable input and output
     *audioDacEnReg = 1;
     *audioAdcEnReg = 1;
 
+    setInputBufferSize(32);
+    setOutputBufferSize(32);
+
+    //AudioFX struct: contains no effect
+    struct AudioFX audio1FX;
+    struct AudioFX *audio1FXPnt = &audio1FX;
+    int AUDIO_ALLOC_AMOUNT = alloc_dry_vars(audio1FXPnt, 0);
+
     while(*keyReg != 3) {
-        getInputBuffer(&inL, &inR);
-        //printf("In L: %i In R: %i\n",inL,inR);
-        if(inL > highest) {
-            highest = inL;
-        }
-        setOutputBuffer(inL,inR);
+        audioIn(audio1FXPnt);
+        audio_dry(audio1FXPnt);
+        audioOut(audio1FXPnt);
     }
-    printf("Highest: %d\n", highest);
+
     return 0;
 }

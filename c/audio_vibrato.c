@@ -34,7 +34,7 @@ int main() {
     //int CPUcycles[100] = {0};
     //int cpu_pnt = 0;
 
-    while(1 /**keyReg != 3*/) {
+    while(*keyReg != 3) {
         audioIn(vibr1FXPnt);
         audio_vibrato(vibr1Pnt);
         audioOut(vibr1FXPnt);

@@ -726,6 +726,27 @@ int alloc_space(char *FX_NAME, unsigned int LAST_ADDR, int coreNumber) {
     return ALLOC_AMOUNT;
 }
 
+int alloc_dry_vars(struct AudioFX *audioP, int coreNumber) {
+    printf("---------------AUDIO DRY INITIALISATION---------------\n");
+    // LOCATION IN LOCAL SCRATCHPAD MEMORY
+    const unsigned int DRY_X      = addr[coreNumber];
+    const unsigned int DRY_Y      = DRY_X     + 2 * sizeof(short);
+    //SPM variables
+    audioP->x        = ( volatile _SPM short *) DRY_X;
+    audioP->y        = ( volatile _SPM short *) DRY_Y;
+
+    //return new address
+    int ALLOC_AMOUNT = alloc_space("AUDIO DRY", (DRY_Y + 2 * sizeof(short)), coreNumber);
+    return ALLOC_AMOUNT;
+}
+
+int audio_dry(struct AudioFX *audioP) {
+    audioP->y[0] = audioP->x[0];
+    audioP->y[1] = audioP->x[1];
+
+    return 0;
+}
+
 int alloc_filter_vars(struct Filter *filtP, int coreNumber, int Fc, float QorFb, int thisType) {
     printf("---------------FILTER INITIALISATION---------------\n");
     // LOCATION IN LOCAL SCRATCHPAD MEMORY
