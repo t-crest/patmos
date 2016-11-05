@@ -13,6 +13,7 @@
 // ADDRESSES FOR OCP
 #if ( MULTICORE == 1 )
 #include "libnoc/noc.h"
+#include "libmp/mp.h"
 #include "libcorethread/corethread.h"
 #define SPM_OFFSET   (unsigned int)NOC_SPM_BASE
 #else
