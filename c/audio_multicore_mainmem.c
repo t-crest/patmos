@@ -10,11 +10,11 @@
 
 
 void thread1_delay(void* args) {
-    volatile _UNCACHED int **inArgs = (volatile _UNCACHED int **) args;
-    volatile _UNCACHED int *left      = inArgs[0];
-    volatile _UNCACHED int *right     = inArgs[1];
-    volatile _UNCACHED int *syncToken = inArgs[2];
-    volatile _UNCACHED int *exit      = inArgs[3];
+    volatile _UNCACHED short **inArgs = (volatile _UNCACHED short **) args;
+    volatile _UNCACHED short *left      = inArgs[0];
+    volatile _UNCACHED short *right     = inArgs[1];
+    volatile _UNCACHED short *syncToken = inArgs[2];
+    volatile _UNCACHED short *exit      = inArgs[3];
 
     struct IIRdelay del1;
     struct IIRdelay *del1Pnt = &del1;
@@ -54,12 +54,12 @@ int main() {
     //create corethread type var
     corethread_t threadOne = (corethread_t) 1;
     //arguments to thread 1 function
-    int left, right, syncToken, exit = 0;
-    volatile _UNCACHED int *leftP      = (volatile _UNCACHED int *) &left;
-    volatile _UNCACHED int *rightP     = (volatile _UNCACHED int *) &right;
-    volatile _UNCACHED int *syncTokenP = (volatile _UNCACHED int *) &syncToken;
-    volatile _UNCACHED int *exitP      = (volatile _UNCACHED int *) &exit;
-    volatile _UNCACHED int (*thread1_args[4]);
+    short left, right, syncToken, exit = 0;
+    volatile _UNCACHED short *leftP      = (volatile _UNCACHED short *) &left;
+    volatile _UNCACHED short *rightP     = (volatile _UNCACHED short *) &right;
+    volatile _UNCACHED short *syncTokenP = (volatile _UNCACHED short *) &syncToken;
+    volatile _UNCACHED short *exitP      = (volatile _UNCACHED short *) &exit;
+    volatile _UNCACHED short (*thread1_args[4]);
     thread1_args[0] = leftP;
     thread1_args[1] = rightP;
     thread1_args[2] = syncTokenP;
