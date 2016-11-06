@@ -301,6 +301,24 @@ int filterIIR_2nd(int pnt_i, volatile _SPM short (*x)[2], volatile _SPM short (*
     return 0;
 }
 
+__attribute__((always_inline))
+int filterIIR_2nd_32(int pnt_i, volatile _SPM short (*x)[2], volatile _SPM short (*y)[2], volatile _SPM long long int *accum, volatile _SPM int *B, volatile _SPM int *A, int shiftLeft) {
+    int pnt; //pointer for x_filter
+    accum[0] = 0;
+    accum[1] = 0;
+    for(int i=0; i<3; i++) { //FILTER_ORDER_1PLUS = 3
+        pnt = (pnt_i + i + 1) % 3; //FILTER_ORDER_1PLUS = 3
+        accum[0] += ((long long int)B[i]*x[pnt][0]);
+        accum[0] -= ((long long int)A[i]*y[pnt][0]);
+        accum[1] += ((long long int)B[i]*x[pnt][1]);
+        accum[1] -= ((long long int)A[i]*y[pnt][1]);
+    }
+    y[pnt_i][0] = (short)(accum[0] >> (31-shiftLeft));
+    y[pnt_i][1] = (short)(accum[1] >> (31-shiftLeft));
+
+    return 0;
+}
+
 int storeSinInterpol(int *sinArray, short *fracArray, int SIZE, int OFFSET, int AMP) {
     printf("Storing sin array and frac array...\n");
     float zeiger;
@@ -333,6 +351,16 @@ int storeSin(int *sinArray, int SIZE, int OFFSET, int AMP) {
     }
     */
     printf("Sin array storage done\n");
+
+    return 0;
+}
+
+int storeSinLong(long long int *sinArray, long long int SIZE, long long int OFFSET, long long int AMP) {
+    printf("Storing LONG sin array...\n");
+    for(long long int i=0; i<SIZE; i++) {
+        sinArray[i] = OFFSET + AMP*sin(2.0*M_PI* i / SIZE);
+    }
+    printf("LONG Sin array storage done\n");
 
     return 0;
 }
@@ -433,6 +461,61 @@ int filter_coeff_bp_br(int FILT_ORD_1PL, volatile _SPM short *B, volatile _SPM s
     return 0;
 }
 
+int filter_coeff_bp_br_32(int FILT_ORD_1PL, volatile _SPM int *B, volatile _SPM int *A, int Fc, int Fb, volatile _SPM int *shiftLeft, int fixedShift) {
+    // if FILTER ORDER = 1, Fb is ignored
+    float c, d;
+    float Bfl[FILT_ORD_1PL];
+    float Afl[FILT_ORD_1PL];
+    //init to 0
+    for(int i=0; i< FILT_ORD_1PL; i++) {
+        Bfl[i] = 0;
+        Afl[i] = 0;
+    }
+    if(FILT_ORD_1PL == 2) { //1st order
+        if(!fixedShift) {
+            printf("Calculating 1st order coefficients...\n");
+        }
+        c = ( tan(M_PI * Fc / Fs) - 1) / ( tan(M_PI * Fc / Fs) + 1 );
+        Bfl[1] = c; // b0
+        Bfl[0] = 1; // b1
+        Afl[0] = c; // a1
+    }
+    else {
+        if(FILT_ORD_1PL == 3) { // 2nd order
+            if(!fixedShift) {
+                printf("Calculating 2nd order coefficients...\n");
+            }
+            c = ( tan(M_PI * Fb / Fs) - 1) / ( tan(M_PI * Fb / Fs) + 1 );
+            d = -1 * cos(2 * M_PI * Fc / Fs);
+            Bfl[2] = -1 * c; // b0
+            Bfl[1] = d * (1 - c); // b1
+            Bfl[0] = 1; // b2
+            Afl[1] = d * (1 - c); // a1
+            Afl[0] = -1 * c; // a2
+        }
+    }
+    // check ranges and set leftShift amount
+    int notRangesOK = checkRanges(FILT_ORD_1PL, Bfl, Afl, shiftLeft, fixedShift);
+    if (notRangesOK == 1) {
+        return 1;
+    }
+    // now all coefficients should be between 0 and 1
+    for(int i=0; i<FILT_ORD_1PL; i++) {
+        B[i] = (int) ( (long long int) (ONE_32b * Bfl[i]) >> *shiftLeft );
+        A[i] = (int) ( (long long int) (ONE_32b * Afl[i]) >> *shiftLeft );
+    }
+    if(!fixedShift) {
+        if(FILT_ORD_1PL == 2) {
+            printf("done! c: %f, b0: %d, b1: %d, a0, %d, a1: %d\n", c, B[1], B[0], A[1], A[0]);
+        }
+        if(FILT_ORD_1PL == 3) {
+            printf("done! c: %f, d: %f, b0: %d, b1: %d, b2 : %d, a0: %d, a1: %d, a2: %d\n", c, d, B[2], B[1], B[0], A[2], A[1], A[0]);
+        }
+    }
+
+    return 0;
+}
+
 
 int filter_coeff_hp_lp(int FILT_ORD_1PL, volatile _SPM short *B, volatile _SPM short *A, int Fc, float Q, volatile _SPM int *shiftLeft, int fixedShift, int type) {
     float K = tan(M_PI * Fc / Fs);// K is same for all
@@ -493,6 +576,76 @@ int filter_coeff_hp_lp(int FILT_ORD_1PL, volatile _SPM short *B, volatile _SPM s
     for(int i=0; i<FILT_ORD_1PL; i++) {
         B[i] = (short) ( (int) (ONE_16b * Bfl[i]) >> *shiftLeft );
         A[i] = (short) ( (int) (ONE_16b * Afl[i]) >> *shiftLeft );
+    }
+    if(FILT_ORD_1PL == 2) {
+        printf("done! K: %f, b0: %d, b1: %d, a0, %d, a1: %d\n", K, B[1], B[0], A[1], A[0]);
+    }
+    if(FILT_ORD_1PL == 3) {
+        printf("done! K: %f, common_factor: %f, b0: %d, b1: %d, b2 : %d, a0: %d, a1: %d, a2: %d\n", K, common_factor, B[2], B[1], B[0], A[2], A[1], A[0]);
+    }
+
+    return 0;
+}
+
+int filter_coeff_hp_lp_32(int FILT_ORD_1PL, volatile _SPM int *B, volatile _SPM int *A, int Fc, float Q, volatile _SPM int *shiftLeft, int fixedShift, int type) {
+    float K = tan(M_PI * Fc / Fs);// K is same for all
+    float Bfl[FILT_ORD_1PL];
+    float Afl[FILT_ORD_1PL];
+    //init to 0
+    for(int i=0; i< FILT_ORD_1PL; i++) {
+        Bfl[i] = 0;
+        Afl[i] = 0;
+    }
+    float common_factor;
+    if(type == 0) { //LPF
+        if(FILT_ORD_1PL == 2) { //1st order
+            printf("Calculating LPF for 1st order...\n");
+            Bfl[1] = K/(K+1); //b0
+            Bfl[0] = K/(K+1); //b1
+            Afl[0] = (K-1)/(K+1); //a1
+        }
+        else {
+            if(FILT_ORD_1PL == 3) { //2nd order
+                printf("Calculating LPF for 2nd order...\n");
+                common_factor = 1/(pow(K,2)*Q + K + Q);
+                Bfl[2] = pow(K,2)*Q*common_factor; //b0
+                Bfl[1] = 2*pow(K,2)*Q*common_factor; //b1
+                Bfl[0] = pow(K,2)*Q*common_factor; //b2
+                Afl[1] = 2*Q*(pow(K,2)-1)*common_factor; //a1
+                Afl[0] = (pow(K,2)*Q - K + Q)*common_factor; //a2
+            }
+        }
+    }
+    else {
+        if(type == 1) { // HPF
+            if(FILT_ORD_1PL == 2) { //1st order
+                printf("Calculating HPF for 1st order...\n");
+                Bfl[1] =  1/(K+1); //b0
+                Bfl[0] = -1/(K+1); //b1
+                Afl[0] = (K-1)/(K+1); //a1
+            }
+            else {
+                if(FILT_ORD_1PL == 3) { //2nd order
+                    printf("Calculating HPF for 2nd order...\n");
+                    common_factor = 1/(pow(K,2)*Q + K + Q);
+                    Bfl[2] = Q*common_factor; //b0
+                    Bfl[1] = -2*Q*common_factor; //b1
+                    Bfl[0] = Q*common_factor; //b2
+                    Afl[1] = 2*Q*(pow(K,2)-1)*common_factor; //a1
+                    Afl[0] = (pow(K,2)*Q - K + Q)*common_factor; //a2
+                }
+            }
+        }
+    }
+    // check ranges and set leftShift amount
+    int notRangesOK = checkRanges(FILT_ORD_1PL, Bfl, Afl, shiftLeft, fixedShift);
+    if (notRangesOK == 1) {
+        return 1;
+    }
+    // now all coefficients should be between 0 and 1
+    for(int i=0; i<FILT_ORD_1PL; i++) {
+        B[i] = (int) ( (long long int) (ONE_32b * Bfl[i]) >> *shiftLeft );
+        A[i] = (int) ( (long long int) (ONE_32b * Afl[i]) >> *shiftLeft );
     }
     if(FILT_ORD_1PL == 2) {
         printf("done! K: %f, b0: %d, b1: %d, a0, %d, a1: %d\n", K, B[1], B[0], A[1], A[0]);
@@ -824,6 +977,85 @@ int audio_filter(struct Filter *filtP){
     return 0;
 }
 
+
+int alloc_filter32_vars(struct Filter32 *filtP, int coreNumber, int Fc, float QorFb, int thisType) {
+    printf("---------------FILTER INITIALISATION---------------\n");
+    // LOCATION IN LOCAL SCRATCHPAD MEMORY
+    const unsigned int FILT_X     = addr[coreNumber];
+    const unsigned int FILT_Y     = FILT_X     + 2 * sizeof(short);
+    const unsigned int FILT_ACCUM = FILT_Y     + 2 * sizeof(short);
+    const unsigned int FILT_XBUF  = FILT_ACCUM + 2 * sizeof(long long int);
+    const unsigned int FILT_YBUF  = FILT_XBUF  + 6 * sizeof(short); // 3rd ord, stereo
+    const unsigned int FILT_A     = FILT_YBUF  + 6 * sizeof(short); // 3rd ord, stereo
+    const unsigned int FILT_B     = FILT_A     + 3 * sizeof(int);
+    const unsigned int FILT_PNT   = FILT_B     + 3 * sizeof(int);
+    const unsigned int FILT_SLFT  = FILT_PNT   + sizeof(int);
+    const unsigned int FILT_TYPE  = FILT_SLFT  + sizeof(int);
+
+    //SPM variables
+    filtP->x      = (volatile _SPM short *)      FILT_X;
+    filtP->y      = (volatile _SPM short *)      FILT_Y;
+    filtP->accum  = (volatile _SPM long long int *)        FILT_ACCUM;
+    filtP->x_buf  = (volatile _SPM short (*)[2]) FILT_XBUF;
+    filtP->y_buf  = (volatile _SPM short (*)[2]) FILT_YBUF;
+    filtP->A      = (volatile _SPM int *)      FILT_A;
+    filtP->B      = (volatile _SPM int *)      FILT_B;
+    filtP->pnt    = (volatile _SPM int *)        FILT_PNT;
+    filtP->sftLft = (volatile _SPM int *)        FILT_SLFT;
+    filtP->type   = (volatile _SPM int *)        FILT_TYPE;
+
+    //calculate filter coefficients (3rd order)
+    *filtP->type = thisType;
+    if (*filtP->type < 2) { //HP or LP
+        filter_coeff_hp_lp_32(3, filtP->B, filtP->A, Fc, QorFb, filtP->sftLft, 0, thisType); //type: HPF or LPF
+    }
+    else { // 2 or 3: BP or BR
+        filter_coeff_bp_br_32(3, filtP->B, filtP->A, Fc, (int)QorFb,  filtP->sftLft, 0);
+    }
+    //return new address
+    int ALLOC_AMOUNT = alloc_space("FILTER", (FILT_TYPE + sizeof(int)), coreNumber);
+
+    //store 1st samples:
+    //first, fill filter buffer
+    for(*filtP->pnt=0; *filtP->pnt < 2; *filtP->pnt = *filtP->pnt + 1) {
+      getInputBufferSPM(&filtP->x_buf[*filtP->pnt][0], &filtP->x_buf[*filtP->pnt][1]);
+    }
+
+    return ALLOC_AMOUNT;
+}
+
+__attribute__((always_inline))
+int audio_filter32(struct Filter32 *filtP){
+    //increment pointer
+    *filtP->pnt = ( (*(filtP->pnt)) + 1 ) % 3;
+    //first, read sample
+    filtP->x_buf[*filtP->pnt][0] = filtP->x[0];
+    filtP->x_buf[*filtP->pnt][1] = filtP->x[1];
+    //then, calculate filter
+    filterIIR_2nd_32(*filtP->pnt, filtP->x_buf, filtP->y_buf, filtP->accum, filtP->B, filtP->A, *filtP->sftLft);
+    //check if it is BP/BR
+    if(*filtP->type == 2) { //BP
+        filtP->accum[0] = ( (int)filtP->x[0] - (int)filtP->y_buf[*filtP->pnt][0] ) >> 1;
+        filtP->accum[1] = ( (int)filtP->x[1] - (int)filtP->y_buf[*filtP->pnt][1] ) >> 1;
+    }
+    else {
+        if(*filtP->type == 3) { //BR
+            filtP->accum[0] = ( (int)filtP->x[0] + (int)filtP->y_buf[*filtP->pnt][0] ) >> 1;
+            filtP->accum[1] = ( (int)filtP->x[1] + (int)filtP->y_buf[*filtP->pnt][1] ) >> 1;
+        }
+        else { //HP or LP
+            filtP->accum[0] = filtP->y_buf[*filtP->pnt][0];
+            filtP->accum[1] = filtP->y_buf[*filtP->pnt][1];
+        }
+    }
+    //set output
+    filtP->y[0] = (short)filtP->accum[0];
+    filtP->y[1] = (short)filtP->accum[1];
+
+    return 0;
+}
+
+
 int alloc_vibrato_vars(struct Vibrato *vibrP, int coreNumber) {
     printf("---------------VIBRATO INITIALISATION---------------\n");
     // LOCATION IN LOCAL SCRATCHPAD MEMORY
@@ -1133,6 +1365,76 @@ int audio_chorus(struct Chorus *chorP) {
     else {
         *chorP->pnt = *chorP->pnt - 1;
     }
+
+    return 0;
+}
+
+int alloc_tremolo_vars(struct Tremolo *tremP, int coreNumber) {
+    printf("---------------TREMOLO INITIALISATION---------------\n");
+    // LOCATION IN LOCAL SCRATCHPAD MEMORY
+    const unsigned int TREM_X   = addr[coreNumber];
+    const unsigned int TREM_Y   = TREM_X + 2 * sizeof(short);
+    const unsigned int TREM_PNT = TREM_Y + 2 * sizeof(short);
+
+    //SPM variables
+    tremP->x      = ( volatile _SPM short *) TREM_X;
+    tremP->y      = ( volatile _SPM short *) TREM_Y;
+    tremP->pnt    = ( volatile _SPM int *)   TREM_PNT;
+
+    //initialise modulation array
+    storeSin(tremP->modArray, TREMOLO_P, (ONE_16b*0.6), (ONE_16b*0.3));
+
+     //pointers:
+    *tremP->pnt = 0;
+
+    //return new address
+    int ALLOC_AMOUNT = alloc_space("TREMOLO", (TREM_PNT + sizeof(int)), coreNumber);
+
+    return ALLOC_AMOUNT;
+}
+
+__attribute__((always_inline))
+int audio_tremolo(struct Tremolo *tremP) {
+    //update pointer
+    *tremP->pnt = (*tremP->pnt + 1) % TREMOLO_P;
+    //calculate output
+    tremP->y[0] = (tremP->x[0] * tremP->modArray[*tremP->pnt]) >> 15;
+    tremP->y[1] = (tremP->x[1] * tremP->modArray[*tremP->pnt]) >> 15;
+
+    return 0;
+}
+
+int alloc_tremolo32_vars(struct Tremolo32 *tremP, int coreNumber) {
+    printf("---------------TREMOLO INITIALISATION---------------\n");
+    // LOCATION IN LOCAL SCRATCHPAD MEMORY
+    const unsigned int TREM_X   = addr[coreNumber];
+    const unsigned int TREM_Y   = TREM_X + 2 * sizeof(short);
+    const unsigned int TREM_PNT = TREM_Y + 2 * sizeof(short);
+
+    //SPM variables
+    tremP->x      = ( volatile _SPM short *) TREM_X;
+    tremP->y      = ( volatile _SPM short *) TREM_Y;
+    tremP->pnt    = ( volatile _SPM int *)   TREM_PNT;
+
+    //initialise modulation array
+    storeSinLong(tremP->modArray, TREMOLO_P, (ONE_32b*0.6), (ONE_32b*0.3));
+
+     //pointers:
+    *tremP->pnt = 0;
+
+    //return new address
+    int ALLOC_AMOUNT = alloc_space("TREMOLO", (TREM_PNT + sizeof(int)), coreNumber);
+
+    return ALLOC_AMOUNT;
+}
+
+__attribute__((always_inline))
+int audio_tremolo32(struct Tremolo32 *tremP) {
+    //update pointer
+    *tremP->pnt = (*tremP->pnt + 1) % TREMOLO_P;
+    //calculate output
+    tremP->y[0] = (short)(( ((long long int)tremP->x[0]) * tremP->modArray[*tremP->pnt] ) >> 31);
+    tremP->y[1] = (short)(( ((long long int)tremP->x[1]) * tremP->modArray[*tremP->pnt] ) >> 31);
 
     return 0;
 }

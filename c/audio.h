@@ -7,6 +7,7 @@
 #define MULTICORE 1
 
 #define ONE_16b 0x7FFF
+#define ONE_32b 0x7FFFFFFF
 #define BUFFER_SIZE 128
 #define Fs 52083 // Hz
 
@@ -95,7 +96,8 @@ int     setInputBufferSize(int bufferSize);
 #define CHORUS_P1 Fs //period of 1st chorus
 #define CHORUS_P2 (int)(4*Fs/5) //period of 2nd chorus
 #define CHORUS_L  2083 // modulation amount in samples
-
+//for tremolo
+# define TREMOLO_P (int)(Fs/4)
 /*
   GENERAL
 */
@@ -135,6 +137,23 @@ struct Filter {
 int alloc_filter_vars(struct Filter *filterP, int coreNumber, int Fc, float QorFb, int type);
 int audio_filter(struct Filter *filterP);
 
+struct Filter32 {
+    //SPM variables
+    volatile _SPM short *x; //input audio x[2]
+    volatile _SPM short *y; //output audio y[2]
+    volatile _SPM long long int   *accum; //accummulator accum[2]
+    volatile _SPM short (*x_buf)[2]; // input buffer
+    volatile _SPM short (*y_buf)[2]; // output buffer
+    volatile _SPM int *A; // [a2, a1,  1]
+    volatile _SPM int *B; // [b2, b1, b0]
+    volatile _SPM int   *pnt; //audio input pointer
+    volatile _SPM int   *sftLft; //x or y buffer pointer
+    volatile _SPM int   *type; // to choose between HP, LP, BP or BR
+};
+
+int alloc_filter32_vars(struct Filter32 *filterP, int coreNumber, int Fc, float QorFb, int type);
+int audio_filter32(struct Filter32 *filterP);
+
 
 /*
   Vibrato
@@ -151,7 +170,7 @@ struct Vibrato {
     volatile _SPM int   *v_pnt; //vibrato array pointer
     volatile _SPM int   *audio_pnt; //audio output pointer
     volatile _SPM int   *n_audio_pnt; //next audio o. pointer
-    //SRAM variables
+    //Main Memory variables
     short audio_buff[VIBRATO_L][2];
     int sinArray[VIBRATO_P];
     short fracArray[VIBRATO_P];
@@ -200,7 +219,7 @@ struct IIRdelay {
     volatile _SPM short *g; //gains [g1, g0]
     volatile _SPM int   *del; // delays [d1, d0]
     volatile _SPM int   *pnt; //audio input pointer
-    //SRAM variables
+    //Main Memory variables
     short audio_buff[DELAY_L][2];
 };
 
@@ -221,7 +240,7 @@ struct Chorus {
     volatile _SPM int   *pnt; //audio input pointer
     volatile _SPM int   *c1_pnt; //1st mod array pointer
     volatile _SPM int   *c2_pnt; //2nd mod array pointer
-    //SRAM variables
+    //Main Memory variables
     short audio_buff[CHORUS_L][2];
     int modArray1[CHORUS_P1];
     int modArray2[CHORUS_P2];
@@ -229,6 +248,34 @@ struct Chorus {
 
 int alloc_chorus_vars(struct Chorus *chorP, int coreNumber);
 int audio_chorus(struct Chorus *chorP);
+
+/*
+  Tremolo
+*/
+
+struct Tremolo {
+    //SPM variables
+    volatile _SPM short *x; //input audio x[2]
+    volatile _SPM short *y; //output audio y[2]
+    volatile _SPM int   *pnt; //modulation pointer
+    //Main Memory variables
+    int modArray[TREMOLO_P];
+};
+
+int alloc_tremolo_vars(struct Tremolo *tremP, int coreNumber);
+int audio_tremolo(struct Tremolo *tremP);
+
+struct Tremolo32 {
+    //SPM variables
+    volatile _SPM short *x; //input audio x[2]
+    volatile _SPM short *y; //output audio y[2]
+    volatile _SPM int   *pnt; //modulation pointer
+    //Main Memory variables
+    long long int modArray[TREMOLO_P];
+};
+
+int alloc_tremolo32_vars(struct Tremolo32 *tremP, int coreNumber);
+int audio_tremolo32(struct Tremolo32 *tremP);
 
 
 #endif /* _AUDIO_H_ */

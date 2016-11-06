@@ -16,7 +16,7 @@
 
 int main() {
 
-    setup(0); //guitar?
+    setup(1); //guitar?
 
     // enable input and output
     *audioDacEnReg = 1;
