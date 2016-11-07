@@ -20,7 +20,6 @@ const int NOC_MASTER = 0;
 #define MP_CHAN_2_MSG_SIZE MP_CHAN_SHORTS_AMOUNT * 2 // 2 shorts = 4 bytes
 
 
-
 void thread1_delay(void* args) {
     volatile _UNCACHED int **inArgs = (volatile _UNCACHED int **) args;
     volatile _UNCACHED int *ledOnTimeP  = inArgs[0];

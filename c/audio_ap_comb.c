@@ -4,13 +4,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#define ONE_16b 0x7FFF
-
-#define BUFFER_SIZE 32
-
-#define Fs 52083 // Hz
-
-#define AP_BUFFER_LENGTH 200
+#define AP_BUFFER_LENGTH 2000
 
 #include "audio.h"
 #include "audio.c"
@@ -48,26 +42,16 @@ int main() {
     *g = ONE_16b * 0.5;
 
     //CPU cycles stuff
-    //int CPUcycles[300] = {0};
+    //int CPUcycles[1000] = {0};
     //int cpu_pnt = 0;
 
 
     *pnt = AP_BUFFER_LENGTH - 1; // start on top
-    int printa = 0;
     while(*keyReg != 3) {
-        if( (*pnt == 100) || (*pnt == 101) ) {
-            printa = 1;
-        }
-        else {
-            printa = 0;
-        }
         //first, read sample
-        getInputBuffer((short *)&x[0], (short *)&x[1]);
+        getInputBufferSPM(&x[0], &x[1]);
         //calculate IIR comb filter
-        allpass_comb(AP_BUFFER_LENGTH, pnt, ap_buffer, x, y, g, printa);
-        if(printa == 1) {
-            printf("for inputs %d, %d at pnt %d, outputs are %d, %d\n", x[0], x[1], *pnt, y[0], y[1]);
-        }
+        allpass_comb(AP_BUFFER_LENGTH, pnt, ap_buffer, x, y, g);
         //output sample
         setOutputBuffer(y[0], y[1]);
         //update pointer
@@ -80,7 +64,7 @@ int main() {
         /*
         //store CPU Cycles
         CPUcycles[cpu_pnt] = get_cpu_cycles();
-        if(cpu_pnt == 300) {
+        if(cpu_pnt == 1000) {
             break;
         }
         else {
@@ -90,7 +74,7 @@ int main() {
     }
     /*
     //print CPU cycle time
-    for(int i=1; i<300; i++) {
+    for(int i=1; i<1000; i++) {
         printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
     */

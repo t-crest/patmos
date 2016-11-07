@@ -658,15 +658,12 @@ int filter_coeff_hp_lp_32(int FILT_ORD_1PL, volatile _SPM int *B, volatile _SPM 
 }
 
 __attribute__((always_inline))
-int allpass_comb(int AP_BUFF_LEN, volatile _SPM int *pnt, volatile short (*ap_buffer)[2], volatile _SPM short *x, volatile _SPM short *y, volatile _SPM short *g, int printa) {
+int allpass_comb(int AP_BUFF_LEN, volatile _SPM int *pnt, volatile short (*ap_buffer)[2], volatile _SPM short *x, volatile _SPM short *y, volatile _SPM short *g) {
     int accum[2];
     int ap_pnt = (*pnt + AP_BUFF_LEN - 1) % AP_BUFF_LEN;
     for(int i=0; i<2; i++) {
-        y[i] = ap_buffer[ap_pnt][i] - ( (x[i]*(*g)) >> 15 );
+        y[i] = ap_buffer[ap_pnt][i] - ( ((int)x[i]*(*g)) >> 15 );
         accum[i] = ( (y[i]*(*g)) >> 15 ) + x[i];
-        if(printa == 1) {
-            printf("y[%d]=%d, ap_buffer[%d][%d]=%d, accum[%d]=%d\n", i, y[i], ap_pnt, i, ap_buffer[ap_pnt][i], i, accum[i]);
-        }
         //check for overflow
         if(accum[i] > ONE_16b) {
             accum[i] = ONE_16b;
