@@ -36,6 +36,7 @@ int main() {
     //int CPUcycles[100] = {0};
     //int cpu_pnt = 0;
 
+
     int type = 0;
     printf("press KEY0 for 16-bit tremolo, KEY1 for 32-bit tremolo\n");
     while(*keyReg != 3) {

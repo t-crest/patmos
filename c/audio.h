@@ -258,8 +258,13 @@ struct Tremolo {
     volatile _SPM short *x; //input audio x[2]
     volatile _SPM short *y; //output audio y[2]
     volatile _SPM int   *pnt; //modulation pointer
+    volatile _SPM int   *pnt_n; //modulation pointer next
+    volatile _SPM short *frac; //fraction of modulation
+    volatile _SPM short *frac1Minus; //1 - frac
+    volatile _SPM int   *mod; //interpolated mod value
     //Main Memory variables
     int modArray[TREMOLO_P];
+    short fracArray[TREMOLO_P];
 };
 
 int alloc_tremolo_vars(struct Tremolo *tremP, int coreNumber);

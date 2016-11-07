@@ -1372,23 +1372,32 @@ int audio_chorus(struct Chorus *chorP) {
 int alloc_tremolo_vars(struct Tremolo *tremP, int coreNumber) {
     printf("---------------TREMOLO INITIALISATION---------------\n");
     // LOCATION IN LOCAL SCRATCHPAD MEMORY
-    const unsigned int TREM_X   = addr[coreNumber];
-    const unsigned int TREM_Y   = TREM_X + 2 * sizeof(short);
-    const unsigned int TREM_PNT = TREM_Y + 2 * sizeof(short);
+    const unsigned int TREM_X     = addr[coreNumber];
+    const unsigned int TREM_Y     = TREM_X + 2 * sizeof(short);
+    const unsigned int TREM_PNT   = TREM_Y + 2 * sizeof(short);
+    const unsigned int TREM_PNT_N = TREM_PNT + sizeof(int);
+    const unsigned int TREM_FRAC  = TREM_PNT_N + sizeof(int);
+    const unsigned int TREM_FR1M  = TREM_FRAC  + sizeof(short) + 2;
+    const unsigned int TREM_MOD   = TREM_FR1M  + sizeof(short) + 2;
 
     //SPM variables
     tremP->x      = ( volatile _SPM short *) TREM_X;
     tremP->y      = ( volatile _SPM short *) TREM_Y;
     tremP->pnt    = ( volatile _SPM int *)   TREM_PNT;
+    tremP->pnt_n  = ( volatile _SPM int *)   TREM_PNT_N;
+    tremP->frac   = ( volatile _SPM short *) TREM_FRAC;
+    tremP->frac1Minus   = ( volatile _SPM short *) TREM_FR1M;
+    tremP->mod   = ( volatile _SPM int *) TREM_MOD;
 
     //initialise modulation array
-    storeSin(tremP->modArray, TREMOLO_P, (ONE_16b*0.6), (ONE_16b*0.3));
+    storeSinInterpol(tremP->modArray, tremP->fracArray, TREMOLO_P, (ONE_16b*0.6), (ONE_16b*0.3));
 
      //pointers:
     *tremP->pnt = 0;
+    *tremP->pnt_n = 1;
 
     //return new address
-    int ALLOC_AMOUNT = alloc_space("TREMOLO", (TREM_PNT + sizeof(int)), coreNumber);
+    int ALLOC_AMOUNT = alloc_space("TREMOLO", (TREM_MOD + sizeof(int)), coreNumber);
 
     return ALLOC_AMOUNT;
 }
@@ -1397,9 +1406,16 @@ __attribute__((always_inline))
 int audio_tremolo(struct Tremolo *tremP) {
     //update pointer
     *tremP->pnt = (*tremP->pnt + 1) % TREMOLO_P;
+    *tremP->pnt_n = (*tremP->pnt_n + 1) % TREMOLO_P;
+    //modulation values
+    *tremP->frac = tremP->fracArray[*tremP->pnt];
+    *tremP->frac1Minus = ONE_16b - *tremP->frac;
+    *tremP->mod  = tremP->modArray[*tremP->pnt] * *tremP->frac1Minus;
+    *tremP->mod += tremP->modArray[*tremP->pnt_n] * *tremP->frac;
+    *tremP->mod = *tremP->mod >> 15;
     //calculate output
-    tremP->y[0] = (tremP->x[0] * tremP->modArray[*tremP->pnt]) >> 15;
-    tremP->y[1] = (tremP->x[1] * tremP->modArray[*tremP->pnt]) >> 15;
+    tremP->y[0] = (tremP->x[0] * *tremP->mod) >> 15;
+    tremP->y[1] = (tremP->x[1] * *tremP->mod) >> 15;
 
     return 0;
 }
