@@ -12,11 +12,11 @@ const int NOC_MASTER = 0;
 #define MP_CHAN_SHORTS_AMOUNT 2
 
 #define MP_CHAN_1_ID 1
-#define MP_CHAN_1_NUM_BUF 1
+#define MP_CHAN_1_NUM_BUF 2
 #define MP_CHAN_1_MSG_SIZE MP_CHAN_SHORTS_AMOUNT * 2 // 2 shorts = 4 bytes (actually always multiples of 4)
 
 #define MP_CHAN_2_ID 2
-#define MP_CHAN_2_NUM_BUF 1
+#define MP_CHAN_2_NUM_BUF 2
 #define MP_CHAN_2_MSG_SIZE MP_CHAN_SHORTS_AMOUNT * 2 // 2 shorts = 4 bytes
 
 
@@ -26,10 +26,8 @@ void thread1_delay(void* args) {
     volatile _UNCACHED int *ledOffTimeP = inArgs[1];
     volatile _UNCACHED int *exitP       = inArgs[2];
 
-    volatile _UNCACHED int *writeP_chan1P = inArgs[3];
-    volatile _UNCACHED int *readP_chan1P  = inArgs[4];
-    volatile _UNCACHED int *writeP_chan2P = inArgs[5];
-    volatile _UNCACHED int *readP_chan2P  = inArgs[6];
+    volatile _UNCACHED int *stateVar1P = inArgs[3];
+    volatile _UNCACHED int *stateVar2P = inArgs[4];
 
     //MP:
     // Create the queuing ports
@@ -40,6 +38,7 @@ void thread1_delay(void* args) {
 
     // Initialize the communication channels
     int nocret = mp_init_ports();
+
 
     //receive from master and respond
     for(short i=0; i<10; i++) {
@@ -52,16 +51,19 @@ void thread1_delay(void* args) {
         }
         //acknowledge
         mp_ack(chan1,0);
+
         //set respond data
         for(int j=0; j<MP_CHAN_SHORTS_AMOUNT; j++) {
             *((volatile _SPM short *)chan2->write_buf+j) = received[j];
         }
+        //before responding: set stateVar1
+        *stateVar1P = i;
         //respond
         mp_send(chan2,0);
 
     }
 
-
+    /*
     while(*exitP == 0) {
         for(int i=0; i<(*ledOnTimeP * 100000); i++) {
             *ledReg = 1;
@@ -70,6 +72,7 @@ void thread1_delay(void* args) {
             *ledReg = 0;
         }
     }
+    */
 
     // exit with return value
     int ret = 0;
@@ -94,23 +97,17 @@ int main() {
     volatile _UNCACHED int *ledOnTimeP = (volatile _UNCACHED int *) &ledOnTime;
     volatile _UNCACHED int *ledOffTimeP = (volatile _UNCACHED int *) &ledOffTime;
     volatile _UNCACHED int *exitP      = (volatile _UNCACHED int *) &exit;
-    volatile _UNCACHED int (*thread1_args[7]);
+    volatile _UNCACHED int (*thread1_args[5]);
     thread1_args[0] = ledOnTimeP;
     thread1_args[1] = ledOffTimeP;
     thread1_args[2] = exitP;
 
-    int writeP_chan1 = 0;
-    int readP_chan1  = 0;
-    int writeP_chan2 = 0;
-    int readP_chan2  = 0;
-    volatile _UNCACHED int *writeP_chan1P = (volatile _UNCACHED int *) &writeP_chan1;
-    volatile _UNCACHED int *readP_chan1P = (volatile _UNCACHED int *) &readP_chan1;
-    volatile _UNCACHED int *writeP_chan2P = (volatile _UNCACHED int *) &writeP_chan2;
-    volatile _UNCACHED int *readP_chan2P = (volatile _UNCACHED int *) &readP_chan2;
-    thread1_args[3] = writeP_chan1P;
-    thread1_args[4] = readP_chan1P;
-    thread1_args[5] = writeP_chan2P;
-    thread1_args[6] = readP_chan2P;
+    int stateVar1 = -1;
+    int stateVar2 = -1;
+    volatile _UNCACHED int *stateVar1P = (volatile _UNCACHED int *) &stateVar1;
+    volatile _UNCACHED int *stateVar2P = (volatile _UNCACHED int *) &stateVar2;
+    thread1_args[3] = stateVar1P;
+    thread1_args[4] = stateVar2P;
     printf("starting thread...\n");
     //set thread function and start thread
     corethread_create(&threadOne, &thread1_delay, (void*) thread1_args);
@@ -136,33 +133,24 @@ int main() {
     short recv_data[10][MP_CHAN_SHORTS_AMOUNT];
 
     for(short i=0; i<10; i++) {
+
         printf("sending...\n");
         //send message from master to slave
         for(int j=0; j<MP_CHAN_SHORTS_AMOUNT; j++) {
             send_data[i][j] = (short)((i*5)+j);
             //printf("write buffer pointer is: 0x%x\n", (unsigned int)&(*((volatile _SPM short *)chan1->write_buf)));
             //printf("pos to write is: 0x%x\n", (unsigned int)&(*((volatile _SPM short *)chan1->write_buf+j)));
-            *((volatile _SPM short *)chan1->write_buf+j) = send_data[i][j];;
+            *((volatile _SPM short *)chan1->write_buf+j) = send_data[i][j];
         }
 
-        /*
-        *writeP_chan1P = (int)chan1->write_buf;
-        *readP_chan1P  = (int)chan1->read_buf;
-        *writeP_chan2P = (int)chan2->write_buf;
-        *readP_chan2P  = (int)chan2->read_buf;
-        printf("JUST BEFORE MASTER SENDS @ %d:\n", i);
-        printf("chanel 1 write pointer: 0x%x\n", *writeP_chan1P);
-        printf("chanel 1 read pointer: 0x%x\n", *readP_chan1P);
-        printf("chanel 2 write pointer: 0x%x\n", *writeP_chan2P);
-        printf("chanel 2 read pointer: 0x%x\n", *readP_chan2P);
-        */
+        printf("just before sending, stateVar1 should be %d, and is %d\n", (i-1), stateVar1);
 
         mp_send(chan1,0);
 
-        printf("Sent!\n");
-
         //receive message from slave
+        printf("gonna receive\n");
         mp_recv(chan2,0);
+        printf("just after receiving, stateVar1 should be %d, and is %d\n", i, stateVar1);
 
         for(int j=0; j<MP_CHAN_SHORTS_AMOUNT; j++) {
             recv_data[i][j] = *((volatile _SPM short *)chan2->read_buf+j);
@@ -170,19 +158,6 @@ int main() {
 
         // Acknowledge the received data
         mp_ack(chan2,0);
-
-
-        /*
-        *writeP_chan1P = (int)chan1->write_buf;
-        *readP_chan1P  = (int)chan1->read_buf;
-        *writeP_chan2P = (int)chan2->write_buf;
-        *readP_chan2P  = (int)chan2->read_buf;
-        printf("JUST AFTER MASTER RECEIVES @ %d:\n", i);
-        printf("chanel 1 write pointer: 0x%x\n", *writeP_chan1P);
-        printf("chanel 1 read pointer: 0x%x\n", *readP_chan1P);
-        printf("chanel 2 write pointer: 0x%x\n", *writeP_chan2P);
-        printf("chanel 2 read pointer: 0x%x\n", *readP_chan2P);
-        */
     }
 
     for(short i=0; i<10; i++) {
@@ -197,6 +172,7 @@ int main() {
         printf("\n");
     }
 
+    /*
     //AudioFX struct: contains no effect
     struct AudioFX audio1FX;
     struct AudioFX *audio1FXPnt = &audio1FX;
@@ -221,15 +197,17 @@ int main() {
         audio_dry(audio1FXPnt);
         //put y in output
         audioOut(audio1FXPnt);
-        /*
+        // / *
         //store CPU Cycles
         CPUcycles[cpu_pnt] = get_cpu_cycles();
         cpu_pnt++;
         if(cpu_pnt == 1000) {
             break;
         }
-        */
+        // * /
     }
+    */
+
 
     //exit stuff
     printf("exit here!\n");
