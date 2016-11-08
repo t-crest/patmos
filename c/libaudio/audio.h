@@ -3,6 +3,9 @@
 #ifndef _AUDIO_H_
 #define _AUDIO_H_
 
+//for guitar:
+#define GUITAR 1
+
 // for multicore platform with noc:
 #define MULTICORE 1
 

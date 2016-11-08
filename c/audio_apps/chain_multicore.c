@@ -4,21 +4,22 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "audio.h"
-#include "audio.c"
+#include "libaudio/audio.h"
+#include "libaudio/audio.c"
 
 /*
-  IIR comb delay:
-    -First, input data is stored in current position of buffer
-    -The COMB function used is the same as FIR
-    -The difference is that, after computing new y, this y value is replaced by the x value on the iir_buffer
+  Chain:
+    -Delay
+    -Vibrato
 */
-
 
 int main() {
 
-
-    setup(0); //for guitar
+    #if GUITAR == 1
+    setup(1); //for guitar
+    #else
+    setup(0); //for volca
+    #endif
 
     // enable input and output
     *audioDacEnReg = 1;
@@ -32,6 +33,11 @@ int main() {
     struct AudioFX *del1FXPnt = (struct AudioFX *) del1Pnt;
     int DEL_ALLOC_AMOUNT = alloc_delay_vars(del1Pnt, 0);
 
+    struct Filter filt1;
+    struct Filter *filt1Pnt = &filt1;
+    struct AudioFX *filt1FXPnt = (struct AudioFX *) filt1Pnt;
+    int FILT_ALLOC_AMOUNT = alloc_filter_vars(filt1Pnt, 0, 600, 0.707, 0); //LPF
+
     //CPU cycles stuff
     //int CPUcycles[1000] = {0};
     //int cpu_pnt = 0;
@@ -39,7 +45,9 @@ int main() {
     while(*keyReg != 3) {
         audioIn(del1FXPnt);
         audio_delay(del1Pnt);
-        audioOut(del1FXPnt);
+        audioChainCore(del1FXPnt, filt1FXPnt);
+        audio_filter(filt1Pnt);
+        audioOut(filt1FXPnt);
         /*
         //store CPU Cycles
         CPUcycles[cpu_pnt] = get_cpu_cycles();

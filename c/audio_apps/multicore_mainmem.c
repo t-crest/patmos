@@ -4,8 +4,8 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "audio.h"
-#include "audio.c"
+#include "libaudio/audio.h"
+#include "libaudio/audio.c"
 
 
 
@@ -74,7 +74,11 @@ int main() {
     struct AudioFX *audio1FXPnt = &audio1FX;
     int AUDIO_ALLOC_AMOUNT = alloc_dry_vars(audio1FXPnt, 0);
 
-    setup(0); //guitar?
+    #if GUITAR == 1
+    setup(1); //for guitar
+    #else
+    setup(0); //for volca
+    #endif
 
     // enable input and output
     *audioDacEnReg = 1;

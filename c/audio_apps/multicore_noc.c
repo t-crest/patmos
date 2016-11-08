@@ -4,8 +4,8 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "audio.h"
-#include "audio.c"
+#include "libaudio/audio.h"
+#include "libaudio/audio.c"
 
 const int NOC_MASTER = 0;
 

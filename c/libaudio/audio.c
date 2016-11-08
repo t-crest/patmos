@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "audio.h"
+#include "libaudio/audio.h"
 
 /*
  * @file		Audio_setup.c

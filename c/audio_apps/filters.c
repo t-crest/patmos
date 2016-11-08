@@ -4,8 +4,8 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "audio.h"
-#include "audio.c"
+#include "libaudio/audio.h"
+#include "libaudio/audio.c"
 
 
 /*
@@ -15,7 +15,11 @@
 
 int main() {
 
-    setup(0);
+    #if GUITAR == 1
+    setup(1); //for guitar
+    #else
+    setup(0); //for volca
+    #endif
 
     // enable input and output
     *audioDacEnReg = 1;
@@ -59,7 +63,7 @@ int main() {
     //int cpu_pnt = 0;
 
     int type = 0;
-    printf("press KEY0 for 16-bit tremolo, KEY1 for 32-bit tremolo\n");
+    printf("press KEY0 for 16-bit filter, KEY1 for 32-bit filter\n");
     while(*keyReg != 3) {
         if (type == 0) {
             audioIn(filter1FXPnt);

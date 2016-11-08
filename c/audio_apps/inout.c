@@ -4,8 +4,8 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "audio.h"
-#include "audio.c"
+#include "libaudio/audio.h"
+#include "libaudio/audio.c"
 
 /*
  * @file		Audio_InOut.c
@@ -16,7 +16,11 @@
 
 int main() {
 
-    setup(1); //guitar?
+    #if GUITAR == 1
+    setup(1); //for guitar
+    #else
+    setup(0); //for volca
+    #endif
 
     // enable input and output
     *audioDacEnReg = 1;

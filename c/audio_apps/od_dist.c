@@ -4,8 +4,8 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "audio.h"
-#include "audio.c"
+#include "libaudio/audio.h"
+#include "libaudio/audio.c"
 
 /*
   Overdrive & Distortion
@@ -13,7 +13,11 @@
 
 int main() {
 
-    setup(0); // 1 for guitar
+    #if GUITAR == 1
+    setup(1); //for guitar
+    #else
+    setup(0); //for volca
+    #endif
 
     // enable input and output
     *audioDacEnReg = 1;

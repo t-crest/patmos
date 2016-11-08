@@ -11,8 +11,8 @@
 
 #define FILTER_ORDER_1PLUS 3
 
-#include "audio.h"
-#include "audio.c"
+#include "libaudio/audio.h"
+#include "libaudio/audio.c"
 
 /* Phaser:
      -Addition of original with band-rejected signal
@@ -68,7 +68,11 @@ const int WET_GAIN = ONE_16b * 0.8;
 
 int main() {
 
+    #if GUITAR == 1
     setup(1); //for guitar
+    #else
+    setup(0); //for volca
+    #endif
 
 
     //shift left is fixed!!!

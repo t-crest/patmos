@@ -10,8 +10,8 @@
 #define COMB_FILTER_ORDER_1PLUS 3 //max for chorus
 #define Fs 52083 // Hz
 
-#include "audio.h"
-#include "audio.c"
+#include "libaudio/audio.h"
+#include "libaudio/audio.c"
 
 #define VIBRATO_LENGTH 150
 #define CHORUS_LENGTH  2083

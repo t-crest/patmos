@@ -6,8 +6,8 @@
 
 #define AP_BUFFER_LENGTH 2000
 
-#include "audio.h"
-#include "audio.c"
+#include "libaudio/audio.h"
+#include "libaudio/audio.c"
 
 // LOCATION IN LOCAL SCRATCHPAD MEMORY
 #define X_ADDR     0x00000000
@@ -29,7 +29,11 @@ volatile short ap_buffer[AP_BUFFER_LENGTH][2];
 
 int main() {
 
+    #if GUITAR == 1
+    setup(1); //for guitar
+    #else
     setup(0); //for volca
+    #endif
 
     // enable input and output
     *audioDacEnReg = 1;

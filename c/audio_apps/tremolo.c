@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <math.h>
 
-#include "audio.h"
-#include "audio.c"
+#include "libaudio/audio.h"
+#include "libaudio/audio.c"
 
 /*
   Tremolo:
@@ -13,7 +13,11 @@
 
 int main() {
 
-    setup(1);
+    #if GUITAR == 1
+    setup(1); //for guitar
+    #else
+    setup(0); //for volca
+    #endif
 
     // enable input and output
     *audioDacEnReg = 1;

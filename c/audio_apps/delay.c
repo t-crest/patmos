@@ -4,18 +4,24 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "audio.h"
-#include "audio.c"
+#include "libaudio/audio.h"
+#include "libaudio/audio.c"
 
 /*
-   Vibrato:
-     -Buffer Length sets the amount of vibrato: amplitude of sin
-     -Vibrato period sets the rate of the vibrato: period of sin
+  IIR comb delay:
+    -First, input data is stored in current position of buffer
+    -The COMB function used is the same as FIR
+    -The difference is that, after computing new y, this y value is replaced by the x value on the iir_buffer
 */
+
 
 int main() {
 
-    setup(0);
+    #if GUITAR == 1
+    setup(1); //for guitar
+    #else
+    setup(0); //for volca
+    #endif
 
     // enable input and output
     *audioDacEnReg = 1;
@@ -24,19 +30,19 @@ int main() {
     setInputBufferSize(BUFFER_SIZE);
     setOutputBufferSize(BUFFER_SIZE);
 
-    struct Vibrato vibr1;
-    struct Vibrato *vibr1Pnt = &vibr1;
-    struct AudioFX *vibr1FXPnt = (struct AudioFX *) vibr1Pnt;
-    int VIBR_ALLOC_AMOUNT = alloc_vibrato_vars(vibr1Pnt, 0);
+    struct IIRdelay del1;
+    struct IIRdelay *del1Pnt = &del1;
+    struct AudioFX *del1FXPnt = (struct AudioFX *) del1Pnt;
+    int DEL_ALLOC_AMOUNT = alloc_delay_vars(del1Pnt, 0);
 
     //CPU cycles stuff
-    //int CPUcycles[100] = {0};
+    //int CPUcycles[1000] = {0};
     //int cpu_pnt = 0;
 
     while(*keyReg != 3) {
-        audioIn(vibr1FXPnt);
-        audio_vibrato(vibr1Pnt);
-        audioOut(vibr1FXPnt);
+        audioIn(del1FXPnt);
+        audio_delay(del1Pnt);
+        audioOut(del1FXPnt);
         /*
         //store CPU Cycles
         CPUcycles[cpu_pnt] = get_cpu_cycles();
@@ -52,6 +58,5 @@ int main() {
         printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
     */
-
     return 0;
 }
