@@ -935,7 +935,6 @@ int alloc_filter_vars(struct Filter *filtP, int coreNumber, int Fc, float QorFb,
     int ALLOC_AMOUNT = alloc_space("FILTER", (FILT_TYPE + sizeof(int)), coreNumber);
 
     //store 1st samples:
-    //first, fill filter buffer
     for(*filtP->pnt=0; *filtP->pnt < 2; *filtP->pnt = *filtP->pnt + 1) {
       getInputBufferSPM(&filtP->x_buf[*filtP->pnt][0], &filtP->x_buf[*filtP->pnt][1]);
     }
@@ -1448,6 +1447,93 @@ int audio_tremolo32(struct Tremolo32 *tremP) {
     //calculate output
     tremP->y[0] = (short)(( ((long long int)tremP->x[0]) * tremP->modArray[*tremP->pnt] ) >> 31);
     tremP->y[1] = (short)(( ((long long int)tremP->x[1]) * tremP->modArray[*tremP->pnt] ) >> 31);
+
+    return 0;
+}
+
+int alloc_wahwah_vars(struct WahWah *wahP, int coreNumber) {
+    printf("---------------WAHWAH INITIALISATION---------------\n");
+    // LOCATION IN LOCAL SCRATCHPAD MEMORY
+    const unsigned int WAH_X      = addr[coreNumber];
+    const unsigned int WAH_Y      = WAH_X     + 2 * sizeof(short);
+    const unsigned int WAH_ACCUM  = WAH_Y     + 2 * sizeof(short);
+    const unsigned int WAH_XBUF   = WAH_ACCUM + 2 * sizeof(int);
+    const unsigned int WAH_YBUF   = WAH_XBUF  + 6 * sizeof(short); // 3rd ord, stereo
+    const unsigned int WAH_A      = WAH_YBUF  + 6 * sizeof(short); // 3rd ord, stereo
+    const unsigned int WAH_B      = WAH_A     + 3 * sizeof(short) + 2; //match word
+    const unsigned int WAH_PNT    = WAH_B     + 3 * sizeof(short) + 2; //match word
+    const unsigned int WAH_SLFT   = WAH_PNT   + sizeof(int);
+    const unsigned int WAH_WAHPNT = WAH_SLFT  + sizeof(int);
+
+    //SPM variables
+    wahP->x       = (volatile _SPM short *)      WAH_X;
+    wahP->y       = (volatile _SPM short *)      WAH_Y;
+    wahP->accum   = (volatile _SPM int *)        WAH_ACCUM;
+    wahP->x_buf   = (volatile _SPM short (*)[2]) WAH_XBUF;
+    wahP->y_buf   = (volatile _SPM short (*)[2]) WAH_YBUF;
+    wahP->A       = (volatile _SPM short *)      WAH_A;
+    wahP->B       = (volatile _SPM short *)      WAH_B;
+    wahP->pnt     = (volatile _SPM int *)        WAH_PNT;
+    wahP->wah_pnt = (volatile _SPM int *)        WAH_WAHPNT;
+    wahP->sftLft  = (volatile _SPM int *)        WAH_SLFT;
+
+    //shift left is fixed!
+    *wahP->sftLft = 1;
+
+    //store sin Arrays of Fc and Fb
+    storeSin(wahP->fcArray, WAHWAH_P, WAHWAH_FC_CEN, WAHWAH_FC_AMP);
+    storeSin(wahP->fbArray, WAHWAH_P, WAHWAH_FB_CEN, WAHWAH_FB_AMP);
+
+    //calculate band-pass filter coefficients
+    printf("calculating modulation coefficients...\n");
+    for(int i=0; i<WAHWAH_P; i++) {
+        filter_coeff_bp_br(3, wahP->B, wahP->A, wahP->fcArray[i], wahP->fbArray[i], wahP->sftLft, 1);
+        wahP->bArray[i][2] = wahP->B[2];
+        wahP->bArray[i][1] = wahP->B[1];
+        wahP->bArray[i][0] = wahP->B[0];
+        wahP->aArray[i][1] = wahP->A[1];
+        wahP->aArray[i][0] = wahP->A[0];
+    }
+    printf("calculation of modulation coefficients finished!\n");
+
+    //return new address
+    int ALLOC_AMOUNT = alloc_space("WAHWAH", (WAH_SLFT + sizeof(int)), coreNumber);
+
+    //store 1st samples
+    *wahP->wah_pnt = 0;
+    //first, fill filter buffer
+    for(*wahP->pnt=0; *wahP->pnt<2; *wahP->pnt = *wahP->pnt + 1) {
+        getInputBufferSPM(&wahP->x_buf[*wahP->pnt][0], &wahP->x_buf[*wahP->pnt][1]);
+    }
+
+    return ALLOC_AMOUNT;
+}
+
+__attribute__((always_inline))
+int audio_wahwah(struct WahWah *wahP) {
+    //update filter coefficients
+    wahP->B[2] = wahP->bArray[*wahP->wah_pnt][2]; //b0
+    wahP->B[1] = wahP->bArray[*wahP->wah_pnt][1]; //b1
+    // b2 doesnt need to be updated: always 1
+    wahP->A[1] = wahP->aArray[*wahP->wah_pnt][1]; //a1
+    wahP->A[0] = wahP->aArray[*wahP->wah_pnt][0]; //a2
+    //update pointers
+    *wahP->wah_pnt = (*wahP->wah_pnt+1) % WAHWAH_P;
+    *wahP->pnt = (*wahP->pnt+1) % 3; //FILTER_ORDER_1PLUS = 3
+    //first, read sample
+    wahP->x_buf[*wahP->pnt][0] = wahP->x[0];
+    wahP->x_buf[*wahP->pnt][1] = wahP->x[1];
+    //then, calculate filter
+    filterIIR_2nd(*wahP->pnt, wahP->x_buf, wahP->y_buf, wahP->accum, wahP->B, wahP->A, *wahP->sftLft);
+    //Band-Pass stuff
+    wahP->accum[0] = ( (int)wahP->x[0] - (int)wahP->y_buf[*wahP->pnt][0] ); // >> 1;
+    wahP->accum[1] = ( (int)wahP->x[1] - (int)wahP->y_buf[*wahP->pnt][1] ); // >> 1;
+    //mix with original: gains are fixed
+    wahP->accum[0] = ( (int)(WAHWAH_WET_GAIN*wahP->accum[0]) >> 15 )  + ( (int)(WAHWAH_DRY_GAIN*wahP->x[0]) >> 15 );
+    wahP->accum[1] = ( (int)(WAHWAH_WET_GAIN*wahP->accum[1]) >> 15 )  + ( (int)(WAHWAH_DRY_GAIN*wahP->x[1]) >> 15 );
+    //set output
+    wahP->y[0] = (short)wahP->accum[0];
+    wahP->y[1] = (short)wahP->accum[1];
 
     return 0;
 }

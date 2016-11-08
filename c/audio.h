@@ -98,6 +98,16 @@ int     setInputBufferSize(int bufferSize);
 #define CHORUS_L  2083 // modulation amount in samples
 //for tremolo
 # define TREMOLO_P (int)(Fs/4)
+//for WahWah
+#define WAHWAH_P (int)(Fs*0.6)
+#define WAHWAH_FC_CEN 1200
+#define WAHWAH_FC_AMP 900
+#define WAHWAH_FB_CEN 330
+#define WAHWAH_FB_AMP 300
+    //constants
+#define WAHWAH_DRY_GAIN (int)(ONE_16b*0.2)
+#define WAHWAH_WET_GAIN (int)(ONE_16b*0.8)
+
 /*
   GENERAL
 */
@@ -117,7 +127,7 @@ int alloc_dry_vars(struct AudioFX *audioP, int coreNumber);
 int audio_dry(struct AudioFX *audioP);
 
 /*
-  High-Pass / Low-Pass filters (2nd order)
+  High-Pass / Low-Pass / Band-Pass / Band-Reject filters (2nd order)
 */
 
 struct Filter {
@@ -282,5 +292,30 @@ struct Tremolo32 {
 int alloc_tremolo32_vars(struct Tremolo32 *tremP, int coreNumber);
 int audio_tremolo32(struct Tremolo32 *tremP);
 
+/*
+  Wah-Wah
+*/
+
+struct WahWah {
+    //SPM variables
+    volatile _SPM short *x; //input audio x[2]
+    volatile _SPM short *y; //output audio y[2]
+    volatile _SPM int   *accum; //accummulator accum[2]
+    volatile _SPM short (*x_buf)[2]; // input buffer
+    volatile _SPM short (*y_buf)[2]; // output buffer
+    volatile _SPM short *A; // [a2, a1,  1]
+    volatile _SPM short *B; // [b2, b1, b0]
+    volatile _SPM int   *pnt; //audio input pointer
+    volatile _SPM int   *wah_pnt; //modulation pointer
+    volatile _SPM int   *sftLft; //x or y buffer pointer
+    //Main Memory Variables
+    int fcArray[WAHWAH_P]; //for Fc
+    int fbArray[WAHWAH_P]; //for Fb
+    short aArray[WAHWAH_P][3]; //for A coefficients
+    short bArray[WAHWAH_P][3]; //for B coefficients
+};
+
+int alloc_wahwah_vars(struct WahWah *wahP, int coreNumber);
+int audio_wahwah(struct WahWah *wahP);
 
 #endif /* _AUDIO_H_ */
