@@ -1,8 +1,4 @@
-#include <machine/spm.h>
-#include <machine/rtc.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
+
 #include "libaudio/audio.h"
 
 /*

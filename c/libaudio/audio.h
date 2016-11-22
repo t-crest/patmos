@@ -3,8 +3,14 @@
 #ifndef _AUDIO_H_
 #define _AUDIO_H_
 
+#include <machine/spm.h>
+#include <machine/rtc.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
 //for guitar:
-#define GUITAR 1
+#define GUITAR 0
 
 // for multicore platform with noc:
 #define MULTICORE 1
