@@ -906,31 +906,40 @@ int alloc_dry_vars(struct AudioFX *audioP, int recv_from, int send_to) {
       LOCATION IN SPM
     */
     unsigned int BASE_ADDR = (unsigned int)mp_alloc(0);
-    printf("base address is: 0x%x\n", BASE_ADDR);
+    unsigned int LAST_ADDR;
     //see what kind of node it is
-    if ( (recv_from < 0) && (send_to < 0) ) {
+    if (recv_from < 0) {
         const unsigned int DRY_X_PNT  = BASE_ADDR;
-        const unsigned int DRY_Y_PNT  = DRY_X_PNT + sizeof(int);
-        const unsigned int DRY_X      = DRY_Y_PNT + sizeof(int);
-        const unsigned int DRY_Y      = DRY_X     + 2 * sizeof(short);
+        const unsigned int DRY_X      = DRY_X_PNT + sizeof(int);
+        LAST_ADDR                     = DRY_X     + 2 * sizeof(short);
         //SPM variables
         audioP->x_pnt  = ( volatile _SPM int *)  DRY_X_PNT;
-        audioP->y_pnt  = ( volatile _SPM int *)  DRY_Y_PNT;
         audioP->x      = ( volatile _SPM short *) DRY_X;
-        audioP->y      = ( volatile _SPM short *) DRY_Y;
         //initialise pointer values
         *audioP->x_pnt = (int)audioP->x; // = DRY_X;
-        *audioP->y_pnt = (int)audioP->y; // = DRY_Y;
-        //init audio data to 0
-        *audioP->x = 0;
-        *audioP->y = 0;
-        printf("x_pnt=0x%x, *x_pnt=0x%x, x=0x%x, *x=%d\n", (int)audioP->x_pnt, *audioP->x_pnt, (int)audioP->x, *audioP->x);
-        printf("y_pnt=0x%x, *y_pnt=0x%x, y=0x%x, *y=%d\n", (int)audioP->y_pnt, *audioP->y_pnt, (int)audioP->y, *audioP->y);
 
-        //update spm_alloc
-        alloc_space("AUDIO DRY", BASE_ADDR, (DRY_Y + 2 * sizeof(short)), cpuid);
     }
-
+    else {
+        //data@NoC
+    }
+    if  (send_to < 0) {
+        const unsigned int DRY_Y_PNT  = LAST_ADDR;
+        const unsigned int DRY_Y      = DRY_Y_PNT + sizeof(int);
+        LAST_ADDR                     = DRY_Y     + 2 * sizeof(short);
+        //SPM variables
+        audioP->y_pnt  = ( volatile _SPM int *)  DRY_Y_PNT;
+        audioP->y      = ( volatile _SPM short *) DRY_Y;
+        //initialise pointer values
+        *audioP->y_pnt = (int)audioP->y; // = DRY_Y;
+    }
+    else {
+        //data@NoC
+    }
+    //init audio data to 0
+    *audioP->x = 0;
+    *audioP->y = 0;
+    //update spm_alloc
+    alloc_space("AUDIO DRY", BASE_ADDR, LAST_ADDR, cpuid);
 
     return 0;
 }
