@@ -30,9 +30,12 @@
 #define SPM_OFFSET   0
 #endif
 
-//multicore stuff
-const int CORES_AMOUNT = 4;
-unsigned int addr[CORES_AMOUNT] = {SPM_OFFSET};
+/*
+How the effect is located in a core:
+-INTERNAL: not connected to NoC
+-NOC_R: receives data from NoC
+*/
+typedef enum {INTERNAL, NOC_R, NOC_S, NOC_RS} fx_location_t;
 
 
 #define LED_ADDR       (volatile _SPM int *) 0xF0090000
@@ -86,8 +89,9 @@ void 	setup(int guitar);
 int 	changeVolume(int vol);
 
 int 	setOutputBuffer(short l, short r);
-int 	getInputBufferSPM(volatile _SPM short *l, volatile _SPM short *r);
+int     setOutputBufferSPM(volatile _SPM short *l, volatile _SPM short *r);
 int     getInputBuffer(volatile short *l, volatile short *r);
+int 	getInputBufferSPM(volatile _SPM short *l, volatile _SPM short *r);
 int     setOutputBufferSize(int bufferSize);
 int     setInputBufferSize(int bufferSize);
 
@@ -122,6 +126,9 @@ int     setInputBufferSize(int bufferSize);
 */
 
 struct AudioFX {
+    //pointers to SPM data
+    volatile _SPM int *x_pnt; //pointer to x location
+    volatile _SPM int *y_pnt; //pointer to y location
     //SPM variables
     volatile _SPM short *x; //input audio x[2]
     volatile _SPM short *y; //output audio y[2]
@@ -132,12 +139,13 @@ void audioOut(struct AudioFX *thisFX);
 //same core:
 void audioChainCore(struct AudioFX *sourceFX, struct AudioFX *destinationFX);
 //for dry audio
-int alloc_dry_vars(struct AudioFX *audioP, int coreNumber);
+int alloc_dry_vars(struct AudioFX *audioP, int recv_from, int send_to);
 int audio_dry(struct AudioFX *audioP);
 
 /*
+/ *
   High-Pass / Low-Pass / Band-Pass / Band-Reject filters (2nd order)
-*/
+* /
 
 struct Filter {
     //SPM variables
@@ -174,9 +182,9 @@ int alloc_filter32_vars(struct Filter32 *filterP, int coreNumber, int Fc, float 
 int audio_filter32(struct Filter32 *filterP);
 
 
-/*
+/ *
   Vibrato
-*/
+* /
 
 struct Vibrato {
     //SPM variables
@@ -198,9 +206,9 @@ struct Vibrato {
 int alloc_vibrato_vars(struct Vibrato *vibrP, int coreNumber);
 int audio_vibrato(struct Vibrato *vibrP);
 
-/*
+/ *
   Overdrive and distortion
-*/
+* /
 
 struct Overdrive {
     //SPM variables
@@ -226,9 +234,9 @@ int alloc_distortion_vars(struct Distortion *distP, int coreNumber, float amount
 int audio_distortion(struct Distortion *distP);
 
 
-/*
+/ *
   Delay
-*/
+* /
 
 struct IIRdelay {
     //SPM variables
@@ -245,9 +253,9 @@ struct IIRdelay {
 int alloc_delay_vars(struct IIRdelay *delP, int coreNumber);
 int audio_delay(struct IIRdelay *delP);
 
-/*
+/ *
   Chorus
-*/
+* /
 
 struct Chorus {
     //SPM variables
@@ -268,9 +276,9 @@ struct Chorus {
 int alloc_chorus_vars(struct Chorus *chorP, int coreNumber);
 int audio_chorus(struct Chorus *chorP);
 
-/*
+/ *
   Tremolo
-*/
+* /
 
 struct Tremolo {
     //SPM variables
@@ -301,9 +309,9 @@ struct Tremolo32 {
 int alloc_tremolo32_vars(struct Tremolo32 *tremP, int coreNumber);
 int audio_tremolo32(struct Tremolo32 *tremP);
 
-/*
+/ *
   Wah-Wah
-*/
+* /
 
 struct WahWah {
     //SPM variables
@@ -326,5 +334,8 @@ struct WahWah {
 
 int alloc_wahwah_vars(struct WahWah *wahP, int coreNumber);
 int audio_wahwah(struct WahWah *wahP);
+
+
+*/
 
 #endif /* _AUDIO_H_ */

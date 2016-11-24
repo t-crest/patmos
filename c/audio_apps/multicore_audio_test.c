@@ -78,6 +78,49 @@ int main() {
       AUDIO STUFF HERE
     */
 
+    #if GUITAR == 1
+    setup(1); //for guitar
+    #else
+    setup(0); //for volca
+    #endif
+
+    // enable input and output
+    *audioDacEnReg = 1;
+    *audioAdcEnReg = 1;
+
+    setInputBufferSize(BUFFER_SIZE);
+    setOutputBufferSize(BUFFER_SIZE);
+
+    struct AudioFX audio1;
+    struct AudioFX *audio1P = &audio1;
+    alloc_dry_vars(audio1P, -1, -1);
+
+    struct AudioFX audio2;
+    struct AudioFX *audio2P = &audio2;
+    alloc_dry_vars(audio2P, -1, -1);
+
+
+    //CPU cycles stuff
+    //int CPUcycles[1000] = {0};
+    //int cpu_pnt = 0;
+
+    while(*keyReg != 3) {
+        audioIn(audio1P);
+        audio_dry(audio1P);
+        audioChainCore(audio1P, audio2P);
+        audio_dry(audio2P);
+        audioOut(audio2P);
+
+        /*
+        //store CPU Cycles
+        CPUcycles[cpu_pnt] = get_cpu_cycles();
+        cpu_pnt++;
+        if(cpu_pnt == 1000) {
+            break;
+        }
+        */
+    }
+
     //exit stuff
     printf("exit here!\n");
     exit = 1;
@@ -86,6 +129,11 @@ int main() {
     int *retval;
     corethread_join(threadOne, (void **)&retval);
     printf("thread 1 finished!\n");
+    /*
+    for(int i=1; i<1000; i++) {
+        printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
+    }
+    */
 
     return 0;
 }

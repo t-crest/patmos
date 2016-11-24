@@ -225,6 +225,18 @@ int setOutputBuffer(short l, short r) {
   return 0;
 }
 
+int setOutputBufferSPM(volatile _SPM short *l, volatile _SPM short *r) {
+  //write data first: it will stay in AudioInterface, won't go to
+  //AudioDacBuffer until the write pulse
+  *audioDacLReg = *l;
+  *audioDacRReg = *r;
+  while(*audioDacBufferFullReg == 1); // wait until not full
+  *audioDacBufferWritePulseReg = 1; // begin pulse
+  *audioDacBufferWritePulseReg = 0; // end pulse
+
+  return 0;
+}
+
 
 
 //-----------------------VARIABLES IN SCRATCHPAD MEMORY------------------------//
@@ -848,51 +860,89 @@ int overdrive(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int 
 /*            GLOBAL VARS (external SRAM)          */
 
 void audioIn(struct AudioFX *thisFX) {
-    getInputBufferSPM(&thisFX->x[0], &thisFX->x[1]);
+    getInputBufferSPM((volatile _SPM short *)*thisFX->x_pnt, (volatile _SPM short *)(*thisFX->x_pnt+2));
 }
 
 void audioOut(struct AudioFX *thisFX) {
-    setOutputBuffer(thisFX->y[0], thisFX->y[1]);
+    setOutputBufferSPM((volatile _SPM short *)*thisFX->y_pnt, (volatile _SPM short *)(*thisFX->y_pnt+2));
 }
 
-void audioChainCore(struct AudioFX *sourceFX, struct AudioFX *destinationFX) {
-    destinationFX->x[0] = sourceFX->y[0];
-    destinationFX->x[1] = sourceFX->y[1];
+void audioChainCore(struct AudioFX *srcFXP, struct AudioFX *dstFXP) {
+    *(volatile _SPM short *)*dstFXP->x_pnt     = *(volatile _SPM short *)*srcFXP->y_pnt;
+    *(volatile _SPM short *)(*dstFXP->x_pnt+2) = *(volatile _SPM short *)(*srcFXP->y_pnt+2);
 }
+
 
 // FOR PRINTING:
-int alloc_space(char *FX_NAME, unsigned int LAST_ADDR, int coreNumber) {
-    printf("Last free position at SPM of core %d is 0x%x\n", coreNumber, addr[coreNumber]);
-    unsigned int ALLOC_AMOUNT = LAST_ADDR - addr[coreNumber];
-    addr[coreNumber] = LAST_ADDR;
-    printf("%d bytes allocated in SPM of core %d\n", ALLOC_AMOUNT, coreNumber);
-    printf("Last free position at SPM of core %d is 0x%x\n", coreNumber, addr[coreNumber]);
-    printf("-------------------%s DONE!-------------------\n", FX_NAME);
+int alloc_space(char *FX_NAME, unsigned int BASE_ADDR, unsigned int LAST_ADDR, int cpuid) {
+    unsigned int ALLOC_AMOUNT = LAST_ADDR - BASE_ADDR;
+    void _SPM *allocret = mp_alloc(ALLOC_AMOUNT);
+    if(allocret == NULL) {
+        if(cpuid == 0) {
+            printf("ERROR ON SPM ALLOCATION\n");
+        }
 
-    return ALLOC_AMOUNT;
+        return 1;
+    }
+    else {
+        if(cpuid == 0) {
+            printf("Base position at SPM of core %d is 0x%x\n", cpuid, BASE_ADDR);
+            printf("%d bytes allocated in SPM of core %d\n", ALLOC_AMOUNT, cpuid);
+            printf("Last free position at SPM of core %d is 0x%x\n", cpuid, LAST_ADDR);
+            printf("-------------------%s DONE!-------------------\n", FX_NAME);
+        }
+
+        return 0;
+    }
 }
 
-int alloc_dry_vars(struct AudioFX *audioP, int coreNumber) {
-    printf("---------------AUDIO DRY INITIALISATION---------------\n");
-    // LOCATION IN LOCAL SCRATCHPAD MEMORY
-    const unsigned int DRY_X      = addr[coreNumber];
-    const unsigned int DRY_Y      = DRY_X     + 2 * sizeof(short);
-    //SPM variables
-    audioP->x        = ( volatile _SPM short *) DRY_X;
-    audioP->y        = ( volatile _SPM short *) DRY_Y;
 
-    //return new address
-    int ALLOC_AMOUNT = alloc_space("AUDIO DRY", (DRY_Y + 2 * sizeof(short)), coreNumber);
-    return ALLOC_AMOUNT;
-}
+int alloc_dry_vars(struct AudioFX *audioP, int recv_from, int send_to) {
+    int cpuid = get_cpuid();
+    if (cpuid == 0) { //MASTER
+        printf("---------------AUDIO DRY INITIALISATION---------------\n");
+    }
+    /*
+      LOCATION IN SPM
+    */
+    unsigned int BASE_ADDR = (unsigned int)mp_alloc(0);
+    printf("base address is: 0x%x\n", BASE_ADDR);
+    //see what kind of node it is
+    if ( (recv_from < 0) && (send_to < 0) ) {
+        const unsigned int DRY_X_PNT  = BASE_ADDR;
+        const unsigned int DRY_Y_PNT  = DRY_X_PNT + sizeof(int);
+        const unsigned int DRY_X      = DRY_Y_PNT + sizeof(int);
+        const unsigned int DRY_Y      = DRY_X     + 2 * sizeof(short);
+        //SPM variables
+        audioP->x_pnt  = ( volatile _SPM int *)  DRY_X_PNT;
+        audioP->y_pnt  = ( volatile _SPM int *)  DRY_Y_PNT;
+        audioP->x      = ( volatile _SPM short *) DRY_X;
+        audioP->y      = ( volatile _SPM short *) DRY_Y;
+        //initialise pointer values
+        *audioP->x_pnt = (int)audioP->x; // = DRY_X;
+        *audioP->y_pnt = (int)audioP->y; // = DRY_Y;
+        //init audio data to 0
+        *audioP->x = 0;
+        *audioP->y = 0;
+        printf("x_pnt=0x%x, *x_pnt=0x%x, x=0x%x, *x=%d\n", (int)audioP->x_pnt, *audioP->x_pnt, (int)audioP->x, *audioP->x);
+        printf("y_pnt=0x%x, *y_pnt=0x%x, y=0x%x, *y=%d\n", (int)audioP->y_pnt, *audioP->y_pnt, (int)audioP->y, *audioP->y);
 
-int audio_dry(struct AudioFX *audioP) {
-    audioP->y[0] = audioP->x[0];
-    audioP->y[1] = audioP->x[1];
+        //update spm_alloc
+        alloc_space("AUDIO DRY", BASE_ADDR, (DRY_Y + 2 * sizeof(short)), cpuid);
+    }
+
 
     return 0;
 }
 
+int audio_dry(struct AudioFX *audioP) {
+    *(volatile _SPM short *)*audioP->y_pnt     = *(volatile _SPM short *)*audioP->x_pnt;
+    *(volatile _SPM short *)(*audioP->y_pnt+2) = *(volatile _SPM short *)(*audioP->x_pnt+2);
+
+    return 0;
+}
+
+/*
 int alloc_filter_vars(struct Filter *filtP, int coreNumber, int Fc, float QorFb, int thisType) {
     printf("---------------FILTER INITIALISATION---------------\n");
     // LOCATION IN LOCAL SCRATCHPAD MEMORY
@@ -1533,3 +1583,5 @@ int audio_wahwah(struct WahWah *wahP) {
 
     return 0;
 }
+
+*/
