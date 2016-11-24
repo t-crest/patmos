@@ -43,6 +43,7 @@ void thread1_delay(void* args) {
         short received[2];
         for(int j=0; j<MP_CHAN_SHORTS_AMOUNT; j++) {
             received[j] = *((volatile _SPM short *)chan1->read_buf+j);
+            received[j] = received[j] + 2;
         }
         //acknowledge
         mp_ack(chan1,0);
@@ -72,6 +73,12 @@ int main() {
 
     printf("Core amount is %d\n", get_cpucnt());
 
+    printf("BEGINNING:\n");
+    printf("spm_alloc_array[0]=0x%x\n", (unsigned int)mp_alloc(0));
+
+    printf("BEGINNING 2:\n");
+    printf("spm_alloc_array[0]=0x%x\n", (unsigned int)mp_alloc(0));
+
     //create corethread type var
     corethread_t threadOne = (corethread_t) 1;
     //arguments to thread 1 function
@@ -90,14 +97,24 @@ int main() {
     // MP: create message passing ports
     qpd_t * chan1 = mp_create_qport(MP_CHAN_1_ID, SOURCE,
         MP_CHAN_1_MSG_SIZE, MP_CHAN_1_NUM_BUF);
+
+    printf("AFTER CREATE 1:\n");
+    printf("spm_alloc_array[0]=0x%x\n", (unsigned int)mp_alloc(0));
+
     qpd_t * chan2 = mp_create_qport(MP_CHAN_2_ID, SINK,
         MP_CHAN_2_MSG_SIZE, MP_CHAN_2_NUM_BUF);
 
     printf("created MP channels\n");
 
+    printf("AFTER CREATE 2:\n");
+    printf("spm_alloc_array[0]=0x%x\n", (unsigned int)mp_alloc(0));
+
     // Initialize the communication channels
     int nocret = mp_init_ports();
     // TODO: check on retval
+
+    printf("AFTER INIT:\n");
+    printf("spm_alloc_array[0]=0x%x\n", (unsigned int)mp_alloc(0));
 
     printf("Initialized buffers\n");
 
@@ -118,10 +135,15 @@ int main() {
 
         printf("just before sending, stateVar1 should be %d, and is %d\n", (i-1), stateVar1);
 
+
+        printf("SEND_RECV_COUNT BEFORE SEND: 0x%x\n", *chan1->send_recv_count);
+
         mp_send(chan1,0);
 
         //receive message from slave
         printf("gonna receive\n");
+
+        printf("SEND_RECV_COUNT BEFORE RECEIVE: 0x%x\n", *chan1->send_recv_count);
         mp_recv(chan2,0);
         printf("just after receiving, stateVar1 should be %d, and is %d\n", i, stateVar1);
 
@@ -132,6 +154,32 @@ int main() {
         // Acknowledge the received data
         mp_ack(chan2,0);
 
+        printf("@ END OF LOOP %d: \n", i);
+
+        printf("chan1->direction_type: %d\n", chan1->direction_type);
+        printf("chan1->remote: %hhd\n", chan1->remote);
+        printf("chan1->recv_addr: 0x%x\n", (int)chan1->recv_addr);
+        printf("*chan1->recv_addr: 0x%x\n", *((int *)chan1->recv_addr));
+        printf("chan1->send_recv_count: 0x%x\n", (int)chan1->send_recv_count);
+        printf("*chan1->send_recv_count: 0x%x\n", *chan1->send_recv_count);
+        printf("chan1->buf_size: %d\n", chan1->buf_size);
+        printf("chan1->num_buf: %d\n", chan1->num_buf);
+        printf("THREAD 0 AS SENDER, CHAN1:\n");
+        printf("chan1->write_buf: 0x%x\n", (int)chan1->write_buf);
+        printf("*chan1->write_buf+0: %d\n", *((volatile _SPM short *)chan1->write_buf+0));
+        printf("*chan1->write_buf+1: %d\n", *((volatile _SPM short *)chan1->write_buf+1));
+        printf("chan1->shadow_write_buf: 0x%x\n", (int)chan1->shadow_write_buf);
+        printf("*chan1->shadow_write_buf+0: %d\n", *((volatile _SPM short *)chan1->shadow_write_buf+0));
+        printf("*chan1->shadow_write_buf+1: %d\n", *((volatile _SPM short *)chan1->shadow_write_buf+1));
+        printf("chan1->send_count: %d\n", chan1->send_count);
+        printf("chan1->send_ptr: %d\n", chan1->send_ptr);
+        printf("THREAD 0 AS RECEIVER, CHAN2:\n");
+        printf("chan2->read_buf: 0x%x\n", (int)chan2->read_buf);
+        printf("*chan2->read_buf+0: %d\n", *((volatile _SPM short *)chan2->read_buf+0));
+        printf("*chan2->read_buf+1: %d\n", *((volatile _SPM short *)chan2->read_buf+1));
+        printf("chan2->recv_count: 0x%x\n", (int)chan2->recv_count);
+        printf("*chan2->recv_count: %d\n", *chan2->recv_count);
+        printf("chan2->recv_ptr: %d\n", chan2->recv_ptr);
     }
 
     //printing sent and received values:
