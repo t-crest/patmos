@@ -126,10 +126,19 @@ int     setInputBufferSize(int bufferSize);
 */
 
 struct AudioFX {
+    //core number
+    volatile _SPM int *cpuid;
+    //connection type
+    volatile _SPM int *is_fst; // audio input node
+    volatile _SPM int *is_lst; // audio output node
+    volatile _SPM int *in_con;  //input  connection: 0=same core, 1=NoC
+    volatile _SPM int *out_con; //output connection: 0=same core, 1=NoC
     //pointers to SPM data
     volatile _SPM int *x_pnt; //pointer to x location
     volatile _SPM int *y_pnt; //pointer to y location
-    //SPM variables
+    // pointer to dest_x;
+    volatile _SPM int *dst_addr; //pointer to destination FX input address
+    //audio data
     volatile _SPM short *x; //input audio x[2]
     volatile _SPM short *y; //output audio y[2]
 };
@@ -137,9 +146,10 @@ struct AudioFX {
 void audioIn(struct AudioFX *thisFX);
 void audioOut(struct AudioFX *thisFX);
 //same core:
+int audio_connect(struct AudioFX *srcP, struct AudioFX *dstP);
 void audioChainCore(struct AudioFX *sourceFX, struct AudioFX *destinationFX);
 //for dry audio
-int alloc_dry_vars(struct AudioFX *audioP, int recv_from, int send_to);
+qpd_t * alloc_dry_vars(struct AudioFX *audioP, int recv_from, int send_to);
 int audio_dry(struct AudioFX *audioP);
 
 /*

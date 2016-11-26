@@ -860,11 +860,21 @@ int overdrive(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int 
 /*            GLOBAL VARS (external SRAM)          */
 
 void audioIn(struct AudioFX *thisFX) {
-    getInputBufferSPM((volatile _SPM short *)*thisFX->x_pnt, (volatile _SPM short *)(*thisFX->x_pnt+2));
+    if( (*thisFX->cpuid == 0) && (*thisFX->is_fst == 1) ) {
+        getInputBufferSPM((volatile _SPM short *)*thisFX->x_pnt, (volatile _SPM short *)(*thisFX->x_pnt+2));
+    }
+    else {
+        printf("AUDIO ERROR\n");
+    }
 }
 
 void audioOut(struct AudioFX *thisFX) {
+    if( (*thisFX->cpuid == 0) && (*thisFX->is_lst == 1) ) {
     setOutputBufferSPM((volatile _SPM short *)*thisFX->y_pnt, (volatile _SPM short *)(*thisFX->y_pnt+2));
+    }
+    else {
+        printf("AUDIO ERROR\n");
+    }
 }
 
 void audioChainCore(struct AudioFX *srcFXP, struct AudioFX *dstFXP) {
@@ -897,49 +907,99 @@ int alloc_space(char *FX_NAME, unsigned int BASE_ADDR, unsigned int LAST_ADDR, i
 }
 
 
-int alloc_dry_vars(struct AudioFX *audioP, int recv_from, int send_to) {
-    int cpuid = get_cpuid();
-    if (cpuid == 0) { //MASTER
-        printf("---------------AUDIO DRY INITIALISATION---------------\n");
-    }
+qpd_t * alloc_dry_vars(struct AudioFX *audioP, int recv_from, int send_to) {
+    qpd_t * chanSend;
     /*
       LOCATION IN SPM
     */
     unsigned int BASE_ADDR = (unsigned int)mp_alloc(0);
     unsigned int LAST_ADDR;
-    //see what kind of node it is
-    if (recv_from < 0) {
-        const unsigned int DRY_X_PNT  = BASE_ADDR;
-        const unsigned int DRY_X      = DRY_X_PNT + sizeof(int);
-        LAST_ADDR                     = DRY_X     + 2 * sizeof(short);
+    // CPUID
+    const unsigned int DRY_CPUID  = BASE_ADDR;
+    LAST_ADDR = DRY_CPUID + sizeof(int);
+    audioP->cpuid = ( volatile _SPM int * ) DRY_CPUID;
+    *audioP->cpuid = get_cpuid();
+    if(*audioP->cpuid == 0) {
+        const unsigned int DRY_IS_FST = LAST_ADDR;
+        const unsigned int DRY_IS_LST = DRY_IS_FST + sizeof(int);
+        LAST_ADDR                     = DRY_IS_LST + sizeof(int);
         //SPM variables
-        audioP->x_pnt  = ( volatile _SPM int *)  DRY_X_PNT;
+        audioP->is_fst = ( volatile _SPM int * ) DRY_IS_FST;
+        audioP->is_lst = ( volatile _SPM int * ) DRY_IS_LST;
+        //init: always 1
+        *audioP->is_fst = 1;
+        *audioP->is_lst = 1;
+    }
+    // INPUT
+    const unsigned int DRY_IN_CON = LAST_ADDR;
+    const unsigned int DRY_X_PNT  = DRY_IN_CON + sizeof(int);
+    //SPM variables
+    audioP->in_con = ( volatile _SPM int *)   DRY_IN_CON;
+    audioP->x_pnt  = ( volatile _SPM int *)   DRY_X_PNT;
+    //see what kind of node it is
+    if (recv_from < 0) { //same core
+        const unsigned int DRY_X      = DRY_X_PNT  + sizeof(int);
+        LAST_ADDR                     = DRY_X      + 2 * sizeof(short);
+        //SPM variables
         audioP->x      = ( volatile _SPM short *) DRY_X;
         //initialise pointer values
-        *audioP->x_pnt = (int)audioP->x; // = DRY_X;
+        *audioP->in_con = 0; //same core
+        *audioP->x_pnt  = (int)audioP->x; // = DRY_X;
+    }
+    else {
 
     }
-    else {
-        //data@NoC
-    }
-    if  (send_to < 0) {
-        const unsigned int DRY_Y_PNT  = LAST_ADDR;
+    // OUTPUT
+    const unsigned int DRY_OUT_CON = LAST_ADDR;
+    const unsigned int DRY_Y_PNT   = DRY_OUT_CON + sizeof(int);
+    //SPM variables
+    audioP->out_con = ( volatile _SPM int *)  DRY_OUT_CON;
+    audioP->y_pnt   = ( volatile _SPM int *)  DRY_Y_PNT;
+    if  (send_to < 0) { //same core
         const unsigned int DRY_Y      = DRY_Y_PNT + sizeof(int);
-        LAST_ADDR                     = DRY_Y     + 2 * sizeof(short);
+        const unsigned int DRY_DST_A  = DRY_Y     + 2 * sizeof(short);
+        LAST_ADDR                     = DRY_DST_A + sizeof(int);
         //SPM variables
-        audioP->y_pnt  = ( volatile _SPM int *)  DRY_Y_PNT;
-        audioP->y      = ( volatile _SPM short *) DRY_Y;
+        audioP->y        = ( volatile _SPM short *) DRY_Y;
+        audioP->dst_addr = ( volatile _SPM int *)   DRY_DST_A;
         //initialise pointer values
-        *audioP->y_pnt = (int)audioP->y; // = DRY_Y;
+        *audioP->out_con = 0; //same core
+        *audioP->y_pnt   = (int)audioP->y; // = DRY_Y;
     }
     else {
-        //data@NoC
+        // MP: create message passing ports
+        chanSend = mp_create_qport(0, SOURCE,
+            4, 1); // ID=0, 4 bytes, 1 buffer
+
+        LAST_ADDR                     = DRY_Y_PNT + sizeof(int);
+        //SPM variables
+
+        //initialise pointer values
+        *audioP->out_con = 1; //NoC
+        *audioP->y_pnt = (int)chanSend->write_buf;
     }
-    //init audio data to 0
-    *audioP->x = 0;
-    *audioP->y = 0;
     //update spm_alloc
-    alloc_space("AUDIO DRY", BASE_ADDR, LAST_ADDR, cpuid);
+    alloc_space("AUDIO DRY", BASE_ADDR, LAST_ADDR, (int)*audioP->cpuid);
+
+    return chanSend;
+}
+
+int audio_connect(struct AudioFX *srcP, struct AudioFX *dstP) {
+    if(*srcP->out_con == 0) { //output to same core
+        // check that input of dest is also same core
+        if(*dstP->in_con != 0) {
+            printf("ERROR IN CONNECTION\n");
+            return 1;
+        }
+        *srcP->dst_addr = *dstP->x_pnt; //points to destination input
+    }
+    //check if any is on core 0
+    if(*srcP->cpuid == 0) {
+        *srcP->is_lst = 0;
+    }
+    if(*dstP->cpuid == 0) {
+        *dstP->is_fst = 0;
+    }
 
     return 0;
 }
@@ -947,6 +1007,13 @@ int alloc_dry_vars(struct AudioFX *audioP, int recv_from, int send_to) {
 int audio_dry(struct AudioFX *audioP) {
     *(volatile _SPM short *)*audioP->y_pnt     = *(volatile _SPM short *)*audioP->x_pnt;
     *(volatile _SPM short *)(*audioP->y_pnt+2) = *(volatile _SPM short *)(*audioP->x_pnt+2);
+    // send to destination
+    if (*audioP->out_con == 0) {
+        if(  (*audioP->cpuid > 0) || ( (*audioP->cpuid == 0) && (*audioP->is_lst == 0) ) ) {
+            *(volatile _SPM short *)*audioP->dst_addr     = *(volatile _SPM short *)*audioP->y_pnt;
+            *(volatile _SPM short *)(*audioP->dst_addr+2) = *(volatile _SPM short *)(*audioP->y_pnt+2);
+        }
+    }
 
     return 0;
 }

@@ -23,9 +23,15 @@ const int NOC_MASTER = 0;
 
 
 void thread1(void* args) {
+    int cpuid = get_cpuid();
     volatile _UNCACHED int **inArgs = (volatile _UNCACHED int **) args;
     volatile _UNCACHED int *exitP      = inArgs[0];
+    volatile _UNCACHED int *allocsDoneP = inArgs[1];
+    volatile _UNCACHED int *addrFXP = inArgs[3];
 
+    volatile _UNCACHED int *audioValuesP = inArgs[5];
+
+    /*
     //MP: Create the queuing ports
     qpd_t * chan1 = mp_create_qport(MP_CHAN_1_ID, SINK,
         MP_CHAN_1_MSG_SIZE, MP_CHAN_1_NUM_BUF);
@@ -33,9 +39,29 @@ void thread1(void* args) {
         MP_CHAN_2_MSG_SIZE, MP_CHAN_2_NUM_BUF);
     // Initialize the communication channels
     int nocret = mp_init_ports();
+    */
 
     /*
       AUDIO STUFF HERE
+    */
+    /*
+    //init and allocate
+    struct AudioFX audio2;
+    struct AudioFX *audio2P = &audio2;
+    alloc_dry_vars(audio2P, 0, -1);
+    // wait until all cores are ready
+    addrFXP[cpuid] = (int)&audio2;
+    allocsDoneP[cpuid] = 1;
+    */
+    /*
+    //loop
+    for(int i=0; i<3 i++) {
+        //receive
+        audioIn(audio2P);
+        //process
+        audio_dry(audio2P);
+        audioValuesP[i] = audio2.y;
+    }
     */
 
     // exit with return value
@@ -52,27 +78,29 @@ int main() {
     corethread_t threadOne = (corethread_t) 1;
     //arguments to thread 1 function
     int exit = 0;
+    int allocsDone[2] = {0, 0};
+    int addrFX[2];
     volatile _UNCACHED int *exitP = (volatile _UNCACHED int *) &exit;
-    volatile _UNCACHED int (*thread1_args[1]);
+    volatile _UNCACHED int *allocsDoneP = (volatile _UNCACHED int *) &allocsDone;
+    volatile _UNCACHED int *addrFXP = (volatile _UNCACHED int*) &addrFX;
+    volatile _UNCACHED int (*thread1_args[8]);
     thread1_args[0] = exitP;
+    thread1_args[1] = allocsDoneP;
+    thread1_args[3] = addrFXP;
+
+    int audioValues[3];
+    volatile _UNCACHED int *audioValuesP = (volatile _UNCACHED int *) &audioValues[0];
+    thread1_args[5] = audioValuesP;
 
     printf("starting thread and NoC channels...\n");
     //set thread function and start thread
     corethread_create(&threadOne, &thread1, (void*) thread1_args);
 
-    // MP: create message passing ports
-    qpd_t * chan1 = mp_create_qport(MP_CHAN_1_ID, SOURCE,
-        MP_CHAN_1_MSG_SIZE, MP_CHAN_1_NUM_BUF);
+    /*
     qpd_t * chan2 = mp_create_qport(MP_CHAN_2_ID, SINK,
         MP_CHAN_2_MSG_SIZE, MP_CHAN_2_NUM_BUF);
-    // Initialize the communication channels
-    int nocret = mp_init_ports();
-    if(nocret == 1) {
-        printf("Thread and NoC initialised correctly\n");
-    }
-    else {
-        printf("ERROR: Problem with NoC initialisation\n");
-    }
+
+    */
 
     /*
       AUDIO STUFF HERE
@@ -91,13 +119,29 @@ int main() {
     setInputBufferSize(BUFFER_SIZE);
     setOutputBufferSize(BUFFER_SIZE);
 
+    // create effects and connect
     struct AudioFX audio1;
     struct AudioFX *audio1P = &audio1;
     alloc_dry_vars(audio1P, -1, -1);
-
     struct AudioFX audio2;
     struct AudioFX *audio2P = &audio2;
     alloc_dry_vars(audio2P, -1, -1);
+
+    audio_connect(audio1P, audio2P);
+
+    // Initialize the communication channels
+    int nocret = mp_init_ports();
+    if(nocret == 1) {
+        printf("Thread and NoC initialised correctly\n");
+    }
+    else {
+        printf("ERROR: Problem with NoC initialisation\n");
+    }
+
+    int cpuid = get_cpuid();
+    // wait until all cores are ready
+    addrFXP[cpuid] = (int)&audio1;
+    allocsDoneP[cpuid] = 1;
 
 
     //CPU cycles stuff
@@ -105,9 +149,9 @@ int main() {
     //int cpu_pnt = 0;
 
     while(*keyReg != 3) {
+
         audioIn(audio1P);
         audio_dry(audio1P);
-        audioChainCore(audio1P, audio2P);
         audio_dry(audio2P);
         audioOut(audio2P);
 
