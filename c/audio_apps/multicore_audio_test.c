@@ -122,10 +122,10 @@ int main() {
     // create effects and connect
     struct AudioFX audio1;
     struct AudioFX *audio1P = &audio1;
-    alloc_dry_vars(audio1P, -1, -1);
+    alloc_dry_vars(audio1P, -1, -1, 1, 0); // same core, same core, is 1st, is not last
     struct AudioFX audio2;
     struct AudioFX *audio2P = &audio2;
-    alloc_dry_vars(audio2P, -1, -1);
+    alloc_dry_vars(audio2P, -1, -1, 0, 1); // same core, same core, is not 1st, is last
 
     audio_connect(audio1P, audio2P);
 
@@ -148,6 +148,7 @@ int main() {
     //int CPUcycles[1000] = {0};
     //int cpu_pnt = 0;
 
+
     while(*keyReg != 3) {
 
         audioIn(audio1P);
@@ -164,6 +165,26 @@ int main() {
         }
         */
     }
+
+    /*
+    printf("SOME CARACS:\n");
+    printf("AUDIO1:\n");
+    printf("CPUID = %d\n", *audio1P->cpuid);
+    printf("IS_FST = %d\n", *audio1P->is_fst);
+    printf("IS_LST = %d\n", *audio1P->is_lst);
+    printf("IN_CON = %d\n", *audio1P->in_con);
+    printf("OUT_CON = %d\n", *audio1P->out_con);
+    printf("X_PNT = 0x%x\n", *audio1P->x_pnt);
+    printf("Y_PNT = 0x%x\n", *audio1P->y_pnt);
+    printf("AUDIO2:\n");
+    printf("CPUID = %d\n", *audio2P->cpuid);
+    printf("IS_FST = %d\n", *audio2P->is_fst);
+    printf("IS_LST = %d\n", *audio2P->is_lst);
+    printf("IN_CON = %d\n", *audio2P->in_con);
+    printf("OUT_CON = %d\n", *audio2P->out_con);
+    printf("X_PNT = 0x%x\n", *audio2P->x_pnt);
+    printf("Y_PNT = 0x%x\n", *audio2P->y_pnt);
+    */
 
     //exit stuff
     printf("exit here!\n");

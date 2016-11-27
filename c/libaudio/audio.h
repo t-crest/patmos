@@ -136,8 +136,6 @@ struct AudioFX {
     //pointers to SPM data
     volatile _SPM int *x_pnt; //pointer to x location
     volatile _SPM int *y_pnt; //pointer to y location
-    // pointer to dest_x;
-    volatile _SPM int *dst_addr; //pointer to destination FX input address
     //audio data
     volatile _SPM short *x; //input audio x[2]
     volatile _SPM short *y; //output audio y[2]
@@ -149,7 +147,7 @@ void audioOut(struct AudioFX *thisFX);
 int audio_connect(struct AudioFX *srcP, struct AudioFX *dstP);
 void audioChainCore(struct AudioFX *sourceFX, struct AudioFX *destinationFX);
 //for dry audio
-qpd_t * alloc_dry_vars(struct AudioFX *audioP, int recv_from, int send_to);
+qpd_t * alloc_dry_vars(struct AudioFX *audioP, int recv_from, int send_to, int is_fst, int is_lst);
 int audio_dry(struct AudioFX *audioP);
 
 /*
