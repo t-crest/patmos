@@ -23,46 +23,49 @@ const int NOC_MASTER = 0;
 
 
 void thread1(void* args) {
-    int cpuid = get_cpuid();
     volatile _UNCACHED int **inArgs = (volatile _UNCACHED int **) args;
     volatile _UNCACHED int *exitP      = inArgs[0];
     volatile _UNCACHED int *allocsDoneP = inArgs[1];
-    volatile _UNCACHED int *addrFXP = inArgs[3];
 
-    volatile _UNCACHED int *audioValuesP = inArgs[5];
-
-    /*
-    //MP: Create the queuing ports
-    qpd_t * chan1 = mp_create_qport(MP_CHAN_1_ID, SINK,
-        MP_CHAN_1_MSG_SIZE, MP_CHAN_1_NUM_BUF);
-    qpd_t * chan2 = mp_create_qport(MP_CHAN_2_ID, SOURCE,
-        MP_CHAN_2_MSG_SIZE, MP_CHAN_2_NUM_BUF);
-    // Initialize the communication channels
-    int nocret = mp_init_ports();
-    */
+    volatile _UNCACHED int *audioValuesP = inArgs[3];
 
     /*
       AUDIO STUFF HERE
     */
-    /*
+
     //init and allocate
-    struct AudioFX audio2;
-    struct AudioFX *audio2P = &audio2;
-    alloc_dry_vars(audio2P, 0, -1);
+    struct AudioFX audio1a;
+    struct AudioFX *audio1aP = &audio1a;
+    alloc_dry_vars(audio1aP, IN_NOC, OUT_NOC, NO_FIRST, NO_LAST); //from 0, to 0, not 1st, not last
+
+    qpd_t * chanRecv1 = audio_connect_from_core(0, audio1aP); // effect audio1a from core 0
+    qpd_t * chanSend1 = audio_connect_to_core(audio1aP, 0); // effect audio1a to core 0
+
     // wait until all cores are ready
-    addrFXP[cpuid] = (int)&audio2;
-    allocsDoneP[cpuid] = 1;
-    */
-    /*
+    allocsDoneP[*audio1aP->cpuid] = 1;
+    while(allocsDoneP[0] == 0);
+
+    // Initialize the communication channels
+    int nocret = mp_init_ports();
+
     //loop
-    for(int i=0; i<3 i++) {
-        //receive
-        audioIn(audio2P);
+    //for(int i=0; i<3; i++) {
+    while(*exitP == 0) {
+        mp_recv(chanRecv1, 0);
         //process
-        audio_dry(audio2P);
-        audioValuesP[i] = audio2.y;
+        audio_dry(audio1aP);
+
+        /*
+        volatile _SPM short * xP = (volatile _SPM short *)*(volatile _SPM unsigned int *)*audio1aP->x_pnt;
+        audioValuesP[i] = xP[0];
+        audioValuesP[i] = (audioValuesP[i] & 0xFFFF) | ( (xP[1] & 0xFFFF) << 16 );
+        */
+
+        mp_ack(chanRecv1, 0);
+
+        mp_send(chanSend1, 0);
     }
-    */
+
 
     // exit with return value
     int ret = 0;
@@ -79,18 +82,15 @@ int main() {
     //arguments to thread 1 function
     int exit = 0;
     int allocsDone[2] = {0, 0};
-    int addrFX[2];
     volatile _UNCACHED int *exitP = (volatile _UNCACHED int *) &exit;
     volatile _UNCACHED int *allocsDoneP = (volatile _UNCACHED int *) &allocsDone;
-    volatile _UNCACHED int *addrFXP = (volatile _UNCACHED int*) &addrFX;
-    volatile _UNCACHED int (*thread1_args[8]);
+    volatile _UNCACHED int (*thread1_args[6]);
     thread1_args[0] = exitP;
     thread1_args[1] = allocsDoneP;
-    thread1_args[3] = addrFXP;
 
-    int audioValues[3];
+    int audioValues[3] = {0, 0, 0};
     volatile _UNCACHED int *audioValuesP = (volatile _UNCACHED int *) &audioValues[0];
-    thread1_args[5] = audioValuesP;
+    thread1_args[3] = audioValuesP;
 
     printf("starting thread and NoC channels...\n");
     //set thread function and start thread
@@ -120,14 +120,28 @@ int main() {
     setOutputBufferSize(BUFFER_SIZE);
 
     // create effects and connect
-    struct AudioFX audio1;
-    struct AudioFX *audio1P = &audio1;
-    alloc_dry_vars(audio1P, -1, -1, 1, 0); // same core, same core, is 1st, is not last
-    struct AudioFX audio2;
-    struct AudioFX *audio2P = &audio2;
-    alloc_dry_vars(audio2P, -1, -1, 0, 1); // same core, same core, is not 1st, is last
+    struct AudioFX audio0a;
+    struct AudioFX *audio0aP = &audio0a;
+    // from 0 (same), to 0 (same), is 1st, is not last
+    alloc_dry_vars(audio0aP, NO_IN_NOC, NO_OUT_NOC, FIRST, NO_LAST);
 
-    audio_connect(audio1P, audio2P);
+    struct AudioFX audio0b;
+    struct AudioFX *audio0bP = &audio0b;
+    //from 0 (same), to 1, is not 1st, is not last
+    alloc_dry_vars(audio0bP, NO_IN_NOC, OUT_NOC, NO_FIRST, NO_LAST);
+
+    struct AudioFX audio0c;
+    struct AudioFX *audio0cP = &audio0c;
+    //from 1, to 0 (same), is not 1st, is last
+    alloc_dry_vars(audio0cP, IN_NOC, NO_OUT_NOC, NO_FIRST, LAST);
+
+    audio_connect_fx(audio0aP, audio0bP); //effects on same core
+    qpd_t * chanSend0 = audio_connect_to_core(audio0bP, 1); // effect audio0b to core 1
+    qpd_t * chanRecv0 = audio_connect_from_core(1, audio0cP); //effect audio0c from core 1
+
+    // wait until all cores are ready
+    allocsDoneP[*audio0bP->cpuid] = 1;
+    while(allocsDoneP[1] == 0);
 
     // Initialize the communication channels
     int nocret = mp_init_ports();
@@ -138,33 +152,76 @@ int main() {
         printf("ERROR: Problem with NoC initialisation\n");
     }
 
-    int cpuid = get_cpuid();
-    // wait until all cores are ready
-    addrFXP[cpuid] = (int)&audio1;
-    allocsDoneP[cpuid] = 1;
-
 
     //CPU cycles stuff
     //int CPUcycles[1000] = {0};
     //int cpu_pnt = 0;
 
 
+    //loop
+    //for(int i=0; i<3; i++) {
     while(*keyReg != 3) {
+        audioIn(audio0aP);
+        //process
+        audio_dry(audio0aP);
 
+        //printf("in values: %d, %d\n", audio0bP->x[0], audio0bP->x[1]);
+
+        audio_dry(audio0bP);
+
+        /*
+        printf("y_pnt points to 0x%x\n", *audio0bP->y_pnt);
+        printf("*y_pnt points to 0x%x\n", *(volatile _SPM unsigned int *)*audio0bP->y_pnt);
+        printf("data at **y_pnt is %d, %d\n", *(volatile _SPM short *)*(volatile _SPM unsigned int *)*audio0bP->y_pnt, *(volatile _SPM short *)((*(volatile _SPM unsigned int *)*audio0bP->y_pnt)+2));
+
+        printf("write buffer address: 0x%x\n", (int)chanSend0->write_buf);
+        printf("write buffer data: %d, %d\n", (int)*((volatile _SPM short *)chanSend0->write_buf), (int)*((volatile _SPM short *)chanSend0->write_buf+ 1));
+        */
+        mp_send(chanSend0, 0);
+
+        mp_recv(chanRecv0, 0);
+        /*
+        volatile _SPM short * xP = (volatile _SPM short *)*(volatile _SPM unsigned int *)*audio0cP->x_pnt;
+        printf("RECEIVED FROM CORE 1: %d, %d\n", xP[0], xP[1]);
+        */
+        audio_dry(audio0cP);
+
+        mp_ack(chanRecv0, 0);
+
+        audioOut(audio0cP);
+    }
+
+    /*
+    for(int i=0; i<3; i++) {
+        printf("received @ %d: %d, %d\n", i, (short)(audioValuesP[i] & 0xFFFF), (short)( (audioValuesP[i] & 0xFFFF0000) >> 16 ));
+    }
+    */
+
+
+    /*
+    while(*keyReg != 3) {
+        / *
         audioIn(audio1P);
         audio_dry(audio1P);
         audio_dry(audio2P);
         audioOut(audio2P);
+        * /
 
-        /*
+
+        audioIn(audio0aP);
+        audio_dry(audio0aP);
+        audio_dry(audio0bP);
+        mp_send(chanSend, 0);
+        / *
         //store CPU Cycles
         CPUcycles[cpu_pnt] = get_cpu_cycles();
         cpu_pnt++;
         if(cpu_pnt == 1000) {
             break;
         }
-        */
+        * /
     }
+    */
 
     /*
     printf("SOME CARACS:\n");
@@ -190,15 +247,17 @@ int main() {
     printf("exit here!\n");
     exit = 1;
     printf("waiting for thread 1 to finish...\n");
-    //join with thread 1
-    int *retval;
-    corethread_join(threadOne, (void **)&retval);
-    printf("thread 1 finished!\n");
+
     /*
     for(int i=1; i<1000; i++) {
         printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
     */
+
+    //join with thread 1
+    int *retval;
+    corethread_join(threadOne, (void **)&retval);
+    printf("thread 1 finished!\n");
 
     return 0;
 }
