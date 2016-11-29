@@ -125,11 +125,10 @@ int     setInputBufferSize(int bufferSize);
   GENERAL
 */
 
-typedef enum {FIRST, NO_FIRST} fst_t;
-typedef enum {LAST, NO_LAST} lst_t;
+typedef enum {NO_FIRST, FIRST} fst_t;
+typedef enum {NO_LAST, LAST} lst_t;
 
-typedef enum {IN_NOC, NO_IN_NOC} in_t;
-typedef enum {OUT_NOC, NO_OUT_NOC} out_t;
+typedef enum {NO_NOC, NOC} con_t;
 
 struct AudioFX {
     //core number
@@ -137,11 +136,14 @@ struct AudioFX {
     //connection type
     volatile _SPM fst_t *is_fst; // audio input node
     volatile _SPM lst_t *is_lst; // audio output node
-    volatile _SPM int *in_con;  //input  connection: 0=same core, 1=NoC
-    volatile _SPM int *out_con; //output connection: 0=same core, 1=NoC
+    volatile _SPM con_t *in_con;  //input  connection: same core or NoC
+    volatile _SPM con_t *out_con; //output connection: same core or NoC
     //pointers to SPM data
     volatile _SPM int *x_pnt; //pointer to x location
     volatile _SPM int *y_pnt; //pointer to y location
+    //in and out buffer size ( both for NoC or same core, in samples, multiples of 2)
+    volatile _SPM int *xb_size; //x buffer
+    volatile _SPM int *yb_size; //y buffer
     //audio data
     volatile _SPM short *x; //input audio x[2]
     volatile _SPM short *y; //output audio y[2]
@@ -155,7 +157,7 @@ int audio_connect_fx(struct AudioFX *srcP, struct AudioFX *dstP);
 qpd_t * audio_connect_to_core(struct AudioFX *srcP, int dstCore);
 qpd_t * audio_connect_from_core(int srcCore, struct AudioFX *dstP);
 //for dry audio
-int alloc_dry_vars(struct AudioFX *audioP, in_t in_noc, out_t out_noc, fst_t is_fst, lst_t is_lst);
+int alloc_dry_vars(struct AudioFX *audioP, con_t in_con, con_t out_con, unsigned int IN_SIZE, unsigned int OUT_SIZE, fst_t is_fst, lst_t is_lst);
 int audio_dry(struct AudioFX *audioP);
 
 /*
