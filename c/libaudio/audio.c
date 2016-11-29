@@ -861,7 +861,9 @@ int overdrive(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int 
 
 void audioIn(struct AudioFX *thisFX) {
     if( (*thisFX->cpuid == 0) && (*thisFX->is_fst == FIRST) ) {
-        getInputBufferSPM((volatile _SPM short *)*thisFX->x_pnt, (volatile _SPM short *)(*thisFX->x_pnt+2));
+        for(unsigned int i=0; i < *thisFX->xb_size; i++) {
+            getInputBufferSPM((volatile _SPM short *)(*thisFX->x_pnt+4*i), (volatile _SPM short *)(*thisFX->x_pnt+4*i+2));
+        }
     }
     else {
         printf("AUDIO ERROR: cpuid= %d, is_fst=%u\n", *thisFX->cpuid, *thisFX->is_fst);
@@ -870,7 +872,9 @@ void audioIn(struct AudioFX *thisFX) {
 
 void audioOut(struct AudioFX *thisFX) {
     if( (*thisFX->cpuid == 0) && (*thisFX->is_lst == LAST) ) {
-    setOutputBufferSPM((volatile _SPM short *)*thisFX->y_pnt, (volatile _SPM short *)(*thisFX->y_pnt+2));
+        for(unsigned int i=0; i < *thisFX->yb_size; i++) {
+            setOutputBufferSPM((volatile _SPM short *)(*thisFX->y_pnt+4*i), (volatile _SPM short *)(*thisFX->y_pnt+4*i+2));
+        }
     }
     else {
         printf("AUDIO ERROR: cpuid= %d, is_lst=%u\n", *thisFX->cpuid, *thisFX->is_lst);
@@ -976,14 +980,17 @@ int alloc_dry_vars(struct AudioFX *audioP, con_t in_con, con_t out_con, unsigned
 }
 
 int audio_connect_fx(struct AudioFX *srcP, struct AudioFX *dstP) {
-    if ( (*srcP->out_con != NO_NOC) || (*dstP->in_con != NO_NOC) ) { //check they are correctly configured
-        printf("ERROR IN CONNECTION\n");
+    if ( (*srcP->out_con != NO_NOC) || (*dstP->in_con != NO_NOC) ) {
+        printf("ERROR: IN/OUT CONNECTION TYPES\n");
         return 1;
     }
-    else {
-        *srcP->y_pnt = *dstP->x_pnt; //points to destination input
-        return 0;
+    if (*srcP->yb_size != *dstP->xb_size) {
+        printf("ERROR: BUFFER SIZES DON'T MATCH\n");
+        return 1;
     }
+
+    *srcP->y_pnt = *dstP->x_pnt; //points to destination input
+    return 0;
 }
 
 qpd_t * audio_connect_to_core(struct AudioFX *srcP, int dstCore) {
