@@ -1069,36 +1069,6 @@ qpd_t * audio_connect_from_core(int srcCore, struct AudioFX *dstP){
 }
 */
 
-int audio_in(struct AudioFX *audioP) {
-    //only if it is FIRST
-    if( (*audioP->cpuid == 0) && (*audioP->is_fst == FIRST) ) {
-        volatile _SPM short * xP = (volatile _SPM short *)*audioP->x_pnt;
-        for(unsigned int i=0; i < *audioP->ppsr; i++) {
-            getInputBufferSPM(&xP[i*2], &xP[i*2+1]);
-        }
-        return 0;
-    }
-    else {
-        printf("ERROR: NOT AUDIO INPUT NODE\n");
-        return 1;
-    }
-}
-
-int audio_out(struct AudioFX *audioP) {
-    //only if it is LAST
-    if( (*audioP->cpuid == 0) && (*audioP->is_lst == LAST) ) {
-        volatile _SPM short * yP = (volatile _SPM short *)*audioP->y_pnt;
-        for(unsigned int i=0; i < *audioP->ppsr; i++) {
-            setOutputBufferSPM(&yP[i*2], &yP[i*2+1]);
-        }
-        return 0;
-    }
-    else {
-        printf("ERROR: NOT AUDIO OUTPUT NODE\n");
-        return 1;
-    }
-}
-
 int audio_dry(struct AudioFX *audioP) {
     /* ---------X and Y locations----------- */
     volatile _SPM short * xP;
