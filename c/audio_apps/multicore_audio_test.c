@@ -27,7 +27,7 @@ void thread1(void* args) {
     struct AudioFX audio1a;
     struct AudioFX *audio1aP = &audio1a;
     //from NoC, to NoC, INSIZE=1, OUTSIZE=1, P_AMOUNT=1,  is not 1st, is notlast
-    alloc_audio_vars(audio1aP, NOC, NOC, 1, 1, 1, NO_FIRST, NO_LAST);
+    alloc_audio_vars(audio1aP, DRY, NOC, NOC, 1, 1, 1, NO_FIRST, NO_LAST);
 
     audio_connect_from_core(0, audio1aP); // effect audio1a from core 0
     audio_connect_to_core(audio1aP, 0); // effect audio1a to core 0
@@ -112,18 +112,18 @@ int main() {
     struct AudioFX audio0a;
     struct AudioFX *audio0aP = &audio0a;
     // from same, to same, INSIZE=1, OUTSIZE=1, P_AMOUNT=1, is 1st, is not last
-    alloc_audio_vars(audio0aP, NO_NOC, NO_NOC, 1, 1, 1, FIRST, NO_LAST);
+    alloc_audio_vars(audio0aP, DRY, NO_NOC, NO_NOC, 1, 1, 1, FIRST, NO_LAST);
 
     struct AudioFX audio0b;
     struct AudioFX *audio0bP = &audio0b;
     //from same, to NoC, INSIZE=1, OUTSIZE=1, P_AMOUNT=1, is not 1st, is not last
-    alloc_audio_vars(audio0bP, NO_NOC, NOC, 1, 1, 1, NO_FIRST, NO_LAST);
+    alloc_audio_vars(audio0bP, DRY, NO_NOC, NOC, 1, 1, 1, NO_FIRST, NO_LAST);
 
 
     struct AudioFX audio0c;
     struct AudioFX *audio0cP = &audio0c;
     //from NoC, to same, INSIZE=1, OUTSIZE=1, P_AMOUNT=1,  is not 1st, is last
-    alloc_audio_vars(audio0cP, NOC, NO_NOC, 1, 1, 1, NO_FIRST, LAST);
+    alloc_audio_vars(audio0cP, DRY, NOC, NO_NOC, 1, 1, 1, NO_FIRST, LAST);
 
     audio_connect_same_core(audio0aP, audio0bP); //effects on same core
     audio_connect_to_core(audio0bP, 1); // effect audio0b to core 1
@@ -151,6 +151,28 @@ int main() {
 
     //loop
     //for(int i=0; i<3; i++) {
+
+
+    int diff1 = ((unsigned int)&func2 - (unsigned int)&func1);
+    int diff2 = ((unsigned int)&alloc_space - (unsigned int)&func2);
+    printf("diff1 is 0x%x, diff2 is 0x%x\n", (unsigned int)diff1, (unsigned int)diff2);
+    int diffSer = ((unsigned int)&func1 - (unsigned int)&audio_dry);
+    printf("diffSer is 0x%x\n", (unsigned int)diffSer);
+
+    //copying audio_dry to instruction SPM
+    volatile _SPM unsigned int * instSpmP;
+    unsigned int *funcP = (unsigned int)&audio_dry;
+    instSpmP = (volatile _SPM unsigned int *) 0x00010000; //instruction SPM start point (OFFSET???)
+    for(unsigned int i=0; i<(diffSer/4); i++) {
+        *(instSpmP+i) = *(funcP+i);
+        printf("@ %d: copied from 0x%x to 0x%x\n", i, (unsigned int)(funcP+i), (unsigned int)(instSpmP+i));
+    }
+
+    //assign new value to pointer function
+    audio0aP->funcP = (unsigned int)instSpmP;
+    audio0bP->funcP = (unsigned int)instSpmP;
+    audio0cP->funcP = (unsigned int)instSpmP;
+
     while(*keyReg != 3) {
         //process
         audio_process(audio0aP);
@@ -173,6 +195,18 @@ int main() {
         printf("RECEIVED FROM CORE 1: %d, %d\n", xP[0], xP[1]);
         */
         audio_process(audio0cP);
+
+
+        /*
+        //store CPU Cycles
+        CPUcycles[cpu_pnt] = get_cpu_cycles();
+        cpu_pnt++;
+        if(cpu_pnt == 1000) {
+            break;
+            //cpu_pnt = 0;
+        }
+        */
+
     }
 
     /*

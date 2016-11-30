@@ -857,7 +857,26 @@ int overdrive(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int 
 
 //----------------------------COMPLETE AUDIO FUNCTIONS---------------------------------//
 
-/*            GLOBAL VARS (external SRAM)          */
+/*            AUDIO EFFECT FUNCTIONS          */
+
+
+int audio_dry(struct AudioFX *audioP, volatile _SPM short * xP, volatile _SPM short * yP) {
+    yP[0] = xP[0];
+    yP[1] = xP[1];
+
+    return 0;
+}
+
+int func1(int i, int j) {
+    int res = i+j;
+    return res;
+}
+
+int func2(int i, int j, int k) {
+    int res = i+j+k;
+    return res;
+}
+
 
 // FOR PRINTING:
 int alloc_space(char *FX_NAME, unsigned int BASE_ADDR, unsigned int LAST_ADDR, int cpuid) {
@@ -883,7 +902,7 @@ int alloc_space(char *FX_NAME, unsigned int BASE_ADDR, unsigned int LAST_ADDR, i
 }
 
 
-int alloc_audio_vars(struct AudioFX *audioP, con_t in_con, con_t out_con, unsigned int IN_SIZE, unsigned int OUT_SIZE, unsigned int P_AMOUNT, fst_t is_fst, lst_t is_lst) {
+int alloc_audio_vars(struct AudioFX *audioP, fx_t FX_TYPE, con_t in_con, con_t out_con, unsigned int IN_SIZE, unsigned int OUT_SIZE, unsigned int P_AMOUNT, fst_t is_fst, lst_t is_lst) {
     /*
       LOCATION IN SPM
     */
@@ -998,6 +1017,26 @@ int alloc_audio_vars(struct AudioFX *audioP, con_t in_con, con_t out_con, unsign
         *audioP->ppsr = *audioP->xb_size / P_AMOUNT;
         break;
     }
+
+    // FX TYPE
+    const unsigned int ADDR_FX    = LAST_ADDR;
+    const unsigned int ADDR_FUNCP = ADDR_FX    + sizeof(fx_t);
+    LAST_ADDR                     = ADDR_FUNCP + sizeof(unsigned int);
+    //SPM variables
+    audioP->fx    = ( volatile _SPM fx_t *)         ADDR_FX;
+    audioP->funcP = ( volatile _SPM unsigned int *) ADDR_FUNCP;
+    //init values
+    *audioP->fx = FX_TYPE;
+    switch(*audioP->fx) {
+    case DRY:
+        *audioP->funcP = (unsigned int)&audio_dry;
+        break;
+    default:
+        printf("FX NOT IMPLEMENTED YET\n");
+    }
+    printf("address of function is 0x%x\n", (unsigned int)&audio_dry);
+    printf("stored value is 0x%x\n", *audioP->funcP);
+
     //update spm_alloc
     int retval = alloc_space("AUDIO AUDIO", BASE_ADDR, LAST_ADDR, (int)*audioP->cpuid);
 
@@ -1050,15 +1089,6 @@ int audio_connect_from_core(int srcCore, struct AudioFX *dstP){
     }
 }
 
-
-
-int audio_dry(struct AudioFX *audioP, volatile _SPM short * xP, volatile _SPM short * yP) {
-    yP[0] = xP[0];
-    yP[1] = xP[1];
-
-    return 0;
-}
-
 int audio_process(struct AudioFX *audioP) {
     /* ---------X and Y locations----------- */
     volatile _SPM short * xP;
@@ -1078,6 +1108,10 @@ int audio_process(struct AudioFX *audioP) {
     }
 
     /* ------------------SEND/PROCESS/RECEIVE---------------------*/
+    int (*funcP)(struct AudioFX *, volatile _SPM short *xP, volatile _SPM short *yP);
+    funcP = (int (*)(struct AudioFX *, volatile _SPM short *, volatile _SPM short *))(*audioP->funcP);
+    //printf("funcP points to 0x%x\n", (unsigned int)funcP);
+
     switch(*audioP->pt) {
     case XeY:
         //RECEIVE ONCE
@@ -1092,10 +1126,14 @@ int audio_process(struct AudioFX *audioP) {
                 }
             }
         }
+        //int cycles = get_cpu_cycles();
         //PROCESS PPSR TIMES
         for(unsigned int i=0; i < *audioP->ppsr; i++) {
             audio_dry(audioP, &xP[i*2], &yP[i*2]);
+            //funcP(audioP, &xP[i*2], &yP[i*2]);
         }
+        //cycles = get_cpu_cycles() - cycles;
+        //printf("cpu cycles: %d\n", cycles);
         //ACKNOWLEDGE ONCE AFTER PROCESSING
         if(*audioP->in_con == NOC) {
             mp_ack((qpd_t *)*audioP->recvChanP, 5804); // timeout ~256 samples

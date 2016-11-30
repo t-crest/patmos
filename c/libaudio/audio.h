@@ -125,12 +125,18 @@ int     setInputBufferSize(int bufferSize);
   GENERAL
 */
 
+// first/last: connection to AudioInterface
 typedef enum {NO_FIRST, FIRST} fst_t;
 typedef enum {NO_LAST, LAST} lst_t;
-
+// connected to same core or to NoC
 typedef enum {NO_NOC, NOC} con_t;
-
+// comparison of receive/send buffer sizes
 typedef enum {XeY, XgY, XlY} pt_t;
+// possible effects:
+typedef enum {DRY, HP, LP, BP, BR,
+             VIBRATO, OVERDRIVE,
+             DISTORTION, TREMOLO,
+             DELAY, CHORUS, WAHWAH} fx_t;
 
 struct AudioFX {
     //core number
@@ -158,17 +164,29 @@ struct AudioFX {
     //audio data
     volatile _SPM short *x; //input audio x[2]
     volatile _SPM short *y; //output audio y[2]
+    //Audio effect implemented
+    volatile _SPM fx_t *fx;
+    //pointer to FX processing function
+    volatile _SPM unsigned int *funcP;
 };
+
+
+
+//effects
+int audio_dry(struct AudioFX *audioP, volatile _SPM short *xP, volatile _SPM short *yP);
+
+//for dry audio
+int alloc_dry_vars(struct AudioFX *audioP, fx_t FX_TYPE, con_t in_con, con_t out_con, unsigned int IN_SIZE, unsigned int OUT_SIZE, unsigned int P_AMOUNT, fst_t is_fst, lst_t is_lst);
 
 //same core:
 int audio_connect_same_core(struct AudioFX *srcP, struct AudioFX *dstP);
 //NoC:
 int audio_connect_to_core(struct AudioFX *srcP, int dstCore);
 int audio_connect_from_core(int srcCore, struct AudioFX *dstP);
-//for dry audio
-int alloc_dry_vars(struct AudioFX *audioP, con_t in_con, con_t out_con, unsigned int IN_SIZE, unsigned int OUT_SIZE, unsigned int P_AMOUNT, fst_t is_fst, lst_t is_lst);
+
 //audio processing
 int audio_process(struct AudioFX *audioP);
+
 
 /*
 / *
