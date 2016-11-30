@@ -859,29 +859,6 @@ int overdrive(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int 
 
 /*            GLOBAL VARS (external SRAM)          */
 
-void audioIn(struct AudioFX *thisFX) {
-    if( (*thisFX->cpuid == 0) && (*thisFX->is_fst == FIRST) ) {
-        for(unsigned int i=0; i < *thisFX->xb_size; i++) {
-            getInputBufferSPM((volatile _SPM short *)(*thisFX->x_pnt+4*i), (volatile _SPM short *)(*thisFX->x_pnt+4*i+2));
-        }
-    }
-    else {
-        printf("AUDIO ERROR: cpuid= %d, is_fst=%u\n", *thisFX->cpuid, *thisFX->is_fst);
-    }
-}
-
-void audioOut(struct AudioFX *thisFX) {
-    if( (*thisFX->cpuid == 0) && (*thisFX->is_lst == LAST) ) {
-        for(unsigned int i=0; i < *thisFX->yb_size; i++) {
-            setOutputBufferSPM((volatile _SPM short *)(*thisFX->y_pnt+4*i), (volatile _SPM short *)(*thisFX->y_pnt+4*i+2));
-        }
-    }
-    else {
-        printf("AUDIO ERROR: cpuid= %d, is_lst=%u\n", *thisFX->cpuid, *thisFX->is_lst);
-    }
-}
-
-
 // FOR PRINTING:
 int alloc_space(char *FX_NAME, unsigned int BASE_ADDR, unsigned int LAST_ADDR, int cpuid) {
     unsigned int ALLOC_AMOUNT = LAST_ADDR - BASE_ADDR;
@@ -1030,7 +1007,7 @@ qpd_t * audio_connect_from_core(int srcCore, struct AudioFX *dstP){
 
 
 int audio_dry(struct AudioFX *audioP) {
-    // x and y locations
+    /* ---------X and Y locations----------- */
     volatile _SPM short * xP;
     volatile _SPM short * yP;
     if(*audioP->in_con == NO_NOC) { //same core : data=**x_pnt
@@ -1046,9 +1023,26 @@ int audio_dry(struct AudioFX *audioP) {
     else { //NoC: data=***y_pnt
         yP = (volatile _SPM short *)*(volatile _SPM unsigned int *)*audioP->y_pnt;
     }
-    //assign data
+
+    /* ---------AUDIO INPUT----------- */
+    //only if it is FIRST
+    if( (*audioP->cpuid == 0) && (*audioP->is_fst == FIRST) ) {
+        for(unsigned int i=0; i < *audioP->xb_size; i++) {
+            getInputBufferSPM(&xP[i*2], &xP[i*2+1]);
+        }
+    }
+
+    /* ---------AUDIO PROCESSING----------- */
     yP[0] = xP[0];
     yP[1] = xP[1];
+
+    /* ---------AUDIO OUTPUT----------- */
+    //only if it is LAST
+    if( (*audioP->cpuid == 0) && (*audioP->is_lst == LAST) ) {
+        for(unsigned int i=0; i < *audioP->yb_size; i++) {
+            setOutputBufferSPM(&yP[i*2], &yP[i*2+1]);
+        }
+    }
 
     return 0;
 }

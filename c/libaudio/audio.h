@@ -130,6 +130,8 @@ typedef enum {NO_LAST, LAST} lst_t;
 
 typedef enum {NO_NOC, NOC} con_t;
 
+typedef enum {XeY, XgY, XlY} pt_t;
+
 struct AudioFX {
     //core number
     volatile _SPM int *cpuid;
@@ -141,6 +143,13 @@ struct AudioFX {
     //pointers to SPM data
     volatile _SPM int *x_pnt; //pointer to x location
     volatile _SPM int *y_pnt; //pointer to y location
+    //processing type
+    volatile _SPM pt_t *pt;
+    //parameters: P, RPR, SPR, PPSR
+    volatile _SPM int *p;
+    volatile _SPM int *rpr;
+    volatile _SPM int *spr;
+    volatile _SPM int *ppsr;
     //in and out buffer size ( both for NoC or same core, in samples, multiples of 2)
     volatile _SPM int *xb_size; //x buffer
     volatile _SPM int *yb_size; //y buffer
@@ -149,8 +158,6 @@ struct AudioFX {
     volatile _SPM short *y; //output audio y[2]
 };
 
-void audioIn(struct AudioFX *thisFX);
-void audioOut(struct AudioFX *thisFX);
 //same core:
 int audio_connect_fx(struct AudioFX *srcP, struct AudioFX *dstP);
 //NoC:

@@ -208,10 +208,8 @@ int main() {
 
 
     while(*keyReg != 3) {
-        audioIn(audio0aP);
         audio_dry(audio0aP);
         audio_dry(audio0bP);
-        audioOut(audio0bP);
 
         /*
         audioIn(audio0aP);
