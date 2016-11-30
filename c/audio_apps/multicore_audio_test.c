@@ -27,7 +27,7 @@ void thread1(void* args) {
     struct AudioFX audio1a;
     struct AudioFX *audio1aP = &audio1a;
     //from NoC, to NoC, INSIZE=1, OUTSIZE=1, P_AMOUNT=1,  is not 1st, is notlast
-    alloc_dry_vars(audio1aP, NOC, NOC, 8, 8, 8, NO_FIRST, NO_LAST);
+    alloc_audio_vars(audio1aP, NOC, NOC, 8, 8, 8, NO_FIRST, NO_LAST);
 
     audio_connect_from_core(0, audio1aP); // effect audio1a from core 0
     audio_connect_to_core(audio1aP, 0); // effect audio1a to core 0
@@ -45,7 +45,7 @@ void thread1(void* args) {
     //for(int i=0; i<3; i++) {
     while(*exitP == 0) {
         //process
-        audio_dry(audio1aP);
+        audio_process(audio1aP);
 
         /*
         volatile _SPM short * xP = (volatile _SPM short *)*(volatile _SPM unsigned int *)*audio1aP->x_pnt;
@@ -112,18 +112,18 @@ int main() {
     struct AudioFX audio0a;
     struct AudioFX *audio0aP = &audio0a;
     // from same, to same, INSIZE=1, OUTSIZE=1, P_AMOUNT=1, is 1st, is not last
-    alloc_dry_vars(audio0aP, NO_NOC, NO_NOC, 8, 8, 8, FIRST, NO_LAST);
+    alloc_audio_vars(audio0aP, NO_NOC, NO_NOC, 8, 8, 8, FIRST, NO_LAST);
 
     struct AudioFX audio0b;
     struct AudioFX *audio0bP = &audio0b;
     //from same, to NoC, INSIZE=1, OUTSIZE=1, P_AMOUNT=1, is not 1st, is not last
-    alloc_dry_vars(audio0bP, NO_NOC, NOC, 8, 8, 8, NO_FIRST, NO_LAST);
+    alloc_audio_vars(audio0bP, NO_NOC, NOC, 8, 8, 8, NO_FIRST, NO_LAST);
 
 
     struct AudioFX audio0c;
     struct AudioFX *audio0cP = &audio0c;
     //from NoC, to same, INSIZE=1, OUTSIZE=1, P_AMOUNT=1,  is not 1st, is last
-    alloc_dry_vars(audio0cP, NOC, NO_NOC, 8, 8, 8, NO_FIRST, LAST);
+    alloc_audio_vars(audio0cP, NOC, NO_NOC, 8, 8, 8, NO_FIRST, LAST);
 
     audio_connect_same_core(audio0aP, audio0bP); //effects on same core
     audio_connect_to_core(audio0bP, 1); // effect audio0b to core 1
@@ -153,11 +153,11 @@ int main() {
     //for(int i=0; i<3; i++) {
     while(*keyReg != 3) {
         //process
-        audio_dry(audio0aP);
+        audio_process(audio0aP);
 
         //printf("in values: %d, %d\n", audio0bP->x[0], audio0bP->x[1]);
 
-        audio_dry(audio0bP);
+        audio_process(audio0bP);
 
         /*
         printf("y_pnt points to 0x%x\n", *audio0bP->y_pnt);
@@ -172,7 +172,7 @@ int main() {
         volatile _SPM short * xP = (volatile _SPM short *)*(volatile _SPM unsigned int *)*audio0cP->x_pnt;
         printf("RECEIVED FROM CORE 1: %d, %d\n", xP[0], xP[1]);
         */
-        audio_dry(audio0cP);
+        audio_process(audio0cP);
     }
 
     /*
@@ -185,14 +185,14 @@ int main() {
     /*
     while(*keyReg != 3) {
         //audio_in(audio0aP);
-        audio_dry(audio0aP);
-        audio_dry(audio0bP);
+        audio_process(audio0aP);
+        audio_process(audio0bP);
         //audio_out(audio0bP);
 
         / *
         audioIn(audio0aP);
-        audio_dry(audio0aP);
-        audio_dry(audio0bP);
+        audio_process(audio0aP);
+        audio_process(audio0bP);
         mp_send(chanSend, 0);
         * /
 

@@ -883,90 +883,90 @@ int alloc_space(char *FX_NAME, unsigned int BASE_ADDR, unsigned int LAST_ADDR, i
 }
 
 
-int alloc_dry_vars(struct AudioFX *audioP, con_t in_con, con_t out_con, unsigned int IN_SIZE, unsigned int OUT_SIZE, unsigned int P_AMOUNT, fst_t is_fst, lst_t is_lst) {
+int alloc_audio_vars(struct AudioFX *audioP, con_t in_con, con_t out_con, unsigned int IN_SIZE, unsigned int OUT_SIZE, unsigned int P_AMOUNT, fst_t is_fst, lst_t is_lst) {
     /*
       LOCATION IN SPM
     */
     unsigned int BASE_ADDR = (unsigned int)mp_alloc(0);
     unsigned int LAST_ADDR;
     // CPUID
-    const unsigned int DRY_CPUID  = BASE_ADDR;
-    LAST_ADDR = DRY_CPUID + sizeof(int);
-    audioP->cpuid = ( volatile _SPM int * ) DRY_CPUID;
+    const unsigned int ADDR_CPUID  = BASE_ADDR;
+    LAST_ADDR = ADDR_CPUID + sizeof(int);
+    audioP->cpuid = ( volatile _SPM int * ) ADDR_CPUID;
     *audioP->cpuid = get_cpuid();
     if(*audioP->cpuid == 0) {
-        const unsigned int DRY_IS_FST = LAST_ADDR;
-        const unsigned int DRY_IS_LST = DRY_IS_FST + sizeof(int);
-        LAST_ADDR                     = DRY_IS_LST + sizeof(int);
+        const unsigned int ADDR_IS_FST = LAST_ADDR;
+        const unsigned int ADDR_IS_LST = ADDR_IS_FST + sizeof(int);
+        LAST_ADDR                     = ADDR_IS_LST + sizeof(int);
         //SPM variables
-        audioP->is_fst = ( volatile _SPM fst_t * ) DRY_IS_FST;
-        audioP->is_lst = ( volatile _SPM lst_t * ) DRY_IS_LST;
+        audioP->is_fst = ( volatile _SPM fst_t * ) ADDR_IS_FST;
+        audioP->is_lst = ( volatile _SPM lst_t * ) ADDR_IS_LST;
         *audioP->is_fst = is_fst;
         *audioP->is_lst = is_lst;
     }
     // INPUT
-    const unsigned int DRY_IN_CON  = LAST_ADDR;
-    const unsigned int DRY_X_PNT   = DRY_IN_CON + sizeof(int);
-    const unsigned int DRY_XB_SIZE = DRY_X_PNT  + sizeof(int);
+    const unsigned int ADDR_IN_CON  = LAST_ADDR;
+    const unsigned int ADDR_X_PNT   = ADDR_IN_CON + sizeof(int);
+    const unsigned int ADDR_XB_SIZE = ADDR_X_PNT  + sizeof(int);
     //SPM variables
-    audioP->in_con =  ( volatile _SPM con_t *) DRY_IN_CON;
-    audioP->x_pnt  =  ( volatile _SPM unsigned int *)   DRY_X_PNT;
-    audioP->xb_size = ( volatile _SPM unsigned int *)   DRY_XB_SIZE;
+    audioP->in_con =  ( volatile _SPM con_t *) ADDR_IN_CON;
+    audioP->x_pnt  =  ( volatile _SPM unsigned int *)   ADDR_X_PNT;
+    audioP->xb_size = ( volatile _SPM unsigned int *)   ADDR_XB_SIZE;
     //init vars
     *audioP->in_con = in_con;
     *audioP->xb_size = IN_SIZE;
     //see what kind of node it is
     if (*audioP->in_con == NO_NOC) { //same core
-        const unsigned int DRY_X      = DRY_XB_SIZE + sizeof(int);
-        LAST_ADDR                     = DRY_X       + IN_SIZE * 2 * sizeof(short);
+        const unsigned int ADDR_X      = ADDR_XB_SIZE + sizeof(int);
+        LAST_ADDR                     = ADDR_X       + IN_SIZE * 2 * sizeof(short);
         //SPM variables
-        audioP->x      = ( volatile _SPM short *) DRY_X;
+        audioP->x      = ( volatile _SPM short *) ADDR_X;
         //initialise pointer values
-        *audioP->x_pnt  = (int)audioP->x; // = DRY_X;
+        *audioP->x_pnt  = (int)audioP->x; // = ADDR_X;
     }
     else { //NoC
-        const unsigned int DRY_RECV_CP = DRY_XB_SIZE + sizeof(int);
-        LAST_ADDR                      = DRY_RECV_CP + sizeof(int);
+        const unsigned int ADDR_RECV_CP = ADDR_XB_SIZE + sizeof(int);
+        LAST_ADDR                      = ADDR_RECV_CP + sizeof(int);
         //SPM variables
-        audioP->recvChanP = ( volatile _SPM unsigned int *) DRY_RECV_CP;
+        audioP->recvChanP = ( volatile _SPM unsigned int *) ADDR_RECV_CP;
     }
     // OUTPUT
-    const unsigned int DRY_OUT_CON = LAST_ADDR;
-    const unsigned int DRY_Y_PNT   = DRY_OUT_CON + sizeof(int);
-    const unsigned int DRY_YB_SIZE = DRY_Y_PNT   + sizeof(int);
+    const unsigned int ADDR_OUT_CON = LAST_ADDR;
+    const unsigned int ADDR_Y_PNT   = ADDR_OUT_CON + sizeof(int);
+    const unsigned int ADDR_YB_SIZE = ADDR_Y_PNT   + sizeof(int);
     //SPM variables
-    audioP->out_con = ( volatile _SPM con_t *)        DRY_OUT_CON;
-    audioP->y_pnt   = ( volatile _SPM unsigned int *) DRY_Y_PNT;
-    audioP->yb_size = ( volatile _SPM unsigned int *) DRY_YB_SIZE;
+    audioP->out_con = ( volatile _SPM con_t *)        ADDR_OUT_CON;
+    audioP->y_pnt   = ( volatile _SPM unsigned int *) ADDR_Y_PNT;
+    audioP->yb_size = ( volatile _SPM unsigned int *) ADDR_YB_SIZE;
     //init vars
     *audioP->out_con = out_con;
     *audioP->yb_size = OUT_SIZE;
     if( (*audioP->out_con == NO_NOC) && (*audioP->is_lst == LAST) ) { //same core and last
-        const unsigned int DRY_Y = DRY_YB_SIZE + sizeof(int);
-        LAST_ADDR                = DRY_Y       + OUT_SIZE * 2 * sizeof(short);
+        const unsigned int ADDR_Y = ADDR_YB_SIZE + sizeof(int);
+        LAST_ADDR                = ADDR_Y       + OUT_SIZE * 2 * sizeof(short);
         //SPM variables
-        audioP->y        = ( volatile _SPM short *) DRY_Y;
+        audioP->y        = ( volatile _SPM short *) ADDR_Y;
         //init values
-        *audioP->y_pnt   = (int)audioP->y; // = DRY_Y;
+        *audioP->y_pnt   = (int)audioP->y; // = ADDR_Y;
     }
     else { //NoC
-        const unsigned int DRY_SEND_CP = DRY_YB_SIZE + sizeof(int);
-        LAST_ADDR                      = DRY_SEND_CP + sizeof(int);
+        const unsigned int ADDR_SEND_CP = ADDR_YB_SIZE + sizeof(int);
+        LAST_ADDR                      = ADDR_SEND_CP + sizeof(int);
         //SPM variables
-        audioP->sendChanP = ( volatile _SPM unsigned int *) DRY_SEND_CP;
+        audioP->sendChanP = ( volatile _SPM unsigned int *) ADDR_SEND_CP;
     }
     //PARAMETERS
     //Processing Type
-    const unsigned int DRY_PT   = LAST_ADDR;
-    const unsigned int DRY_RPR  = DRY_PT   + sizeof(int);
-    const unsigned int DRY_SPR  = DRY_RPR  + sizeof(int);
-    const unsigned int DRY_PPSR = DRY_SPR  + sizeof(int);
-    LAST_ADDR                   = DRY_PPSR + sizeof(int);
+    const unsigned int ADDR_PT   = LAST_ADDR;
+    const unsigned int ADDR_RPR  = ADDR_PT   + sizeof(int);
+    const unsigned int ADDR_SPR  = ADDR_RPR  + sizeof(int);
+    const unsigned int ADDR_PPSR = ADDR_SPR  + sizeof(int);
+    LAST_ADDR                    = ADDR_PPSR + sizeof(int);
     //SPM variables
-    audioP->pt   = ( volatile _SPM pt_t *) DRY_PT;
-    audioP->rpr  = ( volatile _SPM unsigned int *)  DRY_RPR;
-    audioP->spr  = ( volatile _SPM unsigned int *)  DRY_SPR;
-    audioP->ppsr = ( volatile _SPM unsigned int *)  DRY_PPSR;
+    audioP->pt   = ( volatile _SPM pt_t *)         ADDR_PT;
+    audioP->rpr  = ( volatile _SPM unsigned int *) ADDR_RPR;
+    audioP->spr  = ( volatile _SPM unsigned int *) ADDR_SPR;
+    audioP->ppsr = ( volatile _SPM unsigned int *) ADDR_PPSR;
     //init values
     //processing type:
     if(*audioP->xb_size == *audioP->yb_size) {
@@ -999,7 +999,7 @@ int alloc_dry_vars(struct AudioFX *audioP, con_t in_con, con_t out_con, unsigned
         break;
     }
     //update spm_alloc
-    int retval = alloc_space("AUDIO DRY", BASE_ADDR, LAST_ADDR, (int)*audioP->cpuid);
+    int retval = alloc_space("AUDIO AUDIO", BASE_ADDR, LAST_ADDR, (int)*audioP->cpuid);
 
     return retval;
 }
@@ -1069,7 +1069,7 @@ qpd_t * audio_connect_from_core(int srcCore, struct AudioFX *dstP){
 }
 */
 
-int audio_dry(struct AudioFX *audioP) {
+int audio_process(struct AudioFX *audioP) {
     /* ---------X and Y locations----------- */
     volatile _SPM short * xP;
     volatile _SPM short * yP;
@@ -1092,7 +1092,7 @@ int audio_dry(struct AudioFX *audioP) {
     case XeY:
         //RECEIVE ONCE
         if(*audioP->in_con == NOC) { //receive from NoC
-            mp_recv((qpd_t *)*audioP->recvChanP, 0);
+            mp_recv((qpd_t *)*audioP->recvChanP, 5804); // timeout ~256 samples
         }
         else { //same core
             //only if it is FIRST
@@ -1109,11 +1109,11 @@ int audio_dry(struct AudioFX *audioP) {
         }
         //ACKNOWLEDGE ONCE AFTER PROCESSING
         if(*audioP->in_con == NOC) {
-            mp_ack((qpd_t *)*audioP->recvChanP, 0);
+            mp_ack((qpd_t *)*audioP->recvChanP, 5804); // timeout ~256 samples
         }
         //SEND ONCE
         if(*audioP->out_con == NOC) { //send to NoC
-            mp_send((qpd_t *)*audioP->sendChanP, 0);
+            mp_send((qpd_t *)*audioP->sendChanP, 5804); // timeout ~256 samples
         }
         else { //same core
             if( (*audioP->cpuid == 0) && (*audioP->is_lst == LAST) ) {

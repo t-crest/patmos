@@ -168,7 +168,7 @@ int audio_connect_from_core(int srcCore, struct AudioFX *dstP);
 //for dry audio
 int alloc_dry_vars(struct AudioFX *audioP, con_t in_con, con_t out_con, unsigned int IN_SIZE, unsigned int OUT_SIZE, unsigned int P_AMOUNT, fst_t is_fst, lst_t is_lst);
 //audio processing
-int audio_dry(struct AudioFX *audioP);
+int audio_process(struct AudioFX *audioP);
 
 /*
 / *
