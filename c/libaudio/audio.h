@@ -141,30 +141,35 @@ struct AudioFX {
     volatile _SPM con_t *in_con;  //input  connection: same core or NoC
     volatile _SPM con_t *out_con; //output connection: same core or NoC
     //pointers to SPM data
-    volatile _SPM int *x_pnt; //pointer to x location
-    volatile _SPM int *y_pnt; //pointer to y location
+    volatile _SPM unsigned int *x_pnt; //pointer to x location
+    volatile _SPM unsigned int *y_pnt; //pointer to y location
+    //send and receive NoC channel pointers
+    volatile _SPM unsigned int *sendChanP;
+    volatile _SPM unsigned int *recvChanP;
     //processing type
     volatile _SPM pt_t *pt;
-    //parameters: P, RPR, SPR, PPSR
-    volatile _SPM int *p;
-    volatile _SPM int *rpr;
-    volatile _SPM int *spr;
-    volatile _SPM int *ppsr;
+    //parameters: RPR, SPR, PPSR
+    volatile _SPM unsigned int *rpr;
+    volatile _SPM unsigned int *spr;
+    volatile _SPM unsigned int *ppsr;
     //in and out buffer size ( both for NoC or same core, in samples, multiples of 2)
-    volatile _SPM int *xb_size; //x buffer
-    volatile _SPM int *yb_size; //y buffer
+    volatile _SPM unsigned int *xb_size; //x buffer
+    volatile _SPM unsigned int *yb_size; //y buffer
     //audio data
     volatile _SPM short *x; //input audio x[2]
     volatile _SPM short *y; //output audio y[2]
 };
 
 //same core:
-int audio_connect_fx(struct AudioFX *srcP, struct AudioFX *dstP);
+int audio_connect_same_core(struct AudioFX *srcP, struct AudioFX *dstP);
 //NoC:
-qpd_t * audio_connect_to_core(struct AudioFX *srcP, int dstCore);
-qpd_t * audio_connect_from_core(int srcCore, struct AudioFX *dstP);
+int audio_connect_to_core(struct AudioFX *srcP, int dstCore);
+int audio_connect_from_core(int srcCore, struct AudioFX *dstP);
 //for dry audio
-int alloc_dry_vars(struct AudioFX *audioP, con_t in_con, con_t out_con, unsigned int IN_SIZE, unsigned int OUT_SIZE, fst_t is_fst, lst_t is_lst);
+int alloc_dry_vars(struct AudioFX *audioP, con_t in_con, con_t out_con, unsigned int IN_SIZE, unsigned int OUT_SIZE, unsigned int P_AMOUNT, fst_t is_fst, lst_t is_lst);
+//audio in/out
+int audio_in(struct AudioFX *audioP);
+int audio_out(struct AudioFX *audioP);
 int audio_dry(struct AudioFX *audioP);
 
 /*

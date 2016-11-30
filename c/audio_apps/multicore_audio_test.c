@@ -127,13 +127,13 @@ int main() {
     struct AudioFX audio0a;
     struct AudioFX *audio0aP = &audio0a;
     // from 0 (same), to 0 (same), is 1st, is not last
-    alloc_dry_vars(audio0aP, NO_NOC, NO_NOC, 1, 1, FIRST, NO_LAST); //INSIZE=1, OUTSIZE=1
+    alloc_dry_vars(audio0aP, NO_NOC, NO_NOC, 1, 1, 1, FIRST, NO_LAST); //INSIZE=1, OUTSIZE=1, P_AMOUNT=1
 
     struct AudioFX audio0b;
     struct AudioFX *audio0bP = &audio0b;
     //from 0 (same), to 1, is not 1st, is not last
     //alloc_dry_vars(audio0bP, NO_IN_NOC, OUT_NOC, NO_FIRST, NO_LAST);
-    alloc_dry_vars(audio0bP, NO_NOC, NO_NOC, 1, 1, NO_FIRST, LAST); //INSIZE=1, OUTSIZE=1
+    alloc_dry_vars(audio0bP, NO_NOC, NO_NOC, 1, 1, 1, NO_FIRST, LAST); //INSIZE=1, OUTSIZE=1, P_AMOUNT=1
 
     /*
     struct AudioFX audio0c;
@@ -141,7 +141,7 @@ int main() {
     //from 1, to 0 (same), is not 1st, is last
     //alloc_dry_vars(audio0cP, IN_NOC, NO_OUT_NOC, NO_FIRST, LAST);
     */
-    audio_connect_fx(audio0aP, audio0bP); //effects on same core
+    audio_connect_same_core(audio0aP, audio0bP); //effects on same core
     //qpd_t * chanSend0 = audio_connect_to_core(audio0bP, 1); // effect audio0b to core 1
     //qpd_t * chanRecv0 = audio_connect_from_core(1, audio0cP); //effect audio0c from core 1
 
@@ -208,8 +208,10 @@ int main() {
 
 
     while(*keyReg != 3) {
+        //audio_in(audio0aP);
         audio_dry(audio0aP);
         audio_dry(audio0bP);
+        //audio_out(audio0bP);
 
         /*
         audioIn(audio0aP);
