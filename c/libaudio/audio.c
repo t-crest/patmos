@@ -1050,24 +1050,14 @@ int audio_connect_from_core(int srcCore, struct AudioFX *dstP){
     }
 }
 
-/* OLD
-qpd_t * audio_connect_from_core(int srcCore, struct AudioFX *dstP){
-    //create unique ID: NOC_CORES*src + dest
-    const unsigned int chanID = srcCore * NOC_CORES + (*dstP->cpuid);
-    qpd_t * chanRecv;
-    if (*dstP->in_con != NOC) {
-        printf("ERROR IN CONNECTION\n");
-        return NULL;
-    }
-    else {
-        chanRecv = mp_create_qport(chanID, SINK,
-            (*dstP->yb_size * 4), 1); // ID, xb_size * 4 bytes, 1 buffer
-        *dstP->x_pnt = (int)&chanRecv->read_buf;
 
-        return chanRecv;
-    }
+
+int audio_dry(struct AudioFX *audioP, volatile _SPM short * xP, volatile _SPM short * yP) {
+    yP[0] = xP[0];
+    yP[1] = xP[1];
+
+    return 0;
 }
-*/
 
 int audio_process(struct AudioFX *audioP) {
     /* ---------X and Y locations----------- */
@@ -1104,8 +1094,7 @@ int audio_process(struct AudioFX *audioP) {
         }
         //PROCESS PPSR TIMES
         for(unsigned int i=0; i < *audioP->ppsr; i++) {
-            yP[i*2]   = xP[i*2];
-            yP[i*2+1] = xP[i*2+1];
+            audio_dry(audioP, &xP[i*2], &yP[i*2]);
         }
         //ACKNOWLEDGE ONCE AFTER PROCESSING
         if(*audioP->in_con == NOC) {
