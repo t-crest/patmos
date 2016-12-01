@@ -27,7 +27,7 @@ void thread1(void* args) {
     struct AudioFX audio1a;
     struct AudioFX *audio1aP = &audio1a;
     //from NoC, to NoC, INSIZE=1, OUTSIZE=1, P_AMOUNT=1,  is not 1st, is notlast
-    alloc_audio_vars(audio1aP, DRY, NOC, NOC, 64, 64, 1, NO_FIRST, NO_LAST);
+    alloc_audio_vars(audio1aP, DRY_8S, NOC, NOC, 64, 64, 8, NO_FIRST, NO_LAST);
 
     audio_connect_from_core(0, audio1aP); // effect audio1a from core 0
     audio_connect_to_core(audio1aP, 0); // effect audio1a to core 0
@@ -112,18 +112,18 @@ int main() {
     struct AudioFX audio0a;
     struct AudioFX *audio0aP = &audio0a;
     // from same, to same, INSIZE=1, OUTSIZE=1, P_AMOUNT=1, is 1st, is not last
-    alloc_audio_vars(audio0aP, DRY, NO_NOC, NO_NOC, 64, 64, 1, FIRST, NO_LAST);
+    alloc_audio_vars(audio0aP, DRY_8S, NO_NOC, NO_NOC, 64, 64, 8, FIRST, NO_LAST);
 
     struct AudioFX audio0b;
     struct AudioFX *audio0bP = &audio0b;
     //from same, to NoC, INSIZE=1, OUTSIZE=1, P_AMOUNT=1, is not 1st, is not last
-    alloc_audio_vars(audio0bP, DRY, NO_NOC, NOC, 64, 64, 1, NO_FIRST, NO_LAST);
+    alloc_audio_vars(audio0bP, DRY_8S, NO_NOC, NOC, 64, 64, 8, NO_FIRST, NO_LAST);
 
 
     struct AudioFX audio0c;
     struct AudioFX *audio0cP = &audio0c;
     //from NoC, to same, INSIZE=1, OUTSIZE=1, P_AMOUNT=1,  is not 1st, is last
-    alloc_audio_vars(audio0cP, DRY, NOC, NO_NOC, 64, 64, 1, NO_FIRST, LAST);
+    alloc_audio_vars(audio0cP, DRY_8S, NOC, NO_NOC, 64, 64, 8, NO_FIRST, LAST);
 
     audio_connect_same_core(audio0aP, audio0bP); //effects on same core
     audio_connect_to_core(audio0bP, 1); // effect audio0b to core 1
@@ -145,8 +145,8 @@ int main() {
 
 
     //CPU cycles stuff
-    //int CPUcycles[1000] = {0};
-    //int cpu_pnt = 0;
+    int CPUcycles[1000] = {0};
+    int cpu_pnt = 0;
 
 
     //loop
@@ -174,13 +174,59 @@ int main() {
     //audio0bP->funcP = (unsigned int)instSpmP;
     //audio0cP->funcP = (unsigned int)instSpmP;
     */
+
+    int first = 1;
     while(*keyReg != 3) {
         //process
+        //int cycles = get_cpu_cycles();
+
         audio_process(audio0aP);
+
+        /*
+        cycles = get_cpu_cycles() - cycles;
+        printf("cpu cycles: %d\n", cycles);
+        */
+
+
+        printf("\nINPUT DATA A: \n");
+        volatile _SPM short * xP;
+        xP = (volatile _SPM short *)*audio0aP->x_pnt;
+        for(unsigned int i=0; i < *audio0aP->xb_size; i++) {
+            printf("%d, %d    ", xP[i*2], xP[i*2+1]);
+        }
+
+         printf("\noutput data a: \n");
+         volatile _SPM short * yP;
+         yP = (volatile _SPM short *)*audio0aP->y_pnt;
+        for(unsigned int i=0; i < *audio0aP->yb_size; i++) {
+            printf("%d, %d    ", yP[i*2], yP[i*2+1]);
+        }
+
+
 
         //printf("in values: %d, %d\n", audio0bP->x[0], audio0bP->x[1]);
 
+        printf("\ninput data b: \n");
+        xP = (volatile _SPM short *)*audio0bP->x_pnt;
+        for(unsigned int i=0; i < *audio0bP->xb_size; i++) {
+            printf("%d, %d    ", xP[i*2], xP[i*2+1]);
+        }
+
+
+
         audio_process(audio0bP);
+
+
+
+
+
+        printf("\noutput data b: \n");
+        yP = (volatile _SPM short *)*(volatile _SPM unsigned int *)*audio0bP->y_pnt;
+        for(unsigned int i=0; i < *audio0bP->yb_size; i++) {
+            printf("%d, %d    ", yP[i*2], yP[i*2+1]);
+        }
+
+
 
         /*
         printf("y_pnt points to 0x%x\n", *audio0bP->y_pnt);
@@ -195,18 +241,39 @@ int main() {
         volatile _SPM short * xP = (volatile _SPM short *)*(volatile _SPM unsigned int *)*audio0cP->x_pnt;
         printf("RECEIVED FROM CORE 1: %d, %d\n", xP[0], xP[1]);
         */
-        audio_process(audio0cP);
+
+        if(first == 0) {
+            audio_process(audio0cP);
+        }
+        else {
+            first = 0;
+        }
 
 
-        /*
+
+        printf("\ninput data c: \n");
+        xP = (volatile _SPM short *)*(volatile _SPM unsigned int *)*audio0cP->x_pnt;
+        for(unsigned int i=0; i < *audio0cP->xb_size; i++) {
+            printf("%d, %d    ", xP[i*2], xP[i*2+1]);
+        }
+
+        printf("\noutput data c: \n");
+        yP = (volatile _SPM short *)*audio0cP->y_pnt;
+        for(unsigned int i=0; i < *audio0cP->yb_size; i++) {
+            printf("%d, %d    ", yP[i*2], yP[i*2+1]);
+        }
+
+
+
+
         //store CPU Cycles
         CPUcycles[cpu_pnt] = get_cpu_cycles();
         cpu_pnt++;
         if(cpu_pnt == 1000) {
-            break;
-            //cpu_pnt = 0;
+            //break;
+            cpu_pnt = 0;
         }
-        */
+
 
     }
 

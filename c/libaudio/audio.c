@@ -860,10 +860,30 @@ int overdrive(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int 
 /*            AUDIO EFFECT FUNCTIONS          */
 
 
-int audio_dry(struct AudioFX *audioP, volatile _SPM short * xP, volatile _SPM short * yP) {
+void audioIn(struct AudioFX *audioP, volatile _SPM short *xP) {
+    for(unsigned int i=0; i < *audioP->xb_size; i++) {
+        getInputBufferSPM(&xP[i*2], &xP[i*2+1]);
+    }
+}
+
+void audioOut(struct AudioFX *audioP, volatile _SPM short *yP) {
+    for(unsigned int i=0; i < *audioP->yb_size; i++) {
+        setOutputBufferSPM(&yP[i*2], &yP[i*2+1]);
+    }
+}
+
+int audio_dry(struct AudioFX *audioP, volatile _SPM short *xP, volatile _SPM short *yP) {
     yP[0] = xP[0];
     yP[1] = xP[1];
 
+    return 0;
+}
+
+int audio_dry_8samples(struct AudioFX *audioP, volatile _SPM short *xP, volatile _SPM short *yP) {
+    for(int i=0; i<8; i++) {
+        yP[i*2]   = xP[i*2];
+        yP[i*2+1] = xP[i*2+1];
+    }
     return 0;
 }
 
@@ -1094,6 +1114,14 @@ int audio_connect_from_core(int srcCore, struct AudioFX *dstP){
     }
 }
 
+/*
+int process_XeY(struct AudioFX *audioP, volatile _SPM short *xP, volatile _SPM short *yP) {
+
+    return 0;
+}
+*/
+
+int audio_process(struct AudioFX *audioP) __attribute__((section("text.spm")));
 int audio_process(struct AudioFX *audioP) {
     /* ---------X and Y locations----------- */
     volatile _SPM short * xP;
@@ -1124,22 +1152,28 @@ int audio_process(struct AudioFX *audioP) {
     case XeY:
         //RECEIVE ONCE
         if(*audioP->in_con == NOC) { //receive from NoC
+            //printf("receive pointer before: 0x%x\n", (unsigned int)((qpd_t *)*audioP->recvChanP)->read_buf);
             mp_recv((qpd_t *)*audioP->recvChanP, 5804); // timeout ~256 samples
+            //printf("receive pointer after: 0x%x\n", (unsigned int)((qpd_t *)*audioP->recvChanP)->read_buf);
+            //printf("XP points to 0x%x\n", (unsigned int)xP);
         }
         else { //same core
             //only if it is FIRST
             if( (*audioP->cpuid == 0) && (*audioP->is_fst == FIRST) ) {
-                for(unsigned int i=0; i < *audioP->ppsr; i++) {
-                    getInputBufferSPM(&xP[i*2], &xP[i*2+1]);
-                }
+                audioIn(audioP, xP);
             }
         }
-        int cycles = get_cpu_cycles();
+        //int cycles = get_cpu_cycles();
         //PROCESS PPSR TIMES
         switch(*audioP->fx) {
         case DRY:
             for(unsigned int i=0; i < *audioP->ppsr; i++) {
                 audio_dry(audioP, &xP[i*2], &yP[i*2]);
+            }
+            break;
+        case DRY_8S:
+            for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                audio_dry_8samples(audioP, &xP[i*2], &yP[i*2]);
             }
             break;
         default:
@@ -1156,6 +1190,7 @@ int audio_process(struct AudioFX *audioP) {
         cycles = get_cpu_cycles() - cycles;
         printf("cpu cycles: %d\n", cycles);
         printf("ppsr is %d\n", *audioP->ppsr);
+        printf("xb_size is %d, yb_size is %d\n",*audioP->xb_size, *audioP->yb_size);
         */
         //ACKNOWLEDGE ONCE AFTER PROCESSING
         if(*audioP->in_con == NOC) {
@@ -1167,9 +1202,7 @@ int audio_process(struct AudioFX *audioP) {
         }
         else { //same core
             if( (*audioP->cpuid == 0) && (*audioP->is_lst == LAST) ) {
-                for(unsigned int i=0; i < *audioP->ppsr; i++) {
-                    setOutputBufferSPM(&yP[i*2], &yP[i*2+1]);
-                }
+                audioOut(audioP, yP);
             }
         }
         break;
@@ -1182,6 +1215,10 @@ int audio_process(struct AudioFX *audioP) {
     }
 
     return 0;
+}
+
+int dumey(int dum) {
+    return dum;
 }
 
 /*
