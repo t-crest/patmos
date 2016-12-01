@@ -166,8 +166,10 @@ struct AudioFX {
     volatile _SPM short *y; //output audio y[2]
     //Audio effect implemented
     volatile _SPM fx_t *fx;
+    /*
     //pointer to FX processing function
     volatile _SPM unsigned int *funcP;
+    */
 };
 
 

@@ -1020,13 +1020,17 @@ int alloc_audio_vars(struct AudioFX *audioP, fx_t FX_TYPE, con_t in_con, con_t o
 
     // FX TYPE
     const unsigned int ADDR_FX    = LAST_ADDR;
+    LAST_ADDR                     = ADDR_FX   + sizeof(fx_t);
+    /*
     const unsigned int ADDR_FUNCP = ADDR_FX    + sizeof(fx_t);
     LAST_ADDR                     = ADDR_FUNCP + sizeof(unsigned int);
+    */
     //SPM variables
     audioP->fx    = ( volatile _SPM fx_t *)         ADDR_FX;
-    audioP->funcP = ( volatile _SPM unsigned int *) ADDR_FUNCP;
+    //audioP->funcP = ( volatile _SPM unsigned int *) ADDR_FUNCP;
     //init values
     *audioP->fx = FX_TYPE;
+    /*
     switch(*audioP->fx) {
     case DRY:
         *audioP->funcP = (unsigned int)&audio_dry;
@@ -1036,6 +1040,7 @@ int alloc_audio_vars(struct AudioFX *audioP, fx_t FX_TYPE, con_t in_con, con_t o
     }
     printf("address of function is 0x%x\n", (unsigned int)&audio_dry);
     printf("stored value is 0x%x\n", *audioP->funcP);
+    */
 
     //update spm_alloc
     int retval = alloc_space("AUDIO AUDIO", BASE_ADDR, LAST_ADDR, (int)*audioP->cpuid);
@@ -1108,9 +1113,12 @@ int audio_process(struct AudioFX *audioP) {
     }
 
     /* ------------------SEND/PROCESS/RECEIVE---------------------*/
+
+    /*
     int (*funcP)(struct AudioFX *, volatile _SPM short *xP, volatile _SPM short *yP);
     funcP = (int (*)(struct AudioFX *, volatile _SPM short *, volatile _SPM short *))(*audioP->funcP);
     //printf("funcP points to 0x%x\n", (unsigned int)funcP);
+    */
 
     switch(*audioP->pt) {
     case XeY:
@@ -1126,14 +1134,29 @@ int audio_process(struct AudioFX *audioP) {
                 }
             }
         }
-        //int cycles = get_cpu_cycles();
+        int cycles = get_cpu_cycles();
         //PROCESS PPSR TIMES
-        for(unsigned int i=0; i < *audioP->ppsr; i++) {
-            audio_dry(audioP, &xP[i*2], &yP[i*2]);
-            //funcP(audioP, &xP[i*2], &yP[i*2]);
+        switch(*audioP->fx) {
+        case DRY:
+            for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                audio_dry(audioP, &xP[i*2], &yP[i*2]);
+            }
+            break;
+        default:
+            printf("effect not implemented yet\n");
+            break;
         }
-        //cycles = get_cpu_cycles() - cycles;
-        //printf("cpu cycles: %d\n", cycles);
+        /*
+        for(unsigned int i=0; i < *audioP->ppsr; i++) {
+            //audio_dry(audioP, &xP[i*2], &yP[i*2]);
+            funcP(audioP, &xP[i*2], &yP[i*2]);
+        }
+        */
+        /*
+        cycles = get_cpu_cycles() - cycles;
+        printf("cpu cycles: %d\n", cycles);
+        printf("ppsr is %d\n", *audioP->ppsr);
+        */
         //ACKNOWLEDGE ONCE AFTER PROCESSING
         if(*audioP->in_con == NOC) {
             mp_ack((qpd_t *)*audioP->recvChanP, 5804); // timeout ~256 samples
