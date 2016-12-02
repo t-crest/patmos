@@ -187,8 +187,8 @@ int alloc_dry_vars(struct AudioFX *audioP, fx_t FX_TYPE, con_t in_con, con_t out
 //same core:
 int audio_connect_same_core(struct AudioFX *srcP, struct AudioFX *dstP);
 //NoC:
-int audio_connect_to_core(struct AudioFX *srcP, int dstCore);
-int audio_connect_from_core(int srcCore, struct AudioFX *dstP);
+int audio_connect_to_core(struct AudioFX *srcP, const unsigned int sendChanID);
+int audio_connect_from_core(const unsigned int recvChanID, struct AudioFX *dstP);
 
 //audio processing
 int audio_process(struct AudioFX *audioP) __attribute__((section("text.spm")));

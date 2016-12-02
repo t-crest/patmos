@@ -1085,15 +1085,13 @@ int audio_connect_same_core(struct AudioFX *srcP, struct AudioFX *dstP) {
     return 0;
 }
 
-int audio_connect_to_core(struct AudioFX *srcP, int dstCore) {
-    //create unique ID: NOC_CORES*src + dest
-    const unsigned int chanID = (*srcP->cpuid) * NOC_CORES + dstCore;
+int audio_connect_to_core(struct AudioFX *srcP, const unsigned int sendChanID) {
     if (*srcP->out_con != NOC) {
         printf("ERROR IN CONNECTION\n");
         return 1;
     }
     else {
-        *srcP->sendChanP = (unsigned int)mp_create_qport(chanID, SOURCE,
+        *srcP->sendChanP = (unsigned int)mp_create_qport(sendChanID, SOURCE,
             (*srcP->yb_size * 4), 1); // ID, yb_size * 4 bytes, 1 buffer
         *srcP->y_pnt = (int)&((qpd_t *)*srcP->sendChanP)->write_buf;
 
@@ -1101,15 +1099,13 @@ int audio_connect_to_core(struct AudioFX *srcP, int dstCore) {
     }
 }
 
-int audio_connect_from_core(int srcCore, struct AudioFX *dstP){
-    //create unique ID: NOC_CORES*src + dest
-    const unsigned int chanID = srcCore * NOC_CORES + (*dstP->cpuid);
+int audio_connect_from_core(const unsigned int recvChanID, struct AudioFX *dstP) {
     if (*dstP->in_con != NOC) {
         printf("ERROR IN CONNECTION\n");
         return 1;
     }
     else {
-        *dstP->recvChanP = (unsigned int)mp_create_qport(chanID, SINK,
+        *dstP->recvChanP = (unsigned int)mp_create_qport(recvChanID, SINK,
             (*dstP->yb_size * 4), 1); // ID, xb_size * 4 bytes, 1 buffer
         *dstP->x_pnt = (int)&((qpd_t *)*dstP->recvChanP)->read_buf;
 
@@ -1228,6 +1224,15 @@ int audio_process(struct AudioFX *audioP) {
         break;
     case XgY:
         printf("to be implemented\n");
+        /*
+        //RECEIVE ONCE
+        if(*audioP->in_con == NOC) { //receive from NoC
+            if(mp_recv((qpd_t *)*audioP->recvChanP, 5804) == 0) { // timeout ~256 samples
+                printf("RECV TIMED OUT!\n");
+                retval = 1;
+            }
+        }
+        */
         break;
     case XlY:
         printf("to be implemented\n");
@@ -1235,10 +1240,6 @@ int audio_process(struct AudioFX *audioP) {
     }
 
     return retval;
-}
-
-int dumey(int dum) {
-    return dum;
 }
 
 /*

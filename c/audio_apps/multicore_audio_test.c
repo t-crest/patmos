@@ -9,9 +9,23 @@
 #include "libaudio/audio.h"
 #include "libaudio/audio.c"
 
+//master core
 const int NOC_MASTER = 0;
+//how many cores take part in the audio system
+const int AUDIO_CORES = 2;
+//how many effects are on the system in total
+const int FX_AMOUNT = 4;
 
-void thread1(void* args) {
+
+// FX_ID | CORE | FX_TYPE | XB_SIZE | YB_SIZE | P (S) | IN_TYPE | OUT_TYPE | FROM_ID | TO_ID //
+const int FX_SCHED[FX_AMOUNT][10] = {
+    {0, 0, 0, 8, 8, 1, 0, 0, -1,  1},
+    {1, 0, 1, 8, 8, 8, 0, 1,  0,  0},
+    {2, 1, 0, 8, 8, 1, 1, 1,  0,  1},
+    {3, 0, 0, 8, 8, 1, 1, 0,  1, -1}
+};
+
+void threadFunc(void* args) {
     volatile _UNCACHED int **inArgs = (volatile _UNCACHED int **) args;
     volatile _UNCACHED int *exitP      = inArgs[0];
     volatile _UNCACHED int *allocsDoneP = inArgs[1];
@@ -22,20 +36,22 @@ void thread1(void* args) {
       AUDIO STUFF HERE
     */
 
+    int cpuid = get_cpuid();
 
     //init and allocate
     struct AudioFX audio1a;
     struct AudioFX *audio1aP = &audio1a;
-    //from NoC, to NoC, INSIZE=1, OUTSIZE=1, P_AMOUNT=1,  is not 1st, is notlast
-    alloc_audio_vars(audio1aP, DRY_8S, NOC, NOC, 64, 64, 8, NO_FIRST, NO_LAST);
+    //from NoC, to NoC, is not 1st, is notlast
+    alloc_audio_vars(audio1aP, DRY, NOC, NOC, 8, 8, 1, NO_FIRST, NO_LAST);
 
-    audio_connect_from_core(0, audio1aP); // effect audio1a from core 0
-    audio_connect_to_core(audio1aP, 0); // effect audio1a to core 0
+    audio_connect_from_core(0, audio1aP); // effect audio1a from corresponding channelID
+    audio_connect_to_core(audio1aP, 1); // effect audio1a to corresponding channelID
 
     // wait until all cores are ready
-    //allocsDoneP[*audio1aP->cpuid] = 1;
-    allocsDoneP[1] = 1;
-    while(allocsDoneP[0] == 0);
+    allocsDoneP[cpuid] = 1;
+    for(int i=0; i<AUDIO_CORES; i++) {
+        while(allocsDoneP[i] == 0);
+    }
 
 
     // Initialize the communication channels
@@ -76,17 +92,17 @@ int main() {
     int allocsDone[2] = {0, 0};
     volatile _UNCACHED int *exitP = (volatile _UNCACHED int *) &exit;
     volatile _UNCACHED int *allocsDoneP = (volatile _UNCACHED int *) &allocsDone;
-    volatile _UNCACHED int (*thread1_args[6]);
-    thread1_args[0] = exitP;
-    thread1_args[1] = allocsDoneP;
+    volatile _UNCACHED int (*threadFunc_args[6]);
+    threadFunc_args[0] = exitP;
+    threadFunc_args[1] = allocsDoneP;
 
     int audioValues[3] = {0, 0, 0};
     volatile _UNCACHED int *audioValuesP = (volatile _UNCACHED int *) &audioValues[0];
-    thread1_args[3] = audioValuesP;
+    threadFunc_args[3] = audioValuesP;
 
     printf("starting thread and NoC channels...\n");
     //set thread function and start thread
-    corethread_create(&threadOne, &thread1, (void*) thread1_args);
+    corethread_create(&threadOne, &threadFunc, (void*) threadFunc_args);
 
     /*
     qpd_t * chan2 = mp_create_qport(MP_CHAN_2_ID, SINK,
@@ -111,30 +127,59 @@ int main() {
     setInputBufferSize(BUFFER_SIZE);
     setOutputBufferSize(BUFFER_SIZE);
 
+
+    int cpuid = get_cpuid();
+
     // create effects and connect
     struct AudioFX audio0a;
     struct AudioFX *audio0aP = &audio0a;
-    // from same, to same, INSIZE=1, OUTSIZE=1, P_AMOUNT=1, is 1st, is not last
-    alloc_audio_vars(audio0aP, DRY_8S, NO_NOC, NO_NOC, 64, 64, 8, FIRST, NO_LAST);
+    // READ FROM SCHEDULER
+    int n=0;
+    fx_t fx_type  = (fx_t)  FX_SCHED[n][2];
+    int xb_size   =         FX_SCHED[n][3];
+    int yb_size   =         FX_SCHED[n][4];
+    int p         =         FX_SCHED[n][5];
+    con_t in_con  = (con_t) FX_SCHED[n][6];
+    con_t out_con = (con_t) FX_SCHED[n][7];
+    fst_t is_fst;
+    if(FX_SCHED[n][8] == -1) {
+        is_fst = FIRST;
+    }
+    else {
+        is_fst = NO_FIRST;
+    }
+    lst_t is_lst;
+    if(FX_SCHED[n][9] == -1) {
+        is_lst = LAST;
+    }
+    else {
+        is_lst = NO_LAST;
+    }
+    alloc_audio_vars(audio0aP, fx_type, in_con, out_con, xb_size, yb_size, p, is_fst, is_lst);
 
     struct AudioFX audio0b;
     struct AudioFX *audio0bP = &audio0b;
-    //from same, to NoC, INSIZE=1, OUTSIZE=1, P_AMOUNT=1, is not 1st, is not last
-    alloc_audio_vars(audio0bP, DRY_8S, NO_NOC, NOC, 64, 64, 8, NO_FIRST, NO_LAST);
+    //from same, to NoC, is not 1st, is not last
+    alloc_audio_vars(audio0bP, DRY_8S, NO_NOC, NOC, 8, 8, 8, NO_FIRST, NO_LAST);
 
 
     struct AudioFX audio0c;
     struct AudioFX *audio0cP = &audio0c;
-    //from NoC, to same, INSIZE=1, OUTSIZE=1, P_AMOUNT=1,  is not 1st, is last
-    alloc_audio_vars(audio0cP, DRY_8S, NOC, NO_NOC, 64, 64, 8, NO_FIRST, LAST);
+    //from NoC, to same, is not 1st, is last
+    alloc_audio_vars(audio0cP, DRY, NOC, NO_NOC, 8, 8, 1, NO_FIRST, LAST);
 
     audio_connect_same_core(audio0aP, audio0bP); //effects on same core
-    audio_connect_to_core(audio0bP, 1); // effect audio0b to core 1
-    audio_connect_from_core(1, audio0cP); //effect audio0c from core 1
+    audio_connect_to_core(audio0bP, 0); // effect audio0b to corresponding channelID
+    audio_connect_from_core(1, audio0cP); //effect audio0c from corresponding channelID
+
+
+
 
     // wait until all cores are ready
-    allocsDoneP[*audio0bP->cpuid] = 1;
-    while(allocsDoneP[1] == 0);
+    allocsDoneP[cpuid] = 1;
+    for(int i=0; i<AUDIO_CORES; i++) {
+        while(allocsDoneP[i] == 0);
+    }
 
 
     // Initialize the communication channels
@@ -177,6 +222,7 @@ int main() {
     //audio0bP->funcP = (unsigned int)instSpmP;
     //audio0cP->funcP = (unsigned int)instSpmP;
     */
+
 
     int first = 1;
     while(*keyReg != 3) {
@@ -292,31 +338,6 @@ int main() {
     }
     */
 
-
-    /*
-    while(*keyReg != 3) {
-        //audio_in(audio0aP);
-        audio_process(audio0aP);
-        audio_process(audio0bP);
-        //audio_out(audio0bP);
-
-        / *
-        audioIn(audio0aP);
-        audio_process(audio0aP);
-        audio_process(audio0bP);
-        mp_send(chanSend, 0);
-        * /
-
-        / *
-        //store CPU Cycles
-        CPUcycles[cpu_pnt] = get_cpu_cycles();
-        cpu_pnt++;
-        if(cpu_pnt == 1000) {
-            break;
-        }
-        * /
-    }
-    */
 
     /*
     printf("SOME CARACS:\n");
