@@ -139,6 +139,8 @@ typedef enum {DRY, DRY_8S, HP, LP, BP, BR,
              DELAY, CHORUS, WAHWAH} fx_t;
 
 struct AudioFX {
+    //effect ID
+    volatile _SPM int *fx_id;
     //core number
     volatile _SPM int *cpuid;
     //connection type
@@ -182,7 +184,7 @@ int audio_dry(struct AudioFX *audioP, volatile _SPM short *xP, volatile _SPM sho
 int audio_dry_8samples(struct AudioFX *audioP, volatile _SPM short *xP, volatile _SPM short *yP);
 
 //for dry audio
-int alloc_dry_vars(struct AudioFX *audioP, fx_t FX_TYPE, con_t in_con, con_t out_con, unsigned int IN_SIZE, unsigned int OUT_SIZE, unsigned int P_AMOUNT, fst_t is_fst, lst_t is_lst);
+int alloc_dry_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_con, con_t out_con, unsigned int IN_SIZE, unsigned int OUT_SIZE, unsigned int P_AMOUNT, fst_t is_fst, lst_t is_lst);
 
 //same core:
 int audio_connect_same_core(struct AudioFX *srcP, struct AudioFX *dstP);

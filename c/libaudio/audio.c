@@ -922,15 +922,20 @@ int alloc_space(char *FX_NAME, unsigned int BASE_ADDR, unsigned int LAST_ADDR, i
 }
 
 
-int alloc_audio_vars(struct AudioFX *audioP, fx_t FX_TYPE, con_t in_con, con_t out_con, unsigned int IN_SIZE, unsigned int OUT_SIZE, unsigned int P_AMOUNT, fst_t is_fst, lst_t is_lst) {
+int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_con, con_t out_con, unsigned int IN_SIZE, unsigned int OUT_SIZE, unsigned int P_AMOUNT, fst_t is_fst, lst_t is_lst) {
     /*
       LOCATION IN SPM
     */
     unsigned int BASE_ADDR = (unsigned int)mp_alloc(0);
     unsigned int LAST_ADDR;
+    // FX ID
+    const unsigned int ADDR_FXID = BASE_ADDR;
+    LAST_ADDR                    = ADDR_FXID + sizeof(int);
+    audioP->fx_id = (volatile _SPM int * ) ADDR_FXID;
+    *audioP->fx_id = FX_ID;
     // CPUID
-    const unsigned int ADDR_CPUID  = BASE_ADDR;
-    LAST_ADDR = ADDR_CPUID + sizeof(int);
+    const unsigned int ADDR_CPUID  = LAST_ADDR;
+    LAST_ADDR                      = ADDR_CPUID + sizeof(int);
     audioP->cpuid = ( volatile _SPM int * ) ADDR_CPUID;
     *audioP->cpuid = get_cpuid();
     if(*audioP->cpuid == 0) {

@@ -38,14 +38,58 @@ void threadFunc(void* args) {
 
     int cpuid = get_cpuid();
 
-    //init and allocate
-    struct AudioFX audio1a;
-    struct AudioFX *audio1aP = &audio1a;
-    //from NoC, to NoC, is not 1st, is notlast
-    alloc_audio_vars(audio1aP, DRY, NOC, NOC, 8, 8, 1, NO_FIRST, NO_LAST);
+    // -------------------ALLOCATE FX------------------//
 
-    audio_connect_from_core(0, audio1aP); // effect audio1a from corresponding channelID
-    audio_connect_to_core(audio1aP, 1); // effect audio1a to corresponding channelID
+    int FX_HERE = 0; //amount of effects in this core
+    for(int n=0; n<FX_AMOUNT; n++) {
+        if(FX_SCHED[n][1] == cpuid) {
+            FX_HERE++;
+        }
+    }
+    //create structs
+    struct AudioFX FXp[FX_HERE];
+    //struct parameters:
+    int fx_id;
+    fx_t fx_type;
+    int xb_size, yb_size, p;
+    con_t in_con;
+    con_t out_con;
+    fst_t is_fst;
+    lst_t is_lst;
+
+    // READ FROM SCHEDULER
+    int fx_ind = 0;
+    for(int n=0; n<FX_AMOUNT; n++) {
+        if(FX_SCHED[n][1] == cpuid) { //same core
+            //assign parameters from SCHEDULER
+            fx_id   =         FX_SCHED[n][0];
+            fx_type = (fx_t)  FX_SCHED[n][2];
+            xb_size =         FX_SCHED[n][3];
+            yb_size =         FX_SCHED[n][4];
+            p       =         FX_SCHED[n][5];
+            in_con  = (con_t) FX_SCHED[n][6];
+            out_con = (con_t) FX_SCHED[n][7];
+            if(FX_SCHED[n][8] == -1) {
+                is_fst = FIRST;
+            }
+            else {
+                is_fst = NO_FIRST;
+            }
+            if(FX_SCHED[n][9] == -1) {
+                is_lst = LAST;
+            }
+            else {
+                is_lst = NO_LAST;
+            }
+            //allocate
+            alloc_audio_vars(&FXp[fx_ind], fx_id, fx_type, in_con,
+                out_con, xb_size, yb_size, p, is_fst, is_lst);
+            fx_ind++;
+        }
+    }
+
+    audio_connect_from_core(0, &FXp[0]); // from corresponding channelID
+    audio_connect_to_core(&FXp[0], 1); // to corresponding channelID
 
     // wait until all cores are ready
     allocsDoneP[cpuid] = 1;
@@ -62,7 +106,7 @@ void threadFunc(void* args) {
     audioValuesP[0] = 0;
     while(*exitP == 0) {
         //process
-        if (audio_process(audio1aP) == 1) {
+        if (audio_process(&FXp[0]) == 1) {
             audioValuesP[0] = audioValuesP[0] + 1;
         }
 
@@ -130,47 +174,71 @@ int main() {
 
     int cpuid = get_cpuid();
 
-    // create effects and connect
-    struct AudioFX audio0a;
-    struct AudioFX *audio0aP = &audio0a;
-    // READ FROM SCHEDULER
-    int n=0;
-    fx_t fx_type  = (fx_t)  FX_SCHED[n][2];
-    int xb_size   =         FX_SCHED[n][3];
-    int yb_size   =         FX_SCHED[n][4];
-    int p         =         FX_SCHED[n][5];
-    con_t in_con  = (con_t) FX_SCHED[n][6];
-    con_t out_con = (con_t) FX_SCHED[n][7];
-    fst_t is_fst;
-    if(FX_SCHED[n][8] == -1) {
-        is_fst = FIRST;
-    }
-    else {
-        is_fst = NO_FIRST;
-    }
-    lst_t is_lst;
-    if(FX_SCHED[n][9] == -1) {
-        is_lst = LAST;
-    }
-    else {
-        is_lst = NO_LAST;
-    }
-    alloc_audio_vars(audio0aP, fx_type, in_con, out_con, xb_size, yb_size, p, is_fst, is_lst);
+    // -------------------ALLOCATE FX------------------//
 
+    int FX_HERE = 0; //amount of effects in this core
+    for(int n=0; n<FX_AMOUNT; n++) {
+        if(FX_SCHED[n][1] == cpuid) {
+            FX_HERE++;
+        }
+    }
+    //create structs
+    struct AudioFX FXp[FX_HERE];
+    //struct parameters:
+    int fx_id;
+    fx_t fx_type;
+    int xb_size, yb_size, p;
+    con_t in_con;
+    con_t out_con;
+    fst_t is_fst;
+    lst_t is_lst;
+
+    // READ FROM SCHEDULER
+    int fx_ind = 0;
+    for(int n=0; n<FX_AMOUNT; n++) {
+        if(FX_SCHED[n][1] == cpuid) { //same core
+            //assign parameters from SCHEDULER
+            fx_id   =         FX_SCHED[n][0];
+            fx_type = (fx_t)  FX_SCHED[n][2];
+            xb_size =         FX_SCHED[n][3];
+            yb_size =         FX_SCHED[n][4];
+            p       =         FX_SCHED[n][5];
+            in_con  = (con_t) FX_SCHED[n][6];
+            out_con = (con_t) FX_SCHED[n][7];
+            if(FX_SCHED[n][8] == -1) {
+                is_fst = FIRST;
+            }
+            else {
+                is_fst = NO_FIRST;
+            }
+            if(FX_SCHED[n][9] == -1) {
+                is_lst = LAST;
+            }
+            else {
+                is_lst = NO_LAST;
+            }
+            //allocate
+            alloc_audio_vars(&FXp[fx_ind], fx_id, fx_type, in_con,
+                out_con, xb_size, yb_size, p, is_fst, is_lst);
+            fx_ind++;
+        }
+    }
+
+    /*
     struct AudioFX audio0b;
     struct AudioFX *audio0bP = &audio0b;
     //from same, to NoC, is not 1st, is not last
-    alloc_audio_vars(audio0bP, DRY_8S, NO_NOC, NOC, 8, 8, 8, NO_FIRST, NO_LAST);
-
-
+    alloc_audio_vars(audio0bP, 1, DRY_8S, NO_NOC, NOC, 8, 8, 8, NO_FIRST, NO_LAST);
     struct AudioFX audio0c;
     struct AudioFX *audio0cP = &audio0c;
     //from NoC, to same, is not 1st, is last
-    alloc_audio_vars(audio0cP, DRY, NOC, NO_NOC, 8, 8, 1, NO_FIRST, LAST);
+    alloc_audio_vars(audio0cP, 3, DRY, NOC, NO_NOC, 8, 8, 1, NO_FIRST, LAST);
+    */
 
-    audio_connect_same_core(audio0aP, audio0bP); //effects on same core
-    audio_connect_to_core(audio0bP, 0); // effect audio0b to corresponding channelID
-    audio_connect_from_core(1, audio0cP); //effect audio0c from corresponding channelID
+
+    audio_connect_same_core(&FXp[0], &FXp[1]); //effects on same core
+    audio_connect_to_core(&FXp[1], 0); // to corresponding channelID
+    audio_connect_from_core(1, &FXp[2]); // from corresponding channelID
 
 
 
@@ -229,7 +297,7 @@ int main() {
         //process
         //int cycles = get_cpu_cycles();
 
-        audio_process(audio0aP);
+        audio_process(&FXp[0]);
 
         /*
         cycles = get_cpu_cycles() - cycles;
@@ -265,7 +333,8 @@ int main() {
         */
 
 
-        audio_process(audio0bP);
+        //audio_process(audio0bP);
+        audio_process(&FXp[1]);
 
 
 
@@ -294,7 +363,8 @@ int main() {
         */
 
         if(first == 0) {
-            audio_process(audio0cP);
+            //audio_process(audio0cP);
+            audio_process(&FXp[2]);
             /*
             printf("\noutput data c: \n");
             yP = (volatile _SPM short *)*audio0cP->y_pnt;
@@ -325,7 +395,7 @@ int main() {
         CPUcycles[cpu_pnt] = get_cpu_cycles();
         cpu_pnt++;
         if(cpu_pnt == 1000) {
-            //break;
+            break;
             cpu_pnt = 0;
         }
         */
