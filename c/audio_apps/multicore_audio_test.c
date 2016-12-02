@@ -43,9 +43,12 @@ void thread1(void* args) {
 
     //loop
     //for(int i=0; i<3; i++) {
+    audioValuesP[0] = 0;
     while(*exitP == 0) {
         //process
-        audio_process(audio1aP);
+        if (audio_process(audio1aP) == 1) {
+            audioValuesP[0] = audioValuesP[0] + 1;
+        }
 
         /*
         volatile _SPM short * xP = (volatile _SPM short *)*(volatile _SPM unsigned int *)*audio1aP->x_pnt;
@@ -187,13 +190,15 @@ int main() {
         printf("cpu cycles: %d\n", cycles);
         */
 
-
-        printf("\nINPUT DATA A: \n");
+        /*
+        printf("\n\n\nINPUT DATA A: \n");
         volatile _SPM short * xP;
         xP = (volatile _SPM short *)*audio0aP->x_pnt;
         for(unsigned int i=0; i < *audio0aP->xb_size; i++) {
             printf("%d, %d    ", xP[i*2], xP[i*2+1]);
         }
+
+        volatile _SPM short * yP;
 
          printf("\noutput data a: \n");
          volatile _SPM short * yP;
@@ -211,7 +216,7 @@ int main() {
         for(unsigned int i=0; i < *audio0bP->xb_size; i++) {
             printf("%d, %d    ", xP[i*2], xP[i*2+1]);
         }
-
+        */
 
 
         audio_process(audio0bP);
@@ -219,13 +224,13 @@ int main() {
 
 
 
-
+        /*
         printf("\noutput data b: \n");
         yP = (volatile _SPM short *)*(volatile _SPM unsigned int *)*audio0bP->y_pnt;
         for(unsigned int i=0; i < *audio0bP->yb_size; i++) {
             printf("%d, %d    ", yP[i*2], yP[i*2+1]);
         }
-
+        */
 
 
         /*
@@ -244,28 +249,32 @@ int main() {
 
         if(first == 0) {
             audio_process(audio0cP);
+            /*
+            printf("\noutput data c: \n");
+            yP = (volatile _SPM short *)*audio0cP->y_pnt;
+            for(unsigned int i=0; i < *audio0cP->yb_size; i++) {
+                printf("%d, %d    ", yP[i*2], yP[i*2+1]);
+            }
+            */
         }
         else {
             first = 0;
         }
 
 
-
+        /*
         printf("\ninput data c: \n");
         xP = (volatile _SPM short *)*(volatile _SPM unsigned int *)*audio0cP->x_pnt;
         for(unsigned int i=0; i < *audio0cP->xb_size; i++) {
             printf("%d, %d    ", xP[i*2], xP[i*2+1]);
         }
-
-        printf("\noutput data c: \n");
-        yP = (volatile _SPM short *)*audio0cP->y_pnt;
-        for(unsigned int i=0; i < *audio0cP->yb_size; i++) {
-            printf("%d, %d    ", yP[i*2], yP[i*2+1]);
-        }
+        */
 
 
 
 
+
+        /*
         //store CPU Cycles
         CPUcycles[cpu_pnt] = get_cpu_cycles();
         cpu_pnt++;
@@ -273,7 +282,7 @@ int main() {
             //break;
             cpu_pnt = 0;
         }
-
+        */
 
     }
 
@@ -344,6 +353,8 @@ int main() {
     int *retval;
     corethread_join(threadOne, (void **)&retval);
     printf("thread 1 finished!\n");
+
+    printf("thread 1 timeout amounts: %d\n", audioValuesP[0]);
 
     return 0;
 }

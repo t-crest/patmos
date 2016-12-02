@@ -154,7 +154,8 @@ struct AudioFX {
     volatile _SPM unsigned int *recvChanP;
     //processing type
     volatile _SPM pt_t *pt;
-    //parameters: RPR, SPR, PPSR
+    //parameters: P, RPR, SPR, PPSR
+    volatile _SPM unsigned int *p;
     volatile _SPM unsigned int *rpr;
     volatile _SPM unsigned int *spr;
     volatile _SPM unsigned int *ppsr;
