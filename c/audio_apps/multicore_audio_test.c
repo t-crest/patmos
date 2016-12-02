@@ -12,17 +12,19 @@
 //master core
 const int NOC_MASTER = 0;
 //how many cores take part in the audio system
-const int AUDIO_CORES = 2;
+const int AUDIO_CORES = 3;
 //how many effects are on the system in total
-const int FX_AMOUNT = 4;
+const int FX_AMOUNT = 6;
 
 
 // FX_ID | CORE | FX_TYPE | XB_SIZE | YB_SIZE | P (S) | IN_TYPE | OUT_TYPE | FROM_ID | TO_ID //
 const int FX_SCHED[FX_AMOUNT][10] = {
     {0, 0, 0, 8, 8, 1, 0, 0, -1,  1},
     {1, 0, 1, 8, 8, 8, 0, 1,  0,  0},
-    {2, 1, 0, 8, 8, 1, 1, 1,  0,  1},
-    {3, 0, 0, 8, 8, 1, 1, 0,  1, -1}
+    {2, 1, 0, 8, 8, 1, 1, 0,  0,  3},
+    {3, 1, 0, 8, 8, 1, 0, 1,  2,  1},
+    {4, 2, 0, 8, 8, 1, 1, 1,  1,  2},
+    {5, 0, 0, 8, 8, 1, 1, 0,  2, -1}
 };
 
 void threadFunc(void* args) {
@@ -88,8 +90,31 @@ void threadFunc(void* args) {
         }
     }
 
-    audio_connect_from_core(0, &FXp[0]); // from corresponding channelID
-    audio_connect_to_core(&FXp[0], 1); // to corresponding channelID
+    //CONNECT EFFECTS
+    for(int n=0; n<FX_HERE; n++) {
+        // same core
+        if(*FXp[n].out_con == NO_NOC) {
+            int destID = FX_SCHED[*FXp[n].fx_id][9]; //ID to connect to
+            if(FX_SCHED[destID][8] != *FXp[n].fx_id) {
+                printf("ERROR: SAME CORE CONNECTION MISMATCH\n");
+            }
+            for(int m=0; m<FX_HERE; m++) {
+                if(*FXp[m].fx_id == destID) {
+                    audio_connect_same_core(&FXp[n], &FXp[m]);
+                    break;
+                }
+            }
+        }
+        // NoC
+        if(*FXp[n].in_con == NOC) {
+            int recvChanID = FX_SCHED[*FXp[n].fx_id][8]; //NoC receive channel ID
+            audio_connect_from_core(recvChanID, &FXp[n]);
+        }
+        if(*FXp[n].out_con == NOC) {
+            int sendChanID = FX_SCHED[*FXp[n].fx_id][9]; //NoC send channel ID
+            audio_connect_to_core(&FXp[n], sendChanID);
+        }
+    }
 
     // wait until all cores are ready
     allocsDoneP[cpuid] = 1;
@@ -105,10 +130,13 @@ void threadFunc(void* args) {
     //for(int i=0; i<3; i++) {
     audioValuesP[0] = 0;
     while(*exitP == 0) {
-        //process
-        if (audio_process(&FXp[0]) == 1) {
-            audioValuesP[0] = audioValuesP[0] + 1;
+
+        for(int n=0; n<FX_HERE; n++) {
+            if (audio_process(&FXp[n]) == 1) {
+                audioValuesP[0] = audioValuesP[0] + 1;
+            }
         }
+
 
         /*
         volatile _SPM short * xP = (volatile _SPM short *)*(volatile _SPM unsigned int *)*audio1aP->x_pnt;
@@ -129,8 +157,6 @@ void threadFunc(void* args) {
 
 int main() {
 
-    //create corethread type var
-    corethread_t threadOne = (corethread_t) 1;
     //arguments to thread 1 function
     int exit = 0;
     int allocsDone[2] = {0, 0};
@@ -146,17 +172,13 @@ int main() {
 
     printf("starting thread and NoC channels...\n");
     //set thread function and start thread
-    corethread_create(&threadOne, &threadFunc, (void*) threadFunc_args);
+    corethread_t threads[AUDIO_CORES-1];
+    for(int i=0; i<(AUDIO_CORES-1); i++) {
+        threads[i] = (corethread_t) (i+1);
+        corethread_create(&threads[i], &threadFunc, (void*) threadFunc_args);
+        printf("Thread created on core %d\n", i+1);
+    }
 
-    /*
-    qpd_t * chan2 = mp_create_qport(MP_CHAN_2_ID, SINK,
-        MP_CHAN_2_MSG_SIZE, MP_CHAN_2_NUM_BUF);
-
-    */
-
-    /*
-      AUDIO STUFF HERE
-    */
 
     #if GUITAR == 1
     setup(1); //for guitar
@@ -224,21 +246,40 @@ int main() {
         }
     }
 
-    /*
-    struct AudioFX audio0b;
-    struct AudioFX *audio0bP = &audio0b;
-    //from same, to NoC, is not 1st, is not last
-    alloc_audio_vars(audio0bP, 1, DRY_8S, NO_NOC, NOC, 8, 8, 8, NO_FIRST, NO_LAST);
-    struct AudioFX audio0c;
-    struct AudioFX *audio0cP = &audio0c;
-    //from NoC, to same, is not 1st, is last
-    alloc_audio_vars(audio0cP, 3, DRY, NOC, NO_NOC, 8, 8, 1, NO_FIRST, LAST);
-    */
+    //CONNECT EFFECTS
+    for(int n=0; n<FX_HERE; n++) {
+        // same core
+        if( (*FXp[n].out_con == NO_NOC) && (*FXp[n].is_lst == NO_LAST) ) {
+            int destID = FX_SCHED[*FXp[n].fx_id][9]; //ID to connect to
+            if(FX_SCHED[destID][8] != *FXp[n].fx_id) {
+                printf("ERROR: SAME CORE CONNECTION MISMATCH\n");
+            }
+            for(int m=0; m<FX_HERE; m++) {
+                if(*FXp[m].fx_id == destID) {
+                    audio_connect_same_core(&FXp[n], &FXp[m]);
+                    printf("SAME CORE: connected ID=%d and ID=%d\n", *FXp[n].fx_id, *FXp[m].fx_id);
+                    break;
+                }
+            }
+        }
+        // NoC
+        if(*FXp[n].in_con == NOC) {
+            int recvChanID = FX_SCHED[*FXp[n].fx_id][8]; //NoC receive channel ID
+            audio_connect_from_core(recvChanID, &FXp[n]);
+            printf("NoC: connected recvChanelID=%d to ID=%d\n", recvChanID, *FXp[n].fx_id);
+        }
+        if(*FXp[n].out_con == NOC) {
+            int sendChanID = FX_SCHED[*FXp[n].fx_id][9]; //NoC send channel ID
+            audio_connect_to_core(&FXp[n], sendChanID);
+            printf("NoC: connected ID=%d to sendChanelID=%d\n", *FXp[n].fx_id, sendChanID);
+        }
+    }
 
 
-    audio_connect_same_core(&FXp[0], &FXp[1]); //effects on same core
-    audio_connect_to_core(&FXp[1], 0); // to corresponding channelID
-    audio_connect_from_core(1, &FXp[2]); // from corresponding channelID
+
+    //audio_connect_same_core(&FXp[0], &FXp[1]); //effects on same core
+    //audio_connect_to_core(&FXp[1], 0); // to corresponding channelID
+    //audio_connect_from_core(1, &FXp[2]); // from corresponding channelID
 
 
 
@@ -261,48 +302,32 @@ int main() {
 
 
     //CPU cycles stuff
-    int CPUcycles[1000] = {0};
-    int cpu_pnt = 0;
+    //int CPUcycles[1000] = {0};
+    //int cpu_pnt = 0;
 
 
-    //loop
-    //for(int i=0; i<3; i++) {
+    int wait_recv = 2; //amount of loops until audioOut is done
 
-    /*
-    int diff1 = ((unsigned int)&func2 - (unsigned int)&func1);
-    int diff2 = ((unsigned int)&alloc_space - (unsigned int)&func2);
-    printf("diff1 is 0x%x, diff2 is 0x%x\n", (unsigned int)diff1, (unsigned int)diff2);
-    int diffSer = ((unsigned int)&func1 - (unsigned int)&audio_dry);
-    printf("diffSer is 0x%x\n", (unsigned int)diffSer);
-
-    //copying audio_dry to instruction SPM
-    volatile _SPM unsigned int * instSpmP;
-    unsigned int *funcP = (unsigned int *)&audio_dry;
-    instSpmP = (volatile _SPM unsigned int *) 0x00010000; //instruction SPM start point (OFFSET???)
-    for(unsigned int i=0; i<(diffSer/4); i++) {
-        *(instSpmP+i) = *(funcP+i);
-        printf("@ %d: copied from 0x%x to 0x%x\n", i, (unsigned int)(funcP+i), (unsigned int)(instSpmP+i));
-        printf("copied data: 0x%x, 0x%x\n", (unsigned int)*(funcP+i), *(instSpmP+i));
-    }
-
-    //assign new value to pointer function
-    //audio0aP->funcP = (unsigned int)instSpmP;
-    //audio0bP->funcP = (unsigned int)instSpmP;
-    //audio0cP->funcP = (unsigned int)instSpmP;
-    */
-
-
-    int first = 1;
     while(*keyReg != 3) {
-        //process
-        //int cycles = get_cpu_cycles();
 
-        audio_process(&FXp[0]);
+        for(int n=0; n<FX_HERE; n++) {
+            //process
+            //int cycles = get_cpu_cycles();
 
-        /*
-        cycles = get_cpu_cycles() - cycles;
-        printf("cpu cycles: %d\n", cycles);
-        */
+            if( (*FXp[n].is_lst == NO_LAST) || (wait_recv == 0) ) {
+                audio_process(&FXp[n]);
+            }
+            else {
+                wait_recv--;
+            }
+
+            /*
+              cycles = get_cpu_cycles() - cycles;
+              printf("cpu cycles: %d\n", cycles);
+            */
+        }
+
+
 
         /*
         printf("\n\n\nINPUT DATA A: \n");
@@ -334,7 +359,7 @@ int main() {
 
 
         //audio_process(audio0bP);
-        audio_process(&FXp[1]);
+        //audio_process(&FXp[1]);
 
 
 
@@ -362,21 +387,22 @@ int main() {
         printf("RECEIVED FROM CORE 1: %d, %d\n", xP[0], xP[1]);
         */
 
+        /*
         if(first == 0) {
             //audio_process(audio0cP);
             audio_process(&FXp[2]);
-            /*
+            / *
             printf("\noutput data c: \n");
             yP = (volatile _SPM short *)*audio0cP->y_pnt;
             for(unsigned int i=0; i < *audio0cP->yb_size; i++) {
                 printf("%d, %d    ", yP[i*2], yP[i*2+1]);
             }
-            */
+            * /
         }
         else {
             first = 0;
         }
-
+        */
 
         /*
         printf("\ninput data c: \n");
@@ -432,7 +458,7 @@ int main() {
     //exit stuff
     printf("exit here!\n");
     exit = 1;
-    printf("waiting for thread 1 to finish...\n");
+    printf("waiting for all threads to finish...\n");
 
     /*
     for(int i=1; i<1000; i++) {
@@ -442,10 +468,11 @@ int main() {
 
     //join with thread 1
     int *retval;
-    corethread_join(threadOne, (void **)&retval);
-    printf("thread 1 finished!\n");
-
-    printf("thread 1 timeout amounts: %d\n", audioValuesP[0]);
+    for(int i=0; i<(AUDIO_CORES-1); i++) {
+        corethread_join(threads[i], (void **)&retval);
+        printf("thread %d finished!\n", (i+1));
+    }
+    printf("all threads: timeout amounts: %d\n", audioValuesP[0]);
 
     return 0;
 }

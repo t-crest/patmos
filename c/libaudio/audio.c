@@ -887,17 +887,6 @@ int audio_dry_8samples(struct AudioFX *audioP, volatile _SPM short *xP, volatile
     return 0;
 }
 
-int func1(int i, int j) {
-    int res = i+j;
-    return res;
-}
-
-int func2(int i, int j, int k) {
-    int res = i+j+k;
-    return res;
-}
-
-
 // FOR PRINTING:
 int alloc_space(char *FX_NAME, unsigned int BASE_ADDR, unsigned int LAST_ADDR, int cpuid) {
     unsigned int ALLOC_AMOUNT = LAST_ADDR - BASE_ADDR;
