@@ -1255,6 +1255,7 @@ int audio_process(struct AudioFX *audioP) {
             printf("effect not implemented yet\n");
             break;
         }
+
         /*
         cycles = get_cpu_cycles() - cycles;
         printf("cpu cycles: %d\n", cycles);
@@ -1291,6 +1292,7 @@ int audio_process(struct AudioFX *audioP) {
                 audioOut(audioP, yP);
             }
         }
+
         break;
     case XgY:
         //RECEIVE ONCE

@@ -14,7 +14,7 @@ const int NOC_MASTER = 0;
 //how many cores take part in the audio system
 const int AUDIO_CORES = 3;
 
-/*
+
 //how many effects are on the system in total
 const int FX_AMOUNT = 6;
 // FX_ID | CORE | FX_TYPE | XB_SIZE | YB_SIZE | P (S) | IN_TYPE | OUT_TYPE | FROM_ID | TO_ID //
@@ -26,7 +26,7 @@ const int FX_SCHED[FX_AMOUNT][10] = {
     {4, 2, 0, 8, 8, 1, 1, 1,  1,  2},
     {5, 0, 0, 8, 8, 1, 1, 0,  2, -1}
 };
-*/
+/*
 //how many effects are on the system in total
 const int FX_AMOUNT = 5;
 // FX_ID | CORE | FX_TYPE | XB_SIZE | YB_SIZE | P (S) | IN_TYPE | OUT_TYPE | FROM_ID | TO_ID //
@@ -37,7 +37,7 @@ const int FX_SCHED[FX_AMOUNT][10] = {
     {3, 2, 0, 1, 8, 1, 1, 1,  1,  2},
     {4, 0, 0, 8, 8, 1, 1, 0,  2, -1}
 };
-
+*/
 void threadFunc(void* args) {
     volatile _UNCACHED int **inArgs = (volatile _UNCACHED int **) args;
     volatile _UNCACHED int *exitP      = inArgs[0];
@@ -317,7 +317,7 @@ int main() {
     int cpu_pnt = 0;
 
 
-    int wait_recv = 1; //amount of loops until audioOut is done
+    int wait_recv = 2; //amount of loops until audioOut is done
 
     while(*keyReg != 3) {
 
