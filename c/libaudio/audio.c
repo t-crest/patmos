@@ -1342,7 +1342,7 @@ int audio_process(struct AudioFX *audioP) {
         break;
     case XlY:
         //REPEAT RPR TIMES:
-        for(unsigned int j=0;j<*audioP->rpr; j++) {
+        for(unsigned int j=0; j<*audioP->rpr; j++) {
             //RECEIVE ONCE
             if(*audioP->in_con == NOC) { //receive from NoC
                 if(mp_recv((qpd_t *)*audioP->recvChanP, 5804) == 0) { // timeout ~256 samples

@@ -317,7 +317,7 @@ int main() {
     int cpu_pnt = 0;
 
 
-    int wait_recv = 2; //amount of loops until audioOut is done
+    int wait_recv = 1; //amount of loops until audioOut is done
 
     while(*keyReg != 3) {
 
