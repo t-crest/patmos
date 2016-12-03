@@ -175,16 +175,8 @@ struct AudioFX {
     */
 };
 
-
-//in/out
-void audioIn(struct AudioFX *audioP, volatile _SPM short *xP);
-void audioOut(struct AudioFX *audioP, volatile _SPM short *yP);
-//effects
-int audio_dry(struct AudioFX *audioP, volatile _SPM short *xP, volatile _SPM short *yP);
-int audio_dry_8samples(struct AudioFX *audioP, volatile _SPM short *xP, volatile _SPM short *yP);
-
-//for dry audio
-int alloc_dry_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_con, con_t out_con, unsigned int IN_SIZE, unsigned int OUT_SIZE, unsigned int P_AMOUNT, fst_t is_fst, lst_t is_lst);
+//audio FX SPM allocation
+int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_con, con_t out_con, unsigned int IN_SIZE, unsigned int OUT_SIZE, unsigned int P_AMOUNT, fst_t is_fst, lst_t is_lst);
 
 //same core:
 int audio_connect_same_core(struct AudioFX *srcP, struct AudioFX *dstP);
