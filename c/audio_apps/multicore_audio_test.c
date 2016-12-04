@@ -55,14 +55,14 @@ void threadFunc(void* args) {
     int cpuid = get_cpuid();
 
 
-    volatile _UNCACHED int **debugP = &inArgs[3 + DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*(cpuid-1)];
+    volatile _UNCACHED int *debugP = &inArgs[3 + DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*(cpuid-1)];
 
+    //index:[2][3]
     if(cpuid == 1) {
-        debugP[2][1] = 11;
+        *(debugP+DEBUG_LOOPLENGTH*3+2) = 45;
     }
-
     if(cpuid == 2) {
-        debugP[2][1] = 13;
+        *(debugP+DEBUG_LOOPLENGTH*3+2) = 13;
     }
 
 
@@ -192,14 +192,11 @@ int main() {
     threadFunc_args[0] = exitP;
     threadFunc_args[1] = allocsDoneP;
 
+    int debug1[DEBUG_ELEMENTS][DEBUG_LOOPLENGTH] = {0};
+    int debug2[DEBUG_ELEMENTS][DEBUG_LOOPLENGTH] = {0};
 
-    int debug0[DEBUG_LOOPLENGTH][DEBUG_ELEMENTS] = {0};
-    int debug1[DEBUG_LOOPLENGTH][DEBUG_ELEMENTS] = {0};
-    int debug2[DEBUG_LOOPLENGTH][DEBUG_ELEMENTS] = {0};
-
-    volatile _UNCACHED int **debugP  = (volatile _UNCACHED int **) &debug0[0][0];
-    volatile _UNCACHED int **debug1P = (volatile _UNCACHED int **) &debug1[0][0];
-    volatile _UNCACHED int **debug2P = (volatile _UNCACHED int **) &debug2[0][0];
+    volatile _UNCACHED int *debug1P = (volatile _UNCACHED int *) &debug1[0][0];
+    volatile _UNCACHED int *debug2P = (volatile _UNCACHED int *) &debug2[0][0];
     threadFunc_args[3] = (volatile _UNCACHED int *)debug1P;
     threadFunc_args[3+DEBUG_LOOPLENGTH*DEBUG_ELEMENTS] = (volatile _UNCACHED int *)debug2P;
 
@@ -215,6 +212,9 @@ int main() {
         corethread_create(&threads[i], &threadFunc, (void*) threadFunc_args);
         printf("Thread created on core %d\n", i+1);
     }
+
+    int debug0[DEBUG_ELEMENTS][DEBUG_LOOPLENGTH] = {0};
+    volatile _UNCACHED int *debugP = (volatile _UNCACHED int *) &debug0[0][0];
 
 
     #if GUITAR == 1
@@ -505,8 +505,8 @@ int main() {
         printf("thread %d finished!\n", (i+1));
     }
 
-    printf("DEBUG1[2][1] (0x%x) is %d\n", (unsigned int)&debug1P[2][1], debug1P[2][1]);
-    printf("DEBUG2[2][1] (0x%x) is %d\n", (unsigned int)&debug2P[2][1], debug2P[2][1]);
+    printf("DEBUG1[2][3]=%d, DEBUG1[3][2]=%d\n", debug1[2][3], debug1[3][2]);
+    printf("DEBUG2[2][3]=%d, DEBUG2[3][2]=%d\n", debug2[2][3], debug2[3][2]);
 
     return 0;
 }

@@ -1185,7 +1185,7 @@ int audio_send(struct AudioFX *audioP, volatile _SPM short *yP) {
 }
 
 //int audio_process(struct AudioFX *audioP) __attribute__((section("text.spm")));
-int audio_process(struct AudioFX *audioP, volatile _UNCACHED int **debugP) {
+int audio_process(struct AudioFX *audioP, volatile _UNCACHED int *debugP) {
     int retval = 0;
     /* ---------X and Y locations----------- */
     volatile _SPM short * xP;
