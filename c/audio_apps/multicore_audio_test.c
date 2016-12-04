@@ -9,6 +9,10 @@
 #include "libaudio/audio.h"
 #include "libaudio/audio.c"
 
+//DEBUG STUFF
+const int DEBUG_ELEMENTS = 2;
+const int DEBUG_LOOPLENGTH = 5;
+
 //master core
 const int NOC_MASTER = 0;
 //how many cores take part in the audio system
@@ -43,13 +47,24 @@ void threadFunc(void* args) {
     volatile _UNCACHED int *exitP      = inArgs[0];
     volatile _UNCACHED int *allocsDoneP = inArgs[1];
 
-    volatile _UNCACHED int *audioValuesP = inArgs[3];
 
     /*
       AUDIO STUFF HERE
     */
 
     int cpuid = get_cpuid();
+
+
+    volatile _UNCACHED int **debugP = &inArgs[3 + DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*(cpuid-1)];
+
+    if(cpuid == 1) {
+        debugP[2][1] = 11;
+    }
+
+    if(cpuid == 2) {
+        debugP[2][1] = 13;
+    }
+
 
     // -------------------ALLOCATE FX------------------//
 
@@ -138,13 +153,13 @@ void threadFunc(void* args) {
     int nocret = mp_init_ports();
 
     //loop
-    //for(int i=0; i<3; i++) {
-    audioValuesP[0] = 0;
-    while(*exitP == 0) {
+    //audioValuesP[0] = 0;
+    //while(*exitP == 0) {
+    for(int i=0; i<DEBUG_LOOPLENGTH; i++) {
 
         for(int n=0; n<FX_HERE; n++) {
-            if (audio_process(&FXp[n]) == 1) {
-                audioValuesP[0] = audioValuesP[0] + 1;
+            if (audio_process(&FXp[n], debugP) == 1) {
+                //timeout stuff here
             }
         }
 
@@ -173,13 +188,24 @@ int main() {
     int allocsDone[2] = {0, 0};
     volatile _UNCACHED int *exitP = (volatile _UNCACHED int *) &exit;
     volatile _UNCACHED int *allocsDoneP = (volatile _UNCACHED int *) &allocsDone;
-    volatile _UNCACHED int (*threadFunc_args[6]);
+    volatile _UNCACHED int (*threadFunc_args[3+DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*2]);
     threadFunc_args[0] = exitP;
     threadFunc_args[1] = allocsDoneP;
 
-    int audioValues[3] = {0, 0, 0};
-    volatile _UNCACHED int *audioValuesP = (volatile _UNCACHED int *) &audioValues[0];
-    threadFunc_args[3] = audioValuesP;
+
+    int debug0[DEBUG_LOOPLENGTH][DEBUG_ELEMENTS] = {0};
+    int debug1[DEBUG_LOOPLENGTH][DEBUG_ELEMENTS] = {0};
+    int debug2[DEBUG_LOOPLENGTH][DEBUG_ELEMENTS] = {0};
+
+    volatile _UNCACHED int **debugP  = (volatile _UNCACHED int **) &debug0[0][0];
+    volatile _UNCACHED int **debug1P = (volatile _UNCACHED int **) &debug1[0][0];
+    volatile _UNCACHED int **debug2P = (volatile _UNCACHED int **) &debug2[0][0];
+    threadFunc_args[3] = (volatile _UNCACHED int *)debug1P;
+    threadFunc_args[3+DEBUG_LOOPLENGTH*DEBUG_ELEMENTS] = (volatile _UNCACHED int *)debug2P;
+
+    printf("debug1P[0]=0x%x, threadFunc_args=0x%x\n", (unsigned int)debug1P, (unsigned int)threadFunc_args[3]);
+    printf("debug2P[0]=0x%x, threadFunc_args=0x%x\n", (unsigned int)debug2P, (unsigned int)threadFunc_args[3+DEBUG_LOOPLENGTH*DEBUG_ELEMENTS]);
+
 
     printf("starting thread and NoC channels...\n");
     //set thread function and start thread
@@ -313,20 +339,21 @@ int main() {
 
 
     //CPU cycles stuff
-    int CPUcycles[1000] = {0};
-    int cpu_pnt = 0;
+    //int CPUcycles[1000] = {0};
+    //int cpu_pnt = 0;
 
 
     int wait_recv = 2; //amount of loops until audioOut is done
 
-    while(*keyReg != 3) {
+    //while(*keyReg != 3) {
+    for(int i=0; i<DEBUG_LOOPLENGTH; i++) {
 
         for(int n=0; n<FX_HERE; n++) {
             //process
             //int cycles = get_cpu_cycles();
 
             if( (*FXp[n].is_lst == NO_LAST) || (wait_recv == 0) ) {
-                audio_process(&FXp[n]);
+                audio_process(&FXp[n], debugP);
             }
             else {
                 wait_recv--;
@@ -427,7 +454,7 @@ int main() {
 
 
 
-
+        /*
         //store CPU Cycles
         CPUcycles[cpu_pnt] = get_cpu_cycles();
         cpu_pnt++;
@@ -435,15 +462,9 @@ int main() {
             //break;
             cpu_pnt = 0;
         }
-
+        */
 
     }
-
-    /*
-    for(int i=0; i<3; i++) {
-        printf("received @ %d: %d, %d\n", i, (short)(audioValuesP[i] & 0xFFFF), (short)( (audioValuesP[i] & 0xFFFF0000) >> 16 ));
-    }
-    */
 
 
     /*
@@ -471,11 +492,11 @@ int main() {
     exit = 1;
     printf("waiting for all threads to finish...\n");
 
-
+    /*
     for(int i=1; i<1000; i++) {
         printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
-
+    */
 
     //join with thread 1
     int *retval;
@@ -483,7 +504,9 @@ int main() {
         corethread_join(threads[i], (void **)&retval);
         printf("thread %d finished!\n", (i+1));
     }
-    printf("all threads: timeout amounts: %d\n", audioValuesP[0]);
+
+    printf("DEBUG1[2][1] (0x%x) is %d\n", (unsigned int)&debug1P[2][1], debug1P[2][1]);
+    printf("DEBUG2[2][1] (0x%x) is %d\n", (unsigned int)&debug2P[2][1], debug2P[2][1]);
 
     return 0;
 }
