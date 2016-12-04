@@ -55,16 +55,16 @@ void threadFunc(void* args) {
     int cpuid = get_cpuid();
 
 
-    volatile _UNCACHED int *debugP = &inArgs[3 + DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*(cpuid-1)];
+    volatile _UNCACHED int *sendsP = inArgs[3 + DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*((cpuid-1)*3)];
+    volatile _UNCACHED int *recvsP = inArgs[3 + DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*((cpuid-1)*3+1)];
+    volatile _UNCACHED int *acksP = inArgs[3 + DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*((cpuid-1)*3+2)];
 
-    //index:[2][3]
-    if(cpuid == 1) {
-        *(debugP+DEBUG_LOOPLENGTH*3+2) = 45;
-    }
-    if(cpuid == 2) {
-        *(debugP+DEBUG_LOOPLENGTH*3+2) = 13;
-    }
-
+    /*
+    //index:[3][1]
+    *(sendsP+DEBUG_ELEMENTS*3+1) = 22*cpuid;
+    *(recvsP+DEBUG_ELEMENTS*3+1) = 33*cpuid;
+    *(acksP+DEBUG_ELEMENTS*3+1) = 44*cpuid;
+    */
 
     // -------------------ALLOCATE FX------------------//
 
@@ -158,7 +158,7 @@ void threadFunc(void* args) {
     for(int i=0; i<DEBUG_LOOPLENGTH; i++) {
 
         for(int n=0; n<FX_HERE; n++) {
-            if (audio_process(&FXp[n], debugP) == 1) {
+            if (audio_process(&FXp[n], (sendsP+DEBUG_ELEMENTS*i), (recvsP+DEBUG_ELEMENTS*i), (acksP+DEBUG_ELEMENTS*i)) == 1) {
                 //timeout stuff here
             }
         }
@@ -188,20 +188,29 @@ int main() {
     int allocsDone[2] = {0, 0};
     volatile _UNCACHED int *exitP = (volatile _UNCACHED int *) &exit;
     volatile _UNCACHED int *allocsDoneP = (volatile _UNCACHED int *) &allocsDone;
-    volatile _UNCACHED int (*threadFunc_args[3+DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*2]);
+    volatile _UNCACHED int (*threadFunc_args[3+DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*2*3]);
     threadFunc_args[0] = exitP;
     threadFunc_args[1] = allocsDoneP;
 
-    int debug1[DEBUG_ELEMENTS][DEBUG_LOOPLENGTH] = {0};
-    int debug2[DEBUG_ELEMENTS][DEBUG_LOOPLENGTH] = {0};
+    int sends1[DEBUG_LOOPLENGTH][DEBUG_ELEMENTS] = {0};
+    int recvs1[DEBUG_LOOPLENGTH][DEBUG_ELEMENTS] = {0};
+    int acks1[DEBUG_LOOPLENGTH][DEBUG_ELEMENTS] = {0};
+    int sends2[DEBUG_LOOPLENGTH][DEBUG_ELEMENTS] = {0};
+    int recvs2[DEBUG_LOOPLENGTH][DEBUG_ELEMENTS] = {0};
+    int acks2[DEBUG_LOOPLENGTH][DEBUG_ELEMENTS] = {0};
 
-    volatile _UNCACHED int *debug1P = (volatile _UNCACHED int *) &debug1[0][0];
-    volatile _UNCACHED int *debug2P = (volatile _UNCACHED int *) &debug2[0][0];
-    threadFunc_args[3] = (volatile _UNCACHED int *)debug1P;
-    threadFunc_args[3+DEBUG_LOOPLENGTH*DEBUG_ELEMENTS] = (volatile _UNCACHED int *)debug2P;
-
-    printf("debug1P[0]=0x%x, threadFunc_args=0x%x\n", (unsigned int)debug1P, (unsigned int)threadFunc_args[3]);
-    printf("debug2P[0]=0x%x, threadFunc_args=0x%x\n", (unsigned int)debug2P, (unsigned int)threadFunc_args[3+DEBUG_LOOPLENGTH*DEBUG_ELEMENTS]);
+    volatile _UNCACHED int *sends1P = (volatile _UNCACHED int *) &sends1[0][0];
+    volatile _UNCACHED int *recvs1P = (volatile _UNCACHED int *) &recvs1[0][0];
+    volatile _UNCACHED int *acks1P = (volatile _UNCACHED int *) &acks1[0][0];
+    volatile _UNCACHED int *sends2P = (volatile _UNCACHED int *) &sends2[0][0];
+    volatile _UNCACHED int *recvs2P = (volatile _UNCACHED int *) &recvs2[0][0];
+    volatile _UNCACHED int *acks2P = (volatile _UNCACHED int *) &acks2[0][0];
+    threadFunc_args[3] = (volatile _UNCACHED int *)sends1P;
+    threadFunc_args[3+DEBUG_LOOPLENGTH*DEBUG_ELEMENTS] = (volatile _UNCACHED int *)recvs1P;
+    threadFunc_args[3+DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*2] = (volatile _UNCACHED int *)acks1P;
+    threadFunc_args[3+DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*3] = (volatile _UNCACHED int *)sends2P;
+    threadFunc_args[3+DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*4] = (volatile _UNCACHED int *)recvs2P;
+    threadFunc_args[3+DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*5] = (volatile _UNCACHED int *)acks2P;
 
 
     printf("starting thread and NoC channels...\n");
@@ -213,8 +222,12 @@ int main() {
         printf("Thread created on core %d\n", i+1);
     }
 
-    int debug0[DEBUG_ELEMENTS][DEBUG_LOOPLENGTH] = {0};
-    volatile _UNCACHED int *debugP = (volatile _UNCACHED int *) &debug0[0][0];
+    int sends0[DEBUG_LOOPLENGTH][DEBUG_ELEMENTS] = {0};
+    int recvs0[DEBUG_LOOPLENGTH][DEBUG_ELEMENTS] = {0};
+    int acks0[DEBUG_LOOPLENGTH][DEBUG_ELEMENTS] = {0};
+    volatile _UNCACHED int *sendsP = (volatile _UNCACHED int *) &sends0[0][0];
+    volatile _UNCACHED int *recvsP = (volatile _UNCACHED int *) &recvs0[0][0];
+    volatile _UNCACHED int *acksP = (volatile _UNCACHED int *) &acks0[0][0];
 
 
     #if GUITAR == 1
@@ -353,7 +366,7 @@ int main() {
             //int cycles = get_cpu_cycles();
 
             if( (*FXp[n].is_lst == NO_LAST) || (wait_recv == 0) ) {
-                audio_process(&FXp[n], debugP);
+                audio_process(&FXp[n], (sendsP+DEBUG_ELEMENTS*i), (recvsP+DEBUG_ELEMENTS*i), (acksP+DEBUG_ELEMENTS*i));
             }
             else {
                 wait_recv--;
@@ -505,8 +518,23 @@ int main() {
         printf("thread %d finished!\n", (i+1));
     }
 
-    printf("DEBUG1[2][3]=%d, DEBUG1[3][2]=%d\n", debug1[2][3], debug1[3][2]);
-    printf("DEBUG2[2][3]=%d, DEBUG2[3][2]=%d\n", debug2[2][3], debug2[3][2]);
+    /*
+    printf("SENDS1[3][1]=%d, RECVS1[3][1]=%d, ACKS1[3][1]=%d\n", sends1[3][1], recvs1[3][1], acks1[3][1]);
+    printf("SENDS2[3][1]=%d, RECVS2[3][1]=%d, ACKS2[3][1]=%d\n", sends2[3][1], recvs2[3][1], acks2[3][1]);
+    */
+
+    for(int i=0; i<DEBUG_LOOPLENGTH; i++) {
+        printf("@ TIME %u: i=%d: core 0 sent   %d times\n", sends0[i][0], i, sends0[i][1]);
+        printf("@ TIME %u: i=%d: core 0 recved %d times\n", recvs0[i][0], i, recvs0[i][1]);
+        printf("@ TIME %u: i=%d: core 0 acked  %d times\n", acks0[i][0], i, acks0[i][1]);
+        printf("@ TIME %u: i=%d: core 1 recved %d times\n", recvs1[i][0], i, recvs1[i][1]);
+        printf("@ TIME %u: i=%d: core 1 acked  %d times\n", acks1[i][0], i, acks1[i][1]);
+        printf("@ TIME %u: i=%d: core 1 sent   %d times\n", sends1[i][0], i, sends1[i][1]);
+        printf("@ TIME %u: i=%d: core 2 recved %d times\n", recvs2[i][0], i, recvs2[i][1]);
+        printf("@ TIME %u: i=%d: core 2 acked  %d times\n", acks2[i][0], i, acks2[i][1]);
+        printf("@ TIME %u: i=%d: core 2 sent   %d times\n", sends2[i][0], i, sends2[i][1]);
+        printf("\n");
+    }
 
     return 0;
 }
