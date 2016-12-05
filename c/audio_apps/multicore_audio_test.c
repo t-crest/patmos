@@ -12,13 +12,14 @@
 //DEBUG STUFF
 const int DEBUG_ELEMENTS = 2;
 const int DEBUG_LOOPLENGTH = 5;
+const int PARAM_AMOUNT = 5;
 
 //master core
 const int NOC_MASTER = 0;
+
+/*
 //how many cores take part in the audio system
 const int AUDIO_CORES = 3;
-
-
 //how many effects are on the system in total
 const int FX_AMOUNT = 6;
 // FX_ID | CORE | FX_TYPE | XB_SIZE | YB_SIZE | P (S) | IN_TYPE | OUT_TYPE | FROM_ID | TO_ID //
@@ -30,7 +31,10 @@ const int FX_SCHED[FX_AMOUNT][10] = {
     {4, 2, 0, 8, 8, 1, 1, 1,  1,  2},
     {5, 0, 0, 8, 8, 1, 1, 0,  2, -1}
 };
-/*
+*/
+
+//how many cores take part in the audio system
+const int AUDIO_CORES = 3;
 //how many effects are on the system in total
 const int FX_AMOUNT = 5;
 // FX_ID | CORE | FX_TYPE | XB_SIZE | YB_SIZE | P (S) | IN_TYPE | OUT_TYPE | FROM_ID | TO_ID //
@@ -41,7 +45,23 @@ const int FX_SCHED[FX_AMOUNT][10] = {
     {3, 2, 0, 1, 8, 1, 1, 1,  1,  2},
     {4, 0, 0, 8, 8, 1, 1, 0,  2, -1}
 };
+
+/*
+//how many cores take part in the audio system
+const int AUDIO_CORES = 4;
+//how many effects are on the system in total
+const int FX_AMOUNT = 5;
+// FX_ID | CORE | FX_TYPE | XB_SIZE | YB_SIZE | P (S) | IN_TYPE | OUT_TYPE | FROM_ID | TO_ID //
+const int FX_SCHED[FX_AMOUNT][10] = {
+    {0, 0, 0, 1, 1, 1, 0, 1, -1,  0},
+    {1, 1, 0, 1, 8, 1, 1, 1,  0,  1},
+    {2, 2, 1, 8, 8, 8, 1, 1,  1,  2},
+    {3, 3, 0, 8, 1, 1, 1, 1,  2,  3},
+    {4, 0, 0, 1, 1, 1, 1, 0,  3, -1}
+};
 */
+
+
 void threadFunc(void* args) {
     volatile _UNCACHED int **inArgs = (volatile _UNCACHED int **) args;
     volatile _UNCACHED int *exitP      = inArgs[0];
@@ -58,6 +78,8 @@ void threadFunc(void* args) {
     volatile _UNCACHED int *sendsP = inArgs[3 + DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*((cpuid-1)*3)];
     volatile _UNCACHED int *recvsP = inArgs[3 + DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*((cpuid-1)*3+1)];
     volatile _UNCACHED int *acksP = inArgs[3 + DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*((cpuid-1)*3+2)];
+
+    volatile _UNCACHED int *paramsP = inArgs[3 + DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*9 + ((cpuid-1)*PARAM_AMOUNT)];
 
     /*
     //index:[3][1]
@@ -116,6 +138,15 @@ void threadFunc(void* args) {
         }
     }
 
+    //params debugging
+    /*
+    paramsP[0] = *FXp[0].in_con;
+    paramsP[1] = *FXp[0].out_con;
+    paramsP[2] = *FXp[0].fx_id;
+    paramsP[3] = *FXp[0].is_fst;
+    paramsP[4] = *FXp[0].is_lst;
+    */
+
     //CONNECT EFFECTS
     for(int n=0; n<FX_HERE; n++) {
         // same core
@@ -152,10 +183,26 @@ void threadFunc(void* args) {
     // Initialize the communication channels
     int nocret = mp_init_ports();
 
+
+    paramsP[0] = *FXp[0].xb_size;
+    paramsP[1] = *FXp[0].yb_size;
+    paramsP[2] = *FXp[0].fx;
+    paramsP[3] = ((qpd_t *)*FXp[0].recvChanP)->buf_size;
+    paramsP[4] = ((qpd_t *)*FXp[0].sendChanP)->buf_size;
+
     //loop
     //audioValuesP[0] = 0;
     //while(*exitP == 0) {
+    //int i=0;
     for(int i=0; i<DEBUG_LOOPLENGTH; i++) {
+
+
+        for(int j=0; j<DEBUG_ELEMENTS; j++) {
+            *(sendsP+DEBUG_ELEMENTS*i+j) = 0;
+            *(recvsP+DEBUG_ELEMENTS*i+j) = 0;
+            *(acksP+DEBUG_ELEMENTS*i+j) = 0;
+        }
+
 
         for(int n=0; n<FX_HERE; n++) {
             if (audio_process(&FXp[n], (sendsP+DEBUG_ELEMENTS*i), (recvsP+DEBUG_ELEMENTS*i), (acksP+DEBUG_ELEMENTS*i)) == 1) {
@@ -188,7 +235,7 @@ int main() {
     int allocsDone[2] = {0, 0};
     volatile _UNCACHED int *exitP = (volatile _UNCACHED int *) &exit;
     volatile _UNCACHED int *allocsDoneP = (volatile _UNCACHED int *) &allocsDone;
-    volatile _UNCACHED int (*threadFunc_args[3+DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*2*3]);
+    volatile _UNCACHED int (*threadFunc_args[3 + DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*3*3 + 3*PARAM_AMOUNT]);
     threadFunc_args[0] = exitP;
     threadFunc_args[1] = allocsDoneP;
 
@@ -198,6 +245,13 @@ int main() {
     int sends2[DEBUG_LOOPLENGTH][DEBUG_ELEMENTS] = {0};
     int recvs2[DEBUG_LOOPLENGTH][DEBUG_ELEMENTS] = {0};
     int acks2[DEBUG_LOOPLENGTH][DEBUG_ELEMENTS] = {0};
+    int sends3[DEBUG_LOOPLENGTH][DEBUG_ELEMENTS] = {0};
+    int recvs3[DEBUG_LOOPLENGTH][DEBUG_ELEMENTS] = {0};
+    int acks3[DEBUG_LOOPLENGTH][DEBUG_ELEMENTS] = {0};
+
+    int params1[PARAM_AMOUNT] = {0};
+    int params2[PARAM_AMOUNT] = {0};
+    int params3[PARAM_AMOUNT] = {0};
 
     volatile _UNCACHED int *sends1P = (volatile _UNCACHED int *) &sends1[0][0];
     volatile _UNCACHED int *recvs1P = (volatile _UNCACHED int *) &recvs1[0][0];
@@ -205,12 +259,27 @@ int main() {
     volatile _UNCACHED int *sends2P = (volatile _UNCACHED int *) &sends2[0][0];
     volatile _UNCACHED int *recvs2P = (volatile _UNCACHED int *) &recvs2[0][0];
     volatile _UNCACHED int *acks2P = (volatile _UNCACHED int *) &acks2[0][0];
+    volatile _UNCACHED int *sends3P = (volatile _UNCACHED int *) &sends3[0][0];
+    volatile _UNCACHED int *recvs3P = (volatile _UNCACHED int *) &recvs3[0][0];
+    volatile _UNCACHED int *acks3P = (volatile _UNCACHED int *) &acks3[0][0];
+
+    volatile _UNCACHED int *params1P = (volatile _UNCACHED int *) &params1[0];
+    volatile _UNCACHED int *params2P = (volatile _UNCACHED int *) &params2[0];
+    volatile _UNCACHED int *params3P = (volatile _UNCACHED int *) &params3[0];
+
     threadFunc_args[3] = (volatile _UNCACHED int *)sends1P;
     threadFunc_args[3+DEBUG_LOOPLENGTH*DEBUG_ELEMENTS] = (volatile _UNCACHED int *)recvs1P;
     threadFunc_args[3+DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*2] = (volatile _UNCACHED int *)acks1P;
     threadFunc_args[3+DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*3] = (volatile _UNCACHED int *)sends2P;
     threadFunc_args[3+DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*4] = (volatile _UNCACHED int *)recvs2P;
     threadFunc_args[3+DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*5] = (volatile _UNCACHED int *)acks2P;
+    threadFunc_args[3+DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*6] = (volatile _UNCACHED int *)sends3P;
+    threadFunc_args[3+DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*7] = (volatile _UNCACHED int *)recvs3P;
+    threadFunc_args[3+DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*8] = (volatile _UNCACHED int *)acks3P;
+
+    threadFunc_args[3+DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*9] = (volatile _UNCACHED int *)params1P;
+    threadFunc_args[3+DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*9+PARAM_AMOUNT] = (volatile _UNCACHED int *)params2P;
+    threadFunc_args[3+DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*9+PARAM_AMOUNT*2] = (volatile _UNCACHED int *)params3P;
 
 
     printf("starting thread and NoC channels...\n");
@@ -358,8 +427,20 @@ int main() {
 
     int wait_recv = 2; //amount of loops until audioOut is done
 
+
+    //int i=0;
     //while(*keyReg != 3) {
+    //i++;
     for(int i=0; i<DEBUG_LOOPLENGTH; i++) {
+
+
+        printf("@ loop %d\n", i);
+
+        //init
+        sends0[i][0] = 0;
+        recvs0[i][0] = 0;
+        acks0[i][0] = 0;
+
 
         for(int n=0; n<FX_HERE; n++) {
             //process
@@ -512,29 +593,140 @@ int main() {
     */
 
     //join with thread 1
+
     int *retval;
     for(int i=0; i<(AUDIO_CORES-1); i++) {
         corethread_join(threads[i], (void **)&retval);
         printf("thread %d finished!\n", (i+1));
     }
 
-    /*
-    printf("SENDS1[3][1]=%d, RECVS1[3][1]=%d, ACKS1[3][1]=%d\n", sends1[3][1], recvs1[3][1], acks1[3][1]);
-    printf("SENDS2[3][1]=%d, RECVS2[3][1]=%d, ACKS2[3][1]=%d\n", sends2[3][1], recvs2[3][1], acks2[3][1]);
-    */
+
+    printf("\n\n\n");
 
     for(int i=0; i<DEBUG_LOOPLENGTH; i++) {
-        printf("@ TIME %u: i=%d: core 0 sent   %d times\n", sends0[i][0], i, sends0[i][1]);
-        printf("@ TIME %u: i=%d: core 0 recved %d times\n", recvs0[i][0], i, recvs0[i][1]);
-        printf("@ TIME %u: i=%d: core 0 acked  %d times\n", acks0[i][0], i, acks0[i][1]);
-        printf("@ TIME %u: i=%d: core 1 recved %d times\n", recvs1[i][0], i, recvs1[i][1]);
-        printf("@ TIME %u: i=%d: core 1 acked  %d times\n", acks1[i][0], i, acks1[i][1]);
-        printf("@ TIME %u: i=%d: core 1 sent   %d times\n", sends1[i][0], i, sends1[i][1]);
-        printf("@ TIME %u: i=%d: core 2 recved %d times\n", recvs2[i][0], i, recvs2[i][1]);
-        printf("@ TIME %u: i=%d: core 2 acked  %d times\n", acks2[i][0], i, acks2[i][1]);
-        printf("@ TIME %u: i=%d: core 2 sent   %d times\n", sends2[i][0], i, sends2[i][1]);
+        printf("@ TIME %u: i=%d: core 0 recved %d times\n", recvs0[i][1], i, recvs0[i][0]);
+        printf("@ TIME %u: i=%d: core 0 acked  %d times\n", acks0[i][1], i, acks0[i][0]);
+        printf("@ TIME %u: i=%d: core 0 sent   %d times\n", sends0[i][1], i, sends0[i][0]);
+        printf("@ TIME %u: i=%d: core 1 recved %d times\n", recvs1[i][1], i, recvs1[i][0]);
+        printf("@ TIME %u: i=%d: core 1 acked  %d times\n", acks1[i][1], i, acks1[i][0]);
+        printf("@ TIME %u: i=%d: core 1 sent   %d times\n", sends1[i][1], i, sends1[i][0]);
+        printf("@ TIME %u: i=%d: core 2 recved %d times\n", recvs2[i][1], i, recvs2[i][0]);
+        printf("@ TIME %u: i=%d: core 2 acked  %d times\n", acks2[i][1], i, acks2[i][0]);
+        printf("@ TIME %u: i=%d: core 2 sent   %d times\n", sends2[i][1], i, sends2[i][0]);
+        printf("@ TIME %u: i=%d: core 3 recved %d times\n", recvs3[i][1], i, recvs3[i][0]);
+        printf("@ TIME %u: i=%d: core 3 acked  %d times\n", acks3[i][1], i, acks3[i][0]);
+        printf("@ TIME %u: i=%d: core 3 sent   %d times\n", sends3[i][1], i, sends3[i][0]);
         printf("\n");
     }
+
+
+
+    //SORTING
+    int stepsArray[DEBUG_LOOPLENGTH*3*4][DEBUG_ELEMENTS+3];
+    for(int i=0; i<DEBUG_LOOPLENGTH; i++) { // iterations
+        for(int j=0; j<DEBUG_ELEMENTS; j++) { //exec times and cpu times
+            //core 0
+            stepsArray[0*DEBUG_LOOPLENGTH+i][j] = recvs0[i][j];
+            stepsArray[1*DEBUG_LOOPLENGTH+i][j] = acks0[i][j];
+            stepsArray[2*DEBUG_LOOPLENGTH+i][j] = sends0[i][j];
+            //core 1
+            stepsArray[3*DEBUG_LOOPLENGTH+i][j] = recvs1[i][j];
+            stepsArray[4*DEBUG_LOOPLENGTH+i][j] = acks1[i][j];
+            stepsArray[5*DEBUG_LOOPLENGTH+i][j] = sends1[i][j];
+            //core 2
+            stepsArray[6*DEBUG_LOOPLENGTH+i][j] = recvs2[i][j];
+            stepsArray[7*DEBUG_LOOPLENGTH+i][j] = acks2[i][j];
+            stepsArray[8*DEBUG_LOOPLENGTH+i][j] = sends2[i][j];
+            //core 3
+            stepsArray[9*DEBUG_LOOPLENGTH+i][j] = recvs3[i][j];
+            stepsArray[10*DEBUG_LOOPLENGTH+i][j] = acks3[i][j];
+            stepsArray[11*DEBUG_LOOPLENGTH+i][j] = sends3[i][j];
+
+        }
+        //core 0
+        stepsArray[0*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS]   = i;
+        stepsArray[0*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS+1] = 0; //core 0
+        stepsArray[0*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS+2] = 0; //type: recv
+        stepsArray[1*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS]   = i;
+        stepsArray[1*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS+1] = 0; //core 0
+        stepsArray[1*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS+2] = 1; //type: ack
+        stepsArray[2*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS]   = i;
+        stepsArray[2*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS+1] = 0; //core 0
+        stepsArray[2*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS+2] = 2; //type: send
+        //core 1
+        stepsArray[3*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS]   = i;
+        stepsArray[3*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS+1] = 1; //core 1
+        stepsArray[3*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS+2] = 0; //type: recv
+        stepsArray[4*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS]   = i;
+        stepsArray[4*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS+1] = 1; //core 1
+        stepsArray[4*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS+2] = 1; //type: ack
+        stepsArray[5*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS]   = i;
+        stepsArray[5*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS+1] = 1; //core 1
+        stepsArray[5*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS+2] = 2; //type: send
+        //core 2
+        stepsArray[6*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS]   = i;
+        stepsArray[6*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS+1] = 2; //core 2
+        stepsArray[6*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS+2] = 0; //type: recv
+        stepsArray[7*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS]   = i;
+        stepsArray[7*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS+1] = 2; //core 2
+        stepsArray[7*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS+2] = 1; //type: ack
+        stepsArray[8*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS]   = i;
+        stepsArray[8*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS+1] = 2; //core 2
+        stepsArray[8*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS+2] = 2; //type: send
+        //core 2
+        stepsArray[9*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS]   = i;
+        stepsArray[9*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS+1] = 3; //core 3
+        stepsArray[9*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS+2] = 0; //type: recv
+        stepsArray[10*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS]   = i;
+        stepsArray[10*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS+1] = 3; //core 3
+        stepsArray[10*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS+2] = 1; //type: ack
+        stepsArray[11*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS]   = i;
+        stepsArray[11*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS+1] = 3; //core 3
+        stepsArray[11*DEBUG_LOOPLENGTH+i][DEBUG_ELEMENTS+2] = 2; //type: send
+    }
+
+    //SORTING
+    int swap[DEBUG_ELEMENTS+3];
+    for (int c = 0 ; c < ( DEBUG_LOOPLENGTH*3*4 - 1 ); c++) {
+        for (int d = 0 ; d < DEBUG_LOOPLENGTH*3*4 - c - 1; d++) {
+            if (stepsArray[d][1] > stepsArray[d+1][1]) {
+                for(int i=0; i<DEBUG_ELEMENTS+3; i++) {
+                    swap[i] = stepsArray[d][i];
+                    stepsArray[d][i]   = stepsArray[d+1][i];
+                    stepsArray[d+1][i] = swap[i];
+                }
+            }
+        }
+    }
+
+
+
+    printf("\n\n\n");
+
+    for(int i=0; i<(DEBUG_LOOPLENGTH*3*4); i++) {
+        if(stepsArray[i][1] != 0) {
+            switch (stepsArray[i][4]) {
+            case 0:
+                printf("t=%u: i=%d: core=%d recved %d times\n", stepsArray[i][1], stepsArray[i][2], stepsArray[i][3], stepsArray[i][0]);
+                break;
+            case 1:
+                printf("t=%u: i=%d: core=%d acked  %d times\n", stepsArray[i][1], stepsArray[i][2], stepsArray[i][3], stepsArray[i][0]);
+                break;
+            case 2:
+                printf("t=%u: i=%d: core=%d sent   %d times\n", stepsArray[i][1], stepsArray[i][2], stepsArray[i][3], stepsArray[i][0]);
+                break;
+            }
+        }
+    }
+
+
+    //params debugging
+    printf("core 1: %d, %d, %d, %d, %d\n", params1[0], params1[1], params1[2], params1[3], params1[4]);
+    printf("core 2: %d, %d, %d, %d, %d\n", params2[0], params2[1], params2[2], params2[3], params2[4]);
+    printf("core 3: %d, %d, %d, %d, %d\n", params3[0], params3[1], params3[2], params3[3], params3[4]);
+
+    printf("FXp[0], send buffer size: %d\n", ((qpd_t *)*FXp[0].sendChanP)->buf_size);
+    printf("FXp[1], recv buffer size: %d\n", ((qpd_t *)*FXp[1].recvChanP)->buf_size);
 
     return 0;
 }
