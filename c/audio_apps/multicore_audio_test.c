@@ -9,6 +9,8 @@
 #include "libaudio/audio.h"
 #include "libaudio/audio.c"
 
+const int LIM = 1200;
+
 //master core
 const int NOC_MASTER = 0;
 
@@ -68,15 +70,6 @@ void threadFunc(void* args) {
     */
 
     int cpuid = get_cpuid();
-
-    volatile _UNCACHED int *dataP = inArgs[1+AUDIO_CORES];
-
-    /*
-    //index:[3][1]
-    *(sendsP+DEBUG_ELEMENTS*3+1) = 22*cpuid;
-    *(recvsP+DEBUG_ELEMENTS*3+1) = 33*cpuid;
-    *(acksP+DEBUG_ELEMENTS*3+1) = 44*cpuid;
-    */
 
     // -------------------ALLOCATE FX------------------//
 
@@ -167,13 +160,12 @@ void threadFunc(void* args) {
     //loop
     //audioValuesP[0] = 0;
     //int i=0;
-    //while(*exitP == 0) {
+    while(*exitP == 0) {
     //i++;
-    for(int i=0; i<DEBUG_LOOPLENGTH; i++) {
-
+    //for(int i=0; i<DEBUG_LOOPLENGTH; i++) {
 
         for(int n=0; n<FX_HERE; n++) {
-            if (audio_process(&FXp[n], (dataP+DEBUG_ELEMENTS*8*i)) == 1) {
+            if (audio_process(&FXp[n]) == 1) {
                 //timeout stuff here
             }
         }
@@ -196,17 +188,9 @@ int main() {
     int allocsDone[AUDIO_CORES] = {0};
     volatile _UNCACHED int *exitP = (volatile _UNCACHED int *) &exit;
     volatile _UNCACHED int *allocsDoneP = (volatile _UNCACHED int *) &allocsDone;
-    volatile _UNCACHED int (*threadFunc_args[1+AUDIO_CORES + DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*8]);
+    volatile _UNCACHED int (*threadFunc_args[1+AUDIO_CORES]);
     threadFunc_args[0] = exitP;
     threadFunc_args[1] = allocsDoneP;
-
-    int data1[DEBUG_LOOPLENGTH][8][DEBUG_ELEMENTS] = {0};
-
-    volatile _UNCACHED int *data1P = (volatile _UNCACHED int *) &data1[0][0][0];
-
-    threadFunc_args[1+AUDIO_CORES] = (volatile _UNCACHED int *)data1P;
-
-    //threadFunc_args[3+DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*2] = (volatile _UNCACHED int *)acks1P;
 
     printf("starting thread and NoC channels...\n");
     //set thread function and start thread
@@ -216,11 +200,6 @@ int main() {
         corethread_create(&threads[i], &threadFunc, (void*) threadFunc_args);
         printf("Thread created on core %d\n", i+1);
     }
-
-    int data0/*[DEBUG_LOOPLENGTH]*/[8][DEBUG_ELEMENTS] = {0};
-
-    volatile _UNCACHED int *dataP = (volatile _UNCACHED int *) &data0[0][0];
-
 
     #if GUITAR == 1
     setup(1); //for guitar
@@ -343,48 +322,43 @@ int main() {
 
 
     //CPU cycles stuff
-    //int CPUcycles[1000] = {0};
-    //int cpu_pnt = 0;
+    int CPUcycles[LIM] = {0};
+    unsigned int cpu_pnt = 0;
 
 
     int wait_recv = 18; //amount of loops until audioOut is done
 
-
-    //int i=0;
-    //while(*keyReg != 3) {
-    //i++;
-    short audio_stor[19] = {0};
-    for(int i=0; i<(DEBUG_LOOPLENGTH*8); i++) {
+    //short audio_in[LIM][2] = {0};
+    //short audio_out[LIM][2] = {0};
+    while(*keyReg != 3) {
 
         for(int n=0; n<FX_HERE; n++) {
             if( (*FXp[n].is_lst == NO_LAST) || (wait_recv == 0) ) {
-                audio_process(&FXp[n], (dataP+DEBUG_ELEMENTS*8*i));
+                audio_process(&FXp[n]);
+                /*
                 if(n==0) {
-                    //printf("%d: input: %d\n", i, FXp[n].x[0]);
-                    audio_stor[i%19] = FXp[n].x[0];
+                    audio_in[cpu_pnt][0] = FXp[n].x[0];
+                    audio_in[cpu_pnt][1] = FXp[n].x[1];
                 }
                 if(n==1) {
-                    printf("%d: output: %d (in: %d)\n", i, FXp[n].y[0], audio_stor[(i-18)%19]);
-                    if(FXp[n].y[0] != audio_stor[(i-18)%19]) {
-                        printf("___________INCORRECT__________\n");
-                    }
+                    audio_out[cpu_pnt-18][0] = FXp[n].y[0];
+                    audio_out[cpu_pnt-18][1] = FXp[n].y[1];
                 }
+                */
             }
             else {
                 wait_recv--;
             }
         }
 
-
-        /*
         //store CPU Cycles
         CPUcycles[cpu_pnt] = get_cpu_cycles();
         cpu_pnt++;
-        if(cpu_pnt == 1000) {
-            //break;
+        if(cpu_pnt == LIM) {
+            break;
             cpu_pnt = 0;
         }
-        */
+
 
     }
 
@@ -393,9 +367,18 @@ int main() {
     exit = 1;
     printf("waiting for all threads to finish...\n");
 
-    /*
-    for(int i=1; i<1000; i++) {
+
+    for(int i=1; i<LIM; i++) {
         printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
+    }
+
+
+    /*
+    for(int i=0; i<(LIM-18); i++) {
+        if( (audio_in[i][0] != audio_out[i][0]) || (audio_in[i][1] != audio_out[i][1]) ){
+            printf("CORRUPT: i=%d: x[0]=%d, y[0]=%d   :   x[1]=%d, y[1]=%d\n", i, audio_in[i][0], audio_out[i][0], audio_in[i][1], audio_out[i][1]);
+        }
+
     }
     */
 
@@ -406,15 +389,6 @@ int main() {
         corethread_join(threads[i], (void **)&retval);
         printf("thread %d finished!\n", (i+1));
     }
-
-    /*
-    for(int n=0; n<DEBUG_LOOPLENGTH; n++) {
-        printf("\nLOOP n:\n");
-        for(int i=0; i<8; i++) {
-            printf("@i=%d: x[0]=%d (%d),  y[0]=%d (%d)\n", i, data1[n][i][0], data1[n][i][1], data1[n][i][2], data1[n][i][3]);
-        }
-    }
-    */
 
     return 0;
 }

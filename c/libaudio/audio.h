@@ -126,8 +126,8 @@ int     setInputBufferSize(int bufferSize);
 */
 
 //DEBUG STUFF
-const int DEBUG_ELEMENTS = 4;
-const int DEBUG_LOOPLENGTH = 64;
+//const int DEBUG_ELEMENTS = 4;
+//const int DEBUG_LOOPLENGTH = 64;
 
 // first/last: connection to AudioInterface
 typedef enum {NO_FIRST, FIRST} fst_t;
@@ -189,7 +189,7 @@ int audio_connect_to_core(struct AudioFX *srcP, const unsigned int sendChanID);
 int audio_connect_from_core(const unsigned int recvChanID, struct AudioFX *dstP);
 
 //audio processing
-int audio_process(struct AudioFX *audioP, volatile _UNCACHED int *dataP) __attribute__((section("text.spm")));
+int audio_process(struct AudioFX *audioP) __attribute__((section("text.spm")));
 
 
 /*
