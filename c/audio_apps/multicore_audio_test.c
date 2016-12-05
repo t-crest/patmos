@@ -138,15 +138,6 @@ void threadFunc(void* args) {
         }
     }
 
-    //params debugging
-    /*
-    paramsP[0] = *FXp[0].in_con;
-    paramsP[1] = *FXp[0].out_con;
-    paramsP[2] = *FXp[0].fx_id;
-    paramsP[3] = *FXp[0].is_fst;
-    paramsP[4] = *FXp[0].is_lst;
-    */
-
     //CONNECT EFFECTS
     for(int n=0; n<FX_HERE; n++) {
         // same core
@@ -211,13 +202,6 @@ void threadFunc(void* args) {
             }
         }
 
-
-        /*
-        volatile _SPM short * xP = (volatile _SPM short *)*(volatile _SPM unsigned int *)*audio1aP->x_pnt;
-        audioValuesP[i] = xP[0];
-        audioValuesP[i] = (audioValuesP[i] & 0xFFFF) | ( (xP[1] & 0xFFFF) << 16 );
-        */
-
     }
 
 
@@ -233,10 +217,10 @@ int main() {
 
     //arguments to thread 1 function
     int exit = 0;
-    int allocsDone[2] = {0, 0};
+    int allocsDone[AUDIO_CORES] = {0};
     volatile _UNCACHED int *exitP = (volatile _UNCACHED int *) &exit;
     volatile _UNCACHED int *allocsDoneP = (volatile _UNCACHED int *) &allocsDone;
-    volatile _UNCACHED int (*threadFunc_args[3 + DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*3*3 + 3*PARAM_AMOUNT]);
+    volatile _UNCACHED int (*threadFunc_args[1+AUDIO_CORES + DEBUG_LOOPLENGTH*DEBUG_ELEMENTS*3*3 + 3*PARAM_AMOUNT]);
     threadFunc_args[0] = exitP;
     threadFunc_args[1] = allocsDoneP;
 
@@ -403,15 +387,6 @@ int main() {
         }
     }
 
-
-
-    //audio_connect_same_core(&FXp[0], &FXp[1]); //effects on same core
-    //audio_connect_to_core(&FXp[1], 0); // to corresponding channelID
-    //audio_connect_from_core(1, &FXp[2]); // from corresponding channelID
-
-
-
-
     // wait until all cores are ready
     allocsDoneP[cpuid] = 1;
     for(int i=0; i<AUDIO_CORES; i++) {
@@ -440,30 +415,7 @@ int main() {
     //int i=0;
     //while(*keyReg != 3) {
     //i++;
-    int i1 = 0;
-    int i2 = 0;
-    int i3 = 0;
     for(int i=0; i<DEBUG_LOOPLENGTH; i++) {
-
-
-        printf("@ loop %d\n", i);
-        int shown1 = sends1[i1][0];
-        int shown2 = sends2[i2][0];
-        int shown3 = sends3[i3][0];
-        printf("sends done by core 1 at i1=%d: %d\n", shown1, i1);
-        printf("sends done by core 2 at i2=%d: %d\n", shown2, i2);
-        printf("sends done by core 3 at i3=%d: %d\n", shown3, i3);
-
-        if(shown1 == 1) {
-            i1++;
-        }
-        if(shown2 == 1) {
-            i2++;
-        }
-        if(shown3 == 8) {
-            i3++;
-        }
-
 
         //init
         sends0[i][0] = 0;
@@ -472,110 +424,13 @@ int main() {
 
 
         for(int n=0; n<FX_HERE; n++) {
-            printf("n=%d\n", n);
-            //process
-            //int cycles = get_cpu_cycles();
-
             if( (*FXp[n].is_lst == NO_LAST) || (wait_recv == 0) ) {
                 audio_process(&FXp[n], (sendsP+DEBUG_ELEMENTS*i), (recvsP+DEBUG_ELEMENTS*i), (acksP+DEBUG_ELEMENTS*i));
             }
             else {
                 wait_recv--;
             }
-
-            /*
-              cycles = get_cpu_cycles() - cycles;
-              printf("cpu cycles: %d\n", cycles);
-            */
         }
-
-
-
-        /*
-        printf("\n\n\nINPUT DATA A: \n");
-        volatile _SPM short * xP;
-        xP = (volatile _SPM short *)*audio0aP->x_pnt;
-        for(unsigned int i=0; i < *audio0aP->xb_size; i++) {
-            printf("%d, %d    ", xP[i*2], xP[i*2+1]);
-        }
-
-        volatile _SPM short * yP;
-
-         printf("\noutput data a: \n");
-         volatile _SPM short * yP;
-         yP = (volatile _SPM short *)*audio0aP->y_pnt;
-        for(unsigned int i=0; i < *audio0aP->yb_size; i++) {
-            printf("%d, %d    ", yP[i*2], yP[i*2+1]);
-        }
-
-
-
-        //printf("in values: %d, %d\n", audio0bP->x[0], audio0bP->x[1]);
-
-        printf("\ninput data b: \n");
-        xP = (volatile _SPM short *)*audio0bP->x_pnt;
-        for(unsigned int i=0; i < *audio0bP->xb_size; i++) {
-            printf("%d, %d    ", xP[i*2], xP[i*2+1]);
-        }
-        */
-
-
-        //audio_process(audio0bP);
-        //audio_process(&FXp[1]);
-
-
-
-
-        /*
-        printf("\noutput data b: \n");
-        yP = (volatile _SPM short *)*(volatile _SPM unsigned int *)*audio0bP->y_pnt;
-        for(unsigned int i=0; i < *audio0bP->yb_size; i++) {
-            printf("%d, %d    ", yP[i*2], yP[i*2+1]);
-        }
-        */
-
-
-        /*
-        printf("y_pnt points to 0x%x\n", *audio0bP->y_pnt);
-        printf("*y_pnt points to 0x%x\n", *(volatile _SPM unsigned int *)*audio0bP->y_pnt);
-        printf("data at **y_pnt is %d, %d\n", *(volatile _SPM short *)*(volatile _SPM unsigned int *)*audio0bP->y_pnt, *(volatile _SPM short *)((*(volatile _SPM unsigned int *)*audio0bP->y_pnt)+2));
-
-        printf("write buffer address: 0x%x\n", (int)((qpd_t *)*audio0bP->sendChanP)->write_buf);
-        printf("write buffer data: %d, %d\n", (int)*((volatile _SPM short *)((qpd_t *)*audio0bP->sendChanP)->write_buf), (int)*((volatile _SPM short *)((qpd_t *)*audio0bP->sendChanP)->write_buf+ 1));
-
-
-
-        volatile _SPM short * xP = (volatile _SPM short *)*(volatile _SPM unsigned int *)*audio0cP->x_pnt;
-        printf("RECEIVED FROM CORE 1: %d, %d\n", xP[0], xP[1]);
-        */
-
-        /*
-        if(first == 0) {
-            //audio_process(audio0cP);
-            audio_process(&FXp[2]);
-            / *
-            printf("\noutput data c: \n");
-            yP = (volatile _SPM short *)*audio0cP->y_pnt;
-            for(unsigned int i=0; i < *audio0cP->yb_size; i++) {
-                printf("%d, %d    ", yP[i*2], yP[i*2+1]);
-            }
-            * /
-        }
-        else {
-            first = 0;
-        }
-        */
-
-        /*
-        printf("\ninput data c: \n");
-        xP = (volatile _SPM short *)*(volatile _SPM unsigned int *)*audio0cP->x_pnt;
-        for(unsigned int i=0; i < *audio0cP->xb_size; i++) {
-            printf("%d, %d    ", xP[i*2], xP[i*2+1]);
-        }
-        */
-
-
-
 
 
         /*
@@ -589,27 +444,6 @@ int main() {
         */
 
     }
-
-
-    /*
-    printf("SOME CARACS:\n");
-    printf("AUDIO1:\n");
-    printf("CPUID = %d\n", *audio1P->cpuid);
-    printf("IS_FST = %d\n", *audio1P->is_fst);
-    printf("IS_LST = %d\n", *audio1P->is_lst);
-    printf("IN_CON = %d\n", *audio1P->in_con);
-    printf("OUT_CON = %d\n", *audio1P->out_con);
-    printf("X_PNT = 0x%x\n", *audio1P->x_pnt);
-    printf("Y_PNT = 0x%x\n", *audio1P->y_pnt);
-    printf("AUDIO2:\n");
-    printf("CPUID = %d\n", *audio2P->cpuid);
-    printf("IS_FST = %d\n", *audio2P->is_fst);
-    printf("IS_LST = %d\n", *audio2P->is_lst);
-    printf("IN_CON = %d\n", *audio2P->in_con);
-    printf("OUT_CON = %d\n", *audio2P->out_con);
-    printf("X_PNT = 0x%x\n", *audio2P->x_pnt);
-    printf("Y_PNT = 0x%x\n", *audio2P->y_pnt);
-    */
 
     //exit stuff
     printf("exit here!\n");
@@ -626,7 +460,7 @@ int main() {
 
     int *retval;
     for(int i=0; i<(AUDIO_CORES-1); i++) {
-        //corethread_join(threads[i], (void **)&retval);
+        corethread_join(threads[i], (void **)&retval);
         printf("thread %d finished!\n", (i+1));
     }
 

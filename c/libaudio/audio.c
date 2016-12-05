@@ -1184,8 +1184,8 @@ int audio_send(struct AudioFX *audioP, volatile _SPM short *yP) {
     return 0;
 }
 
-//const int TIMEOUT = 5804;  // timeout ~256 samples
-const int TIMEOUT = 0;
+const int TIMEOUT = 5804;  // timeout ~256 samples
+//const int TIMEOUT = 0;
 //const int TIMEOUT = 0xFFFFF;
 
 //int audio_process(struct AudioFX *audioP) __attribute__((section("text.spm")));
@@ -1232,7 +1232,6 @@ int audio_process(struct AudioFX *audioP, volatile _UNCACHED int *sendsP, volati
                 retval = 1;
             }
             else {
-                printf("XeY recv\n");
                 recvsP[0] = recvsP[0] + 1;
                 recvsP[1] = get_cpu_cycles();
             }
@@ -1285,7 +1284,6 @@ int audio_process(struct AudioFX *audioP, volatile _UNCACHED int *sendsP, volati
                 retval = 1;
             }
             else {
-                printf("XeY ack\n");
                 acksP[0] = acksP[0] + 1;
                 acksP[1] = get_cpu_cycles();
             }
@@ -1305,7 +1303,6 @@ int audio_process(struct AudioFX *audioP, volatile _UNCACHED int *sendsP, volati
                 retval = 1;
             }
             else {
-                printf("XeY send\n");
                 sendsP[0] = sendsP[0] + 1;
                 sendsP[1] = get_cpu_cycles();
             }
