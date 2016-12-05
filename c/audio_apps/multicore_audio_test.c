@@ -11,7 +11,7 @@
 
 //DEBUG STUFF
 const int DEBUG_ELEMENTS = 2;
-const int DEBUG_LOOPLENGTH = 5;
+const int DEBUG_LOOPLENGTH = 60;
 const int PARAM_AMOUNT = 5;
 
 //master core
@@ -32,7 +32,7 @@ const int FX_SCHED[FX_AMOUNT][10] = {
     {5, 0, 0, 8, 8, 1, 1, 0,  2, -1}
 };
 */
-
+/*
 //how many cores take part in the audio system
 const int AUDIO_CORES = 3;
 //how many effects are on the system in total
@@ -45,8 +45,8 @@ const int FX_SCHED[FX_AMOUNT][10] = {
     {3, 2, 0, 1, 8, 1, 1, 1,  1,  2},
     {4, 0, 0, 8, 8, 1, 1, 0,  2, -1}
 };
+*/
 
-/*
 //how many cores take part in the audio system
 const int AUDIO_CORES = 4;
 //how many effects are on the system in total
@@ -59,7 +59,7 @@ const int FX_SCHED[FX_AMOUNT][10] = {
     {3, 3, 0, 8, 1, 1, 1, 1,  2,  3},
     {4, 0, 0, 1, 1, 1, 1, 0,  3, -1}
 };
-*/
+
 
 
 void threadFunc(void* args) {
@@ -184,18 +184,19 @@ void threadFunc(void* args) {
     int nocret = mp_init_ports();
 
 
-    paramsP[0] = *FXp[0].xb_size;
-    paramsP[1] = *FXp[0].yb_size;
-    paramsP[2] = *FXp[0].fx;
+    paramsP[0] = *FXp[0].rpr;
+    paramsP[1] = *FXp[0].spr;
+    paramsP[2] = *FXp[0].p;
     paramsP[3] = ((qpd_t *)*FXp[0].recvChanP)->buf_size;
     paramsP[4] = ((qpd_t *)*FXp[0].sendChanP)->buf_size;
 
+
     //loop
     //audioValuesP[0] = 0;
-    //while(*exitP == 0) {
     //int i=0;
+    //while(*exitP == 0) {
+    //i++;
     for(int i=0; i<DEBUG_LOOPLENGTH; i++) {
-
 
         for(int j=0; j<DEBUG_ELEMENTS; j++) {
             *(sendsP+DEBUG_ELEMENTS*i+j) = 0;
@@ -367,6 +368,10 @@ int main() {
 
     //CONNECT EFFECTS
     for(int n=0; n<FX_HERE; n++) {
+        //print input effects
+        if(*FXp[n].is_fst == FIRST) {
+            printf("FIRST: ID=%d\n", *FXp[n].fx_id);
+        }
         // same core
         if( (*FXp[n].out_con == NO_NOC) && (*FXp[n].is_lst == NO_LAST) ) {
             int destID = FX_SCHED[*FXp[n].fx_id][9]; //ID to connect to
@@ -391,6 +396,10 @@ int main() {
             int sendChanID = FX_SCHED[*FXp[n].fx_id][9]; //NoC send channel ID
             audio_connect_to_core(&FXp[n], sendChanID);
             printf("NoC: connected ID=%d to sendChanelID=%d\n", *FXp[n].fx_id, sendChanID);
+        }
+        //print output effects
+        if(*FXp[n].is_lst == LAST) {
+            printf("LAST: ID=%d\n", *FXp[n].fx_id);
         }
     }
 
@@ -425,16 +434,36 @@ int main() {
     //int cpu_pnt = 0;
 
 
-    int wait_recv = 2; //amount of loops until audioOut is done
+    int wait_recv = 18; //amount of loops until audioOut is done
 
 
     //int i=0;
     //while(*keyReg != 3) {
     //i++;
+    int i1 = 0;
+    int i2 = 0;
+    int i3 = 0;
     for(int i=0; i<DEBUG_LOOPLENGTH; i++) {
 
 
         printf("@ loop %d\n", i);
+        int shown1 = sends1[i1][0];
+        int shown2 = sends2[i2][0];
+        int shown3 = sends3[i3][0];
+        printf("sends done by core 1 at i1=%d: %d\n", shown1, i1);
+        printf("sends done by core 2 at i2=%d: %d\n", shown2, i2);
+        printf("sends done by core 3 at i3=%d: %d\n", shown3, i3);
+
+        if(shown1 == 1) {
+            i1++;
+        }
+        if(shown2 == 1) {
+            i2++;
+        }
+        if(shown3 == 8) {
+            i3++;
+        }
+
 
         //init
         sends0[i][0] = 0;
@@ -443,6 +472,7 @@ int main() {
 
 
         for(int n=0; n<FX_HERE; n++) {
+            printf("n=%d\n", n);
             //process
             //int cycles = get_cpu_cycles();
 
@@ -596,9 +626,11 @@ int main() {
 
     int *retval;
     for(int i=0; i<(AUDIO_CORES-1); i++) {
-        corethread_join(threads[i], (void **)&retval);
+        //corethread_join(threads[i], (void **)&retval);
         printf("thread %d finished!\n", (i+1));
     }
+
+
 
 
     printf("\n\n\n");
@@ -727,6 +759,10 @@ int main() {
 
     printf("FXp[0], send buffer size: %d\n", ((qpd_t *)*FXp[0].sendChanP)->buf_size);
     printf("FXp[1], recv buffer size: %d\n", ((qpd_t *)*FXp[1].recvChanP)->buf_size);
+
+
+
+
 
     return 0;
 }
