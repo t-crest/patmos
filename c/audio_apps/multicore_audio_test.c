@@ -14,7 +14,7 @@ const int LIM = 1000;
 //master core
 const int NOC_MASTER = 0;
 
-/*
+
 //how many cores take part in the audio system
 const int AUDIO_CORES = 3;
 //how many effects are on the system in total
@@ -22,14 +22,14 @@ const int FX_AMOUNT = 6;
 // FX_ID | CORE | FX_TYPE | XB_SIZE | YB_SIZE | P (S) | IN_TYPE | OUT_TYPE | FROM_ID | TO_ID //
 const int FX_SCHED[FX_AMOUNT][10] = {
     {0, 0, 0, 8, 8, 1, 0, 0, -1,  1},
-    {1, 0, 2, 8, 8, 1, 0, 1,  0,  0},
+    {1, 0, 4, 8, 8, 1, 0, 1,  0,  0},
     {2, 1, 0, 8, 8, 1, 1, 0,  0,  3},
-    {3, 1, 0, 8, 8, 1, 0, 1,  2,  1},
-    {4, 2, 0, 8, 8, 1, 1, 1,  1,  2},
+    {3, 1, 6, 8, 8, 1, 0, 1,  2,  1},
+    {4, 2, 2, 8, 8, 1, 1, 1,  1,  2},
     {5, 0, 0, 8, 8, 1, 1, 0,  2, -1}
 };
-*/
 
+/*
 //how many cores take part in the audio system
 const int AUDIO_CORES = 3;
 //how many effects are on the system in total
@@ -38,11 +38,11 @@ const int FX_AMOUNT = 5;
 const int FX_SCHED[FX_AMOUNT][10] = {
     {0, 0, 0, 8, 8, 1, 0, 0, -1,  1},
     {1, 0, 1, 8, 8, 8, 0, 1,  0,  0},
-    {2, 1, 2, 8, 1, 1, 1, 1,  0,  1},
+    {2, 1, 4, 8, 1, 1, 1, 1,  0,  1},
     {3, 2, 0, 1, 8, 1, 1, 1,  1,  2},
     {4, 0, 0, 8, 8, 1, 1, 0,  2, -1}
 };
-
+*/
 /*
 //how many cores take part in the audio system
 const int AUDIO_CORES = 4;
@@ -51,7 +51,7 @@ const int FX_AMOUNT = 5;
 // FX_ID | CORE | FX_TYPE | XB_SIZE | YB_SIZE | P (S) | IN_TYPE | OUT_TYPE | FROM_ID | TO_ID //
 const int FX_SCHED[FX_AMOUNT][10] = {
     {0, 0, 0, 1, 1, 1, 0, 1, -1,  0},
-    {1, 1, 0, 1, 8, 1, 1, 1,  0,  1},
+    {1, 1, 5, 1, 8, 1, 1, 1,  0,  1},
     {2, 2, 1, 8, 8, 8, 1, 1,  1,  2},
     {3, 3, 0, 8, 1, 1, 1, 1,  2,  3},
     {4, 0, 0, 1, 1, 1, 1, 0,  3, -1}
@@ -326,8 +326,8 @@ int main() {
     unsigned int cpu_pnt = 0;
 
 
-    int wait_recv = 18; //amount of loops until audioOut is done
-    //int wait_recv = 2;
+    //int wait_recv = 18; //amount of loops until audioOut is done
+    int wait_recv = 3;
     //for debugging
     //const int WAIT = wait_recv;
 

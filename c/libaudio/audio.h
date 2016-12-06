@@ -137,10 +137,12 @@ typedef enum {NO_NOC, NOC} con_t;
 // comparison of receive/send buffer sizes
 typedef enum {XeY, XgY, XlY} pt_t;
 // possible effects:
-typedef enum {DRY, DRY_8S, DELAY, HP, LP, BP, BR,
-             VIBRATO, OVERDRIVE,
-             DISTORTION, TREMOLO,
-             CHORUS, WAHWAH} fx_t;
+typedef enum {DRY, DRY_8S, DELAY,
+              OVERDRIVE, WAHWAH,
+              CHORUS, DISTORTION,
+              HP, LP, BP, BR,
+              VIBRATO,
+              TREMOLO} fx_t;
 
 struct AudioFX {
     //effect ID
@@ -253,35 +255,33 @@ struct Vibrato {
 
 int alloc_vibrato_vars(struct Vibrato *vibrP, int coreNumber);
 int audio_vibrato(struct Vibrato *vibrP);
+*/
 
-/ *
+/*
   Overdrive and distortion
-* /
+*/
 
 struct Overdrive {
     //SPM variables
-    volatile _SPM short *x; //input audio x[2]
-    volatile _SPM short *y; //output audio y[2]
     volatile _SPM int   *accum; //accummulator accum[2]
 };
 
-int alloc_overdrive_vars(struct Overdrive *odP, int coreNumber);
-int audio_overdrive(struct Overdrive *odP);
+unsigned int alloc_overdrive_vars(struct Overdrive *odP, unsigned int LAST_ADDR);
+int audio_overdrive(struct Overdrive *odP, volatile _SPM short *xP, volatile _SPM short *yP);
+
 
 struct Distortion {
     //SPM variables
-    volatile _SPM short *x; //input audio x[2]
-    volatile _SPM short *y; //output audio y[2]
     volatile _SPM int   *accum; //accummulator accum[2]
     volatile _SPM int   *k; //for distortion
     volatile _SPM int   *kOnePlus; //for distortion
     volatile _SPM int   *sftLft; //shift left amount
 };
 
-int alloc_distortion_vars(struct Distortion *distP, int coreNumber, float amount);
-int audio_distortion(struct Distortion *distP);
+unsigned int alloc_distortion_vars(struct Distortion *distP, unsigned int LAST_ADDR);
+int audio_distortion(struct Distortion *distP, volatile _SPM short *xP, volatile _SPM short *yP);
 
-*/
+
 
 /*
   Delay
@@ -301,14 +301,11 @@ unsigned int alloc_delay_vars(struct IIRdelay *delP, unsigned int LAST_ADDR);
 int audio_delay(struct IIRdelay *delP, volatile _SPM short *xP, volatile _SPM short *yP);
 
 /*
-/ *
   Chorus
-* /
+*/
 
 struct Chorus {
     //SPM variables
-    volatile _SPM short *x; //input audio x[2]
-    volatile _SPM short *y; //output audio y[2]
     volatile _SPM int   *accum; //accummulator accum[2]
     volatile _SPM short *g; // gains [g2, g1, g0]
     volatile _SPM int   *del; // delays [d2, d1, d0]
@@ -321,9 +318,10 @@ struct Chorus {
     int modArray2[CHORUS_P2];
 };
 
-int alloc_chorus_vars(struct Chorus *chorP, int coreNumber);
-int audio_chorus(struct Chorus *chorP);
+unsigned int alloc_chorus_vars(struct Chorus *chorP, unsigned int LAST_ADDR);
+int audio_chorus(struct Chorus *chorP, volatile _SPM short *xP, volatile _SPM short *yP);
 
+/*
 / *
   Tremolo
 * /
@@ -356,15 +354,14 @@ struct Tremolo32 {
 
 int alloc_tremolo32_vars(struct Tremolo32 *tremP, int coreNumber);
 int audio_tremolo32(struct Tremolo32 *tremP);
+*/
 
-/ *
+/*
   Wah-Wah
-* /
+*/
 
 struct WahWah {
     //SPM variables
-    volatile _SPM short *x; //input audio x[2]
-    volatile _SPM short *y; //output audio y[2]
     volatile _SPM int   *accum; //accummulator accum[2]
     volatile _SPM short (*x_buf)[2]; // input buffer
     volatile _SPM short (*y_buf)[2]; // output buffer
@@ -380,10 +377,10 @@ struct WahWah {
     short bArray[WAHWAH_P][3]; //for B coefficients
 };
 
-int alloc_wahwah_vars(struct WahWah *wahP, int coreNumber);
-int audio_wahwah(struct WahWah *wahP);
+unsigned int alloc_wahwah_vars(struct WahWah *wahP, unsigned int LAST_ADDR);
+int audio_wahwah(struct WahWah *wahP, volatile _SPM short *xP, volatile _SPM short *yP);
 
 
-*/
+
 
 #endif /* _AUDIO_H_ */

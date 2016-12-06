@@ -1044,6 +1044,11 @@ int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_c
     audioP->fx    = ( volatile _SPM fx_t *)         ADDR_FX;
     //init values
     *audioP->fx = FX_TYPE;
+    const unsigned int ADDR_FX_PNT = LAST_ADDR;
+    LAST_ADDR                      = ADDR_FX_PNT + sizeof(int);
+    //SPM variables
+    audioP->fx_pnt = (volatile _SPM unsigned int *) ADDR_FX_PNT;
+    //switch between possible FX
     switch(*audioP->fx) {
     case DRY:
         //nothing to do
@@ -1051,19 +1056,35 @@ int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_c
     case DRY_8S:
         //nothing to do
         break;
-    case DELAY:
-        if(LAST_ADDR) {
-            //dummy
-        }
-        const unsigned int ADDR_FX_PNT = LAST_ADDR;
-        LAST_ADDR                      = ADDR_FX_PNT + sizeof(int);
-        //SPM variables
-        audioP->fx_pnt = (volatile _SPM unsigned int *) ADDR_FX_PNT;
-        //allocate effect
+    case DELAY: ; //to create a scope
         struct IIRdelay delay;
         struct IIRdelay *delayP = &delay;
         *audioP->fx_pnt = (unsigned int)delayP; //points to function
         LAST_ADDR = alloc_delay_vars(delayP, LAST_ADDR);
+        break;
+    case OVERDRIVE: ;
+        struct Overdrive overdrive;
+        struct Overdrive *overdriveP = &overdrive;
+        *audioP->fx_pnt = (unsigned int)overdriveP; //points to function
+        LAST_ADDR = alloc_overdrive_vars(overdriveP, LAST_ADDR);
+        break;
+    case WAHWAH: ;
+        struct WahWah wahwah;
+        struct WahWah *wahwahP = &wahwah;
+        *audioP->fx_pnt = (unsigned int)wahwahP; //points to function
+        LAST_ADDR = alloc_wahwah_vars(wahwahP, LAST_ADDR);
+        break;
+    case CHORUS: ;
+        struct Chorus chorus;
+        struct Chorus *chorusP = &chorus;
+        *audioP->fx_pnt = (unsigned int)chorusP; //points to function
+        LAST_ADDR = alloc_chorus_vars(chorusP, LAST_ADDR);
+        break;
+    case DISTORTION: ;
+        struct Distortion distortion;
+        struct Distortion *distortionP = &distortion;
+        *audioP->fx_pnt = (unsigned int)distortionP; //points to function
+        LAST_ADDR = alloc_distortion_vars(distortionP, LAST_ADDR);
         break;
     default:
         printf("FX NOT IMPLEMENTED YET\n");
@@ -1116,82 +1137,6 @@ int audio_connect_from_core(const unsigned int recvChanID, struct AudioFX *dstP)
 
         return 0;
     }
-}
-
-/*
-int process_XeY(struct AudioFX *audioP, volatile _SPM short *xP, volatile _SPM short *yP) {
-
-    return 0;
-}
-*/
-
-int audio_recv(struct AudioFX *audioP, volatile _SPM short *xP) {
-    if(*audioP->in_con == NOC) { //receive from NoC
-        //printf("\n\nreceive pointer before: 0x%x\n", (unsigned int)((qpd_t *)*audioP->recvChanP)->read_buf);
-        if(mp_recv((qpd_t *)*audioP->recvChanP, 5804) == 0) { // timeout ~256 samples
-            printf("RECV TIMED OUT!\n");
-            return 1;
-        }
-        //printf("receive pointer after: 0x%x\n", (unsigned int)((qpd_t *)*audioP->recvChanP)->read_buf);
-        //printf("XP points to 0x%x\n", (unsigned int)xP);
-    }
-    else { //same core
-        if( (*audioP->cpuid == 0) && (*audioP->is_fst == FIRST) ) {
-            audioIn(audioP, xP);
-        }
-    }
-    //int cycles = get_cpu_cycles();
-    return 0;
-}
-
-void audio_process_ppsr(struct AudioFX *audioP, volatile _SPM short *xP, volatile _SPM short *yP) {
-    unsigned int ind; //index used for each operation
-    switch(*audioP->fx) {
-    case DRY:
-        for(unsigned int i=0; i < *audioP->ppsr; i++) {
-            ind = i * 2 * (*audioP->p);
-            audio_dry(audioP, &xP[ind], &yP[ind]);
-        }
-        break;
-    case DRY_8S:
-        for(unsigned int i=0; i < *audioP->ppsr; i++) {
-            ind = i * 2 * (*audioP->p);
-            audio_dry_8samples(audioP, &xP[ind], &yP[ind]);
-        }
-        break;
-    default:
-        printf("effect not implemented yet\n");
-        break;
-    }
-}
-
-int audio_ack(struct AudioFX *audioP) {
-    if(*audioP->in_con == NOC) {
-        if(mp_ack((qpd_t *)*audioP->recvChanP, 5804) == 0) { // timeout ~256 samples
-            printf("ACK TIMED OUT!\n");
-            return 1;
-        }
-    }
-    return 0;
-}
-
-int audio_send(struct AudioFX *audioP, volatile _SPM short *yP) {
-    if(*audioP->out_con == NOC) { //send to NoC
-        //printf("send pointer before: 0x%x\n", (unsigned int)((qpd_t *)*audioP->sendChanP)->write_buf);
-        if(mp_send((qpd_t *)*audioP->sendChanP, 5804) == 0) { // timeout ~256 samples
-            printf("SEND TIMED OUT!\n");
-            return 1;
-        }
-        //printf("send pointer after: 0x%x\n", (unsigned int)((qpd_t *)*audioP->sendChanP)->write_buf);
-        //printf("YP points to 0x%x\n", (unsigned int)yP);
-    }
-    else { //same core
-        if( (*audioP->cpuid == 0) && (*audioP->is_lst == LAST) ) {
-            //printf("\n\nAUDIO OUT: YP points to 0x%x\n", (unsigned int)yP);
-            audioOut(audioP, yP);
-        }
-    }
-    return 0;
 }
 
 const int TIMEOUT = 5804;  // timeout ~256 samples
@@ -1252,11 +1197,39 @@ int audio_process(struct AudioFX *audioP) {
                 audio_dry_8samples(audioP, &xP[ind], &yP[ind]);
             }
             break;
-        case DELAY:
+        case DELAY: ;
+            struct IIRdelay *delP = (struct IIRdelay *)*audioP->fx_pnt;
             for(unsigned int i=0; i < *audioP->ppsr; i++) {
                 ind = 2 * i * (*audioP->p);
-                struct IIRdelay *delP = (struct IIRdelay *)*audioP->fx_pnt;
                 audio_delay(delP, &xP[ind], &yP[ind]);
+            }
+            break;
+        case OVERDRIVE: ;
+            struct Overdrive *odP = (struct Overdrive *)*audioP->fx_pnt;
+            for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                ind = 2 * i * (*audioP->p);
+                audio_overdrive(odP, &xP[ind], &yP[ind]);
+            }
+            break;
+        case WAHWAH: ;
+            struct WahWah *wahP = (struct WahWah *)*audioP->fx_pnt;
+            for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                ind = 2 * i * (*audioP->p);
+                audio_wahwah(wahP, &xP[ind], &yP[ind]);
+            }
+            break;
+        case CHORUS: ;
+            struct Chorus *chorP = (struct Chorus *)*audioP->fx_pnt;
+            for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                ind = 2 * i * (*audioP->p);
+                audio_chorus(chorP, &xP[ind], &yP[ind]);
+            }
+            break;
+        case DISTORTION: ;
+            struct Distortion *distP = (struct Distortion *)*audioP->fx_pnt;
+            for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                ind = 2 * i * (*audioP->p);
+                audio_distortion(distP, &xP[ind], &yP[ind]);
             }
             break;
         default:
@@ -1311,11 +1284,39 @@ int audio_process(struct AudioFX *audioP) {
                     audio_dry_8samples(audioP, &xP[offs+ind], &yP[ind]);
                 }
                 break;
-            case DELAY:
+            case DELAY: ;
+                struct IIRdelay *delP = (struct IIRdelay *)*audioP->fx_pnt;
                 for(unsigned int i=0; i < *audioP->ppsr; i++) {
                     ind = 2 * i * (*audioP->p);
-                    struct IIRdelay *delP = (struct IIRdelay *)*audioP->fx_pnt;
                     audio_delay(delP, &xP[offs+ind], &yP[ind]);
+                }
+                break;
+            case OVERDRIVE: ;
+                struct Overdrive *odP = (struct Overdrive *)*audioP->fx_pnt;
+                for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                    ind = 2 * i * (*audioP->p);
+                    audio_overdrive(odP, &xP[offs+ind], &yP[ind]);
+                }
+                break;
+            case WAHWAH: ;
+                struct WahWah *wahP = (struct WahWah *)*audioP->fx_pnt;
+                for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                    ind = 2 * i * (*audioP->p);
+                    audio_wahwah(wahP, &xP[offs+ind], &yP[ind]);
+                }
+                break;
+            case CHORUS: ;
+                struct Chorus *chorP = (struct Chorus *)*audioP->fx_pnt;
+                for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                    ind = 2 * i * (*audioP->p);
+                    audio_chorus(chorP, &xP[offs+ind], &yP[ind]);
+                }
+                break;
+            case DISTORTION: ;
+                struct Distortion *distP = (struct Distortion *)*audioP->fx_pnt;
+                for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                    ind = 2 * i * (*audioP->p);
+                    audio_distortion(distP, &xP[offs+ind], &yP[ind]);
                 }
                 break;
             default:
@@ -1371,11 +1372,39 @@ int audio_process(struct AudioFX *audioP) {
                     audio_dry_8samples(audioP, &xP[ind], &yP[offs+ind]);
                 }
                 break;
-            case DELAY:
+            case DELAY: ;
+                struct IIRdelay *delP = (struct IIRdelay *)*audioP->fx_pnt;
                 for(unsigned int i=0; i < *audioP->ppsr; i++) {
                     ind = 2 * i * (*audioP->p);
-                    struct IIRdelay *delP = (struct IIRdelay *)*audioP->fx_pnt;
                     audio_delay(delP, &xP[ind], &yP[offs+ind]);
+                }
+                break;
+            case OVERDRIVE: ;
+                struct Overdrive *odP = (struct Overdrive *)*audioP->fx_pnt;
+                for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                    ind = 2 * i * (*audioP->p);
+                    audio_overdrive(odP, &xP[ind], &yP[offs+ind]);
+                }
+                break;
+            case WAHWAH: ;
+                struct WahWah *wahP = (struct WahWah *)*audioP->fx_pnt;
+                for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                    ind = 2 * i * (*audioP->p);
+                    audio_wahwah(wahP, &xP[ind], &yP[offs+ind]);
+                }
+                break;
+            case CHORUS: ;
+                struct Chorus *chorP = (struct Chorus *)*audioP->fx_pnt;
+                for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                    ind = 2 * i * (*audioP->p);
+                    audio_chorus(chorP, &xP[ind], &yP[offs+ind]);
+                }
+                break;
+            case DISTORTION: ;
+                struct Distortion *distP = (struct Distortion *)*audioP->fx_pnt;
+                for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                    ind = 2 * i * (*audioP->p);
+                    audio_distortion(distP, &xP[ind], &yP[offs+ind]);
                 }
                 break;
             default:
@@ -1628,37 +1657,30 @@ int audio_vibrato(struct Vibrato *vibrP) {
 
     return 0;
 }
-
-int alloc_overdrive_vars(struct Overdrive *odP, int coreNumber) {
-    printf("---------------OVERDRIVE INITIALISATION---------------\n");
+*/
+unsigned int alloc_overdrive_vars(struct Overdrive *odP, unsigned int LAST_ADDR) {
     // LOCATION IN LOCAL SCRATCHPAD MEMORY
-    const unsigned int OD_X      = addr[coreNumber];
-    const unsigned int OD_Y      = OD_X     + 2 * sizeof(short);
-    const unsigned int OD_ACCUM  = OD_Y     + 2 * sizeof(short);
+    const unsigned int OD_ACCUM  = LAST_ADDR;
+    LAST_ADDR                    = OD_ACCUM + 2 * sizeof(int);
     //SPM variables
-    odP->x        = ( volatile _SPM short *) OD_X;
-    odP->y        = ( volatile _SPM short *) OD_Y;
     odP->accum    = ( volatile _SPM int *)   OD_ACCUM;
 
-    //return new address
-    int ALLOC_AMOUNT = alloc_space("OVERDRIVE", (OD_ACCUM + 2 * sizeof(int)), coreNumber);
-
-    return ALLOC_AMOUNT;
+    return LAST_ADDR;
 }
 
-__attribute__((always_inline))
-int audio_overdrive(struct Overdrive *odP) {
+//__attribute__((always_inline))
+int audio_overdrive(struct Overdrive *odP, volatile _SPM short *xP, volatile _SPM short *yP) {
     //THRESHOLD IS 1/3 = 0x2AAB
     //input abs:
     unsigned int x_abs[2];
     for(int j=0; j<2; j++) {
-        x_abs[j] = abs(odP->x[j]);
+        x_abs[j] = abs(xP[j]);
         if(x_abs[j] > (2 * 0x2AAB)) { // saturation : y = 1
-            if (odP->x[j] > 0) {
-                odP->y[j] = 0x7FFF;
+            if (xP[j] > 0) {
+                yP[j] = 0x7FFF;
             }
             else {
-                odP->y[j] = 0x8000;
+                yP[j] = 0x8000;
             }
         }
         else {
@@ -1668,44 +1690,42 @@ int audio_overdrive(struct Overdrive *odP) {
                 odP->accum[j] = (odP->accum[j] * odP->accum[j]) >> 15;
                 odP->accum[j] = 0x17FFF - odP->accum[j];
                 odP->accum[j] = (odP->accum[j] * 0x2AAB) >> 15;
-                if(odP->x[j] > 0) { //positive
+                if(xP[j] > 0) { //positive
                     if(odP->accum[j] > 32767) {
-                        odP->y[j] = 32767;
+                        yP[j] = 32767;
                     }
                     else {
-                        odP->y[j] = odP->accum[j];
+                        yP[j] = odP->accum[j];
                     }
                 }
                 else { // negative
-                    odP->y[j] = -odP->accum[j];
+                    yP[j] = -odP->accum[j];
                 }
             }
             else { // linear zone: y = 2*x
-                odP->y[j] = odP->x[j] << 1;
+                yP[j] = xP[j] << 1;
             }
         }
     }
     return 0;
 }
 
-int alloc_distortion_vars(struct Distortion *distP, int coreNumber, float amount) {
-    printf("---------------DISTORTION INITIALISATION---------------\n");
+
+unsigned int alloc_distortion_vars(struct Distortion *distP, unsigned int LAST_ADDR) {
     // LOCATION IN LOCAL SCRATCHPAD MEMORY
-    const unsigned int DIST_X      = addr[coreNumber];
-    const unsigned int DIST_Y      = DIST_X     + 2 * sizeof(short);
-    const unsigned int DIST_ACCUM  = DIST_Y     + 2 * sizeof(short);
-    const unsigned int DIST_K      = DIST_ACCUM + 2 * sizeof(int);
-    const unsigned int DIST_K1P    = DIST_K     + sizeof(int);
-    const unsigned int DIST_SFTLFT = DIST_K1P   + sizeof(int);
+    const unsigned int DIST_ACCUM  = LAST_ADDR;
+    const unsigned int DIST_K      = DIST_ACCUM  + 2 * sizeof(int);
+    const unsigned int DIST_K1P    = DIST_K      + sizeof(int);
+    const unsigned int DIST_SFTLFT = DIST_K1P    + sizeof(int);
+    LAST_ADDR                      = DIST_SFTLFT + sizeof(int);
     //SPM variables
-    distP->x        = ( volatile _SPM short *) DIST_X;
-    distP->y        = ( volatile _SPM short *) DIST_Y;
     distP->accum    = ( volatile _SPM int *)   DIST_ACCUM;
     distP->k        = ( volatile _SPM int *)   DIST_K;
     distP->kOnePlus = ( volatile _SPM int *)   DIST_K1P;
     distP->sftLft   = ( volatile _SPM int *)   DIST_SFTLFT;
 
     //initialise k, kOnePlus, shiftLeft:
+    float amount = 0.9;
     *distP->k = ( (2*amount)/(1-amount) ) * pow(2,15);
     *distP->sftLft = 0;
     while(*distP->k > ONE_16b) {
@@ -1714,29 +1734,26 @@ int alloc_distortion_vars(struct Distortion *distP, int coreNumber, float amount
     }
     *distP->kOnePlus = (int)( ( (2*amount)/(1-amount) + 1 ) * pow(2,15) ) >> *distP->sftLft;
 
-    //return new address
-    int ALLOC_AMOUNT = alloc_space("DISTORTION", (DIST_SFTLFT + sizeof(int)), coreNumber);
-    return ALLOC_AMOUNT;
+    return LAST_ADDR;
 }
 
-__attribute__((always_inline))
-int audio_distortion(struct Distortion *distP) {
+//__attribute__((always_inline))
+int audio_distortion(struct Distortion *distP, volatile _SPM short *xP, volatile _SPM short *yP) {
     for(int j=0; j<2; j++) {
-        distP->accum[0] = (*distP->kOnePlus * distP->x[j]);// >> 15;
-        distP->accum[1] = (*distP->k * abs(distP->x[j])) >> 15;
+        distP->accum[0] = (*distP->kOnePlus * xP[j]);// >> 15;
+        distP->accum[1] = (*distP->k * abs(xP[j])) >> 15;
         distP->accum[1] = distP->accum[1] + ((ONE_16b+*distP->sftLft) >> *distP->sftLft);
         distP->accum[0] = distP->accum[0] / distP->accum[1];
         //reduce if it is poisitive only
-        if (distP->x[j] > 0) {
-            distP->y[j] = distP->accum[0] - 1;
+        if (xP[j] > 0) {
+            yP[j] = distP->accum[0] - 1;
         }
         else {
-            distP->y[j] = distP->accum[0];
+            yP[j] = distP->accum[0];
         }
     }
     return 0;
 }
-*/
 
 unsigned int alloc_delay_vars(struct IIRdelay *delP, unsigned int LAST_ADDR) {
     // LOCATION IN LOCAL SCRATCHPAD MEMORY
@@ -1793,22 +1810,18 @@ int audio_delay(struct IIRdelay *delP, volatile _SPM short *xP, volatile _SPM sh
     return 0;
 }
 
-/*
-int alloc_chorus_vars(struct Chorus *chorP, int coreNumber) {
-    printf("---------------CHORUS INITIALISATION---------------\n");
+
+unsigned int alloc_chorus_vars(struct Chorus *chorP, unsigned int LAST_ADDR) {
     // LOCATION IN LOCAL SCRATCHPAD MEMORY
-    const unsigned int CHOR_X      = addr[coreNumber];
-    const unsigned int CHOR_Y      = CHOR_X      + 2 * sizeof(short);
-    const unsigned int CHOR_ACCUM  = CHOR_Y      + 2 * sizeof(short);
+    const unsigned int CHOR_ACCUM  = LAST_ADDR;
     const unsigned int CHOR_G      = CHOR_ACCUM  + 2 * sizeof(int);
     const unsigned int CHOR_DEL    = CHOR_G      + 3 * sizeof(short) + 2;
     const unsigned int CHOR_PNT    = CHOR_DEL    + 3 * sizeof(int);
     const unsigned int CHOR_C1_PNT = CHOR_PNT    + sizeof(int);
     const unsigned int CHOR_C2_PNT = CHOR_C1_PNT + sizeof(int);
+    LAST_ADDR                      = CHOR_C2_PNT + sizeof(int);
 
     //SPM variables
-    chorP->x      = ( volatile _SPM short *) CHOR_X;
-    chorP->y      = ( volatile _SPM short *) CHOR_Y;
     chorP->accum  = ( volatile _SPM int *)   CHOR_ACCUM;
     chorP->g      = ( volatile _SPM short *) CHOR_G;
     chorP->del    = ( volatile _SPM int *)   CHOR_DEL;
@@ -1839,24 +1852,21 @@ int alloc_chorus_vars(struct Chorus *chorP, int coreNumber) {
     *chorP->c1_pnt = 0;
     *chorP->c2_pnt = 0;
 
-    //return new address
-    int ALLOC_AMOUNT = alloc_space("CHORUS", (CHOR_C2_PNT + sizeof(int)), coreNumber);
-
-    return ALLOC_AMOUNT;
+    return LAST_ADDR;
 }
 
-__attribute__((always_inline))
-int audio_chorus(struct Chorus *chorP) {
+//__attribute__((always_inline))
+int audio_chorus(struct Chorus *chorP, volatile _SPM short *xP, volatile _SPM short *yP) {
     // SINUSOIDAL MODULATION OF DELAY LENGTH
     chorP->del[0] = chorP->modArray1[*chorP->c1_pnt];
     chorP->del[1] = chorP->modArray2[*chorP->c2_pnt];
     *chorP->c1_pnt = (*chorP->c1_pnt + 1) % CHORUS_P1;
     *chorP->c2_pnt = (*chorP->c2_pnt + 1) % CHORUS_P2;
     //first, read sample
-    chorP->audio_buff[*chorP->pnt][0] = chorP->x[0];
-    chorP->audio_buff[*chorP->pnt][1] = chorP->x[1];
+    chorP->audio_buff[*chorP->pnt][0] = xP[0];
+    chorP->audio_buff[*chorP->pnt][1] = xP[1];
     //calculate AUDIO comb filter
-    combFilter_2nd(CHORUS_L, chorP->pnt, chorP->audio_buff, chorP->y, chorP->accum, chorP->g, chorP->del);
+    combFilter_2nd(CHORUS_L, chorP->pnt, chorP->audio_buff, yP, chorP->accum, chorP->g, chorP->del);
     //update pointer
     if(*chorP->pnt == 0) {
         *chorP->pnt = CHORUS_L - 1;
@@ -1868,6 +1878,7 @@ int audio_chorus(struct Chorus *chorP) {
     return 0;
 }
 
+/*
 int alloc_tremolo_vars(struct Tremolo *tremP, int coreNumber) {
     printf("---------------TREMOLO INITIALISATION---------------\n");
     // LOCATION IN LOCAL SCRATCHPAD MEMORY
@@ -1953,32 +1964,28 @@ int audio_tremolo32(struct Tremolo32 *tremP) {
 
     return 0;
 }
-
-int alloc_wahwah_vars(struct WahWah *wahP, int coreNumber) {
-    printf("---------------WAHWAH INITIALISATION---------------\n");
+*/
+unsigned int alloc_wahwah_vars(struct WahWah *wahP, unsigned int LAST_ADDR) {
     // LOCATION IN LOCAL SCRATCHPAD MEMORY
-    const unsigned int WAH_X      = addr[coreNumber];
-    const unsigned int WAH_Y      = WAH_X     + 2 * sizeof(short);
-    const unsigned int WAH_ACCUM  = WAH_Y     + 2 * sizeof(short);
-    const unsigned int WAH_XBUF   = WAH_ACCUM + 2 * sizeof(int);
-    const unsigned int WAH_YBUF   = WAH_XBUF  + 6 * sizeof(short); // 3rd ord, stereo
-    const unsigned int WAH_A      = WAH_YBUF  + 6 * sizeof(short); // 3rd ord, stereo
-    const unsigned int WAH_B      = WAH_A     + 3 * sizeof(short) + 2; //match word
-    const unsigned int WAH_PNT    = WAH_B     + 3 * sizeof(short) + 2; //match word
-    const unsigned int WAH_SLFT   = WAH_PNT   + sizeof(int);
-    const unsigned int WAH_WAHPNT = WAH_SLFT  + sizeof(int);
+    const unsigned int WAH_ACCUM  = LAST_ADDR;
+    const unsigned int WAH_XBUF   = WAH_ACCUM  + 2 * sizeof(int);
+    const unsigned int WAH_YBUF   = WAH_XBUF   + 6 * sizeof(short); // 3rd ord, stereo
+    const unsigned int WAH_A      = WAH_YBUF   + 6 * sizeof(short); // 3rd ord, stereo
+    const unsigned int WAH_B      = WAH_A      + 3 * sizeof(short) + 2; //match word
+    const unsigned int WAH_PNT    = WAH_B      + 3 * sizeof(short) + 2; //match word
+    const unsigned int WAH_SLFT   = WAH_PNT    + sizeof(int);
+    const unsigned int WAH_WAHPNT = WAH_SLFT   + sizeof(int);
+    LAST_ADDR                     = WAH_WAHPNT + sizeof(int);
 
     //SPM variables
-    wahP->x       = (volatile _SPM short *)      WAH_X;
-    wahP->y       = (volatile _SPM short *)      WAH_Y;
     wahP->accum   = (volatile _SPM int *)        WAH_ACCUM;
     wahP->x_buf   = (volatile _SPM short (*)[2]) WAH_XBUF;
     wahP->y_buf   = (volatile _SPM short (*)[2]) WAH_YBUF;
     wahP->A       = (volatile _SPM short *)      WAH_A;
     wahP->B       = (volatile _SPM short *)      WAH_B;
     wahP->pnt     = (volatile _SPM int *)        WAH_PNT;
-    wahP->wah_pnt = (volatile _SPM int *)        WAH_WAHPNT;
     wahP->sftLft  = (volatile _SPM int *)        WAH_SLFT;
+    wahP->wah_pnt = (volatile _SPM int *)        WAH_WAHPNT;
 
     //shift left is fixed!
     *wahP->sftLft = 1;
@@ -1999,21 +2006,21 @@ int alloc_wahwah_vars(struct WahWah *wahP, int coreNumber) {
     }
     printf("calculation of modulation coefficients finished!\n");
 
-    //return new address
-    int ALLOC_AMOUNT = alloc_space("WAHWAH", (WAH_SLFT + sizeof(int)), coreNumber);
-
+    *wahP->wah_pnt = 2; //correct?
+    /*
     //store 1st samples
     *wahP->wah_pnt = 0;
     //first, fill filter buffer
     for(*wahP->pnt=0; *wahP->pnt<2; *wahP->pnt = *wahP->pnt + 1) {
         getInputBufferSPM(&wahP->x_buf[*wahP->pnt][0], &wahP->x_buf[*wahP->pnt][1]);
     }
+    */
 
-    return ALLOC_AMOUNT;
+    return LAST_ADDR;
 }
 
-__attribute__((always_inline))
-int audio_wahwah(struct WahWah *wahP) {
+//__attribute__((always_inline))
+int audio_wahwah(struct WahWah *wahP, volatile _SPM short *xP, volatile _SPM short *yP) {
     //update filter coefficients
     wahP->B[2] = wahP->bArray[*wahP->wah_pnt][2]; //b0
     wahP->B[1] = wahP->bArray[*wahP->wah_pnt][1]; //b1
@@ -2024,21 +2031,19 @@ int audio_wahwah(struct WahWah *wahP) {
     *wahP->wah_pnt = (*wahP->wah_pnt+1) % WAHWAH_P;
     *wahP->pnt = (*wahP->pnt+1) % 3; //FILTER_ORDER_1PLUS = 3
     //first, read sample
-    wahP->x_buf[*wahP->pnt][0] = wahP->x[0];
-    wahP->x_buf[*wahP->pnt][1] = wahP->x[1];
+    wahP->x_buf[*wahP->pnt][0] = xP[0];
+    wahP->x_buf[*wahP->pnt][1] = xP[1];
     //then, calculate filter
     filterIIR_2nd(*wahP->pnt, wahP->x_buf, wahP->y_buf, wahP->accum, wahP->B, wahP->A, *wahP->sftLft);
     //Band-Pass stuff
-    wahP->accum[0] = ( (int)wahP->x[0] - (int)wahP->y_buf[*wahP->pnt][0] ); // >> 1;
-    wahP->accum[1] = ( (int)wahP->x[1] - (int)wahP->y_buf[*wahP->pnt][1] ); // >> 1;
+    wahP->accum[0] = ( (int)xP[0] - (int)wahP->y_buf[*wahP->pnt][0] ); // >> 1;
+    wahP->accum[1] = ( (int)xP[1] - (int)wahP->y_buf[*wahP->pnt][1] ); // >> 1;
     //mix with original: gains are fixed
-    wahP->accum[0] = ( (int)(WAHWAH_WET_GAIN*wahP->accum[0]) >> 15 )  + ( (int)(WAHWAH_DRY_GAIN*wahP->x[0]) >> 15 );
-    wahP->accum[1] = ( (int)(WAHWAH_WET_GAIN*wahP->accum[1]) >> 15 )  + ( (int)(WAHWAH_DRY_GAIN*wahP->x[1]) >> 15 );
+    wahP->accum[0] = ( (int)(WAHWAH_WET_GAIN*wahP->accum[0]) >> 15 )  + ( (int)(WAHWAH_DRY_GAIN*xP[0]) >> 15 );
+    wahP->accum[1] = ( (int)(WAHWAH_WET_GAIN*wahP->accum[1]) >> 15 )  + ( (int)(WAHWAH_DRY_GAIN*xP[1]) >> 15 );
     //set output
-    wahP->y[0] = (short)wahP->accum[0];
-    wahP->y[1] = (short)wahP->accum[1];
+    yP[0] = (short)wahP->accum[0];
+    yP[1] = (short)wahP->accum[1];
 
     return 0;
 }
-
-*/
