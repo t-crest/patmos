@@ -9,7 +9,7 @@
 #include "libaudio/audio.h"
 #include "libaudio/audio.c"
 
-const int LIM = 1200;
+const int LIM = 1000;
 
 //master core
 const int NOC_MASTER = 0;
@@ -29,7 +29,7 @@ const int FX_SCHED[FX_AMOUNT][10] = {
     {5, 0, 0, 8, 8, 1, 1, 0,  2, -1}
 };
 */
-/*
+
 //how many cores take part in the audio system
 const int AUDIO_CORES = 3;
 //how many effects are on the system in total
@@ -42,8 +42,8 @@ const int FX_SCHED[FX_AMOUNT][10] = {
     {3, 2, 0, 1, 8, 1, 1, 1,  1,  2},
     {4, 0, 0, 8, 8, 1, 1, 0,  2, -1}
 };
-*/
 
+/*
 //how many cores take part in the audio system
 const int AUDIO_CORES = 4;
 //how many effects are on the system in total
@@ -56,7 +56,7 @@ const int FX_SCHED[FX_AMOUNT][10] = {
     {3, 3, 0, 8, 1, 1, 1, 1,  2,  3},
     {4, 0, 0, 1, 1, 1, 1, 0,  3, -1}
 };
-
+*/
 
 
 void threadFunc(void* args) {
@@ -322,11 +322,14 @@ int main() {
 
 
     //CPU cycles stuff
-    int CPUcycles[LIM] = {0};
-    unsigned int cpu_pnt = 0;
+    //int CPUcycles[LIM] = {0};
+    //unsigned int cpu_pnt = 0;
 
 
-    int wait_recv = 18; //amount of loops until audioOut is done
+    //int wait_recv = 17; //amount of loops until audioOut is done
+    int wait_recv = 2;
+    //for debugging
+    //const int WAIT = wait_recv;
 
     //short audio_in[LIM][2] = {0};
     //short audio_out[LIM][2] = {0};
@@ -340,9 +343,9 @@ int main() {
                     audio_in[cpu_pnt][0] = FXp[n].x[0];
                     audio_in[cpu_pnt][1] = FXp[n].x[1];
                 }
-                if(n==1) {
-                    audio_out[cpu_pnt-18][0] = FXp[n].y[0];
-                    audio_out[cpu_pnt-18][1] = FXp[n].y[1];
+                if(n==(FX_HERE-1)) {
+                    audio_out[cpu_pnt-WAIT][0] = FXp[n].y[0];
+                    audio_out[cpu_pnt-WAIT][1] = FXp[n].y[1];
                 }
                 */
             }
@@ -351,14 +354,15 @@ int main() {
             }
         }
 
+        /*
         //store CPU Cycles
         CPUcycles[cpu_pnt] = get_cpu_cycles();
         cpu_pnt++;
         if(cpu_pnt == LIM) {
-            break;
+            //break;
             cpu_pnt = 0;
         }
-
+        */
 
     }
 
@@ -367,20 +371,20 @@ int main() {
     exit = 1;
     printf("waiting for all threads to finish...\n");
 
-
+    /*
     for(int i=1; i<LIM; i++) {
         printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
-
+    */
 
     /*
-    for(int i=0; i<(LIM-18); i++) {
+    for(int i=0; i<(LIM-WAIT); i++) {
         if( (audio_in[i][0] != audio_out[i][0]) || (audio_in[i][1] != audio_out[i][1]) ){
             printf("CORRUPT: i=%d: x[0]=%d, y[0]=%d   :   x[1]=%d, y[1]=%d\n", i, audio_in[i][0], audio_out[i][0], audio_in[i][1], audio_out[i][1]);
         }
-
     }
     */
+
 
     //join with thread 1
 

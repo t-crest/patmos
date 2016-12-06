@@ -1087,7 +1087,7 @@ int audio_connect_to_core(struct AudioFX *srcP, const unsigned int sendChanID) {
     }
     else {
         *srcP->sendChanP = (unsigned int)mp_create_qport(sendChanID, SOURCE,
-            (*srcP->yb_size * 4), 32); // ID, yb_size * 4 bytes, 1 buffer
+            (*srcP->yb_size * 4), 8); // ID, yb_size * 4 bytes, 1 buffer
         *srcP->y_pnt = (int)&((qpd_t *)*srcP->sendChanP)->write_buf;
 
         return 0;
@@ -1101,7 +1101,7 @@ int audio_connect_from_core(const unsigned int recvChanID, struct AudioFX *dstP)
     }
     else {
         *dstP->recvChanP = (unsigned int)mp_create_qport(recvChanID, SINK,
-            (*dstP->xb_size * 4), 32); // ID, xb_size * 4 bytes, 1 buffer
+            (*dstP->xb_size * 4), 8); // ID, xb_size * 4 bytes, 1 buffer
         *dstP->x_pnt = (int)&((qpd_t *)*dstP->recvChanP)->read_buf;
 
         return 0;
@@ -1197,9 +1197,11 @@ int audio_process(struct AudioFX *audioP) {
     if(*audioP->in_con == NO_NOC) { //same core : data=**x_pnt
         xP = (volatile _SPM short *)*audioP->x_pnt;
     }
+    /*
     else { //NoC: data=***x_pnt
         xP = (volatile _SPM short *)*(volatile _SPM unsigned int *)*audioP->x_pnt;
     }
+    */
 
     if(*audioP->out_con == NO_NOC) { //same core: data=**y_pnt
         yP = (volatile _SPM short *)*audioP->y_pnt;
@@ -1216,30 +1218,27 @@ int audio_process(struct AudioFX *audioP) {
     //printf("funcP points to 0x%x\n", (unsigned int)funcP);
     */
 
+
+    unsigned int ind; //index used for each operation
+    unsigned int offs; // can be x_offs or y_offs, depending on XgY or XlY
+
     switch(*audioP->pt) {
     case XeY:
         //RECEIVE ONCE
         if(*audioP->in_con == NOC) { //receive from NoC
-            //printf("receive pointer before: 0x%x\n", (unsigned int)((qpd_t *)*audioP->recvChanP)->read_buf);
             if(mp_recv((qpd_t *)*audioP->recvChanP, TIMEOUT) == 0) {
                 printf("RECV TIMED OUT!\n");
                 retval = 1;
             }
+            //update X pointer after each recv
             xP = (volatile _SPM short *)*(volatile _SPM unsigned int *)*audioP->x_pnt;
-            //printf("receive pointer after: 0x%x\n", (unsigned int)((qpd_t *)*audioP->recvChanP)->read_buf);
-            //printf("XP points to 0x%x\n", (unsigned int)xP);
         }
         else { //same core
             if( (*audioP->cpuid == 0) && (*audioP->is_fst == FIRST) ) {
                 audioIn(audioP, xP);
             }
         }
-
         //PROCESS PPSR TIMES
-        /*
-        audio_process_ppsr(audioP, xP, yP);
-        */
-        unsigned int ind; //index used for each operation
         switch(*audioP->fx) {
         case DRY:
             for(unsigned int i=0; i < *audioP->ppsr; i++) {
@@ -1257,75 +1256,51 @@ int audio_process(struct AudioFX *audioP) {
             printf("effect not implemented yet\n");
             break;
         }
-
-        /*
-        cycles = get_cpu_cycles() - cycles;
-        printf("cpu cycles: %d\n", cycles);
-        */
         //ACKNOWLEDGE ONCE AFTER PROCESSING
-        /*
-        retval = audio_ack(audioP);
-        if (retval == 1) {
-            return 1;
-        }
-        */
         if(*audioP->in_con == NOC) {
             if(mp_ack((qpd_t *)*audioP->recvChanP, TIMEOUT) == 0) {
                 printf("ACK TIMED OUT!\n");
                 retval = 1;
             }
         }
-
         //SEND ONCE
-        /*
-        retval = audio_send(audioP, yP);
-        if (retval == 1) {
-            return 1;
-        }
-        */
         if(*audioP->out_con == NOC) { //send to NoC
-            //printf("send pointer before: 0x%x\n", (unsigned int)((qpd_t *)*audioP->sendChanP)->write_buf);
             if(mp_send((qpd_t *)*audioP->sendChanP, TIMEOUT) == 0) {
                 printf("SEND TIMED OUT!\n");
                 retval = 1;
             }
-            //printf("send pointer after: 0x%x\n", (unsigned int)((qpd_t *)*audioP->sendChanP)->write_buf);
-            //printf("YP points to 0x%x\n", (unsigned int)yP);
-            //yP = (volatile _SPM short *)*(volatile _SPM unsigned int *)*audioP->y_pnt;
-            //printf("YP updated: 0x%x\n", (unsigned int)yP);
         }
         else { //same core
             if( (*audioP->cpuid == 0) && (*audioP->is_lst == LAST) ) {
                 audioOut(audioP, yP);
             }
         }
-
         break;
     case XgY:
         //RECEIVE ONCE
         if(*audioP->in_con == NOC) { //receive from NoC
             if(mp_recv((qpd_t *)*audioP->recvChanP, TIMEOUT) == 0) {
-                printf("RECV TIMED OUT!\n");
+                //printf("RECV TIMED OUT!\n");
                 retval = 1;
             }
+            //update X pointer after each recv
             xP = (volatile _SPM short *)*(volatile _SPM unsigned int *)*audioP->x_pnt;
         }
         //REPEAT SPR TIMES:
         for(unsigned int j=0;j<*audioP->spr; j++) {
             //PROCESS PPSR TIMES
-            unsigned int ind; //index used for each operation
-            unsigned int x_offs = 2 * j * (*audioP->yb_size);
+            offs = 2 * j * (*audioP->yb_size);
             switch(*audioP->fx) {
             case DRY:
                 for(unsigned int i=0; i < *audioP->ppsr; i++) {
                     ind = 2 * i * (*audioP->p);
-                    audio_dry(audioP, &xP[x_offs+ind], &yP[ind]);
+                    audio_dry(audioP, &xP[offs+ind], &yP[ind]);
                 }
                 break;
             case DRY_8S:
                 for(unsigned int i=0; i < *audioP->ppsr; i++) {
                    ind = 2 * i * (*audioP->p);
-                    audio_dry_8samples(audioP, &xP[x_offs+ind], &yP[ind]);
+                    audio_dry_8samples(audioP, &xP[offs+ind], &yP[ind]);
                 }
                 break;
             default:
@@ -1336,7 +1311,7 @@ int audio_process(struct AudioFX *audioP) {
             if(j == (*audioP->spr - 1)) {
                 if(*audioP->in_con == NOC) {
                     if(mp_ack((qpd_t *)*audioP->recvChanP, TIMEOUT) == 0) {
-                        printf("ACK TIMED OUT!\n");
+                        //printf("ACK TIMED OUT!\n");
                         retval = 1;
                     }
                 }
@@ -1344,7 +1319,7 @@ int audio_process(struct AudioFX *audioP) {
             //SEND ONCE
             if(*audioP->out_con == NOC) { //send to NoC
                 if(mp_send((qpd_t *)*audioP->sendChanP, TIMEOUT) == 0) {
-                    printf("SEND TIMED OUT!\n");
+                    //printf("SEND TIMED OUT!\n");
                     retval = 1;
                 }
                 //update Y pointer after each send
@@ -1357,27 +1332,26 @@ int audio_process(struct AudioFX *audioP) {
         for(unsigned int j=0; j<*audioP->rpr; j++) {
             //RECEIVE ONCE
             if(*audioP->in_con == NOC) { //receive from NoC
-                //update X pointer after each recv
                 if(mp_recv((qpd_t *)*audioP->recvChanP, TIMEOUT) == 0) {
-                    printf("RECV TIMED OUT!\n");
+                    //printf("RECV TIMED OUT!\n");
                     retval = 1;
                 }
+                //update X pointer after each recv
                 xP = (volatile _SPM short *)*(volatile _SPM unsigned int *)*audioP->x_pnt;
             }
             //PROCESS PPSR TIMES
-            unsigned int ind; //index used for each operation
-            unsigned int y_offs = 2 * j * (*audioP->xb_size);
+            offs = 2 * j * (*audioP->xb_size);
             switch(*audioP->fx) {
             case DRY:
                 for(unsigned int i=0; i < *audioP->ppsr; i++) {
                     ind = 2 * i * (*audioP->p);
-                    audio_dry(audioP, &xP[ind], &yP[y_offs+ind]);
+                    audio_dry(audioP, &xP[ind], &yP[offs+ind]);
                 }
                 break;
             case DRY_8S:
                 for(unsigned int i=0; i < *audioP->ppsr; i++) {
                     ind = 2 * i * (*audioP->p);
-                    audio_dry_8samples(audioP, &xP[ind], &yP[y_offs+ind]);
+                    audio_dry_8samples(audioP, &xP[ind], &yP[offs+ind]);
                 }
                 break;
             default:
@@ -1387,7 +1361,7 @@ int audio_process(struct AudioFX *audioP) {
             //ACK ONCE
             if(*audioP->in_con == NOC) {
                 if(mp_ack((qpd_t *)*audioP->recvChanP, TIMEOUT) == 0) {
-                    printf("ACK TIMED OUT!\n");
+                    //printf("ACK TIMED OUT!\n");
                     retval = 1;
                 }
             }
@@ -1395,7 +1369,7 @@ int audio_process(struct AudioFX *audioP) {
         //SEND ONCE
         if(*audioP->out_con == NOC) { //send to NoC
             if(mp_send((qpd_t *)*audioP->sendChanP, TIMEOUT) == 0) {
-                printf("SEND TIMED OUT!\n");
+                //printf("SEND TIMED OUT!\n");
                 retval = 1;
             }
         }
