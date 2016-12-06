@@ -888,7 +888,8 @@ int audio_dry_8samples(struct AudioFX *audioP, volatile _SPM short *xP, volatile
 }
 
 // FOR PRINTING:
-int alloc_space(char *FX_NAME, unsigned int BASE_ADDR, unsigned int LAST_ADDR, int cpuid) {
+int alloc_space(unsigned int BASE_ADDR, unsigned int LAST_ADDR) {
+    int cpuid = get_cpuid();
     unsigned int ALLOC_AMOUNT = LAST_ADDR - BASE_ADDR;
     void _SPM *allocret = mp_alloc(ALLOC_AMOUNT);
     if(allocret == NULL) {
@@ -900,10 +901,11 @@ int alloc_space(char *FX_NAME, unsigned int BASE_ADDR, unsigned int LAST_ADDR, i
     }
     else {
         if(cpuid == 0) {
+            printf("\n");
             printf("Base position at SPM of core %d is 0x%x\n", cpuid, BASE_ADDR);
             printf("%d bytes allocated in SPM of core %d\n", ALLOC_AMOUNT, cpuid);
             printf("Last free position at SPM of core %d is 0x%x\n", cpuid, LAST_ADDR);
-            printf("-------------------%s DONE!-------------------\n", FX_NAME);
+            printf("-------------------DONE!-------------------\n");
         }
 
         return 0;
@@ -1038,29 +1040,37 @@ int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_c
     // FX TYPE
     const unsigned int ADDR_FX    = LAST_ADDR;
     LAST_ADDR                     = ADDR_FX   + sizeof(fx_t);
-    /*
-    const unsigned int ADDR_FUNCP = ADDR_FX    + sizeof(fx_t);
-    LAST_ADDR                     = ADDR_FUNCP + sizeof(unsigned int);
-    */
     //SPM variables
     audioP->fx    = ( volatile _SPM fx_t *)         ADDR_FX;
-    //audioP->funcP = ( volatile _SPM unsigned int *) ADDR_FUNCP;
     //init values
     *audioP->fx = FX_TYPE;
-    /*
     switch(*audioP->fx) {
     case DRY:
-        *audioP->funcP = (unsigned int)&audio_dry;
+        //nothing to do
+        break;
+    case DRY_8S:
+        //nothing to do
+        break;
+    case DELAY:
+        if(LAST_ADDR) {
+            //dummy
+        }
+        const unsigned int ADDR_FX_PNT = LAST_ADDR;
+        LAST_ADDR                      = ADDR_FX_PNT + sizeof(int);
+        //SPM variables
+        audioP->fx_pnt = (volatile _SPM unsigned int *) ADDR_FX_PNT;
+        //allocate effect
+        struct IIRdelay delay;
+        struct IIRdelay *delayP = &delay;
+        *audioP->fx_pnt = (unsigned int)delayP; //points to function
+        LAST_ADDR = alloc_delay_vars(delayP, LAST_ADDR);
         break;
     default:
         printf("FX NOT IMPLEMENTED YET\n");
     }
-    printf("address of function is 0x%x\n", (unsigned int)&audio_dry);
-    printf("stored value is 0x%x\n", *audioP->funcP);
-    */
 
     //update spm_alloc
-    int retval = alloc_space("AUDIO AUDIO", BASE_ADDR, LAST_ADDR, (int)*audioP->cpuid);
+    int retval = alloc_space(BASE_ADDR, LAST_ADDR);
 
     return retval;
 }
@@ -1197,12 +1207,6 @@ int audio_process(struct AudioFX *audioP) {
     if(*audioP->in_con == NO_NOC) { //same core : data=**x_pnt
         xP = (volatile _SPM short *)*audioP->x_pnt;
     }
-    /*
-    else { //NoC: data=***x_pnt
-        xP = (volatile _SPM short *)*(volatile _SPM unsigned int *)*audioP->x_pnt;
-    }
-    */
-
     if(*audioP->out_con == NO_NOC) { //same core: data=**y_pnt
         yP = (volatile _SPM short *)*audioP->y_pnt;
     }
@@ -1213,13 +1217,6 @@ int audio_process(struct AudioFX *audioP) {
     }
 
     /* ------------------SEND/PROCESS/RECEIVE---------------------*/
-
-    /*
-    int (*funcP)(struct AudioFX *, volatile _SPM short *xP, volatile _SPM short *yP);
-    funcP = (int (*)(struct AudioFX *, volatile _SPM short *, volatile _SPM short *))(*audioP->funcP);
-    //printf("funcP points to 0x%x\n", (unsigned int)funcP);
-    */
-
 
     unsigned int ind; //index used for each operation
     unsigned int offs; // can be x_offs or y_offs, depending on XgY or XlY
@@ -1245,14 +1242,21 @@ int audio_process(struct AudioFX *audioP) {
         switch(*audioP->fx) {
         case DRY:
             for(unsigned int i=0; i < *audioP->ppsr; i++) {
-                ind = i * 2 * (*audioP->p);
+                ind = 2 * i * (*audioP->p);
                 audio_dry(audioP, &xP[ind], &yP[ind]);
             }
             break;
         case DRY_8S:
             for(unsigned int i=0; i < *audioP->ppsr; i++) {
-                ind = i * 2 * (*audioP->p);
+                ind = 2 * i * (*audioP->p);
                 audio_dry_8samples(audioP, &xP[ind], &yP[ind]);
+            }
+            break;
+        case DELAY:
+            for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                ind = 2 * i * (*audioP->p);
+                struct IIRdelay *delP = (struct IIRdelay *)*audioP->fx_pnt;
+                audio_delay(delP, &xP[ind], &yP[ind]);
             }
             break;
         default:
@@ -1307,6 +1311,13 @@ int audio_process(struct AudioFX *audioP) {
                     audio_dry_8samples(audioP, &xP[offs+ind], &yP[ind]);
                 }
                 break;
+            case DELAY:
+                for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                    ind = 2 * i * (*audioP->p);
+                    struct IIRdelay *delP = (struct IIRdelay *)*audioP->fx_pnt;
+                    audio_delay(delP, &xP[offs+ind], &yP[ind]);
+                }
+                break;
             default:
                 printf("effect not implemented yet\n");
                 break;
@@ -1358,6 +1369,13 @@ int audio_process(struct AudioFX *audioP) {
                 for(unsigned int i=0; i < *audioP->ppsr; i++) {
                     ind = 2 * i * (*audioP->p);
                     audio_dry_8samples(audioP, &xP[ind], &yP[offs+ind]);
+                }
+                break;
+            case DELAY:
+                for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                    ind = 2 * i * (*audioP->p);
+                    struct IIRdelay *delP = (struct IIRdelay *)*audioP->fx_pnt;
+                    audio_delay(delP, &xP[ind], &yP[offs+ind]);
                 }
                 break;
             default:
@@ -1718,20 +1736,17 @@ int audio_distortion(struct Distortion *distP) {
     }
     return 0;
 }
+*/
 
-int alloc_delay_vars(struct IIRdelay *delP, int coreNumber) {
-    printf("---------------DELAY INITIALISATION---------------\n");
+unsigned int alloc_delay_vars(struct IIRdelay *delP, unsigned int LAST_ADDR) {
     // LOCATION IN LOCAL SCRATCHPAD MEMORY
-    const unsigned int DEL_X      = addr[coreNumber];
-    const unsigned int DEL_Y      = DEL_X     + 2 * sizeof(short);
-    const unsigned int DEL_ACCUM  = DEL_Y     + 2 * sizeof(short);
+    const unsigned int DEL_ACCUM  = LAST_ADDR;
     const unsigned int DEL_G      = DEL_ACCUM + 2 * sizeof(int);
     const unsigned int DEL_DEL    = DEL_G     + 2 * sizeof(short);
     const unsigned int DEL_PNT    = DEL_DEL   + 2 * sizeof(int);
+    LAST_ADDR                     = DEL_PNT   + sizeof(int);
 
     //SPM variables
-    delP->x     = ( volatile _SPM short *) DEL_X;
-    delP->y     = ( volatile _SPM short *) DEL_Y;
     delP->accum = ( volatile _SPM int *)   DEL_ACCUM;
     delP->g     = ( volatile _SPM short *) DEL_G;
     delP->del   = ( volatile _SPM int *)   DEL_DEL;
@@ -1753,22 +1768,20 @@ int alloc_delay_vars(struct IIRdelay *delP, int coreNumber) {
         delP->audio_buff[i][1] = 0;
     }
 
-    //return new address
-    int ALLOC_AMOUNT = alloc_space("DELAY", (DEL_PNT + sizeof(int)), coreNumber);
-
-    return ALLOC_AMOUNT;
+    return LAST_ADDR;
 }
 
-__attribute__((always_inline))
-int audio_delay(struct IIRdelay *delP) {
+
+//__attribute__((always_inline))
+int audio_delay(struct IIRdelay *delP, volatile _SPM short *xP, volatile _SPM short *yP) {
     //first, read sample
-    delP->audio_buff[*delP->pnt][0] = delP->x[0];
-    delP->audio_buff[*delP->pnt][1] = delP->x[1];
+    delP->audio_buff[*delP->pnt][0] = xP[0];
+    delP->audio_buff[*delP->pnt][1] = xP[1];
     //calculate IIR comb filter
-    combFilter_1st(DELAY_L, delP->pnt, delP->audio_buff, delP->y, delP->accum, delP->g, delP->del);
+    combFilter_1st(DELAY_L, delP->pnt, delP->audio_buff, yP, delP->accum, delP->g, delP->del);
     //replace content on buffer
-    delP->audio_buff[*delP->pnt][0] = delP->y[0];
-    delP->audio_buff[*delP->pnt][1] = delP->y[1];
+    delP->audio_buff[*delP->pnt][0] = yP[0];
+    delP->audio_buff[*delP->pnt][1] = yP[1];
     //update pointer
     if(*delP->pnt == 0) {
         *delP->pnt = DELAY_L - 1;
@@ -1780,6 +1793,7 @@ int audio_delay(struct IIRdelay *delP) {
     return 0;
 }
 
+/*
 int alloc_chorus_vars(struct Chorus *chorP, int coreNumber) {
     printf("---------------CHORUS INITIALISATION---------------\n");
     // LOCATION IN LOCAL SCRATCHPAD MEMORY

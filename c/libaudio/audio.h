@@ -137,10 +137,10 @@ typedef enum {NO_NOC, NOC} con_t;
 // comparison of receive/send buffer sizes
 typedef enum {XeY, XgY, XlY} pt_t;
 // possible effects:
-typedef enum {DRY, DRY_8S, HP, LP, BP, BR,
+typedef enum {DRY, DRY_8S, DELAY, HP, LP, BP, BR,
              VIBRATO, OVERDRIVE,
              DISTORTION, TREMOLO,
-             DELAY, CHORUS, WAHWAH} fx_t;
+             CHORUS, WAHWAH} fx_t;
 
 struct AudioFX {
     //effect ID
@@ -173,10 +173,8 @@ struct AudioFX {
     volatile _SPM short *y; //output audio y[2]
     //Audio effect implemented
     volatile _SPM fx_t *fx;
-    /*
-    //pointer to FX processing function
-    volatile _SPM unsigned int *funcP;
-    */
+    //Pointer to effect struct
+    volatile _SPM unsigned int *fx_pnt;
 };
 
 //audio FX SPM allocation
@@ -283,15 +281,14 @@ struct Distortion {
 int alloc_distortion_vars(struct Distortion *distP, int coreNumber, float amount);
 int audio_distortion(struct Distortion *distP);
 
+*/
 
-/ *
+/*
   Delay
-* /
+*/
 
 struct IIRdelay {
     //SPM variables
-    volatile _SPM short *x; //input audio x[2]
-    volatile _SPM short *y; //output audio y[2]
     volatile _SPM int   *accum; //accummulator accum[2]
     volatile _SPM short *g; //gains [g1, g0]
     volatile _SPM int   *del; // delays [d1, d0]
@@ -300,9 +297,10 @@ struct IIRdelay {
     short audio_buff[DELAY_L][2];
 };
 
-int alloc_delay_vars(struct IIRdelay *delP, int coreNumber);
-int audio_delay(struct IIRdelay *delP);
+unsigned int alloc_delay_vars(struct IIRdelay *delP, unsigned int LAST_ADDR);
+int audio_delay(struct IIRdelay *delP, volatile _SPM short *xP, volatile _SPM short *yP);
 
+/*
 / *
   Chorus
 * /
