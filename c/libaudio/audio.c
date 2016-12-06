@@ -1206,8 +1206,10 @@ int audio_process(struct AudioFX *audioP) {
     if(*audioP->out_con == NO_NOC) { //same core: data=**y_pnt
         yP = (volatile _SPM short *)*audioP->y_pnt;
     }
+
     else { //NoC: data=***y_pnt
         yP = (volatile _SPM short *)*(volatile _SPM unsigned int *)*audioP->y_pnt;
+        //yP = ((qpd_t *)*audioP->sendChanP)->write_buf;
     }
 
     /* ------------------SEND/PROCESS/RECEIVE---------------------*/
@@ -1232,6 +1234,7 @@ int audio_process(struct AudioFX *audioP) {
             }
             //update X pointer after each recv
             xP = (volatile _SPM short *)*(volatile _SPM unsigned int *)*audioP->x_pnt;
+            //xP = ((qpd_t *)*audioP->recvChanP)->read_buf;
         }
         else { //same core
             if( (*audioP->cpuid == 0) && (*audioP->is_fst == FIRST) ) {
@@ -1285,6 +1288,7 @@ int audio_process(struct AudioFX *audioP) {
             }
             //update X pointer after each recv
             xP = (volatile _SPM short *)*(volatile _SPM unsigned int *)*audioP->x_pnt;
+            //xP = ((qpd_t *)*audioP->recvChanP)->read_buf;
         }
         //REPEAT SPR TIMES:
         for(unsigned int j=0;j<*audioP->spr; j++) {
@@ -1324,6 +1328,7 @@ int audio_process(struct AudioFX *audioP) {
                 }
                 //update Y pointer after each send
                 yP = (volatile _SPM short *)*(volatile _SPM unsigned int *)*audioP->y_pnt;
+                //yP = ((qpd_t *)*audioP->sendChanP)->write_buf;
             }
         }
         break;
@@ -1338,6 +1343,7 @@ int audio_process(struct AudioFX *audioP) {
                 }
                 //update X pointer after each recv
                 xP = (volatile _SPM short *)*(volatile _SPM unsigned int *)*audioP->x_pnt;
+                //xP = ((qpd_t *)*audioP->recvChanP)->read_buf;
             }
             //PROCESS PPSR TIMES
             offs = 2 * j * (*audioP->xb_size);
