@@ -1086,6 +1086,42 @@ int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_c
         *audioP->fx_pnt = (unsigned int)distortionP; //points to function
         LAST_ADDR = alloc_distortion_vars(distortionP, LAST_ADDR);
         break;
+    case HP: ;
+        struct Filter hpf;
+        struct Filter *hpfP = &hpf;
+        *audioP->fx_pnt = (unsigned int)hpfP; //points to function
+        LAST_ADDR = alloc_filter_vars(hpfP, LAST_ADDR, 5000, 0.707, 1);
+        break;
+    case LP: ;
+        struct Filter lpf;
+        struct Filter *lpfP = &lpf;
+        *audioP->fx_pnt = (unsigned int)lpfP; //points to function
+        LAST_ADDR = alloc_filter_vars(lpfP, LAST_ADDR, 600, 0.707, 0);
+        break;
+    case BP: ;
+        struct Filter bpf;
+        struct Filter *bpfP = &bpf;
+        *audioP->fx_pnt = (unsigned int)bpfP; //points to function
+        LAST_ADDR = alloc_filter_vars(bpfP, LAST_ADDR, 1000, 300, 2);
+        break;
+    case BR: ;
+        struct Filter brf;
+        struct Filter *brfP = &brf;
+        *audioP->fx_pnt = (unsigned int)brfP; //points to function
+        LAST_ADDR = alloc_filter_vars(brfP, LAST_ADDR, 500, 2000, 3);
+        break;
+    case VIBRATO: ;
+        struct Vibrato vibrato;
+        struct Vibrato *vibratoP = &vibrato;
+        *audioP->fx_pnt = (unsigned int)vibratoP; //points to function
+        LAST_ADDR = alloc_vibrato_vars(vibratoP, LAST_ADDR);
+        break;
+    case TREMOLO: ;
+        struct Tremolo tremolo;
+        struct Tremolo *tremoloP = &tremolo;
+        *audioP->fx_pnt = (unsigned int)tremoloP; //points to function
+        LAST_ADDR = alloc_tremolo_vars(tremoloP, LAST_ADDR);
+        break;
     default:
         printf("FX NOT IMPLEMENTED YET\n");
     }
@@ -1232,6 +1268,30 @@ int audio_process(struct AudioFX *audioP) {
                 audio_distortion(distP, &xP[ind], &yP[ind]);
             }
             break;
+        case HP:
+        case LP:
+        case BP:
+        case BR: ;
+            struct Filter *filtP = (struct Filter *)*audioP->fx_pnt;
+            for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                ind = 2 * i * (*audioP->p);
+                audio_filter(filtP, &xP[ind], &yP[ind]);
+            }
+            break;
+        case VIBRATO: ;
+            struct Vibrato *vibrP = (struct Vibrato *)*audioP->fx_pnt;
+            for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                ind = 2 * i * (*audioP->p);
+                audio_vibrato(vibrP, &xP[ind], &yP[ind]);
+            }
+            break;
+        case TREMOLO: ;
+            struct Tremolo *tremP = (struct Tremolo *)*audioP->fx_pnt;
+            for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                ind = 2 * i * (*audioP->p);
+                audio_tremolo(tremP, &xP[ind], &yP[ind]);
+            }
+            break;
         default:
             printf("effect not implemented yet\n");
             break;
@@ -1317,6 +1377,30 @@ int audio_process(struct AudioFX *audioP) {
                 for(unsigned int i=0; i < *audioP->ppsr; i++) {
                     ind = 2 * i * (*audioP->p);
                     audio_distortion(distP, &xP[offs+ind], &yP[ind]);
+                }
+                break;
+            case HP:
+            case LP:
+            case BP:
+            case BR: ;
+                struct Filter *filtP = (struct Filter *)*audioP->fx_pnt;
+                for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                    ind = 2 * i * (*audioP->p);
+                    audio_filter(filtP, &xP[offs+ind], &yP[ind]);
+                }
+                break;
+            case VIBRATO: ;
+                struct Vibrato *vibrP = (struct Vibrato *)*audioP->fx_pnt;
+                for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                    ind = 2 * i * (*audioP->p);
+                    audio_vibrato(vibrP, &xP[offs+ind], &yP[ind]);
+                }
+                break;
+            case TREMOLO: ;
+                struct Tremolo *tremP = (struct Tremolo *)*audioP->fx_pnt;
+                for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                    ind = 2 * i * (*audioP->p);
+                    audio_tremolo(tremP, &xP[offs+ind], &yP[ind]);
                 }
                 break;
             default:
@@ -1407,6 +1491,30 @@ int audio_process(struct AudioFX *audioP) {
                     audio_distortion(distP, &xP[ind], &yP[offs+ind]);
                 }
                 break;
+            case HP:
+            case LP:
+            case BP:
+            case BR: ;
+                struct Filter *filtP = (struct Filter *)*audioP->fx_pnt;
+                for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                    ind = 2 * i * (*audioP->p);
+                    audio_filter(filtP, &xP[ind], &yP[offs+ind]);
+                }
+                break;
+            case VIBRATO: ;
+                struct Vibrato *vibrP = (struct Vibrato *)*audioP->fx_pnt;
+                for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                    ind = 2 * i * (*audioP->p);
+                    audio_vibrato(vibrP, &xP[ind], &yP[offs+ind]);
+                }
+                break;
+            case TREMOLO: ;
+                struct Tremolo *tremP = (struct Tremolo *)*audioP->fx_pnt;
+                for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                    ind = 2 * i * (*audioP->p);
+                    audio_tremolo(tremP, &xP[ind], &yP[offs+ind]);
+                }
+                break;
             default:
                 printf("effect not implemented yet\n");
                 break;
@@ -1432,13 +1540,10 @@ int audio_process(struct AudioFX *audioP) {
     return retval;
 }
 
-/*
-int alloc_filter_vars(struct Filter *filtP, int coreNumber, int Fc, float QorFb, int thisType) {
-    printf("---------------FILTER INITIALISATION---------------\n");
+
+unsigned int alloc_filter_vars(struct Filter *filtP, unsigned int LAST_ADDR, int Fc, float QorFb, int thisType) {
     // LOCATION IN LOCAL SCRATCHPAD MEMORY
-    const unsigned int FILT_X     = addr[coreNumber];
-    const unsigned int FILT_Y     = FILT_X     + 2 * sizeof(short);
-    const unsigned int FILT_ACCUM = FILT_Y     + 2 * sizeof(short);
+    const unsigned int FILT_ACCUM = LAST_ADDR;
     const unsigned int FILT_XBUF  = FILT_ACCUM + 2 * sizeof(int);
     const unsigned int FILT_YBUF  = FILT_XBUF  + 6 * sizeof(short); // 3rd ord, stereo
     const unsigned int FILT_A     = FILT_YBUF  + 6 * sizeof(short); // 3rd ord, stereo
@@ -1446,10 +1551,9 @@ int alloc_filter_vars(struct Filter *filtP, int coreNumber, int Fc, float QorFb,
     const unsigned int FILT_PNT   = FILT_B     + 3 * sizeof(short) + 2; //match word
     const unsigned int FILT_SLFT  = FILT_PNT   + sizeof(int);
     const unsigned int FILT_TYPE  = FILT_SLFT  + sizeof(int);
+    LAST_ADDR                     = FILT_TYPE  + sizeof(int);
 
     //SPM variables
-    filtP->x      = (volatile _SPM short *)      FILT_X;
-    filtP->y      = (volatile _SPM short *)      FILT_Y;
     filtP->accum  = (volatile _SPM int *)        FILT_ACCUM;
     filtP->x_buf  = (volatile _SPM short (*)[2]) FILT_XBUF;
     filtP->y_buf  = (volatile _SPM short (*)[2]) FILT_YBUF;
@@ -1467,35 +1571,35 @@ int alloc_filter_vars(struct Filter *filtP, int coreNumber, int Fc, float QorFb,
     else { // 2 or 3: BP or BR
         filter_coeff_bp_br(3, filtP->B, filtP->A, Fc, (int)QorFb,  filtP->sftLft, 0);
     }
-    //return new address
-    int ALLOC_AMOUNT = alloc_space("FILTER", (FILT_TYPE + sizeof(int)), coreNumber);
 
+    *filtP->pnt = 2; //correct?
+    /*
     //store 1st samples:
     for(*filtP->pnt=0; *filtP->pnt < 2; *filtP->pnt = *filtP->pnt + 1) {
       getInputBufferSPM(&filtP->x_buf[*filtP->pnt][0], &filtP->x_buf[*filtP->pnt][1]);
     }
-
-    return ALLOC_AMOUNT;
+    */
+    return LAST_ADDR;
 }
 
-__attribute__((always_inline))
-int audio_filter(struct Filter *filtP){
+//__attribute__((always_inline))
+int audio_filter(struct Filter *filtP, volatile _SPM short *xP, volatile _SPM short *yP){
     //increment pointer
     *filtP->pnt = ( (*(filtP->pnt)) + 1 ) % 3;
     //first, read sample
-    filtP->x_buf[*filtP->pnt][0] = filtP->x[0];
-    filtP->x_buf[*filtP->pnt][1] = filtP->x[1];
+    filtP->x_buf[*filtP->pnt][0] = xP[0];
+    filtP->x_buf[*filtP->pnt][1] = xP[1];
     //then, calculate filter
     filterIIR_2nd(*filtP->pnt, filtP->x_buf, filtP->y_buf, filtP->accum, filtP->B, filtP->A, *filtP->sftLft);
     //check if it is BP/BR
     if(*filtP->type == 2) { //BP
-        filtP->accum[0] = ( (int)filtP->x[0] - (int)filtP->y_buf[*filtP->pnt][0] ) >> 1;
-        filtP->accum[1] = ( (int)filtP->x[1] - (int)filtP->y_buf[*filtP->pnt][1] ) >> 1;
+        filtP->accum[0] = ( (int)xP[0] - (int)filtP->y_buf[*filtP->pnt][0] ) >> 1;
+        filtP->accum[1] = ( (int)xP[1] - (int)filtP->y_buf[*filtP->pnt][1] ) >> 1;
     }
     else {
         if(*filtP->type == 3) { //BR
-            filtP->accum[0] = ( (int)filtP->x[0] + (int)filtP->y_buf[*filtP->pnt][0] ) >> 1;
-            filtP->accum[1] = ( (int)filtP->x[1] + (int)filtP->y_buf[*filtP->pnt][1] ) >> 1;
+            filtP->accum[0] = ( (int)xP[0] + (int)filtP->y_buf[*filtP->pnt][0] ) >> 1;
+            filtP->accum[1] = ( (int)xP[1] + (int)filtP->y_buf[*filtP->pnt][1] ) >> 1;
         }
         else { //HP or LP
             filtP->accum[0] = filtP->y_buf[*filtP->pnt][0];
@@ -1503,13 +1607,13 @@ int audio_filter(struct Filter *filtP){
         }
     }
     //set output
-    filtP->y[0] = (short)filtP->accum[0];
-    filtP->y[1] = (short)filtP->accum[1];
+    yP[0] = (short)filtP->accum[0];
+    yP[1] = (short)filtP->accum[1];
 
     return 0;
 }
 
-
+/*
 int alloc_filter32_vars(struct Filter32 *filtP, int coreNumber, int Fc, float QorFb, int thisType) {
     printf("---------------FILTER INITIALISATION---------------\n");
     // LOCATION IN LOCAL SCRATCHPAD MEMORY
@@ -1586,24 +1690,20 @@ int audio_filter32(struct Filter32 *filtP){
 
     return 0;
 }
+*/
 
-
-int alloc_vibrato_vars(struct Vibrato *vibrP, int coreNumber) {
-    printf("---------------VIBRATO INITIALISATION---------------\n");
+unsigned int alloc_vibrato_vars(struct Vibrato *vibrP, unsigned int LAST_ADDR) {
     // LOCATION IN LOCAL SCRATCHPAD MEMORY
-    const unsigned int VIBR_X      = addr[coreNumber];
-    const unsigned int VIBR_Y      = VIBR_X     + 2 * sizeof(short);
-    const unsigned int VIBR_ACCUM  = VIBR_Y     + 2 * sizeof(short);
-    const unsigned int VIBR_DEL    = VIBR_ACCUM + 2 * sizeof(int);
-    const unsigned int VIBR_FRAC   = VIBR_DEL   + sizeof(int);
-    const unsigned int VIBR_PNT    = VIBR_FRAC  + sizeof(short) + 2;
-    const unsigned int VIBR_V_PNT  = VIBR_PNT   + sizeof(int);
-    const unsigned int VIBR_A_PNT  = VIBR_V_PNT + sizeof(int);
-    const unsigned int VIBR_NA_PNT = VIBR_A_PNT + sizeof(int);
+    const unsigned int VIBR_ACCUM  = LAST_ADDR;
+    const unsigned int VIBR_DEL    = VIBR_ACCUM  + 2 * sizeof(int);
+    const unsigned int VIBR_FRAC   = VIBR_DEL    + sizeof(int);
+    const unsigned int VIBR_PNT    = VIBR_FRAC   + sizeof(short) + 2;
+    const unsigned int VIBR_V_PNT  = VIBR_PNT    + sizeof(int);
+    const unsigned int VIBR_A_PNT  = VIBR_V_PNT  + sizeof(int);
+    const unsigned int VIBR_NA_PNT = VIBR_A_PNT  + sizeof(int);
+    LAST_ADDR                      = VIBR_NA_PNT + sizeof(int);
 
     //SPM variables
-    vibrP->x           = ( volatile _SPM short *) VIBR_X;
-    vibrP->y           = ( volatile _SPM short *) VIBR_Y;
     vibrP->accum       = ( volatile _SPM int *)   VIBR_ACCUM;
     vibrP->del         = ( volatile _SPM int *)   VIBR_DEL;
     vibrP->frac        = ( volatile _SPM short *) VIBR_FRAC;
@@ -1624,14 +1724,11 @@ int alloc_vibrato_vars(struct Vibrato *vibrP, int coreNumber) {
     *vibrP->pnt = VIBRATO_L - 1; //start on top
     *vibrP->v_pnt = 0;
 
-    //return new address
-    int ALLOC_AMOUNT = alloc_space("VIBRATO", (VIBR_NA_PNT + sizeof(int)), coreNumber);
-
-    return ALLOC_AMOUNT;
+    return LAST_ADDR;
 }
 
-__attribute__((always_inline))
-int audio_vibrato(struct Vibrato *vibrP) {
+//__attribute__((always_inline))
+int audio_vibrato(struct Vibrato *vibrP, volatile _SPM short *xP, volatile _SPM short *yP) {
     //update delay pointers
     *vibrP->del = vibrP->sinArray[*vibrP->v_pnt];
     *vibrP->frac = vibrP->fracArray[*vibrP->v_pnt];
@@ -1642,10 +1739,10 @@ int audio_vibrato(struct Vibrato *vibrP) {
     *vibrP->n_audio_pnt = (*vibrP->pnt+*vibrP->del+1)%VIBRATO_L;
     for(int i=0; i<2; i++) { //stereo
         //first, read sample
-        vibrP->audio_buff[*vibrP->pnt][i] = vibrP->x[i];
+        vibrP->audio_buff[*vibrP->pnt][i] = xP[i];
         vibrP->accum[i] =  (vibrP->audio_buff[*vibrP->n_audio_pnt][i]*(*vibrP->frac));
         vibrP->accum[i] += (vibrP->audio_buff[*vibrP->audio_pnt][i]*(frac1Minus));
-        vibrP->y[i] = vibrP->accum[i] >> 15;
+        yP[i] = vibrP->accum[i] >> 15;
     }
     //update input pointer
     if(*vibrP->pnt == 0) {
@@ -1657,7 +1754,7 @@ int audio_vibrato(struct Vibrato *vibrP) {
 
     return 0;
 }
-*/
+
 unsigned int alloc_overdrive_vars(struct Overdrive *odP, unsigned int LAST_ADDR) {
     // LOCATION IN LOCAL SCRATCHPAD MEMORY
     const unsigned int OD_ACCUM  = LAST_ADDR;
@@ -1878,21 +1975,17 @@ int audio_chorus(struct Chorus *chorP, volatile _SPM short *xP, volatile _SPM sh
     return 0;
 }
 
-/*
-int alloc_tremolo_vars(struct Tremolo *tremP, int coreNumber) {
-    printf("---------------TREMOLO INITIALISATION---------------\n");
+
+unsigned int alloc_tremolo_vars(struct Tremolo *tremP, unsigned int LAST_ADDR) {
     // LOCATION IN LOCAL SCRATCHPAD MEMORY
-    const unsigned int TREM_X     = addr[coreNumber];
-    const unsigned int TREM_Y     = TREM_X + 2 * sizeof(short);
-    const unsigned int TREM_PNT   = TREM_Y + 2 * sizeof(short);
-    const unsigned int TREM_PNT_N = TREM_PNT + sizeof(int);
+    const unsigned int TREM_PNT   = LAST_ADDR;
+    const unsigned int TREM_PNT_N = TREM_PNT   + sizeof(int);
     const unsigned int TREM_FRAC  = TREM_PNT_N + sizeof(int);
     const unsigned int TREM_FR1M  = TREM_FRAC  + sizeof(short) + 2;
     const unsigned int TREM_MOD   = TREM_FR1M  + sizeof(short) + 2;
+    LAST_ADDR                     = TREM_MOD   + sizeof(int);
 
     //SPM variables
-    tremP->x      = ( volatile _SPM short *) TREM_X;
-    tremP->y      = ( volatile _SPM short *) TREM_Y;
     tremP->pnt    = ( volatile _SPM int *)   TREM_PNT;
     tremP->pnt_n  = ( volatile _SPM int *)   TREM_PNT_N;
     tremP->frac   = ( volatile _SPM short *) TREM_FRAC;
@@ -1906,14 +1999,11 @@ int alloc_tremolo_vars(struct Tremolo *tremP, int coreNumber) {
     *tremP->pnt = 0;
     *tremP->pnt_n = 1;
 
-    //return new address
-    int ALLOC_AMOUNT = alloc_space("TREMOLO", (TREM_MOD + sizeof(int)), coreNumber);
-
-    return ALLOC_AMOUNT;
+    return LAST_ADDR;
 }
 
-__attribute__((always_inline))
-int audio_tremolo(struct Tremolo *tremP) {
+//__attribute__((always_inline))
+int audio_tremolo(struct Tremolo *tremP, volatile _SPM short *xP, volatile _SPM short *yP) {
     //update pointer
     *tremP->pnt = (*tremP->pnt + 1) % TREMOLO_P;
     *tremP->pnt_n = (*tremP->pnt_n + 1) % TREMOLO_P;
@@ -1924,12 +2014,13 @@ int audio_tremolo(struct Tremolo *tremP) {
     *tremP->mod += tremP->modArray[*tremP->pnt_n] * *tremP->frac;
     *tremP->mod = *tremP->mod >> 15;
     //calculate output
-    tremP->y[0] = (tremP->x[0] * *tremP->mod) >> 15;
-    tremP->y[1] = (tremP->x[1] * *tremP->mod) >> 15;
+    yP[0] = (xP[0] * *tremP->mod) >> 15;
+    yP[1] = (xP[1] * *tremP->mod) >> 15;
 
     return 0;
 }
 
+/*
 int alloc_tremolo32_vars(struct Tremolo32 *tremP, int coreNumber) {
     printf("---------------TREMOLO INITIALISATION---------------\n");
     // LOCATION IN LOCAL SCRATCHPAD MEMORY

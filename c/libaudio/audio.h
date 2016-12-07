@@ -192,15 +192,13 @@ int audio_connect_from_core(const unsigned int recvChanID, struct AudioFX *dstP)
 int audio_process(struct AudioFX *audioP) __attribute__((section("text.spm")));
 
 
+
 /*
-/ *
   High-Pass / Low-Pass / Band-Pass / Band-Reject filters (2nd order)
-* /
+*/
 
 struct Filter {
     //SPM variables
-    volatile _SPM short *x; //input audio x[2]
-    volatile _SPM short *y; //output audio y[2]
     volatile _SPM int   *accum; //accummulator accum[2]
     volatile _SPM short (*x_buf)[2]; // input buffer
     volatile _SPM short (*y_buf)[2]; // output buffer
@@ -211,9 +209,10 @@ struct Filter {
     volatile _SPM int   *type; // to choose between HP, LP, BP or BR
 };
 
-int alloc_filter_vars(struct Filter *filterP, int coreNumber, int Fc, float QorFb, int type);
-int audio_filter(struct Filter *filterP);
+unsigned int alloc_filter_vars(struct Filter *filtP, unsigned int LAST_ADDR, int Fc, float QorFb, int thisType);
+int audio_filter(struct Filter *filterP, volatile _SPM short *xP, volatile _SPM short *yP);
 
+/*
 struct Filter32 {
     //SPM variables
     volatile _SPM short *x; //input audio x[2]
@@ -230,16 +229,14 @@ struct Filter32 {
 
 int alloc_filter32_vars(struct Filter32 *filterP, int coreNumber, int Fc, float QorFb, int type);
 int audio_filter32(struct Filter32 *filterP);
+*/
 
-
-/ *
+/*
   Vibrato
-* /
+*/
 
 struct Vibrato {
     //SPM variables
-    volatile _SPM short *x; //input audio x[2]
-    volatile _SPM short *y; //output audio y[2]
     volatile _SPM int   *accum; //accummulator accum[2]
     volatile _SPM int   *del; // delay
     volatile _SPM short *frac; //fraction for interpol.
@@ -253,9 +250,8 @@ struct Vibrato {
     short fracArray[VIBRATO_P];
 };
 
-int alloc_vibrato_vars(struct Vibrato *vibrP, int coreNumber);
-int audio_vibrato(struct Vibrato *vibrP);
-*/
+unsigned int alloc_vibrato_vars(struct Vibrato *vibrP, unsigned int LAST_ADDR);
+int audio_vibrato(struct Vibrato *vibrP, volatile _SPM short *xP, volatile _SPM short *yP);
 
 /*
   Overdrive and distortion
@@ -321,15 +317,13 @@ struct Chorus {
 unsigned int alloc_chorus_vars(struct Chorus *chorP, unsigned int LAST_ADDR);
 int audio_chorus(struct Chorus *chorP, volatile _SPM short *xP, volatile _SPM short *yP);
 
+
 /*
-/ *
   Tremolo
-* /
+*/
 
 struct Tremolo {
     //SPM variables
-    volatile _SPM short *x; //input audio x[2]
-    volatile _SPM short *y; //output audio y[2]
     volatile _SPM int   *pnt; //modulation pointer
     volatile _SPM int   *pnt_n; //modulation pointer next
     volatile _SPM short *frac; //fraction of modulation
@@ -340,9 +334,10 @@ struct Tremolo {
     short fracArray[TREMOLO_P];
 };
 
-int alloc_tremolo_vars(struct Tremolo *tremP, int coreNumber);
-int audio_tremolo(struct Tremolo *tremP);
+unsigned int alloc_tremolo_vars(struct Tremolo *tremP, unsigned int LAST_ADDR);
+int audio_tremolo(struct Tremolo *tremP, volatile _SPM short *xP, volatile _SPM short *yP);
 
+/*
 struct Tremolo32 {
     //SPM variables
     volatile _SPM short *x; //input audio x[2]
