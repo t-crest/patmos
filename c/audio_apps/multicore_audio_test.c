@@ -16,16 +16,16 @@ const int NOC_MASTER = 0;
 
 
 //how many cores take part in the audio system
-const int AUDIO_CORES = 3;
+const int AUDIO_CORES = 4; //3;
 //how many effects are on the system in total
 const int FX_AMOUNT = 6;
 // FX_ID | CORE | FX_TYPE | XB_SIZE | YB_SIZE | P (S) | IN_TYPE | OUT_TYPE | FROM_ID | TO_ID //
 const int FX_SCHED[FX_AMOUNT][10] = {
     {0, 0,  0, 8, 8, 1, 0, 0, -1,  1},
     {1, 0,  2, 8, 8, 1, 0, 1,  0,  0},
-    {2, 1,  0, 8, 8, 1, 1, 0,  0,  3},
-    {3, 1,  3, 8, 8, 1, 0, 1,  2,  1},
-    {4, 2,  5, 8, 8, 1, 1, 1,  1,  2},
+    {2, 3,  0, 8, 8, 1, 1, 0,  0,  3},
+    {3, 3,  3, 8, 8, 1, 0, 1,  2,  1},
+    {4, 1, 11, 8, 8, 1, 1, 1,  1,  2},
     {5, 0,  0, 8, 8, 1, 1, 0,  2, -1}
 };
 
@@ -50,11 +50,11 @@ const int AUDIO_CORES = 4;
 const int FX_AMOUNT = 5;
 // FX_ID | CORE | FX_TYPE | XB_SIZE | YB_SIZE | P (S) | IN_TYPE | OUT_TYPE | FROM_ID | TO_ID //
 const int FX_SCHED[FX_AMOUNT][10] = {
-    {0, 0, 0, 1, 1, 1, 0, 1, -1,  0},
-    {1, 1, 5, 1, 8, 1, 1, 1,  0,  1},
-    {2, 2, 1, 8, 8, 8, 1, 1,  1,  2},
-    {3, 3, 0, 8, 1, 1, 1, 1,  2,  3},
-    {4, 0, 0, 1, 1, 1, 1, 0,  3, -1}
+    {0, 0,  2, 1, 1, 1, 0, 1, -1,  0},
+    {1, 1,  7, 1, 8, 1, 1, 1,  0,  1},
+    {2, 2,  1, 8, 8, 8, 1, 1,  1,  2},
+    {3, 3, 11, 8, 1, 1, 1, 1,  2,  3},
+    {4, 0,  0, 1, 1, 1, 1, 0,  3, -1}
 };
 */
 
