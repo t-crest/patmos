@@ -1180,11 +1180,13 @@ int main()
 		("-------------------------------------------------------------------------------\n");
 
 	// Dynamically allocate main memory
-	random_array =
-		(volatile _UNCACHED unsigned char *)malloc(m_get_max_spm_sizes() *
-												   sizeof(*random_array));
+
 	spm_sizes =
 		(volatile _UNCACHED int *)malloc(NOC_CORES * sizeof(*spm_sizes));
+
+	random_array =
+		(volatile _UNCACHED unsigned char *)malloc(4096 *
+												   sizeof(*random_array));
 
 	bandwidth_results =
 		(volatile _UNCACHED int **)malloc(NOC_CORES *
@@ -1205,7 +1207,8 @@ int main()
 	interrupt_results =
 		(volatile _UNCACHED unsigned int **)malloc(NOC_CORES *
 												   sizeof(*interrupt_results));
-	if (random_array == NULL || bandwidth_results == NULL
+
+	if (bandwidth_results == NULL
 		|| correctness_results == NULL || interrupt_status == NULL
 		|| remote_irq_results == NULL || interrupt_occ == NULL
 		|| interrupt_results == NULL || spm_sizes == NULL)
@@ -1253,6 +1256,18 @@ int main()
 	printf("\n");
 	m_print_test_parameters();
 
+/*	printf("%08X (%08X)", random_array, m_get_max_spm_sizes());
+	random_array =
+		(volatile _UNCACHED unsigned char *)malloc(m_get_max_spm_sizes() *
+												   sizeof(*random_array));
+	if (random_array == NULL)
+	{
+		printf("Dynamic memory allocation for 'random_array' failed.\n");
+		//printf("%08X (%08X)", random_array, m_get_max_spm_sizes());
+		return -1;
+	}
+*/
+	
 	// Main loop
 	bool loop = true;
 	char c = 'v';
