@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include "libaudio/audioinit.h"
+
 //for guitar:
 #define GUITAR 0
 
@@ -22,7 +24,6 @@
 
 // ADDRESSES FOR OCP
 #if ( MULTICORE == 1 )
-//#include "libnoc/noc.h"
 #include "libmp/mp.h"
 #include "libcorethread/corethread.h"
 #define SPM_OFFSET   (unsigned int)NOC_SPM_BASE
@@ -177,6 +178,10 @@ struct AudioFX {
     volatile _SPM fx_t *fx;
     //Pointer to effect struct
     volatile _SPM unsigned int *fx_pnt;
+    //Boolean variable for last types: checks need to wait for output
+    volatile _SPM int *last_init;
+    //Latency counter (from input to output)
+    volatile _SPM unsigned int *last_count;
 };
 
 //audio FX SPM allocation

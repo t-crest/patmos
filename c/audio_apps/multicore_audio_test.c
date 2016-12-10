@@ -10,53 +10,8 @@
 #include "libaudio/audio.c"
 
 const int LIM = 1000;
-
 //master core
 const int NOC_MASTER = 0;
-
-
-//how many cores take part in the audio system
-const int AUDIO_CORES = 4; //3;
-//how many effects are on the system in total
-const int FX_AMOUNT = 6;
-// FX_ID | CORE | FX_TYPE | XB_SIZE | YB_SIZE | P (S) | IN_TYPE | OUT_TYPE | FROM_ID | TO_ID //
-const int FX_SCHED[FX_AMOUNT][10] = {
-    {0, 0,  0, 8, 8, 1, 0, 0, -1,  1},
-    {1, 0,  2, 8, 8, 1, 0, 1,  0,  0},
-    {2, 3,  0, 8, 8, 1, 1, 0,  0,  3},
-    {3, 3,  3, 8, 8, 1, 0, 1,  2,  1},
-    {4, 1, 11, 8, 8, 1, 1, 1,  1,  2},
-    {5, 0,  0, 8, 8, 1, 1, 0,  2, -1}
-};
-
-/*
-//how many cores take part in the audio system
-const int AUDIO_CORES = 3;
-//how many effects are on the system in total
-const int FX_AMOUNT = 5;
-// FX_ID | CORE | FX_TYPE | XB_SIZE | YB_SIZE | P (S) | IN_TYPE | OUT_TYPE | FROM_ID | TO_ID //
-const int FX_SCHED[FX_AMOUNT][10] = {
-    {0, 0, 0, 8, 8, 1, 0, 0, -1,  1},
-    {1, 0, 1, 8, 8, 8, 0, 1,  0,  0},
-    {2, 1, 4, 8, 1, 1, 1, 1,  0,  1},
-    {3, 2, 0, 1, 8, 1, 1, 1,  1,  2},
-    {4, 0, 0, 8, 8, 1, 1, 0,  2, -1}
-};
-*/
-/*
-//how many cores take part in the audio system
-const int AUDIO_CORES = 4;
-//how many effects are on the system in total
-const int FX_AMOUNT = 5;
-// FX_ID | CORE | FX_TYPE | XB_SIZE | YB_SIZE | P (S) | IN_TYPE | OUT_TYPE | FROM_ID | TO_ID //
-const int FX_SCHED[FX_AMOUNT][10] = {
-    {0, 0,  2, 1, 1, 1, 0, 1, -1,  0},
-    {1, 1,  7, 1, 8, 1, 1, 1,  0,  1},
-    {2, 2,  1, 8, 8, 8, 1, 1,  1,  2},
-    {3, 3, 11, 8, 1, 1, 1, 1,  2,  3},
-    {4, 0,  0, 1, 1, 1, 1, 0,  3, -1}
-};
-*/
 
 
 void threadFunc(void* args) {
@@ -327,7 +282,7 @@ int main() {
 
 
     //int wait_recv = 18; //amount of loops until audioOut is done
-    int wait_recv = 3;
+    //int wait_recv = LATENCY;
     //for debugging
     //const int WAIT = wait_recv;
 
@@ -337,22 +292,17 @@ int main() {
     while(*keyReg != 3) {
 
         for(int n=0; n<FX_HERE; n++) {
-            if( (*FXp[n].is_lst == NO_LAST) || (wait_recv == 0) ) {
-                audio_process(&FXp[n]);
-                /*
-                if(n==0) {
-                    audio_in[cpu_pnt][0] = FXp[n].x[0];
-                    audio_in[cpu_pnt][1] = FXp[n].x[1];
-                }
-                if(n==(FX_HERE-1)) {
-                    audio_out[cpu_pnt-WAIT][0] = FXp[n].y[0];
-                    audio_out[cpu_pnt-WAIT][1] = FXp[n].y[1];
-                }
-                */
-            }
-            else {
-                wait_recv--;
-            }
+            audio_process(&FXp[n]);
+            /*
+              if(n==0) {
+              audio_in[cpu_pnt][0] = FXp[n].x[0];
+              audio_in[cpu_pnt][1] = FXp[n].x[1];
+              }
+              if(n==(FX_HERE-1)) {
+              audio_out[cpu_pnt-WAIT][0] = FXp[n].y[0];
+              audio_out[cpu_pnt-WAIT][1] = FXp[n].y[1];
+              }
+            */
         }
 
 
@@ -373,11 +323,11 @@ int main() {
     exit = 1;
     printf("waiting for all threads to finish...\n");
 
-
+    /*
     for(int i=1; i<LIM; i++) {
         printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
-
+    */
 
     /*
     for(int i=0; i<(LIM-WAIT); i++) {

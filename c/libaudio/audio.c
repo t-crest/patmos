@@ -977,12 +977,18 @@ int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_c
     *audioP->out_con = out_con;
     *audioP->yb_size = OUT_SIZE;
     if( (*audioP->out_con == NO_NOC) && (*audioP->is_lst == LAST) ) { //same core and last
-        const unsigned int ADDR_Y = ADDR_YB_SIZE + sizeof(int);
-        LAST_ADDR                = ADDR_Y       + OUT_SIZE * 2 * sizeof(short);
+        const unsigned int ADDR_Y          = ADDR_YB_SIZE    + sizeof(int);
+        const unsigned int ADDR_LAST_INIT  = ADDR_Y          + OUT_SIZE * 2 * sizeof(short);
+        const unsigned int ADDR_LAST_COUNT = ADDR_LAST_INIT  + sizeof(int);
+        LAST_ADDR                          = ADDR_LAST_COUNT + sizeof(unsigned int);
         //SPM variables
-        audioP->y        = ( volatile _SPM short *) ADDR_Y;
+        audioP->y          = ( volatile _SPM short *)        ADDR_Y;
+        audioP->last_init  = ( volatile _SPM int * )         ADDR_LAST_INIT;
+        audioP->last_count = ( volatile _SPM unsigned int *) ADDR_LAST_COUNT;
         //init values
-        *audioP->y_pnt   = (int)audioP->y; // = ADDR_Y;
+        *audioP->y_pnt      = (int)audioP->y; // = ADDR_Y;
+        *audioP->last_init  = 1; //start: wait for latency
+        *audioP->last_count = 0; //start counting from 0
     }
     else { //NoC
         const unsigned int ADDR_SEND_CP = ADDR_YB_SIZE + sizeof(int);
@@ -1154,7 +1160,7 @@ int audio_connect_to_core(struct AudioFX *srcP, const unsigned int sendChanID) {
     }
     else {
         *srcP->sendChanP = (unsigned int)mp_create_qport(sendChanID, SOURCE,
-            (*srcP->yb_size * 4), 8); // ID, yb_size * 4 bytes, 1 buffer
+            (*srcP->yb_size * 4), CHAN_BUF_AMOUNT[sendChanID]); // ID, yb_size * 4 bytes, buf amount
         *srcP->y_pnt = (int)&((qpd_t *)*srcP->sendChanP)->write_buf;
 
         return 0;
@@ -1168,7 +1174,7 @@ int audio_connect_from_core(const unsigned int recvChanID, struct AudioFX *dstP)
     }
     else {
         *dstP->recvChanP = (unsigned int)mp_create_qport(recvChanID, SINK,
-            (*dstP->xb_size * 4), 8); // ID, xb_size * 4 bytes, 1 buffer
+            (*dstP->xb_size * 4), CHAN_BUF_AMOUNT[recvChanID]); // ID, xb_size * 4 bytes, buf amount
         *dstP->x_pnt = (int)&((qpd_t *)*dstP->recvChanP)->read_buf;
 
         return 0;
@@ -1204,115 +1210,128 @@ int audio_process(struct AudioFX *audioP) {
 
     switch(*audioP->pt) {
     case XeY:
-        //RECEIVE ONCE
-        if(*audioP->in_con == NOC) { //receive from NoC
-            if(mp_recv((qpd_t *)*audioP->recvChanP, TIMEOUT) == 0) {
-                printf("RECV TIMED OUT!\n");
-                retval = 1;
+        //check if it is 0, is last and needs to wait due to latency
+        if( (*audioP->cpuid != 0) || (*audioP->is_lst == NO_LAST) || (*audioP->last_init == 0) ) {
+            //printf("ID=%d: processing\n", *audioP->fx_id);
+            //RECEIVE ONCE
+            if(*audioP->in_con == NOC) { //receive from NoC
+                if(mp_recv((qpd_t *)*audioP->recvChanP, TIMEOUT) == 0) {
+                    printf("RECV TIMED OUT!\n");
+                    retval = 1;
+                }
+                //update X pointer after each recv
+                xP = (volatile _SPM short *)*(volatile _SPM unsigned int *)*audioP->x_pnt;
+                //xP = ((qpd_t *)*audioP->recvChanP)->read_buf;
             }
-            //update X pointer after each recv
-            xP = (volatile _SPM short *)*(volatile _SPM unsigned int *)*audioP->x_pnt;
-            //xP = ((qpd_t *)*audioP->recvChanP)->read_buf;
+            else { //same core
+                if( (*audioP->cpuid == 0) && (*audioP->is_fst == FIRST) ) {
+                    audioIn(audioP, xP);
+                }
+            }
+            //PROCESS PPSR TIMES
+            switch(*audioP->fx) {
+            case DRY:
+                for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                    ind = 2 * i * (*audioP->p);
+                    audio_dry(audioP, &xP[ind], &yP[ind]);
+                }
+                break;
+            case DRY_8S:
+                for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                    ind = 2 * i * (*audioP->p);
+                    audio_dry_8samples(audioP, &xP[ind], &yP[ind]);
+                }
+                break;
+            case DELAY: ;
+                struct IIRdelay *delP = (struct IIRdelay *)*audioP->fx_pnt;
+                for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                    ind = 2 * i * (*audioP->p);
+                    audio_delay(delP, &xP[ind], &yP[ind]);
+                }
+                break;
+            case OVERDRIVE: ;
+                struct Overdrive *odP = (struct Overdrive *)*audioP->fx_pnt;
+                for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                    ind = 2 * i * (*audioP->p);
+                    audio_overdrive(odP, &xP[ind], &yP[ind]);
+                }
+                break;
+            case WAHWAH: ;
+                struct WahWah *wahP = (struct WahWah *)*audioP->fx_pnt;
+                for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                    ind = 2 * i * (*audioP->p);
+                    audio_wahwah(wahP, &xP[ind], &yP[ind]);
+                }
+                break;
+            case CHORUS: ;
+                struct Chorus *chorP = (struct Chorus *)*audioP->fx_pnt;
+                for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                    ind = 2 * i * (*audioP->p);
+                    audio_chorus(chorP, &xP[ind], &yP[ind]);
+                }
+                break;
+            case DISTORTION: ;
+                struct Distortion *distP = (struct Distortion *)*audioP->fx_pnt;
+                for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                    ind = 2 * i * (*audioP->p);
+                    audio_distortion(distP, &xP[ind], &yP[ind]);
+                }
+                break;
+            case HP:
+            case LP:
+            case BP:
+            case BR: ;
+                struct Filter *filtP = (struct Filter *)*audioP->fx_pnt;
+                for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                    ind = 2 * i * (*audioP->p);
+                    audio_filter(filtP, &xP[ind], &yP[ind]);
+                }
+                break;
+            case VIBRATO: ;
+                struct Vibrato *vibrP = (struct Vibrato *)*audioP->fx_pnt;
+                for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                    ind = 2 * i * (*audioP->p);
+                    audio_vibrato(vibrP, &xP[ind], &yP[ind]);
+                }
+                break;
+            case TREMOLO: ;
+                struct Tremolo *tremP = (struct Tremolo *)*audioP->fx_pnt;
+                for(unsigned int i=0; i < *audioP->ppsr; i++) {
+                    ind = 2 * i * (*audioP->p);
+                    audio_tremolo(tremP, &xP[ind], &yP[ind]);
+                }
+                break;
+            default:
+                printf("effect not implemented yet\n");
+                break;
+            }
+            //ACKNOWLEDGE ONCE AFTER PROCESSING
+            if(*audioP->in_con == NOC) {
+                if(mp_ack((qpd_t *)*audioP->recvChanP, TIMEOUT) == 0) {
+                    printf("ACK TIMED OUT!\n");
+                    retval = 1;
+                }
+            }
+            //SEND ONCE
+            if(*audioP->out_con == NOC) { //send to NoC
+                if(mp_send((qpd_t *)*audioP->sendChanP, TIMEOUT) == 0) {
+                    printf("SEND TIMED OUT!\n");
+                    retval = 1;
+                }
+            }
+            else { //same core
+                if( (*audioP->cpuid == 0) && (*audioP->is_lst == LAST) ) {
+                    audioOut(audioP, yP);
+                }
+            }
         }
-        else { //same core
-            if( (*audioP->cpuid == 0) && (*audioP->is_fst == FIRST) ) {
-                audioIn(audioP, xP);
-            }
-        }
-        //PROCESS PPSR TIMES
-        switch(*audioP->fx) {
-        case DRY:
-            for(unsigned int i=0; i < *audioP->ppsr; i++) {
-                ind = 2 * i * (*audioP->p);
-                audio_dry(audioP, &xP[ind], &yP[ind]);
-            }
-            break;
-        case DRY_8S:
-            for(unsigned int i=0; i < *audioP->ppsr; i++) {
-                ind = 2 * i * (*audioP->p);
-                audio_dry_8samples(audioP, &xP[ind], &yP[ind]);
-            }
-            break;
-        case DELAY: ;
-            struct IIRdelay *delP = (struct IIRdelay *)*audioP->fx_pnt;
-            for(unsigned int i=0; i < *audioP->ppsr; i++) {
-                ind = 2 * i * (*audioP->p);
-                audio_delay(delP, &xP[ind], &yP[ind]);
-            }
-            break;
-        case OVERDRIVE: ;
-            struct Overdrive *odP = (struct Overdrive *)*audioP->fx_pnt;
-            for(unsigned int i=0; i < *audioP->ppsr; i++) {
-                ind = 2 * i * (*audioP->p);
-                audio_overdrive(odP, &xP[ind], &yP[ind]);
-            }
-            break;
-        case WAHWAH: ;
-            struct WahWah *wahP = (struct WahWah *)*audioP->fx_pnt;
-            for(unsigned int i=0; i < *audioP->ppsr; i++) {
-                ind = 2 * i * (*audioP->p);
-                audio_wahwah(wahP, &xP[ind], &yP[ind]);
-            }
-            break;
-        case CHORUS: ;
-            struct Chorus *chorP = (struct Chorus *)*audioP->fx_pnt;
-            for(unsigned int i=0; i < *audioP->ppsr; i++) {
-                ind = 2 * i * (*audioP->p);
-                audio_chorus(chorP, &xP[ind], &yP[ind]);
-            }
-            break;
-        case DISTORTION: ;
-            struct Distortion *distP = (struct Distortion *)*audioP->fx_pnt;
-            for(unsigned int i=0; i < *audioP->ppsr; i++) {
-                ind = 2 * i * (*audioP->p);
-                audio_distortion(distP, &xP[ind], &yP[ind]);
-            }
-            break;
-        case HP:
-        case LP:
-        case BP:
-        case BR: ;
-            struct Filter *filtP = (struct Filter *)*audioP->fx_pnt;
-            for(unsigned int i=0; i < *audioP->ppsr; i++) {
-                ind = 2 * i * (*audioP->p);
-                audio_filter(filtP, &xP[ind], &yP[ind]);
-            }
-            break;
-        case VIBRATO: ;
-            struct Vibrato *vibrP = (struct Vibrato *)*audioP->fx_pnt;
-            for(unsigned int i=0; i < *audioP->ppsr; i++) {
-                ind = 2 * i * (*audioP->p);
-                audio_vibrato(vibrP, &xP[ind], &yP[ind]);
-            }
-            break;
-        case TREMOLO: ;
-            struct Tremolo *tremP = (struct Tremolo *)*audioP->fx_pnt;
-            for(unsigned int i=0; i < *audioP->ppsr; i++) {
-                ind = 2 * i * (*audioP->p);
-                audio_tremolo(tremP, &xP[ind], &yP[ind]);
-            }
-            break;
-        default:
-            printf("effect not implemented yet\n");
-            break;
-        }
-        //ACKNOWLEDGE ONCE AFTER PROCESSING
-        if(*audioP->in_con == NOC) {
-            if(mp_ack((qpd_t *)*audioP->recvChanP, TIMEOUT) == 0) {
-                printf("ACK TIMED OUT!\n");
-                retval = 1;
-            }
-        }
-        //SEND ONCE
-        if(*audioP->out_con == NOC) { //send to NoC
-            if(mp_send((qpd_t *)*audioP->sendChanP, TIMEOUT) == 0) {
-                printf("SEND TIMED OUT!\n");
-                retval = 1;
-            }
-        }
-        else { //same core
-            if( (*audioP->cpuid == 0) && (*audioP->is_lst == LAST) ) {
-                audioOut(audioP, yP);
+        //if it is last and needs to wait
+        else {
+            *audioP->last_count = *audioP->last_count + 1;
+            //printf("increasing last_count, now is %u\n", *audioP->last_count);
+            if(*audioP->last_count == LATENCY) {
+                *audioP->last_init = 0;
+                //printf("latency limit reached!\n");
             }
         }
         break;
