@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include "libmp/mp.h"
+#include "libcorethread/corethread.h"
 
 #include "libaudio/audioinit.h"
 
@@ -24,8 +26,6 @@
 
 // ADDRESSES FOR OCP
 #if ( MULTICORE == 1 )
-#include "libmp/mp.h"
-#include "libcorethread/corethread.h"
 #define SPM_OFFSET   (unsigned int)NOC_SPM_BASE
 #else
 #define SPM_OFFSET   0

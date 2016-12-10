@@ -1,11 +1,3 @@
-/*
-#include <machine/spm.h>
-#include <machine/rtc.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-*/
-
 #include "libaudio/audio.h"
 #include "libaudio/audio.c"
 
@@ -277,8 +269,8 @@ int main() {
 
 
     //CPU cycles stuff
-    int CPUcycles[LIM] = {0};
-    unsigned int cpu_pnt = 0;
+    //int CPUcycles[LIM] = {0};
+    //unsigned int cpu_pnt = 0;
 
 
     //int wait_recv = 18; //amount of loops until audioOut is done
@@ -305,7 +297,7 @@ int main() {
             */
         }
 
-
+        /*
         //store CPU Cycles
         CPUcycles[cpu_pnt] = get_cpu_cycles();
         cpu_pnt++;
@@ -313,7 +305,7 @@ int main() {
             //break;
             cpu_pnt = 0;
         }
-
+        */
 
     }
 
