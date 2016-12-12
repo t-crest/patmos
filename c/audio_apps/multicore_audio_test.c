@@ -345,7 +345,6 @@ int main() {
     }
     */
 
-
     //join with thread 1
 
     int *retval;
@@ -353,6 +352,8 @@ int main() {
         corethread_join(threads[i], (void **)&retval);
         printf("thread %d finished!\n", (i+1));
     }
+
+    printf("hey\n");
 
     return 0;
 }

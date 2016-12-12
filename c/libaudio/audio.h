@@ -101,7 +101,7 @@ int     setInputBufferSize(int bufferSize);
 
 
 //for vibrato:
-#define VIBRATO_L 150 // modulation amount in samples (amp of sin)
+#define VIBRATO_L 200 // modulation amount in samples (amp of sin)
 #define VIBRATO_P (int)(Fs/4) // period of vibrato (period of sin)
 //#define FILTER_ORDER_1PLUS 3 //order of IIR filters
 // for delay
@@ -205,7 +205,6 @@ int audio_process(struct AudioFX *audioP) __attribute__((section("text.spm")));
 */
 
 struct Filter {
-    //SPM variables
     int   accum[2]; //accummulator accum[2]
     short x_buf[3][2]; // input buffer
     short y_buf[3][2]; // output buffer
@@ -240,7 +239,6 @@ int audio_filter32(struct Filter32 *filterP);
 */
 
 struct Vibrato {
-    //SPM variables
     int   accum[2]; //accummulator accum[2]
     int   del; // delay
     short frac; //fraction for interpol.
@@ -249,7 +247,7 @@ struct Vibrato {
     int   audio_pnt; //audio output pointer
     int   n_audio_pnt; //next audio o. pointer
     //Shared Memory pointers
-    short (*audio_buf_pnt)[VIBRATO_L]; //pointer to audio_buff[VIBRATO_L][2]
+    short (*audio_buf_pnt)[VIBRATO_L]; //pointer to audio_buff[2][VIBRATO_L]
     int *sin_array_pnt; //pointer to sin_array[VIBRATO_P]
     short *frac_array_pnt; //pointer to frac_array[VIBRATO_P]
 };
@@ -259,64 +257,45 @@ struct Vibrato {
 */
 
 struct Overdrive {
-    //SPM variables
-    volatile _SPM int   *accum; //accummulator accum[2]
+    int   accum[2]; //accummulator accum[2]
 };
-
-unsigned int alloc_overdrive_vars(struct Overdrive *odP, unsigned int LAST_ADDR);
-int audio_overdrive(struct Overdrive *odP, volatile _SPM short *xP, volatile _SPM short *yP);
-
 
 struct Distortion {
-    //SPM variables
-    volatile _SPM int   *accum; //accummulator accum[2]
-    volatile _SPM int   *k; //for distortion
-    volatile _SPM int   *kOnePlus; //for distortion
-    volatile _SPM int   *sftLft; //shift left amount
+    int   accum[2]; //accummulator accum[2]
+    int   k; //for distortion
+    int   kOnePlus; //for distortion
+    int   sftLft; //shift left amount
 };
-
-unsigned int alloc_distortion_vars(struct Distortion *distP, unsigned int LAST_ADDR);
-int audio_distortion(struct Distortion *distP, volatile _SPM short *xP, volatile _SPM short *yP);
-
-
 
 /*
   Delay
 */
 
 struct IIRdelay {
-    //SPM variables
-    volatile _SPM int   *accum; //accummulator accum[2]
-    volatile _SPM short *g; //gains [g1, g0]
-    volatile _SPM int   *del; // delays [d1, d0]
-    volatile _SPM int   *pnt; //audio input pointer
-    //Main Memory variables
-    short audio_buff[DELAY_L][2];
+    int   accum[2]; //accummulator accum[2]
+    short g[2]; //gains [g1, g0]
+    int   del[2]; // delays [d1, d0]
+    int   pnt; //audio input pointer
+    //Shared Memory variables
+    short (*audio_buf)[DELAY_L]; // audio_buf[2][DELAY_L]
 };
-
-unsigned int alloc_delay_vars(struct IIRdelay *delP, unsigned int LAST_ADDR);
-int audio_delay(struct IIRdelay *delP, volatile _SPM short *xP, volatile _SPM short *yP);
 
 /*
   Chorus
 */
 
 struct Chorus {
-    //SPM variables
-    volatile _SPM int   *accum; //accummulator accum[2]
-    volatile _SPM short *g; // gains [g2, g1, g0]
-    volatile _SPM int   *del; // delays [d2, d1, d0]
-    volatile _SPM int   *pnt; //audio input pointer
-    volatile _SPM int   *c1_pnt; //1st mod array pointer
-    volatile _SPM int   *c2_pnt; //2nd mod array pointer
-    //Main Memory variables
-    short audio_buff[CHORUS_L][2];
-    int modArray1[CHORUS_P1];
-    int modArray2[CHORUS_P2];
+    int   accum[2]; //accummulator accum[2]
+    short g[3]; // gains [g2, g1, g0]
+    int   del[3]; // delays [d2, d1, d0]
+    int   pnt; //audio input pointer
+    int   c1_pnt; //1st mod array pointer
+    int   c2_pnt; //2nd mod array pointer
+    //Shared Memory variables
+    short (*audio_buf)[CHORUS_L]; // audio_buf[2][CHORUS_L]
+    int *mod_array1; // mod_array1[CHORUS_P1]
+    int *mod_array2; // mod_array2[CHORUS_P2]
 };
-
-unsigned int alloc_chorus_vars(struct Chorus *chorP, unsigned int LAST_ADDR);
-int audio_chorus(struct Chorus *chorP, volatile _SPM short *xP, volatile _SPM short *yP);
 
 
 /*
@@ -324,19 +303,16 @@ int audio_chorus(struct Chorus *chorP, volatile _SPM short *xP, volatile _SPM sh
 */
 
 struct Tremolo {
-    //SPM variables
-    volatile _SPM int   *pnt; //modulation pointer
-    volatile _SPM int   *pnt_n; //modulation pointer next
-    volatile _SPM short *frac; //fraction of modulation
-    volatile _SPM short *frac1Minus; //1 - frac
-    volatile _SPM int   *mod; //interpolated mod value
-    //Main Memory variables
-    int modArray[TREMOLO_P];
-    short fracArray[TREMOLO_P];
+    int   pnt; //modulation pointer
+    int   pnt_n; //modulation pointer next
+    short frac; //fraction of modulation
+    short frac1Minus; //1 - frac
+    int   mod; //interpolated mod value
+    //Shared Memory variables
+    int *mod_array; // mod_array[TREMOLO_P]
+    short *frac_array; //frac_array[TREMOLO_P]
 };
 
-unsigned int alloc_tremolo_vars(struct Tremolo *tremP, unsigned int LAST_ADDR);
-int audio_tremolo(struct Tremolo *tremP, volatile _SPM short *xP, volatile _SPM short *yP);
 
 /*
 struct Tremolo32 {
@@ -357,26 +333,20 @@ int audio_tremolo32(struct Tremolo32 *tremP);
 */
 
 struct WahWah {
-    //SPM variables
-    volatile _SPM int   *accum; //accummulator accum[2]
-    volatile _SPM short (*x_buf)[2]; // input buffer
-    volatile _SPM short (*y_buf)[2]; // output buffer
-    volatile _SPM short *A; // [a2, a1,  1]
-    volatile _SPM short *B; // [b2, b1, b0]
-    volatile _SPM int   *pnt; //audio input pointer
-    volatile _SPM int   *wah_pnt; //modulation pointer
-    volatile _SPM int   *sftLft; //x or y buffer pointer
-    //Main Memory Variables
-    int fcArray[WAHWAH_P]; //for Fc
-    int fbArray[WAHWAH_P]; //for Fb
-    short aArray[WAHWAH_P][3]; //for A coefficients
-    short bArray[WAHWAH_P][3]; //for B coefficients
+    int   accum[2]; //accummulator accum[2]
+    short x_buf[3][2]; // input buffer
+    short y_buf[3][2]; // output buffer
+    short A[3]; // [a2, a1,  1]
+    short B[3]; // [b2, b1, b0]
+    int   pnt; //audio input pointer
+    int   wah_pnt; //modulation pointer
+    int   sftLft; //x or y buffer pointer
+    //Shared Memory Variables
+    int *fc_array; // fc_array[WAHWAH_P]
+    int *fb_array; // fb_array[WAHWAH_P]
+    short (*a_array)[WAHWAH_P]; //for A coefficients: a_array[3][WAHWAH_P]
+    short (*b_array)[WAHWAH_P]; //for B coefficients: b_array[3][WAHWAH_p]
 };
-
-unsigned int alloc_wahwah_vars(struct WahWah *wahP, unsigned int LAST_ADDR);
-int audio_wahwah(struct WahWah *wahP, volatile _SPM short *xP, volatile _SPM short *yP);
-
-
 
 
 #endif /* _AUDIO_H_ */
