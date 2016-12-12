@@ -278,12 +278,12 @@ int filterIIR_1st(int pnt_i, volatile _SPM short (*x)[2], volatile _SPM short (*
 }
 
 //__attribute__((always_inline))
-int filterIIR_2nd(int pnt_i, volatile _SPM short (*x)[2], volatile _SPM short (*y)[2], volatile _SPM int *accum, volatile _SPM short *B, volatile _SPM short *A, int shiftLeft) {
+int filterIIR_2nd(volatile _SPM int *pnt_i, volatile _SPM short (*x)[2], volatile _SPM short (*y)[2], volatile _SPM int *accum, volatile _SPM short *B, volatile _SPM short *A, volatile _SPM int *shiftLeft) {
     int pnt; //pointer for x_filter
     accum[0] = 0;
     accum[1] = 0;
     for(int i=0; i<3; i++) { //FILTER_ORDER_1PLUS = 3
-        pnt = (pnt_i + i + 1) % 3; //FILTER_ORDER_1PLUS = 3
+        pnt = (*pnt_i + i + 1) % 3; //FILTER_ORDER_1PLUS = 3
         // SIGNED SHIFT (arithmetical): losing a 2-bit resolution
         accum[0] += (B[i]*x[pnt][0]) >> 2;
         accum[0] -= (A[i]*y[pnt][0]) >> 2;
@@ -303,12 +303,13 @@ int filterIIR_2nd(int pnt_i, volatile _SPM short (*x)[2], volatile _SPM short (*
             }
         }
     }
-    y[pnt_i][0] = accum[0] >> (13-shiftLeft);
-    y[pnt_i][1] = accum[1] >> (13-shiftLeft);
+    y[*pnt_i][0] = accum[0] >> (13-*shiftLeft);
+    y[*pnt_i][1] = accum[1] >> (13-*shiftLeft);
 
     return 0;
 }
 
+/*
 __attribute__((always_inline))
 int filterIIR_2nd_32(int pnt_i, volatile _SPM short (*x)[2], volatile _SPM short (*y)[2], volatile _SPM long long int *accum, volatile _SPM int *B, volatile _SPM int *A, int shiftLeft) {
     int pnt; //pointer for x_filter
@@ -326,6 +327,7 @@ int filterIIR_2nd_32(int pnt_i, volatile _SPM short (*x)[2], volatile _SPM short
 
     return 0;
 }
+*/
 
 int storeSinInterpol(int *sinArray, short *fracArray, int SIZE, int OFFSET, int AMP) {
     printf("Storing sin array and frac array...\n");
@@ -414,7 +416,7 @@ int checkRanges(int FILT_ORD_1PL, float *Bfl, float *Afl, volatile _SPM int *shi
 }
 
 
-int filter_coeff_bp_br(int FILT_ORD_1PL, volatile _SPM short *B, volatile _SPM short *A, int Fc, int Fb, volatile _SPM int *shiftLeft, int fixedShift) {
+int filter_coeff_bp_br(int FILT_ORD_1PL, volatile _SPM short *B, volatile _SPM short *A, int Fc, int Fb,volatile _SPM int *shiftLeft, int fixedShift) {
     // if FILTER ORDER = 1, Fb is ignored
     float c, d;
     float Bfl[FILT_ORD_1PL];
@@ -468,7 +470,7 @@ int filter_coeff_bp_br(int FILT_ORD_1PL, volatile _SPM short *B, volatile _SPM s
 
     return 0;
 }
-
+/*
 int filter_coeff_bp_br_32(int FILT_ORD_1PL, volatile _SPM int *B, volatile _SPM int *A, int Fc, int Fb, volatile _SPM int *shiftLeft, int fixedShift) {
     // if FILTER ORDER = 1, Fb is ignored
     float c, d;
@@ -523,7 +525,7 @@ int filter_coeff_bp_br_32(int FILT_ORD_1PL, volatile _SPM int *B, volatile _SPM 
 
     return 0;
 }
-
+*/
 
 int filter_coeff_hp_lp(int FILT_ORD_1PL, volatile _SPM short *B, volatile _SPM short *A, int Fc, float Q, volatile _SPM int *shiftLeft, int fixedShift, int type) {
     float K = tan(M_PI * Fc / Fs);// K is same for all
@@ -595,6 +597,7 @@ int filter_coeff_hp_lp(int FILT_ORD_1PL, volatile _SPM short *B, volatile _SPM s
     return 0;
 }
 
+/*
 int filter_coeff_hp_lp_32(int FILT_ORD_1PL, volatile _SPM int *B, volatile _SPM int *A, int Fc, float Q, volatile _SPM int *shiftLeft, int fixedShift, int type) {
     float K = tan(M_PI * Fc / Fs);// K is same for all
     float Bfl[FILT_ORD_1PL];
@@ -664,6 +667,7 @@ int filter_coeff_hp_lp_32(int FILT_ORD_1PL, volatile _SPM int *B, volatile _SPM 
 
     return 0;
 }
+*/
 
 __attribute__((always_inline))
 int allpass_comb(int AP_BUFF_LEN, volatile _SPM int *pnt, volatile short (*ap_buffer)[2], volatile _SPM short *x, volatile _SPM short *y, volatile _SPM short *g) {
@@ -872,14 +876,14 @@ void audioOut(struct AudioFX *audioP, volatile _SPM short *yP) {
     }
 }
 
-int audio_dry(struct AudioFX *audioP, volatile _SPM short *xP, volatile _SPM short *yP) {
+int audio_dry(volatile _SPM short *xP, volatile _SPM short *yP) {
     yP[0] = xP[0];
     yP[1] = xP[1];
 
     return 0;
 }
 
-int audio_dry_8samples(struct AudioFX *audioP, volatile _SPM short *xP, volatile _SPM short *yP) {
+int audio_dry_8samples(volatile _SPM short *xP, volatile _SPM short *yP) {
     for(int i=0; i<8; i++) {
         yP[i*2]   = xP[i*2];
         yP[i*2+1] = xP[i*2+1];
@@ -887,7 +891,6 @@ int audio_dry_8samples(struct AudioFX *audioP, volatile _SPM short *xP, volatile
     return 0;
 }
 
-// FOR PRINTING:
 int alloc_space(unsigned int BASE_ADDR, unsigned int LAST_ADDR) {
     int cpuid = get_cpuid();
     unsigned int ALLOC_AMOUNT = LAST_ADDR - BASE_ADDR;
@@ -910,6 +913,106 @@ int alloc_space(unsigned int BASE_ADDR, unsigned int LAST_ADDR) {
 
         return 0;
     }
+}
+
+unsigned int alloc_filter_vars(volatile _SPM struct Filter *filtP, unsigned int LAST_ADDR, int Fc, float QorFb, int thisType) {
+
+    //calculate filter coefficients (3rd order)
+    filtP->type = thisType;
+    if (filtP->type < 2) { //HP or LP
+        filter_coeff_hp_lp(3, filtP->B, filtP->A, Fc, QorFb, &filtP->sftLft, 0, thisType); //type: HPF or LPF
+    }
+    else { // 2 or 3: BP or BR
+        filter_coeff_bp_br(3, filtP->B, filtP->A, Fc, (int)QorFb,  &filtP->sftLft, 0);
+    }
+
+    filtP->pnt = 2;
+
+    LAST_ADDR += (sizeof(struct Filter) +4); //+4 needed??
+
+    return LAST_ADDR;
+}
+
+int audio_filter(volatile _SPM struct Filter *filtP, volatile _SPM short *xP, volatile _SPM short *yP) {
+    //increment pointer
+    filtP->pnt = ( filtP->pnt + 1 ) % 3;
+    //first, read sample
+    filtP->x_buf[filtP->pnt][0] = xP[0];
+    filtP->x_buf[filtP->pnt][1] = xP[1];
+    //then, calculate filter
+    filterIIR_2nd(&filtP->pnt, filtP->x_buf, filtP->y_buf, filtP->accum, filtP->B, filtP->A, &filtP->sftLft);
+    //check if it is BP/BR
+    if(filtP->type == 2) { //BP
+        filtP->accum[0] = ( (int)xP[0] - (int)filtP->y_buf[filtP->pnt][0] ) >> 1;
+        filtP->accum[1] = ( (int)xP[1] - (int)filtP->y_buf[filtP->pnt][1] ) >> 1;
+    }
+    else {
+        if(filtP->type == 3) { //BR
+            filtP->accum[0] = ( (int)xP[0] + (int)filtP->y_buf[filtP->pnt][0] ) >> 1;
+            filtP->accum[1] = ( (int)xP[1] + (int)filtP->y_buf[filtP->pnt][1] ) >> 1;
+        }
+        else { //HP or LP
+            filtP->accum[0] = filtP->y_buf[filtP->pnt][0];
+            filtP->accum[1] = filtP->y_buf[filtP->pnt][1];
+        }
+    }
+    //set output
+    yP[0] = (short)filtP->accum[0];
+    yP[1] = (short)filtP->accum[1];
+
+    return 0;
+}
+
+unsigned int alloc_vibrato_vars(volatile _SPM struct Vibrato *vibrP, unsigned int LAST_ADDR) {
+
+    //modulation arrays
+    vibrP->audio_buf_pnt = malloc(VIBRATO_L * 2 * sizeof(short)); // short audio_buf[VIBRATO_L][2]
+    vibrP->sin_array_pnt  = malloc(VIBRATO_P * sizeof(int)); // int sin_array[VIBRATO_P]
+    vibrP->frac_array_pnt = malloc(VIBRATO_P * sizeof(short)); // short frac_array[VIBRATO_P]
+
+    //modulation storage
+    storeSinInterpol(vibrP->sin_array_pnt, vibrP->frac_array_pnt, VIBRATO_P, (VIBRATO_L*0.5), ((VIBRATO_L-1)*0.5));
+    //empty buffer
+    for(int i=0; i<VIBRATO_L; i++) {
+        vibrP->audio_buf_pnt[0][i] = 0;
+        vibrP->audio_buf_pnt[1][i] = 0;
+    }
+
+    //initialise vibrato variables
+    vibrP->pnt = VIBRATO_L - 1; //start on top
+    vibrP->v_pnt = 0;
+
+    LAST_ADDR += (sizeof(struct Vibrato));
+
+    return LAST_ADDR;
+}
+
+
+int audio_vibrato(volatile _SPM struct Vibrato *vibrP, volatile _SPM short *xP, volatile _SPM short *yP) {
+    //update delay pointers
+    vibrP->del = vibrP->sin_array_pnt[vibrP->v_pnt];
+    vibrP->frac = vibrP->frac_array_pnt[vibrP->v_pnt];
+    short frac1Minus = ONE_16b - vibrP->frac;
+    vibrP->v_pnt = ( vibrP->v_pnt + 1 )%VIBRATO_P;
+    //vibrato pointers:
+    vibrP->audio_pnt   = (vibrP->pnt+vibrP->del)%VIBRATO_L;
+    vibrP->n_audio_pnt = (vibrP->pnt+vibrP->del+1)%VIBRATO_L;
+    for(int i=0; i<2; i++) { //stereo
+        //first, read sample
+        vibrP->audio_buf_pnt[i][vibrP->pnt] = xP[i];
+        vibrP->accum[i] =  (vibrP->audio_buf_pnt[i][vibrP->n_audio_pnt] * (vibrP->frac));
+        vibrP->accum[i] += (vibrP->audio_buf_pnt[i][vibrP->audio_pnt]   * (frac1Minus));
+        yP[i] = vibrP->accum[i] >> 15;
+    }
+    //update input pointer
+    if(vibrP->pnt == 0) {
+        vibrP->pnt = VIBRATO_L - 1;
+    }
+    else {
+        vibrP->pnt = vibrP->pnt - 1;
+    };
+
+    return 0;
 }
 
 
@@ -987,7 +1090,12 @@ int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_c
         audioP->last_count = ( volatile _SPM unsigned int *) ADDR_LAST_COUNT;
         //init values
         *audioP->y_pnt      = (int)audioP->y; // = ADDR_Y;
-        *audioP->last_init  = 1; //start: wait for latency
+        if(LATENCY == 0) {
+            *audioP->last_init = 0;
+        }
+        else {
+            *audioP->last_init  = 1; //start: wait for latency
+        }
         *audioP->last_count = 0; //start counting from 0
     }
     else { //NoC
@@ -1088,27 +1196,32 @@ int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_c
         LAST_ADDR = alloc_distortion_vars(distortionP, LAST_ADDR);
         break;
     case HP: ;
-        struct Filter *hpfP = (struct Filter *)malloc(sizeof(struct Filter));
+        volatile _SPM struct Filter *hpfP;
+        hpfP = (volatile _SPM struct Filter *) LAST_ADDR;
         *audioP->fx_pnt = (unsigned int)hpfP; //points to function
         LAST_ADDR = alloc_filter_vars(hpfP, LAST_ADDR, 5000, 0.707, 1);
         break;
     case LP: ;
-        struct Filter *lpfP = (struct Filter *)malloc(sizeof(struct Filter));
+        volatile _SPM struct Filter *lpfP;
+        lpfP = (volatile _SPM struct Filter *) LAST_ADDR;
         *audioP->fx_pnt = (unsigned int)lpfP; //points to function
         LAST_ADDR = alloc_filter_vars(lpfP, LAST_ADDR, 600, 0.707, 0);
         break;
     case BP: ;
-        struct Filter *bpfP = (struct Filter *)malloc(sizeof(struct Filter));
+        volatile _SPM struct Filter *bpfP;
+        bpfP = (volatile _SPM struct Filter *) LAST_ADDR;
         *audioP->fx_pnt = (unsigned int)bpfP; //points to function
         LAST_ADDR = alloc_filter_vars(bpfP, LAST_ADDR, 1000, 300, 2);
         break;
     case BR: ;
-        struct Filter *brfP = (struct Filter *)malloc(sizeof(struct Filter));
+        volatile _SPM struct Filter *brfP;
+        brfP = (volatile _SPM struct Filter *) LAST_ADDR;
         *audioP->fx_pnt = (unsigned int)brfP; //points to function
         LAST_ADDR = alloc_filter_vars(brfP, LAST_ADDR, 500, 2000, 3);
         break;
     case VIBRATO: ;
-        struct Vibrato *vibratoP = (struct Vibrato *)malloc(sizeof(struct Vibrato));
+        volatile _SPM struct Vibrato *vibratoP;
+        vibratoP = (volatile _SPM struct Vibrato *) LAST_ADDR;
         *audioP->fx_pnt = (unsigned int)vibratoP; //points to function
         LAST_ADDR = alloc_vibrato_vars(vibratoP, LAST_ADDR);
         break;
@@ -1125,21 +1238,6 @@ int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_c
     int retval = alloc_space(BASE_ADDR, LAST_ADDR);
 
     return retval;
-}
-
-int audio_connect_same_core(struct AudioFX *srcP, struct AudioFX *dstP) {
-    if ( (*srcP->out_con != NO_NOC) || (*dstP->in_con != NO_NOC) ) {
-        printf("ERROR: IN/OUT CONNECTION TYPES\n");
-        return 1;
-    }
-    if (*srcP->yb_size != *dstP->xb_size) {
-        printf("ERROR: BUFFER SIZES DON'T MATCH: %d != %d\n", *srcP->yb_size, *dstP->xb_size);
-        printf("sender: %d, receiver: %d\n", *srcP->fx_id, *dstP->fx_id);
-        return 1;
-    }
-
-    *srcP->y_pnt = *dstP->x_pnt; //points to destination input
-    return 0;
 }
 
 int free_audio_vars(struct AudioFX *audioP) {
@@ -1166,20 +1264,35 @@ int free_audio_vars(struct AudioFX *audioP) {
     case DISTORTION: ;
         free((struct Distortion *)audioP->fx_pnt);
         break;
-    case HP:
-    case LP:
-    case BP:
-    case BR: ;
-        free((struct Filter *)audioP->fx_pnt);
-        break;
     case VIBRATO: ;
-        free((struct Vibrato *)audioP->fx_pnt);
+        volatile _SPM struct Vibrato *vibrP = (volatile _SPM struct Vibrato *)*audioP->fx_pnt;
+        free(vibrP->audio_buf_pnt);
+        free(vibrP->sin_array_pnt);
+        free(vibrP->frac_array_pnt);
         break;
     case TREMOLO: ;
         free((struct Tremolo *)audioP->fx_pnt);
         break;
+    default:
+        //nothing to free
+        break;
     }
 
+    return 0;
+}
+
+int audio_connect_same_core(struct AudioFX *srcP, struct AudioFX *dstP) {
+    if ( (*srcP->out_con != NO_NOC) || (*dstP->in_con != NO_NOC) ) {
+        printf("ERROR: IN/OUT CONNECTION TYPES\n");
+        return 1;
+    }
+    if (*srcP->yb_size != *dstP->xb_size) {
+        printf("ERROR: BUFFER SIZES DON'T MATCH: %d != %d\n", *srcP->yb_size, *dstP->xb_size);
+        printf("sender: %d, receiver: %d\n", *srcP->fx_id, *dstP->fx_id);
+        return 1;
+    }
+
+    *srcP->y_pnt = *dstP->x_pnt; //points to destination input
     return 0;
 }
 
@@ -1263,13 +1376,13 @@ int audio_process(struct AudioFX *audioP) {
             case DRY:
                 for(unsigned int i=0; i < *audioP->ppsr; i++) {
                     ind = 2 * i * (*audioP->p);
-                    audio_dry(audioP, &xP[ind], &yP[ind]);
+                    audio_dry(&xP[ind], &yP[ind]);
                 }
                 break;
             case DRY_8S:
                 for(unsigned int i=0; i < *audioP->ppsr; i++) {
                     ind = 2 * i * (*audioP->p);
-                    audio_dry_8samples(audioP, &xP[ind], &yP[ind]);
+                    audio_dry_8samples(&xP[ind], &yP[ind]);
                 }
                 break;
             case DELAY: ;
@@ -1311,14 +1424,14 @@ int audio_process(struct AudioFX *audioP) {
             case LP:
             case BP:
             case BR: ;
-                struct Filter *filtP = (struct Filter *)*audioP->fx_pnt;
+                volatile _SPM struct Filter *filtP = (volatile _SPM struct Filter *)*audioP->fx_pnt;
                 for(unsigned int i=0; i < *audioP->ppsr; i++) {
                     ind = 2 * i * (*audioP->p);
                     audio_filter(filtP, &xP[ind], &yP[ind]);
                 }
                 break;
             case VIBRATO: ;
-                struct Vibrato *vibrP = (struct Vibrato *)*audioP->fx_pnt;
+                volatile _SPM struct Vibrato *vibrP = (volatile _SPM struct Vibrato *)*audioP->fx_pnt;
                 for(unsigned int i=0; i < *audioP->ppsr; i++) {
                     ind = 2 * i * (*audioP->p);
                     audio_vibrato(vibrP, &xP[ind], &yP[ind]);
@@ -1384,13 +1497,13 @@ int audio_process(struct AudioFX *audioP) {
             case DRY:
                 for(unsigned int i=0; i < *audioP->ppsr; i++) {
                     ind = 2 * i * (*audioP->p);
-                    audio_dry(audioP, &xP[offs+ind], &yP[ind]);
+                    audio_dry(&xP[offs+ind], &yP[ind]);
                 }
                 break;
             case DRY_8S:
                 for(unsigned int i=0; i < *audioP->ppsr; i++) {
                    ind = 2 * i * (*audioP->p);
-                    audio_dry_8samples(audioP, &xP[offs+ind], &yP[ind]);
+                    audio_dry_8samples(&xP[offs+ind], &yP[ind]);
                 }
                 break;
             case DELAY: ;
@@ -1432,14 +1545,14 @@ int audio_process(struct AudioFX *audioP) {
             case LP:
             case BP:
             case BR: ;
-                struct Filter *filtP = (struct Filter *)*audioP->fx_pnt;
+                volatile _SPM struct Filter *filtP = (volatile _SPM struct Filter *)*audioP->fx_pnt;
                 for(unsigned int i=0; i < *audioP->ppsr; i++) {
                     ind = 2 * i * (*audioP->p);
                     audio_filter(filtP, &xP[offs+ind], &yP[ind]);
                 }
                 break;
             case VIBRATO: ;
-                struct Vibrato *vibrP = (struct Vibrato *)*audioP->fx_pnt;
+                volatile _SPM struct Vibrato *vibrP = (volatile _SPM struct Vibrato *)*audioP->fx_pnt;
                 for(unsigned int i=0; i < *audioP->ppsr; i++) {
                     ind = 2 * i * (*audioP->p);
                     audio_vibrato(vibrP, &xP[offs+ind], &yP[ind]);
@@ -1496,13 +1609,13 @@ int audio_process(struct AudioFX *audioP) {
             case DRY:
                 for(unsigned int i=0; i < *audioP->ppsr; i++) {
                     ind = 2 * i * (*audioP->p);
-                    audio_dry(audioP, &xP[ind], &yP[offs+ind]);
+                    audio_dry(&xP[ind], &yP[offs+ind]);
                 }
                 break;
             case DRY_8S:
                 for(unsigned int i=0; i < *audioP->ppsr; i++) {
                     ind = 2 * i * (*audioP->p);
-                    audio_dry_8samples(audioP, &xP[ind], &yP[offs+ind]);
+                    audio_dry_8samples(&xP[ind], &yP[offs+ind]);
                 }
                 break;
             case DELAY: ;
@@ -1544,14 +1657,14 @@ int audio_process(struct AudioFX *audioP) {
             case LP:
             case BP:
             case BR: ;
-                struct Filter *filtP = (struct Filter *)*audioP->fx_pnt;
+                volatile _SPM struct Filter *filtP = (volatile _SPM struct Filter *)*audioP->fx_pnt;
                 for(unsigned int i=0; i < *audioP->ppsr; i++) {
                     ind = 2 * i * (*audioP->p);
                     audio_filter(filtP, &xP[ind], &yP[offs+ind]);
                 }
                 break;
             case VIBRATO: ;
-                struct Vibrato *vibrP = (struct Vibrato *)*audioP->fx_pnt;
+                volatile _SPM struct Vibrato *vibrP = (volatile _SPM struct Vibrato *)*audioP->fx_pnt;
                 for(unsigned int i=0; i < *audioP->ppsr; i++) {
                     ind = 2 * i * (*audioP->p);
                     audio_vibrato(vibrP, &xP[ind], &yP[offs+ind]);
@@ -1589,78 +1702,6 @@ int audio_process(struct AudioFX *audioP) {
     return retval;
 }
 
-
-unsigned int alloc_filter_vars(struct Filter *filtP, unsigned int LAST_ADDR, int Fc, float QorFb, int thisType) {
-    // LOCATION IN LOCAL SCRATCHPAD MEMORY
-    const unsigned int FILT_ACCUM = LAST_ADDR;
-    const unsigned int FILT_XBUF  = FILT_ACCUM + 2 * sizeof(int);
-    const unsigned int FILT_YBUF  = FILT_XBUF  + 6 * sizeof(short); // 3rd ord, stereo
-    const unsigned int FILT_A     = FILT_YBUF  + 6 * sizeof(short); // 3rd ord, stereo
-    const unsigned int FILT_B     = FILT_A     + 3 * sizeof(short) + 2; //match word
-    const unsigned int FILT_PNT   = FILT_B     + 3 * sizeof(short) + 2; //match word
-    const unsigned int FILT_SLFT  = FILT_PNT   + sizeof(int);
-    const unsigned int FILT_TYPE  = FILT_SLFT  + sizeof(int);
-    LAST_ADDR                     = FILT_TYPE  + sizeof(int);
-
-    //SPM variables
-    filtP->accum  = (volatile _SPM int *)        FILT_ACCUM;
-    filtP->x_buf  = (volatile _SPM short (*)[2]) FILT_XBUF;
-    filtP->y_buf  = (volatile _SPM short (*)[2]) FILT_YBUF;
-    filtP->A      = (volatile _SPM short *)      FILT_A;
-    filtP->B      = (volatile _SPM short *)      FILT_B;
-    filtP->pnt    = (volatile _SPM int *)        FILT_PNT;
-    filtP->sftLft = (volatile _SPM int *)        FILT_SLFT;
-    filtP->type   = (volatile _SPM int *)        FILT_TYPE;
-
-    //calculate filter coefficients (3rd order)
-    *filtP->type = thisType;
-    if (*filtP->type < 2) { //HP or LP
-        filter_coeff_hp_lp(3, filtP->B, filtP->A, Fc, QorFb, filtP->sftLft, 0, thisType); //type: HPF or LPF
-    }
-    else { // 2 or 3: BP or BR
-        filter_coeff_bp_br(3, filtP->B, filtP->A, Fc, (int)QorFb,  filtP->sftLft, 0);
-    }
-
-    *filtP->pnt = 2; //correct?
-    /*
-    //store 1st samples:
-    for(*filtP->pnt=0; *filtP->pnt < 2; *filtP->pnt = *filtP->pnt + 1) {
-      getInputBufferSPM(&filtP->x_buf[*filtP->pnt][0], &filtP->x_buf[*filtP->pnt][1]);
-    }
-    */
-    return LAST_ADDR;
-}
-
-//__attribute__((always_inline))
-int audio_filter(struct Filter *filtP, volatile _SPM short *xP, volatile _SPM short *yP){
-    //increment pointer
-    *filtP->pnt = ( (*(filtP->pnt)) + 1 ) % 3;
-    //first, read sample
-    filtP->x_buf[*filtP->pnt][0] = xP[0];
-    filtP->x_buf[*filtP->pnt][1] = xP[1];
-    //then, calculate filter
-    filterIIR_2nd(*filtP->pnt, filtP->x_buf, filtP->y_buf, filtP->accum, filtP->B, filtP->A, *filtP->sftLft);
-    //check if it is BP/BR
-    if(*filtP->type == 2) { //BP
-        filtP->accum[0] = ( (int)xP[0] - (int)filtP->y_buf[*filtP->pnt][0] ) >> 1;
-        filtP->accum[1] = ( (int)xP[1] - (int)filtP->y_buf[*filtP->pnt][1] ) >> 1;
-    }
-    else {
-        if(*filtP->type == 3) { //BR
-            filtP->accum[0] = ( (int)xP[0] + (int)filtP->y_buf[*filtP->pnt][0] ) >> 1;
-            filtP->accum[1] = ( (int)xP[1] + (int)filtP->y_buf[*filtP->pnt][1] ) >> 1;
-        }
-        else { //HP or LP
-            filtP->accum[0] = filtP->y_buf[*filtP->pnt][0];
-            filtP->accum[1] = filtP->y_buf[*filtP->pnt][1];
-        }
-    }
-    //set output
-    yP[0] = (short)filtP->accum[0];
-    yP[1] = (short)filtP->accum[1];
-
-    return 0;
-}
 
 /*
 int alloc_filter32_vars(struct Filter32 *filtP, int coreNumber, int Fc, float QorFb, int thisType) {
@@ -1741,68 +1782,7 @@ int audio_filter32(struct Filter32 *filtP){
 }
 */
 
-unsigned int alloc_vibrato_vars(struct Vibrato *vibrP, unsigned int LAST_ADDR) {
-    // LOCATION IN LOCAL SCRATCHPAD MEMORY
-    const unsigned int VIBR_ACCUM  = LAST_ADDR;
-    const unsigned int VIBR_DEL    = VIBR_ACCUM  + 2 * sizeof(int);
-    const unsigned int VIBR_FRAC   = VIBR_DEL    + sizeof(int);
-    const unsigned int VIBR_PNT    = VIBR_FRAC   + sizeof(short) + 2;
-    const unsigned int VIBR_V_PNT  = VIBR_PNT    + sizeof(int);
-    const unsigned int VIBR_A_PNT  = VIBR_V_PNT  + sizeof(int);
-    const unsigned int VIBR_NA_PNT = VIBR_A_PNT  + sizeof(int);
-    LAST_ADDR                      = VIBR_NA_PNT + sizeof(int);
 
-    //SPM variables
-    vibrP->accum       = ( volatile _SPM int *)   VIBR_ACCUM;
-    vibrP->del         = ( volatile _SPM int *)   VIBR_DEL;
-    vibrP->frac        = ( volatile _SPM short *) VIBR_FRAC;
-    vibrP->pnt         = ( volatile _SPM int *)   VIBR_PNT;
-    vibrP->v_pnt       = ( volatile _SPM int *)   VIBR_V_PNT;
-    vibrP->audio_pnt   = ( volatile _SPM int *)   VIBR_A_PNT;
-    vibrP->n_audio_pnt = ( volatile _SPM int *)   VIBR_NA_PNT;
-
-    //modulation storage
-    storeSinInterpol(vibrP->sinArray, vibrP->fracArray, VIBRATO_P, (VIBRATO_L*0.5), ((VIBRATO_L-1)*0.5));
-    //empty buffer
-    for(int i=0; i<VIBRATO_L; i++) {
-        vibrP->audio_buff[i][0] = 0;
-        vibrP->audio_buff[i][1] = 0;
-    }
-
-    //initialise vibrato variables
-    *vibrP->pnt = VIBRATO_L - 1; //start on top
-    *vibrP->v_pnt = 0;
-
-    return LAST_ADDR;
-}
-
-//__attribute__((always_inline))
-int audio_vibrato(struct Vibrato *vibrP, volatile _SPM short *xP, volatile _SPM short *yP) {
-    //update delay pointers
-    *vibrP->del = vibrP->sinArray[*vibrP->v_pnt];
-    *vibrP->frac = vibrP->fracArray[*vibrP->v_pnt];
-    short frac1Minus = ONE_16b-*vibrP->frac;
-    *vibrP->v_pnt = ( *vibrP->v_pnt + 1 )%VIBRATO_P;
-    //vibrato pointers:
-    *vibrP->audio_pnt   = (*vibrP->pnt+*vibrP->del)%VIBRATO_L;
-    *vibrP->n_audio_pnt = (*vibrP->pnt+*vibrP->del+1)%VIBRATO_L;
-    for(int i=0; i<2; i++) { //stereo
-        //first, read sample
-        vibrP->audio_buff[*vibrP->pnt][i] = xP[i];
-        vibrP->accum[i] =  (vibrP->audio_buff[*vibrP->n_audio_pnt][i]*(*vibrP->frac));
-        vibrP->accum[i] += (vibrP->audio_buff[*vibrP->audio_pnt][i]*(frac1Minus));
-        yP[i] = vibrP->accum[i] >> 15;
-    }
-    //update input pointer
-    if(*vibrP->pnt == 0) {
-        *vibrP->pnt = VIBRATO_L - 1;
-    }
-    else {
-        *vibrP->pnt = *vibrP->pnt - 1;
-    };
-
-    return 0;
-}
 
 unsigned int alloc_overdrive_vars(struct Overdrive *odP, unsigned int LAST_ADDR) {
     // LOCATION IN LOCAL SCRATCHPAD MEMORY

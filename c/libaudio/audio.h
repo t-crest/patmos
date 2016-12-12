@@ -206,18 +206,15 @@ int audio_process(struct AudioFX *audioP) __attribute__((section("text.spm")));
 
 struct Filter {
     //SPM variables
-    volatile _SPM int   *accum; //accummulator accum[2]
-    volatile _SPM short (*x_buf)[2]; // input buffer
-    volatile _SPM short (*y_buf)[2]; // output buffer
-    volatile _SPM short *A; // [a2, a1,  1]
-    volatile _SPM short *B; // [b2, b1, b0]
-    volatile _SPM int   *pnt; //audio input pointer
-    volatile _SPM int   *sftLft; //x or y buffer pointer
-    volatile _SPM int   *type; // to choose between HP, LP, BP or BR
+    int   accum[2]; //accummulator accum[2]
+    short x_buf[3][2]; // input buffer
+    short y_buf[3][2]; // output buffer
+    short A[3]; // [a2, a1,  1]
+    short B[3]; // [b2, b1, b0]
+    int   pnt; //audio input pointer
+    int   sftLft; //x or y buffer pointer
+    int   type; // to choose between HP, LP, BP or BR
 };
-
-unsigned int alloc_filter_vars(struct Filter *filtP, unsigned int LAST_ADDR, int Fc, float QorFb, int thisType);
-int audio_filter(struct Filter *filterP, volatile _SPM short *xP, volatile _SPM short *yP);
 
 /*
 struct Filter32 {
@@ -244,21 +241,18 @@ int audio_filter32(struct Filter32 *filterP);
 
 struct Vibrato {
     //SPM variables
-    volatile _SPM int   *accum; //accummulator accum[2]
-    volatile _SPM int   *del; // delay
-    volatile _SPM short *frac; //fraction for interpol.
-    volatile _SPM int   *pnt; //audio input pointer
-    volatile _SPM int   *v_pnt; //vibrato array pointer
-    volatile _SPM int   *audio_pnt; //audio output pointer
-    volatile _SPM int   *n_audio_pnt; //next audio o. pointer
-    //Main Memory variables
-    short audio_buff[VIBRATO_L][2];
-    int sinArray[VIBRATO_P];
-    short fracArray[VIBRATO_P];
+    int   accum[2]; //accummulator accum[2]
+    int   del; // delay
+    short frac; //fraction for interpol.
+    int   pnt; //audio input pointer
+    int   v_pnt; //vibrato array pointer
+    int   audio_pnt; //audio output pointer
+    int   n_audio_pnt; //next audio o. pointer
+    //Shared Memory pointers
+    short (*audio_buf_pnt)[VIBRATO_L]; //pointer to audio_buff[VIBRATO_L][2]
+    int *sin_array_pnt; //pointer to sin_array[VIBRATO_P]
+    short *frac_array_pnt; //pointer to frac_array[VIBRATO_P]
 };
-
-unsigned int alloc_vibrato_vars(struct Vibrato *vibrP, unsigned int LAST_ADDR);
-int audio_vibrato(struct Vibrato *vibrP, volatile _SPM short *xP, volatile _SPM short *yP);
 
 /*
   Overdrive and distortion
