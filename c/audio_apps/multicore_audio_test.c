@@ -119,6 +119,11 @@ void threadFunc(void* args) {
 
     }
 
+    //free memory allocation
+    for(int n=0; n<FX_HERE; n++) {
+        free_audio_vars(&FXp[n]);
+    }
+
 
     // exit with return value
     int ret = 0;
@@ -269,8 +274,8 @@ int main() {
 
 
     //CPU cycles stuff
-    //int CPUcycles[LIM] = {0};
-    //unsigned int cpu_pnt = 0;
+    int CPUcycles[LIM] = {0};
+    unsigned int cpu_pnt = 0;
 
 
     //int wait_recv = 18; //amount of loops until audioOut is done
@@ -297,7 +302,7 @@ int main() {
             */
         }
 
-        /*
+
         //store CPU Cycles
         CPUcycles[cpu_pnt] = get_cpu_cycles();
         cpu_pnt++;
@@ -305,21 +310,25 @@ int main() {
             //break;
             cpu_pnt = 0;
         }
-        */
+
 
     }
 
+    //free memory allocation
+    for(int n=0; n<FX_HERE; n++) {
+        free_audio_vars(&FXp[n]);
+    }
 
     //exit stuff
     printf("exit here!\n");
     exit = 1;
     printf("waiting for all threads to finish...\n");
 
-    /*
+
     for(int i=1; i<LIM; i++) {
         printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
-    */
+
 
     /*
     for(int i=0; i<(LIM-WAIT); i++) {

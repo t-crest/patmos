@@ -1063,68 +1063,57 @@ int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_c
         //nothing to do
         break;
     case DELAY: ; //to create a scope
-        struct IIRdelay delay;
-        struct IIRdelay *delayP = &delay;
+        struct IIRdelay *delayP = (struct IIRdelay *)malloc(sizeof(struct IIRdelay));
         *audioP->fx_pnt = (unsigned int)delayP; //points to function
         LAST_ADDR = alloc_delay_vars(delayP, LAST_ADDR);
         break;
     case OVERDRIVE: ;
-        struct Overdrive overdrive;
-        struct Overdrive *overdriveP = &overdrive;
+        struct Overdrive *overdriveP = (struct Overdrive *)malloc(sizeof(struct Overdrive));
         *audioP->fx_pnt = (unsigned int)overdriveP; //points to function
         LAST_ADDR = alloc_overdrive_vars(overdriveP, LAST_ADDR);
         break;
     case WAHWAH: ;
-        struct WahWah wahwah;
-        struct WahWah *wahwahP = &wahwah;
+        struct WahWah *wahwahP = (struct WahWah *)malloc(sizeof(struct WahWah));
         *audioP->fx_pnt = (unsigned int)wahwahP; //points to function
         LAST_ADDR = alloc_wahwah_vars(wahwahP, LAST_ADDR);
         break;
     case CHORUS: ;
-        struct Chorus chorus;
-        struct Chorus *chorusP = &chorus;
+        struct Chorus *chorusP = (struct Chorus *)malloc(sizeof(struct Chorus));
         *audioP->fx_pnt = (unsigned int)chorusP; //points to function
         LAST_ADDR = alloc_chorus_vars(chorusP, LAST_ADDR);
         break;
     case DISTORTION: ;
-        struct Distortion distortion;
-        struct Distortion *distortionP = &distortion;
+        struct Distortion *distortionP = (struct Distortion *)malloc(sizeof(struct Distortion));
         *audioP->fx_pnt = (unsigned int)distortionP; //points to function
         LAST_ADDR = alloc_distortion_vars(distortionP, LAST_ADDR);
         break;
     case HP: ;
-        struct Filter hpf;
-        struct Filter *hpfP = &hpf;
+        struct Filter *hpfP = (struct Filter *)malloc(sizeof(struct Filter));
         *audioP->fx_pnt = (unsigned int)hpfP; //points to function
         LAST_ADDR = alloc_filter_vars(hpfP, LAST_ADDR, 5000, 0.707, 1);
         break;
     case LP: ;
-        struct Filter lpf;
-        struct Filter *lpfP = &lpf;
+        struct Filter *lpfP = (struct Filter *)malloc(sizeof(struct Filter));
         *audioP->fx_pnt = (unsigned int)lpfP; //points to function
         LAST_ADDR = alloc_filter_vars(lpfP, LAST_ADDR, 600, 0.707, 0);
         break;
     case BP: ;
-        struct Filter bpf;
-        struct Filter *bpfP = &bpf;
+        struct Filter *bpfP = (struct Filter *)malloc(sizeof(struct Filter));
         *audioP->fx_pnt = (unsigned int)bpfP; //points to function
         LAST_ADDR = alloc_filter_vars(bpfP, LAST_ADDR, 1000, 300, 2);
         break;
     case BR: ;
-        struct Filter brf;
-        struct Filter *brfP = &brf;
+        struct Filter *brfP = (struct Filter *)malloc(sizeof(struct Filter));
         *audioP->fx_pnt = (unsigned int)brfP; //points to function
         LAST_ADDR = alloc_filter_vars(brfP, LAST_ADDR, 500, 2000, 3);
         break;
     case VIBRATO: ;
-        struct Vibrato vibrato;
-        struct Vibrato *vibratoP = &vibrato;
+        struct Vibrato *vibratoP = (struct Vibrato *)malloc(sizeof(struct Vibrato));
         *audioP->fx_pnt = (unsigned int)vibratoP; //points to function
         LAST_ADDR = alloc_vibrato_vars(vibratoP, LAST_ADDR);
         break;
     case TREMOLO: ;
-        struct Tremolo tremolo;
-        struct Tremolo *tremoloP = &tremolo;
+        struct Tremolo *tremoloP = (struct Tremolo *)malloc(sizeof(struct Tremolo));
         *audioP->fx_pnt = (unsigned int)tremoloP; //points to function
         LAST_ADDR = alloc_tremolo_vars(tremoloP, LAST_ADDR);
         break;
@@ -1150,6 +1139,47 @@ int audio_connect_same_core(struct AudioFX *srcP, struct AudioFX *dstP) {
     }
 
     *srcP->y_pnt = *dstP->x_pnt; //points to destination input
+    return 0;
+}
+
+int free_audio_vars(struct AudioFX *audioP) {
+    //switch between possible FX
+    switch(*audioP->fx) {
+    case DRY:
+        //nothing to do
+        break;
+    case DRY_8S:
+        //nothing to do
+        break;
+    case DELAY: ; //to create a scope
+        free((struct IIRdelay *)audioP->fx_pnt);
+        break;
+    case OVERDRIVE: ;
+        free((struct Overdrive *)audioP->fx_pnt);
+        break;
+    case WAHWAH: ;
+        free((struct WahWah *)audioP->fx_pnt);
+        break;
+    case CHORUS: ;
+        free((struct Chorus *)audioP->fx_pnt);
+        break;
+    case DISTORTION: ;
+        free((struct Distortion *)audioP->fx_pnt);
+        break;
+    case HP:
+    case LP:
+    case BP:
+    case BR: ;
+        free((struct Filter *)audioP->fx_pnt);
+        break;
+    case VIBRATO: ;
+        free((struct Vibrato *)audioP->fx_pnt);
+        break;
+    case TREMOLO: ;
+        free((struct Tremolo *)audioP->fx_pnt);
+        break;
+    }
+
     return 0;
 }
 

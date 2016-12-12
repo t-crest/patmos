@@ -187,6 +187,8 @@ struct AudioFX {
 //audio FX SPM allocation
 int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_con, con_t out_con, unsigned int IN_SIZE, unsigned int OUT_SIZE, unsigned int P_AMOUNT, fst_t is_fst, lst_t is_lst);
 
+int free_audio_vars(struct AudioFX *audioP);
+
 //same core:
 int audio_connect_same_core(struct AudioFX *srcP, struct AudioFX *dstP);
 //NoC:
