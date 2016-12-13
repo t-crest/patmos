@@ -147,41 +147,41 @@ typedef enum {DRY, DRY_8S, DELAY,
 
 struct AudioFX {
     //effect ID
-    volatile _SPM int *fx_id;
+    _SPM int *fx_id;
     //core number
-    volatile _SPM int *cpuid;
+    _SPM int *cpuid;
     //connection type
-    volatile _SPM fst_t *is_fst; // audio input node
-    volatile _SPM lst_t *is_lst; // audio output node
-    volatile _SPM con_t *in_con;  //input  connection: same core or NoC
-    volatile _SPM con_t *out_con; //output connection: same core or NoC
+    _SPM fst_t *is_fst; // audio input node
+    _SPM lst_t *is_lst; // audio output node
+    _SPM con_t *in_con;  //input  connection: same core or NoC
+    _SPM con_t *out_con; //output connection: same core or NoC
     //pointers to SPM data
-    volatile _SPM unsigned int *x_pnt; //pointer to x location
-    volatile _SPM unsigned int *y_pnt; //pointer to y location
+    _SPM unsigned int *x_pnt; //pointer to x location
+    _SPM unsigned int *y_pnt; //pointer to y location
     //send and receive NoC channel pointers
-    volatile _SPM unsigned int *sendChanP;
-    volatile _SPM unsigned int *recvChanP;
+    _SPM unsigned int *sendChanP;
+    _SPM unsigned int *recvChanP;
     //processing type
-    volatile _SPM pt_t *pt;
+    _SPM pt_t *pt;
     //parameters: P, RPR, SPR, PPSR
-    volatile _SPM unsigned int *p;
-    volatile _SPM unsigned int *rpr;
-    volatile _SPM unsigned int *spr;
-    volatile _SPM unsigned int *ppsr;
+    _SPM unsigned int *p;
+    _SPM unsigned int *rpr;
+    _SPM unsigned int *spr;
+    _SPM unsigned int *ppsr;
     //in and out buffer size ( both for NoC or same core, in samples, multiples of 2)
-    volatile _SPM unsigned int *xb_size; //x buffer
-    volatile _SPM unsigned int *yb_size; //y buffer
+    _SPM unsigned int *xb_size; //x buffer
+    _SPM unsigned int *yb_size; //y buffer
     //audio data
     volatile _SPM short *x; //input audio x[2]
     volatile _SPM short *y; //output audio y[2]
     //Audio effect implemented
-    volatile _SPM fx_t *fx;
+    _SPM fx_t *fx;
     //Pointer to effect struct
-    volatile _SPM unsigned int *fx_pnt;
+    _SPM unsigned int *fx_pnt;
     //Boolean variable for last types: checks need to wait for output
-    volatile _SPM int *last_init;
+    _SPM int *last_init;
     //Latency counter (from input to output)
-    volatile _SPM unsigned int *last_count;
+    _SPM unsigned int *last_count;
 };
 
 //audio FX SPM allocation
@@ -196,7 +196,7 @@ int audio_connect_to_core(struct AudioFX *srcP, const unsigned int sendChanID);
 int audio_connect_from_core(const unsigned int recvChanID, struct AudioFX *dstP);
 
 //audio processing
-int audio_process(struct AudioFX *audioP) __attribute__((section("text.spm")));
+int audio_process(struct AudioFX *audioP); // __attribute__((section("text.spm")));
 
 
 
