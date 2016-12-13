@@ -1207,7 +1207,7 @@ int audio_delay(_SPM struct IIRdelay *delP, volatile _SPM short *xP, volatile _S
         delP->pnt = DELAY_L - 1;
     }
     else {
-        delP->pnt = delP->pnt -1;
+        delP->pnt = delP->pnt - 1;
     }
 
     return 0;
@@ -1444,12 +1444,6 @@ int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_c
     audioP->fx_pnt = ( _SPM unsigned int *) ADDR_FX_PNT;
     //switch between possible FX
     switch(*audioP->fx) {
-    case DRY:
-        //nothing to do
-        break;
-    case DRY_8S:
-        //nothing to do
-        break;
     case DELAY: ; //to create a scope
         _SPM struct IIRdelay *delayP;
         delayP = (_SPM struct IIRdelay *) LAST_ADDR;
@@ -1517,7 +1511,8 @@ int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_c
         LAST_ADDR = alloc_tremolo_vars(tremoloP, LAST_ADDR);
         break;
     default:
-        printf("FX NOT IMPLEMENTED YET\n");
+        //nothing to do
+        break;
     }
 
     //update spm_alloc
