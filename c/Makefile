@@ -154,8 +154,9 @@ $(LIBETH): $(patsubst ethlib/%.c,$(BUILDDIR)/ethlib/%.o,$(wildcard ethlib/*.c))
 #library for audio
 .PHONY: libaudio
 libaudio: $(LIBAUDIO)
+$(BUILDDIR)/libaudio/dsp_algorithms.o: libaudio/dsp_algorithms.h
 $(BUILDDIR)/libaudio/audio.o: libaudio/audio.h libaudio/audioinit.h
-$(LIBAUDIO): $(BUILDDIR)/libaudio/audio.o
+$(LIBAUDIO): $(BUILDDIR)/libaudio/dsp_algorithms.o $(BUILDDIR)/libaudio/audio.o
 	patmos-ar r $@ $^
 
 # library for parsing ELF files
