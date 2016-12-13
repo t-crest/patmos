@@ -1123,7 +1123,7 @@ unsigned int alloc_chorus_vars(_SPM struct Chorus *chorP, unsigned int LAST_ADDR
     //set delays:
     chorP->del[2] = 0; // always d0 = 0
 
-    //modulation arrays
+    //data and modulation arrays
     chorP->audio_buf  = malloc(CHORUS_L * 2 * sizeof(short)); // short audio_buf[2][CHORUS_L]
     chorP->mod_array1 = malloc(CHORUS_P1 * sizeof(int)); // int mod_array1[CHORUS_P1]
     chorP->mod_array2 = malloc(CHORUS_P2 * sizeof(int)); // int mod_array2[CHORUS_P2]
@@ -1182,6 +1182,9 @@ unsigned int alloc_delay_vars(_SPM struct IIRdelay *delP, unsigned int LAST_ADDR
     //pointer starts on top
     delP->pnt = DELAY_L - 1;
 
+    //alloc audio array
+    delP->audio_buf = malloc(DELAY_L * 2 * sizeof(short)); // short audio_buf[2][DELAY_L]
+
     //empty buffer
     for(int i=0; i<DELAY_L; i++) {
         delP->audio_buf[0][i] = 0;
@@ -1207,7 +1210,7 @@ int audio_delay(_SPM struct IIRdelay *delP, volatile _SPM short *xP, volatile _S
         delP->pnt = DELAY_L - 1;
     }
     else {
-        delP->pnt = delP->pnt - 1;
+        delP->pnt = delP->pnt -1;
     }
 
     return 0;

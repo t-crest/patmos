@@ -277,7 +277,7 @@ struct IIRdelay {
     int   del[2]; // delays [d1, d0]
     int   pnt; //audio input pointer
     //Shared Memory variables
-    short (*audio_buf)[DELAY_L]; // audio_buf[2][DELAY_L]
+    short (*audio_buf)[DELAY_L]; // audio_buff[2][DELAY_L]
 };
 
 /*
