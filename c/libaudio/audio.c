@@ -1,6 +1,6 @@
 
-#include "libaudio/audio.h"
 
+#include "audio.h"
 /*
  * @file		Audio_setup.c
  * @author	Daniel Sanz Ausin s142290 & Fabian Goerge s150957

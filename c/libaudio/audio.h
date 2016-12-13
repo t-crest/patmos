@@ -1,5 +1,3 @@
-
-
 #ifndef _AUDIO_H_
 #define _AUDIO_H_
 
@@ -11,7 +9,8 @@
 #include "libmp/mp.h"
 #include "libcorethread/corethread.h"
 
-#include "libaudio/audioinit.h"
+#include "audioinit.h"
+
 
 //for guitar:
 #define GUITAR 0

@@ -353,7 +353,5 @@ int main() {
         printf("thread %d finished!\n", (i+1));
     }
 
-    printf("hey\n");
-
     return 0;
 }
