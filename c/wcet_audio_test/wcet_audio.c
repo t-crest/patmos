@@ -16,19 +16,27 @@ struct Distortion {
 
 int audio_distortion(_SPM struct Distortion *distP, volatile _SPM short *xP, volatile _SPM short *yP) __attribute__((noinline,used));
 int audio_distortion(_SPM struct Distortion *distP, volatile _SPM short *xP, volatile _SPM short *yP) {
-    for(int j=0; j<2; j++) {
-        distP->accum[0] = (distP->kOnePlus * xP[j]);// >> 15;
-        distP->accum[1] = (distP->k * abs(xP[j])) >> 15;
-        distP->accum[1] = distP->accum[1] + ((ONE_16b+distP->sftLft) >> distP->sftLft);
-        distP->accum[0] = distP->accum[0] / distP->accum[1];
-        //reduce if it is poisitive only
-        if (xP[j] > 0) {
-            yP[j] = distP->accum[0] - 1;
-        }
-        else {
-            yP[j] = distP->accum[0];
+
+    _Pragma("loopbound min 100 max 100")
+    for(int i=0; i<100; i++) {
+
+        _Pragma("loopbound min 2 max 2")
+        for(int j=0; j<2; j++) {
+            int index = 2 * i + j;
+            distP->accum[0] = (distP->kOnePlus * xP[index]);// >> 15;
+            distP->accum[1] = (distP->k * abs(xP[index])) >> 15;
+            distP->accum[1] = distP->accum[1] + ((ONE_16b+distP->sftLft) >> distP->sftLft);
+            distP->accum[0] = distP->accum[0] / distP->accum[1];
+            //reduce if it is poisitive only
+            if (xP[index] > 0) {
+                yP[index] = distP->accum[0] - 1;
+            }
+            else {
+                yP[index] = distP->accum[0];
+            }
         }
     }
+
     return 0;
 }
 
@@ -60,11 +68,9 @@ int main() {
     volatile _SPM short * yP;
 
     xP = (volatile _SPM short *) (OFFS_ADDR + sizeof(struct Distortion));
-    yP = (volatile _SPM short *) (OFFS_ADDR + sizeof(struct Distortion) + 2 * sizeof(short));
-
+    yP = (volatile _SPM short *) (OFFS_ADDR + sizeof(struct Distortion) + 2 * 100 * sizeof(short));
 
     audio_distortion(distortionP, xP, yP);
-
 
     return 0;
 }

@@ -46,11 +46,12 @@ CLANG_OPTS=`platin tool-config -t clang -i $CONFIG_PML`
 run patmos-clang $CLANG_OPTS -o wcet_audio wcet_audio.c -mserialize=wcet_audio.pml -mserialize-roots=$ENTRY
 
 # - Simulate
-PASIM_OPTS=`platin tool-config -t simulator -i $CONFIG_PML`
+#PASIM_OPTS=`platin tool-config -t simulator -i $CONFIG_PML`
+PASIM_OPTS=`platin tool-config -t pasim -i $CONFIG_PML`
 run pasim $PASIM_OPTS wcet_audio
 
 # - Analyse
 # The --outdir option is optional. If ommited, a temporary directoy will be used. Otherwise, the outdir
 # must exist before the tool executed.
 run mkdir -p tmp
-run platin wcet $WCET_OPTS -b wcet_audio -i $CONFIG_PML -i wcet_audio.pml -e $ENTRY --outdir tmp --report
+run platin wcet $WCET_OPTS -b wcet_audio -i $CONFIG_PML -i wcet_audio.pml -e $ENTRY --outdir tmp --report --disable-ait
