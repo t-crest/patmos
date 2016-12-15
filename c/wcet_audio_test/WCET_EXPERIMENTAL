@@ -1,0 +1,312 @@
+DELAY:
+
+Thread and NoC initialised correctly
+i=0: diff=5208
+i=1: diff=496
+i=2: diff=519
+i=20: diff=464
+i=23: diff=548
+i=24: diff=464
+i=27: diff=548
+i=28: diff=466
+i=31: diff=550
+i=32: diff=466
+i=35: diff=550
+i=36: diff=466
+i=37: diff=458
+i=39: diff=542
+i=40: diff=458
+i=43: diff=542
+i=44: diff=460
+i=47: diff=544
+i=48: diff=460
+i=51: diff=544
+i=52: diff=460
+i=53: diff=519
+i=55: diff=603
+i=56: diff=519
+i=59: diff=603
+i=60: diff=519
+exit here!
+
+OVERDRIVE: (one is longer, probably due to the 3 ranges of overdrive)
+
+Thread and NoC initialised correctly
+i=0: diff=3444
+i=1: diff=155
+i=2: diff=178
+i=74: diff=1657
+i=75: diff=178
+i=76: diff=223
+i=77: diff=178
+i=86: diff=223
+exit here!
+
+WAHWAH:
+
+Thread and NoC initialised correctly
+i=0: diff=8904
+i=1: diff=452
+i=2: diff=475
+i=5: diff=584
+i=6: diff=500
+i=7: diff=416
+i=13: diff=582
+i=14: diff=498
+i=15: diff=414
+i=21: diff=590
+i=22: diff=506
+i=23: diff=422
+i=29: diff=588
+i=30: diff=504
+i=31: diff=420
+i=37: diff=559
+i=38: diff=475
+i=45: diff=559
+i=46: diff=475
+i=53: diff=559
+i=54: diff=475
+i=61: diff=559
+i=62: diff=475
+i=69: diff=559
+i=71: diff=475
+i=76: diff=559
+i=78: diff=500
+i=79: diff=416
+i=84: diff=500
+i=86: diff=498
+i=87: diff=414
+i=92: diff=498
+i=94: diff=506
+i=95: diff=422
+exit here!
+
+CHORUS:
+
+Thread and NoC initialised correctly
+i=0: diff=6804
+i=1: diff=581
+i=2: diff=464
+i=3: diff=511
+i=4: diff=668
+i=5: diff=464
+i=6: diff=497
+i=7: diff=464
+i=8: diff=548
+i=9: diff=604
+i=10: diff=464
+i=11: diff=511
+i=12: diff=668
+i=13: diff=464
+i=14: diff=497
+i=15: diff=464
+i=16: diff=548
+i=17: diff=604
+i=18: diff=464
+i=19: diff=511
+i=20: diff=668
+i=21: diff=464
+i=22: diff=497
+i=23: diff=464
+i=24: diff=548
+i=25: diff=604
+i=26: diff=464
+i=27: diff=511
+i=28: diff=668
+i=29: diff=464
+i=30: diff=497
+i=31: diff=464
+i=32: diff=548
+i=33: diff=604
+i=34: diff=464
+i=35: diff=511
+i=36: diff=668
+i=37: diff=464
+i=38: diff=497
+i=39: diff=464
+i=40: diff=548
+i=41: diff=604
+i=42: diff=464
+i=43: diff=511
+i=44: diff=668
+i=45: diff=464
+i=46: diff=497
+i=47: diff=464
+i=48: diff=548
+i=49: diff=604
+i=50: diff=464
+i=51: diff=511
+i=52: diff=668
+i=53: diff=464
+i=54: diff=497
+i=55: diff=464
+i=56: diff=548
+i=57: diff=604
+i=58: diff=464
+i=59: diff=511
+i=60: diff=668
+i=61: diff=464
+i=62: diff=497
+i=63: diff=464
+i=64: diff=548
+i=65: diff=604
+i=66: diff=464
+i=67: diff=511
+i=68: diff=668
+i=69: diff=464
+i=70: diff=497
+i=71: diff=464
+i=72: diff=548
+i=73: diff=604
+i=74: diff=464
+i=75: diff=511
+i=76: diff=668
+i=77: diff=464
+i=78: diff=497
+i=79: diff=464
+i=80: diff=595
+i=81: diff=679
+i=82: diff=511
+i=84: diff=668
+i=85: diff=464
+i=86: diff=497
+i=87: diff=464
+i=88: diff=548
+i=89: diff=604
+i=90: diff=464
+i=91: diff=511
+i=92: diff=749
+i=93: diff=497
+i=95: diff=464
+i=96: diff=548
+i=97: diff=604
+i=98: diff=464
+i=99: diff=511
+exit here!
+
+DISTORTION:
+
+Thread and NoC initialised correctly
+i=0: diff=5040
+i=1: diff=1085
+i=2: diff=1108
+exit here!
+
+HP:
+
+Thread and NoC initialised correctly
+i=0: diff=7812
+i=1: diff=349
+i=2: diff=372
+exit here!
+
+BP:
+
+Thread and NoC initialised correctly
+i=0: diff=7812
+i=1: diff=356
+i=2: diff=379
+exit here!
+
+VIBRATO:
+
+Thread and NoC initialised correctly
+i=0: diff=4872
+i=1: diff=350
+i=2: diff=373
+i=4: diff=556
+i=5: diff=373
+i=12: diff=556
+i=13: diff=373
+i=20: diff=556
+i=21: diff=373
+i=29: diff=556
+i=30: diff=373
+i=35: diff=457
+i=37: diff=640
+i=38: diff=457
+i=39: diff=373
+i=46: diff=556
+i=47: diff=373
+i=54: diff=556
+i=55: diff=373
+i=62: diff=556
+i=63: diff=373
+i=71: diff=556
+i=72: diff=373
+i=79: diff=556
+i=80: diff=373
+i=88: diff=556
+i=89: diff=373
+i=96: diff=556
+i=97: diff=373
+exit here!
+
+TREMOLO:
+
+Thread and NoC initialised correctly
+i=0: diff=3444
+i=1: diff=178
+i=2: diff=307
+i=3: diff=238
+i=4: diff=201
+i=6: diff=307
+i=7: diff=201
+i=10: diff=307
+i=11: diff=238
+i=12: diff=201
+i=14: diff=307
+i=15: diff=201
+i=18: diff=307
+i=19: diff=238
+i=20: diff=201
+i=22: diff=307
+i=23: diff=201
+i=26: diff=307
+i=27: diff=238
+i=28: diff=201
+i=30: diff=307
+i=31: diff=201
+i=34: diff=307
+i=35: diff=238
+i=36: diff=201
+i=38: diff=307
+i=39: diff=201
+i=42: diff=307
+i=43: diff=238
+i=44: diff=201
+i=46: diff=307
+i=47: diff=201
+i=50: diff=307
+i=51: diff=238
+i=52: diff=201
+i=54: diff=307
+i=55: diff=201
+i=58: diff=307
+i=59: diff=238
+i=60: diff=201
+i=62: diff=307
+i=63: diff=201
+i=66: diff=307
+i=67: diff=238
+i=68: diff=201
+i=70: diff=307
+i=71: diff=201
+i=74: diff=307
+i=75: diff=238
+i=76: diff=201
+i=78: diff=307
+i=79: diff=201
+i=82: diff=307
+i=83: diff=238
+i=84: diff=242
+i=86: diff=311
+i=87: diff=242
+i=90: diff=311
+i=91: diff=242
+i=92: diff=221
+i=94: diff=290
+i=95: diff=221
+i=98: diff=290
+i=99: diff=221
+exit here!
