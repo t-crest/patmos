@@ -4,6 +4,8 @@
 #include <machine/spm.h>
 #include <machine/rtc.h>
 
+#define LOOPS 100
+
 #define ONE_16b 0x7FFF
 #define Fs 52083 // Hz
 
@@ -274,6 +276,7 @@ int filterIIR_2nd(_SPM int *pnt_i, _SPM short (*x)[2], _SPM short (*y)[2], _SPM 
     int pnt; //pointer for x_filter
     accum[0] = 0;
     accum[1] = 0;
+    _Pragma("loopbound min 3 max 3")
     for(int i=0; i<3; i++) { //FILTER_ORDER_1PLUS = 3
         pnt = (*pnt_i + i + 1) % 3; //FILTER_ORDER_1PLUS = 3
         // SIGNED SHIFT (arithmetical): losing a 2-bit resolution
@@ -285,6 +288,7 @@ int filterIIR_2nd(_SPM int *pnt_i, _SPM short (*x)[2], _SPM short (*y)[2], _SPM 
     //accumulator limits: [ (2^(30-2-1))-1 , -(2^(30-2-1)) ]
     //accumulator limits: [ 0x7FFFFFF, 0x8000000 ]
     // digital saturation
+    _Pragma("loopbound min 2 max 2")
     for(int i=0; i<2; i++) {
         if (accum[i] > 0x7FFFFFF) {
             accum[i] = 0x7FFFFFF;
@@ -302,8 +306,8 @@ int filterIIR_2nd(_SPM int *pnt_i, _SPM short (*x)[2], _SPM short (*y)[2], _SPM 
 }
 
 int audio_filter(_SPM struct Filter *filtP, volatile _SPM short *xP, volatile _SPM short *yP) {
-    _Pragma("loopbound min 100 max 100")
-    for(int i=0; i<100; i++) {
+    _Pragma("loopbound min LOOPS max LOOPS")
+    for(int i=0; i<LOOPS; i++) {
         int index = 2 * i;
         //increment pointer
         filtP->pnt = ( filtP->pnt + 1 ) % 3;
@@ -336,8 +340,8 @@ int audio_filter(_SPM struct Filter *filtP, volatile _SPM short *xP, volatile _S
 }
 
 int audio_filter_2(_SPM struct Filter *filtP, volatile _SPM short *xP, volatile _SPM short *yP) {
-    _Pragma("loopbound min 100 max 100")
-    for(int i=0; i<100; i++) {
+    _Pragma("loopbound min LOOPS max LOOPS")
+    for(int i=0; i<LOOPS; i++) {
         int index = 2 * i;
         //increment pointer
         filtP->pnt = ( filtP->pnt + 1 ) % 3;
@@ -370,8 +374,8 @@ int audio_filter_2(_SPM struct Filter *filtP, volatile _SPM short *xP, volatile 
 }
 
 int audio_vibrato(_SPM struct Vibrato *vibrP, volatile _SPM short *xP, volatile _SPM short *yP) {
-    _Pragma("loopbound min 100 max 100")
-    for(int i=0; i<100; i++) {
+    _Pragma("loopbound min LOOPS max LOOPS")
+    for(int i=0; i<LOOPS; i++) {
         //update delay pointers
         vibrP->del = vibrP->sin_array_pnt[vibrP->v_pnt];
         vibrP->frac = vibrP->frac_array_pnt[vibrP->v_pnt];
@@ -402,8 +406,8 @@ int audio_vibrato(_SPM struct Vibrato *vibrP, volatile _SPM short *xP, volatile 
 }
 
 int audio_wahwah(_SPM struct WahWah *wahP, volatile _SPM short *xP, volatile _SPM short *yP) {
-    _Pragma("loopbound min 100 max 100")
-    for(int i=0; i<100; i++) {
+    _Pragma("loopbound min LOOPS max LOOPS")
+    for(int i=0; i<LOOPS; i++) {
         int index = 2 * i;
         //update filter coefficients
         wahP->B[2] = wahP->b_array[2][wahP->wah_pnt]; //b0
@@ -434,8 +438,8 @@ int audio_wahwah(_SPM struct WahWah *wahP, volatile _SPM short *xP, volatile _SP
 }
 
 int audio_tremolo(_SPM struct Tremolo *tremP, volatile _SPM short *xP, volatile _SPM short *yP) {
-    _Pragma("loopbound min 100 max 100")
-    for(int i=0; i<100; i++) {
+    _Pragma("loopbound min LOOPS max LOOPS")
+    for(int i=0; i<LOOPS; i++) {
         int index = 2 * i;
         //update pointer
         tremP->pnt = (tremP->pnt + 1) % TREMOLO_P;
@@ -470,6 +474,7 @@ int combFilter_2nd(int AUDIO_BUF_LEN, _SPM int *pnt, short (*audio_buffer)[AUDIO
     //accumulator limits: [ (2^(30-2-1))-1 , -(2^(30-2-1)) ]
     //accumulator limits: [ 0x7FFFFFF, 0x8000000 ]
     // digital saturation
+    _Pragma("loopbound min 2 max 2")
     for(int i=0; i<2; i++) {
         if (accum[i] > 0x7FFFFFF) {
             accum[i] = 0x7FFFFFF;
@@ -487,8 +492,8 @@ int combFilter_2nd(int AUDIO_BUF_LEN, _SPM int *pnt, short (*audio_buffer)[AUDIO
 }
 
 int audio_chorus(_SPM struct Chorus *chorP, volatile _SPM short *xP, volatile _SPM short *yP) {
-    _Pragma("loopbound min 100 max 100")
-    for(int i=0; i<100; i++) {
+    _Pragma("loopbound min LOOPS max LOOPS")
+    for(int i=0; i<LOOPS; i++) {
         int index = 2 * i;
         // SINUSOIDAL MODULATION OF DELAY LENGTH
         chorP->del[0] = chorP->mod_array1[chorP->c1_pnt];
@@ -525,6 +530,7 @@ int combFilter_1st(int AUDIO_BUF_LEN, _SPM int *pnt, short (*audio_buffer)[AUDIO
     //accumulator limits: [ (2^(30-2-1))-1 , -(2^(30-2-1)) ]
     //accumulator limits: [ 0x7FFFFFF, 0x8000000 ]
     // digital saturation
+    _Pragma("loopbound min 2 max 2")
     for(int i=0; i<2; i++) {
         if (accum[i] > 0x7FFFFFF) {
             accum[i] = 0x7FFFFFF;
@@ -542,8 +548,8 @@ int combFilter_1st(int AUDIO_BUF_LEN, _SPM int *pnt, short (*audio_buffer)[AUDIO
 }
 
 int audio_delay(_SPM struct IIRdelay *delP, volatile _SPM short *xP, volatile _SPM short *yP) {
-    _Pragma("loopbound min 100 max 100")
-    for(int i=0; i<100; i++) {
+    _Pragma("loopbound min LOOPS max LOOPS")
+    for(int i=0; i<LOOPS; i++) {
         int index = 2 * i;
         //first, read sample
         delP->audio_buf[0][delP->pnt] = xP[index];
@@ -570,8 +576,8 @@ int audio_overdrive(_SPM struct Overdrive *odP, volatile _SPM short *xP, volatil
     //input abs:
     unsigned int x_abs[2];
 
-    _Pragma("loopbound min 100 max 100")
-    for(int i=0; i<100; i++) {
+    _Pragma("loopbound min LOOPS max LOOPS")
+    for(int i=0; i<LOOPS; i++) {
         _Pragma("loopbound min 2 max 2")
         for(int j=0; j<2; j++) {
             int index = 2 * i + j;
@@ -615,8 +621,8 @@ int audio_overdrive(_SPM struct Overdrive *odP, volatile _SPM short *xP, volatil
 
 int audio_distortion(_SPM struct Distortion *distP, volatile _SPM short *xP, volatile _SPM short *yP) {
 
-    _Pragma("loopbound min 100 max 100")
-    for(int i=0; i<100; i++) {
+    _Pragma("loopbound min LOOPS max LOOPS")
+    for(int i=0; i<LOOPS; i++) {
 
         _Pragma("loopbound min 2 max 2")
         for(int j=0; j<2; j++) {
@@ -695,15 +701,15 @@ int main() {
     volatile _SPM short * xP;
     volatile _SPM short * yP;
     xP = (volatile _SPM short *) LAST_ADDR;
-    yP = (volatile _SPM short *) (LAST_ADDR + 2 * 100 * sizeof(short));
+    yP = (volatile _SPM short *) (LAST_ADDR + 2 * LOOPS * sizeof(short));
 
     //initialise some data
-    for(int i=0; i<100; i++) {
-        xP[i*2]   = ONE_16b * (float)(i+1)/(float)100; //from 0 to 1
-        yP[i*2+1] = ONE_16b - (ONE_16b * (float)(i+1)/(float)100); //from 1 to 0
+    for(int i=0; i<LOOPS; i++) {
+        xP[i*2]   = ONE_16b * (float)(i+1)/(float)LOOPS; //from 0 to 1
+        yP[i*2+1] = ONE_16b - (ONE_16b * (float)(i+1)/(float)LOOPS); //from 1 to 0
     }
 
-    //Audio FX processing (100 samples each function)
+    //Audio FX processing (LOOPS samples each function)
     audio_delay(delayP, xP, yP);
     audio_overdrive(overdriveP, xP, yP);
     audio_wahwah(wahwahP, xP, yP);
