@@ -1,3 +1,10 @@
+The measurements taken here are from the branch audio_wcet_analysis.
+The diff values correspond to the CPU cycles difference just before and after
+each effect.
+The value at i=0 always corresponds to the cold cache, and the next values (up
+to 100) correspond to warm cache.
+The effects of the IN/OUT/NOC are not taken into account here: just the FX.
+
 DELAY:
 
 Thread and NoC initialised correctly
