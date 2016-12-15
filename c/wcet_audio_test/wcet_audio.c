@@ -335,6 +335,40 @@ int audio_filter(_SPM struct Filter *filtP, volatile _SPM short *xP, volatile _S
     return 0;
 }
 
+int audio_filter_2(_SPM struct Filter *filtP, volatile _SPM short *xP, volatile _SPM short *yP) {
+    _Pragma("loopbound min 100 max 100")
+    for(int i=0; i<100; i++) {
+        int index = 2 * i;
+        //increment pointer
+        filtP->pnt = ( filtP->pnt + 1 ) % 3;
+        //first, read sample
+        filtP->x_buf[filtP->pnt][0] = xP[index];
+        filtP->x_buf[filtP->pnt][1] = xP[index+1];
+        //then, calculate filter
+        filterIIR_2nd(&filtP->pnt, filtP->x_buf, filtP->y_buf, filtP->accum, filtP->B, filtP->A, &filtP->sftLft);
+        //check if it is BP/BR
+        if(filtP->type == 2) { //BP
+            filtP->accum[0] = ( (int)xP[index]   - (int)filtP->y_buf[filtP->pnt][0] ) >> 1;
+            filtP->accum[1] = ( (int)xP[index+1] - (int)filtP->y_buf[filtP->pnt][1] ) >> 1;
+        }
+        else {
+            if(filtP->type == 3) { //BR
+                filtP->accum[0] = ( (int)xP[index]   + (int)filtP->y_buf[filtP->pnt][0] ) >> 1;
+                filtP->accum[1] = ( (int)xP[index+1] + (int)filtP->y_buf[filtP->pnt][1] ) >> 1;
+            }
+            else { //HP or LP
+                filtP->accum[0] = filtP->y_buf[filtP->pnt][0];
+                filtP->accum[1] = filtP->y_buf[filtP->pnt][1];
+            }
+        }
+        //set output
+        yP[index]   = (short)filtP->accum[0];
+        yP[index+1] = (short)filtP->accum[1];
+    }
+
+    return 0;
+}
+
 int audio_vibrato(_SPM struct Vibrato *vibrP, volatile _SPM short *xP, volatile _SPM short *yP) {
     _Pragma("loopbound min 100 max 100")
     for(int i=0; i<100; i++) {
@@ -657,9 +691,9 @@ int main() {
     alloc_tremolo_vars(tremoloP);
     LAST_ADDR += sizeof(struct Tremolo);
 
+    //X and Y data
     volatile _SPM short * xP;
     volatile _SPM short * yP;
-
     xP = (volatile _SPM short *) LAST_ADDR;
     yP = (volatile _SPM short *) (LAST_ADDR + 2 * 100 * sizeof(short));
 
@@ -669,11 +703,16 @@ int main() {
         yP[i*2+1] = ONE_16b - (ONE_16b * (float)(i+1)/(float)100); //from 1 to 0
     }
 
-    audio_distortion(distortionP, xP, yP);
-
-    audio_overdrive(overdriveP, xP, yP);
-
+    //Audio FX processing (100 samples each function)
     audio_delay(delayP, xP, yP);
+    audio_overdrive(overdriveP, xP, yP);
+    audio_wahwah(wahwahP, xP, yP);
+    audio_chorus(chorusP, xP, yP);
+    audio_distortion(distortionP, xP, yP);
+    audio_filter(hpfP, xP, yP);
+    audio_filter_2(bpfP, xP, yP);
+    audio_vibrato(vibratoP, xP, yP);
+    audio_tremolo(tremoloP, xP, yP);
 
     //free memory
     free(delayP->audio_buf);
