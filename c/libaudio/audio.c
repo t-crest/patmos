@@ -418,6 +418,7 @@ unsigned int alloc_wahwah_vars(_SPM struct WahWah *wahP, unsigned int LAST_ADDR)
         wahP->b_array[2][i] = wahP->B[2];
         wahP->b_array[1][i] = wahP->B[1];
         wahP->b_array[0][i] = wahP->B[0];
+        wahP->a_array[2][i] = 0; //needed?
         wahP->a_array[1][i] = wahP->A[1];
         wahP->a_array[0][i] = wahP->A[0];
     }
