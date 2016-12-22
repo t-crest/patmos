@@ -19,10 +19,11 @@ void threadFunc(void* args) {
     int cpuid = get_cpuid();
 
     // -------------------ALLOCATE FX------------------//
+    int *FX_SCHED = (int *)FX_SCHED_PNT[CURRENT_MODE];
 
     int FX_HERE = 0; //amount of effects in this core
-    for(int n=0; n<FX_AMOUNT; n++) {
-        if(FX_SCHED[n][1] == cpuid) {
+    for(int n=0; n<FX_AMOUNT[CURRENT_MODE]; n++) {
+        if(*(FX_SCHED+n*10+1) == cpuid) {
             FX_HERE++;
         }
     }
@@ -39,23 +40,23 @@ void threadFunc(void* args) {
 
     // READ FROM SCHEDULER
     int fx_ind = 0;
-    for(int n=0; n<FX_AMOUNT; n++) {
-        if(FX_SCHED[n][1] == cpuid) { //same core
+    for(int n=0; n<FX_AMOUNT[CURRENT_MODE]; n++) {
+        if(*(FX_SCHED+n*10+1) == cpuid) { //same core
             //assign parameters from SCHEDULER
-            fx_id   =         FX_SCHED[n][0];
-            fx_type = (fx_t)  FX_SCHED[n][2];
-            xb_size =         FX_SCHED[n][3];
-            yb_size =         FX_SCHED[n][4];
-            p       =         FX_SCHED[n][5];
-            in_con  = (con_t) FX_SCHED[n][6];
-            out_con = (con_t) FX_SCHED[n][7];
-            if(FX_SCHED[n][8] == -1) {
+            fx_id   =         *(FX_SCHED+n*10+0);
+            fx_type = (fx_t)  *(FX_SCHED+n*10+2);
+            xb_size =         *(FX_SCHED+n*10+3);
+            yb_size =         *(FX_SCHED+n*10+4);
+            p       =         *(FX_SCHED+n*10+5);
+            in_con  = (con_t) *(FX_SCHED+n*10+6);
+            out_con = (con_t) *(FX_SCHED+n*10+7);
+            if(*(FX_SCHED+n*10+8) == -1) {
                 is_fst = FIRST;
             }
             else {
                 is_fst = NO_FIRST;
             }
-            if(FX_SCHED[n][9] == -1) {
+            if(*(FX_SCHED+n*10+9) == -1) {
                 is_lst = LAST;
             }
             else {
@@ -72,8 +73,9 @@ void threadFunc(void* args) {
     for(int n=0; n<FX_HERE; n++) {
         // same core
         if(*FXp[n].out_con == NO_NOC) {
-            int destID = FX_SCHED[*FXp[n].fx_id][9]; //ID to connect to
-            if(FX_SCHED[destID][8] != *FXp[n].fx_id) {
+            //ID to connect to
+            int destID = *(FX_SCHED + (*FXp[n].fx_id)*10 + 9);
+            if(*(FX_SCHED+destID*10+8) != *FXp[n].fx_id) {
                 printf("ERROR: SAME CORE CONNECTION MISMATCH\n");
             }
             for(int m=0; m<FX_HERE; m++) {
@@ -85,18 +87,20 @@ void threadFunc(void* args) {
         }
         // NoC
         if(*FXp[n].in_con == NOC) {
-            int recvChanID = FX_SCHED[*FXp[n].fx_id][8]; //NoC receive channel ID
+            //NoC receive channel ID
+            int recvChanID = *(FX_SCHED + (*FXp[n].fx_id)*10 + 8);
             audio_connect_from_core(recvChanID, &FXp[n]);
         }
         if(*FXp[n].out_con == NOC) {
-            int sendChanID = FX_SCHED[*FXp[n].fx_id][9]; //NoC send channel ID
+            //NoC send channel ID
+            int sendChanID = *(FX_SCHED + (*FXp[n].fx_id)*10 + 9);
             audio_connect_to_core(&FXp[n], sendChanID);
         }
     }
 
     // wait until all cores are ready
     allocsDoneP[cpuid] = 1;
-    for(int i=0; i<AUDIO_CORES; i++) {
+    for(int i=0; i<AUDIO_CORES[CURRENT_MODE]; i++) {
         while(allocsDoneP[i] == 0);
     }
 
@@ -137,17 +141,20 @@ int main() {
 
     //arguments to thread 1 function
     int exit = 0;
-    int allocsDone[AUDIO_CORES] = {0};
+    int allocsDone[AUDIO_CORES[CURRENT_MODE]];
+    for(int i=0; i<AUDIO_CORES[CURRENT_MODE]; i++) {
+        allocsDone[i] = 0;
+    }
     volatile _UNCACHED int *exitP = (volatile _UNCACHED int *) &exit;
     volatile _UNCACHED int *allocsDoneP = (volatile _UNCACHED int *) &allocsDone;
-    volatile _UNCACHED int (*threadFunc_args[1+AUDIO_CORES]);
+    volatile _UNCACHED int (*threadFunc_args[1+AUDIO_CORES[CURRENT_MODE]]);
     threadFunc_args[0] = exitP;
     threadFunc_args[1] = allocsDoneP;
 
     printf("starting thread and NoC channels...\n");
     //set thread function and start thread
-    corethread_t threads[AUDIO_CORES-1];
-    for(int i=0; i<(AUDIO_CORES-1); i++) {
+    corethread_t threads[AUDIO_CORES[CURRENT_MODE]-1];
+    for(int i=0; i<(AUDIO_CORES[CURRENT_MODE]-1); i++) {
         threads[i] = (corethread_t) (i+1);
         corethread_create(&threads[i], &threadFunc, (void*) threadFunc_args);
         printf("Thread created on core %d\n", i+1);
@@ -170,10 +177,19 @@ int main() {
     int cpuid = get_cpuid();
 
     // -------------------ALLOCATE FX------------------//
+    int *FX_SCHED = (int *)FX_SCHED_PNT[CURRENT_MODE];
+
+    printf("addr of FX_SCHED is 0x%x\n", (unsigned int)FX_SCHED);
+    printf("addr of FX_SCHED_0 is 0x%x\n", (unsigned int)FX_SCHED_0);
+
+    printf("some values of FX_SCHED[0]: id=%d, FX=%d, in_id=%d\n", *(FX_SCHED+0*10+0), *(FX_SCHED+0*10+2), *(FX_SCHED+0*10+8));
+
+    printf("some values of FX_SCHED[1]: id=%d, FX=%d, in_id=%d\n", *(FX_SCHED+1*10+0), *(FX_SCHED+1*10+2), *(FX_SCHED+1*10+8));
+
 
     int FX_HERE = 0; //amount of effects in this core
-    for(int n=0; n<FX_AMOUNT; n++) {
-        if(FX_SCHED[n][1] == cpuid) {
+    for(int n=0; n<FX_AMOUNT[CURRENT_MODE]; n++) {
+        if(*(FX_SCHED+n*10+1) == cpuid) {
             FX_HERE++;
         }
     }
@@ -190,23 +206,23 @@ int main() {
 
     // READ FROM SCHEDULER
     int fx_ind = 0;
-    for(int n=0; n<FX_AMOUNT; n++) {
-        if(FX_SCHED[n][1] == cpuid) { //same core
+    for(int n=0; n<FX_AMOUNT[CURRENT_MODE]; n++) {
+        if(*(FX_SCHED+n*10+1) == cpuid) { //same core
             //assign parameters from SCHEDULER
-            fx_id   =         FX_SCHED[n][0];
-            fx_type = (fx_t)  FX_SCHED[n][2];
-            xb_size =         FX_SCHED[n][3];
-            yb_size =         FX_SCHED[n][4];
-            p       =         FX_SCHED[n][5];
-            in_con  = (con_t) FX_SCHED[n][6];
-            out_con = (con_t) FX_SCHED[n][7];
-            if(FX_SCHED[n][8] == -1) {
+            fx_id   =         *(FX_SCHED+n*10+0);
+            fx_type = (fx_t)  *(FX_SCHED+n*10+2);
+            xb_size =         *(FX_SCHED+n*10+3);
+            yb_size =         *(FX_SCHED+n*10+4);
+            p       =         *(FX_SCHED+n*10+5);
+            in_con  = (con_t) *(FX_SCHED+n*10+6);
+            out_con = (con_t) *(FX_SCHED+n*10+7);
+            if(*(FX_SCHED+n*10+8) == -1) {
                 is_fst = FIRST;
             }
             else {
                 is_fst = NO_FIRST;
             }
-            if(FX_SCHED[n][9] == -1) {
+            if(*(FX_SCHED+n*10+9) == -1) {
                 is_lst = LAST;
             }
             else {
@@ -227,8 +243,9 @@ int main() {
         }
         // same core
         if( (*FXp[n].out_con == NO_NOC) && (*FXp[n].is_lst == NO_LAST) ) {
-            int destID = FX_SCHED[*FXp[n].fx_id][9]; //ID to connect to
-            if(FX_SCHED[destID][8] != *FXp[n].fx_id) {
+            //ID to connect to
+            int destID = *(FX_SCHED + (*FXp[n].fx_id)*10 + 9);
+            if(*(FX_SCHED+destID*10+8) != *FXp[n].fx_id) {
                 printf("ERROR: SAME CORE CONNECTION MISMATCH\n");
             }
             for(int m=0; m<FX_HERE; m++) {
@@ -241,12 +258,14 @@ int main() {
         }
         // NoC
         if(*FXp[n].in_con == NOC) {
-            int recvChanID = FX_SCHED[*FXp[n].fx_id][8]; //NoC receive channel ID
+            //NoC send channel ID
+            int recvChanID = *(FX_SCHED + (*FXp[n].fx_id)*10 + 8);
             audio_connect_from_core(recvChanID, &FXp[n]);
             printf("NoC: connected recvChanelID=%d to ID=%d\n", recvChanID, *FXp[n].fx_id);
         }
         if(*FXp[n].out_con == NOC) {
-            int sendChanID = FX_SCHED[*FXp[n].fx_id][9]; //NoC send channel ID
+            //NoC send channel ID
+            int sendChanID = *(FX_SCHED + (*FXp[n].fx_id)*10 + 9);
             audio_connect_to_core(&FXp[n], sendChanID);
             printf("NoC: connected ID=%d to sendChanelID=%d\n", *FXp[n].fx_id, sendChanID);
         }
@@ -258,7 +277,7 @@ int main() {
 
     // wait until all cores are ready
     allocsDoneP[cpuid] = 1;
-    for(int i=0; i<AUDIO_CORES; i++) {
+    for(int i=0; i<AUDIO_CORES[CURRENT_MODE]; i++) {
         while(allocsDoneP[i] == 0);
     }
 
@@ -331,11 +350,11 @@ int main() {
     exit = 1;
     printf("waiting for all threads to finish...\n");
 
-
+    /*
     for(int i=1; i<LIM; i++) {
         printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
-
+    */
 
     /*
     for(int i=0; i<(LIM-WAIT); i++) {
@@ -348,7 +367,7 @@ int main() {
     //join with thread 1
 
     int *retval;
-    for(int i=0; i<(AUDIO_CORES-1); i++) {
+    for(int i=0; i<(AUDIO_CORES[CURRENT_MODE]-1); i++) {
         corethread_join(threads[i], (void **)&retval);
         printf("thread %d finished!\n", (i+1));
     }

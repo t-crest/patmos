@@ -30,13 +30,6 @@
 #define SPM_OFFSET   0
 #endif
 
-/*
-How the effect is located in a core:
--INTERNAL: not connected to NoC
--NOC_R: receives data from NoC
-*/
-typedef enum {INTERNAL, NOC_R, NOC_S, NOC_RS} fx_location_t;
-
 
 #define LED_ADDR       (volatile _SPM int *) 0xF0090000
 #define KEY_ADDR       (volatile _SPM int *) 0xF00A0000
@@ -124,6 +117,8 @@ int     setInputBufferSize(int bufferSize);
 /*
   GENERAL
 */
+
+unsigned int CURRENT_MODE = 1; // [MODES]
 
 //DEBUG STUFF
 //const int DEBUG_ELEMENTS = 4;
