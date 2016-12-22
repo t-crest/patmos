@@ -118,7 +118,7 @@ int     setInputBufferSize(int bufferSize);
   GENERAL
 */
 
-unsigned int CURRENT_MODE = 1; // [MODES]
+unsigned int current_mode = 0; // [MODES]
 
 //DEBUG STUFF
 //const int DEBUG_ELEMENTS = 4;

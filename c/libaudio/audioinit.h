@@ -22,7 +22,7 @@ const int CHAN_BUF_AMOUNT[CHAN_AMOUNT] = { 8, 8, 8, };
 //latency from input to output in samples (without considering NoC)
 const int LATENCY = 4;
 */
-
+/*
 const int MODES = 2;
 //how many cores take part in the audio system
 const int AUDIO_CORES[MODES] = {1, 3, };
@@ -44,17 +44,12 @@ const int *FX_SCHED_PNT[MODES] = {
     (const int *)FX_SCHED_1,
 };
 //amount of NoC channels
-const int CHAN_AMOUNT[MODES] = {0, 3, };
+const int CHAN_AMOUNT = 3;
 //amount of buffers on each NoC channel ID
-const int CHAN_BUF_AMOUNT_0[0] = {};
-const int CHAN_BUF_AMOUNT_1[3] = { 8, 8, 8, };
-const int *CHAN_BUF_AM_PNT[MODES] = {
-    (const int *)CHAN_BUF_AMOUNT_0,
-    (const int *)CHAN_BUF_AMOUNT_1,
-};
+const int CHAN_BUF_AMOUNT[CHAN_AMOUNT] = {8, 8, 8, };
 //latency from input to output in samples (without considering NoC)
 const int LATENCY[MODES] = {0, 4, };
-
+*/
 /*
 //how many cores take part in the audio system
 const int AUDIO_CORES = 4;
@@ -97,17 +92,17 @@ const int LATENCY = 11;
 */
 
 
-/*
+
 const int MODES = 2;
 //how many cores take part in the audio system
 const int AUDIO_CORES[MODES] = {1, 1, };
 //how many effects are on the system in total
 const int FX_AMOUNT[MODES] = {1, 2, };
 // FX_ID | CORE | FX_TYPE | XB_SIZE | YB_SIZE | P (S) | IN_TYPE | OUT_TYPE | FROM_ID | TO_ID //
-const int FX_SCHED_0[/ *FX_AMOUNT[0]* /1][10] = {
+const int FX_SCHED_0[/*FX_AMOUNT[0]*/1][10] = {
     {0, 0, 2, 1, 1, 1, 0, 0, -1, -1}
 };
-const int FX_SCHED_1[/ *FX_AMOUNT[1]* /2][10] = {
+const int FX_SCHED_1[/*FX_AMOUNT[1]*/2][10] = {
     {0, 0, 7, 1, 1, 1, 0, 0, -1,  1},
     {1, 0, 2, 1, 1, 1, 0, 0,  0, -1}
 };
@@ -116,17 +111,12 @@ const int *FX_SCHED_PNT[MODES] = {
     (const int *)FX_SCHED_1,
 };
 //amount of NoC channels
-const int CHAN_AMOUNT[MODES] = {0, 0, };
+const int CHAN_AMOUNT = 0;
 //amount of buffers on each NoC channel ID
-const int CHAN_BUF_AMOUNT_0[/ *CHAN_AMOUNT[0]* /0] = {};
-const int CHAN_BUF_AMOUNT_1[/ *CHAN_AMOUNT[1]* /0] = {};
-const int *CHAN_BUF_AM_PNT[MODES] = {
-    (const int *)CHAN_BUF_AMOUNT_0,
-    (const int *)CHAN_BUF_AMOUNT_1,
-};
+const int CHAN_BUF_AMOUNT[CHAN_AMOUNT] = {};
 //latency from input to output in samples (without considering NoC)
 const int LATENCY[MODES] = {0, 0, };
-*/
+
 
 
 #endif /* _AUDIOINIT_H_ */

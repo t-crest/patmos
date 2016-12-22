@@ -754,7 +754,7 @@ int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_c
         audioP->last_count = ( _SPM unsigned int *) ADDR_LAST_COUNT;
         //init values
         *audioP->y_pnt      = (int)audioP->y; // = ADDR_Y;
-        if(LATENCY[CURRENT_MODE] == 0) {
+        if(LATENCY[current_mode] == 0) {
             *audioP->last_init = 0;
         }
         else {
@@ -965,7 +965,6 @@ int audio_connect_to_core(struct AudioFX *srcP, const unsigned int sendChanID) {
         return 1;
     }
     else {
-        int *CHAN_BUF_AMOUNT = (int *)CHAN_BUF_AM_PNT[CURRENT_MODE];
         *srcP->sendChanP = (unsigned int)mp_create_qport(sendChanID, SOURCE,
             (*srcP->yb_size * 4), CHAN_BUF_AMOUNT[sendChanID]); // ID, yb_size * 4 bytes, buf amount
         *srcP->y_pnt = (int)&((qpd_t *)*srcP->sendChanP)->write_buf;
@@ -980,7 +979,6 @@ int audio_connect_from_core(const unsigned int recvChanID, struct AudioFX *dstP)
         return 1;
     }
     else {
-        int *CHAN_BUF_AMOUNT = (int *)CHAN_BUF_AM_PNT[CURRENT_MODE];
         *dstP->recvChanP = (unsigned int)mp_create_qport(recvChanID, SINK,
             (*dstP->xb_size * 4), CHAN_BUF_AMOUNT[recvChanID]); // ID, xb_size * 4 bytes, buf amount
         *dstP->x_pnt = (int)&((qpd_t *)*dstP->recvChanP)->read_buf;
@@ -1137,7 +1135,7 @@ int audio_process(struct AudioFX *audioP) {
         else {
             *audioP->last_count = *audioP->last_count + 1;
             //printf("increasing last_count, now is %u\n", *audioP->last_count);
-            if(*audioP->last_count == LATENCY[CURRENT_MODE]) {
+            if(*audioP->last_count == LATENCY[current_mode]) {
                 *audioP->last_init = 0;
                 //printf("latency limit reached!\n");
             }
