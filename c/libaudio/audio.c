@@ -412,7 +412,7 @@ unsigned int alloc_wahwah_vars(_SPM struct WahWah *wahP, unsigned int LAST_ADDR)
     storeSin(wahP->fb_array, WAHWAH_P, WAHWAH_FB_CEN, WAHWAH_FB_AMP);
 
     //calculate band-pass filter coefficients
-    printf("calculating modulation coefficients...\n");
+    //printf("calculating modulation coefficients...\n");
     for(int i=0; i<WAHWAH_P; i++) {
         filter_coeff_bp_br(3, wahP->B, wahP->A, wahP->fc_array[i], wahP->fb_array[i], &wahP->sftLft, 1);
         wahP->b_array[2][i] = wahP->B[2];
@@ -422,7 +422,7 @@ unsigned int alloc_wahwah_vars(_SPM struct WahWah *wahP, unsigned int LAST_ADDR)
         wahP->a_array[1][i] = wahP->A[1];
         wahP->a_array[0][i] = wahP->A[0];
     }
-    printf("calculation of modulation coefficients finished!\n");
+    //printf("calculation of modulation coefficients finished!\n");
 
     wahP->wah_pnt = 2;
 
@@ -946,12 +946,12 @@ int free_audio_vars(struct AudioFX *audioP) {
 
 int audio_connect_same_core(struct AudioFX *srcP, struct AudioFX *dstP) {
     if ( (*srcP->out_con != NO_NOC) || (*dstP->in_con != NO_NOC) ) {
-        printf("ERROR: IN/OUT CONNECTION TYPES\n");
+        //printf("ERROR: IN/OUT CONNECTION TYPES\n");
         return 1;
     }
     if (*srcP->yb_size != *dstP->xb_size) {
-        printf("ERROR: BUFFER SIZES DON'T MATCH: %d != %d\n", *srcP->yb_size, *dstP->xb_size);
-        printf("sender: %d, receiver: %d\n", *srcP->fx_id, *dstP->fx_id);
+        //printf("ERROR: BUFFER SIZES DON'T MATCH: %d != %d\n", *srcP->yb_size, *dstP->xb_size);
+        //printf("sender: %d, receiver: %d\n", *srcP->fx_id, *dstP->fx_id);
         return 1;
     }
 
@@ -961,7 +961,7 @@ int audio_connect_same_core(struct AudioFX *srcP, struct AudioFX *dstP) {
 
 int audio_connect_to_core(struct AudioFX *srcP, const unsigned int sendChanID) {
     if (*srcP->out_con != NOC) {
-        printf("ERROR IN CONNECTION\n");
+        //printf("ERROR IN CONNECTION\n");
         return 1;
     }
     else {
@@ -975,7 +975,7 @@ int audio_connect_to_core(struct AudioFX *srcP, const unsigned int sendChanID) {
 
 int audio_connect_from_core(const unsigned int recvChanID, struct AudioFX *dstP) {
     if (*dstP->in_con != NOC) {
-        printf("ERROR IN CONNECTION\n");
+        //printf("ERROR IN CONNECTION\n");
         return 1;
     }
     else {
@@ -1022,7 +1022,9 @@ int audio_process(struct AudioFX *audioP) {
             //RECEIVE ONCE
             if(*audioP->in_con == NOC) { //receive from NoC
                 if(mp_recv((qpd_t *)*audioP->recvChanP, TIMEOUT) == 0) {
-                    printf("RECV TIMED OUT!\n");
+                    if(get_cpuid() == 0) {
+                        printf("RECV TIMED OUT!\n");
+                    }
                     retval = 1;
                 }
                 //update X pointer after each recv
@@ -1108,20 +1110,26 @@ int audio_process(struct AudioFX *audioP) {
                 }
                 break;
             default:
-                printf("effect not implemented yet\n");
+                if(get_cpuid() == 0) {
+                    printf("effect not implemented yet\n");
+                }
                 break;
             }
             //ACKNOWLEDGE ONCE AFTER PROCESSING
             if(*audioP->in_con == NOC) {
                 if(mp_ack((qpd_t *)*audioP->recvChanP, TIMEOUT) == 0) {
-                    printf("ACK TIMED OUT!\n");
+                    if(get_cpuid() == 0) {
+                        printf("ACK TIMED OUT!\n");
+                    }
                     retval = 1;
                 }
             }
             //SEND ONCE
             if(*audioP->out_con == NOC) { //send to NoC
                 if(mp_send((qpd_t *)*audioP->sendChanP, TIMEOUT) == 0) {
-                    printf("SEND TIMED OUT!\n");
+                    if(get_cpuid() == 0) {
+                        printf("SEND TIMED OUT!\n");
+                    }
                     retval = 1;
                 }
             }
@@ -1229,7 +1237,9 @@ int audio_process(struct AudioFX *audioP) {
                 }
                 break;
             default:
-                printf("effect not implemented yet\n");
+                if(get_cpuid() == 0) {
+                    printf("effect not implemented yet\n");
+                }
                 break;
             }
             //ACK: ONLY ONCE AT THE END
@@ -1341,7 +1351,9 @@ int audio_process(struct AudioFX *audioP) {
                 }
                 break;
             default:
-                printf("effect not implemented yet\n");
+                if(get_cpuid() == 0) {
+                    printf("effect not implemented yet\n");
+                }
                 break;
             }
             //ACK ONCE
