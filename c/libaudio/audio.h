@@ -240,7 +240,7 @@ struct Vibrato {
     int   v_pnt; //vibrato array pointer
     int   audio_pnt; //audio output pointer
     int   n_audio_pnt; //next audio o. pointer
-    //Shared Memory pointers
+    //SRAM Memory variables
     short (*audio_buf_pnt)[VIBRATO_L]; //pointer to audio_buff[2][VIBRATO_L]
     int *sin_array_pnt; //pointer to sin_array[VIBRATO_P]
     short *frac_array_pnt; //pointer to frac_array[VIBRATO_P]
@@ -270,7 +270,7 @@ struct IIRdelay {
     short g[2]; //gains [g1, g0]
     int   del[2]; // delays [d1, d0]
     int   pnt; //audio input pointer
-    //Shared Memory variables
+    //SRAM Memory variables
     short (*audio_buf)[DELAY_L]; // audio_buff[2][DELAY_L]
 };
 
@@ -285,7 +285,7 @@ struct Chorus {
     int   pnt; //audio input pointer
     int   c1_pnt; //1st mod array pointer
     int   c2_pnt; //2nd mod array pointer
-    //Shared Memory variables
+    //SRAM Memory variables
     short (*audio_buf)[CHORUS_L]; // audio_buf[2][CHORUS_L]
     int *mod_array1; // mod_array1[CHORUS_P1]
     int *mod_array2; // mod_array2[CHORUS_P2]
@@ -302,7 +302,7 @@ struct Tremolo {
     short frac; //fraction of modulation
     short frac1Minus; //1 - frac
     int   mod; //interpolated mod value
-    //Shared Memory variables
+    //SRAM Memory variables
     int *mod_array; // mod_array[TREMOLO_P]
     short *frac_array; //frac_array[TREMOLO_P]
 };
@@ -335,7 +335,7 @@ struct WahWah {
     int   pnt; //audio input pointer
     int   wah_pnt; //modulation pointer
     int   sftLft; //x or y buffer pointer
-    //Shared Memory Variables
+    //SRAM Memory Variables
     int *fc_array; // fc_array[WAHWAH_P]
     int *fb_array; // fb_array[WAHWAH_P]
     short (*a_array)[WAHWAH_P]; //for A coefficients: a_array[3][WAHWAH_P]

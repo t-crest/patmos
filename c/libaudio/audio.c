@@ -51,13 +51,11 @@ int writeToI2C(char* addrC,char* dataC) {
   printf("success\n");
 
   return 0;
-
-
-
 }
 
 /*
  * @brief	Sets the default values
+ * @param[in]	guitar    used to select the input: line in or mic in
  */
 
 void setup(int guitar) {
@@ -189,18 +187,9 @@ int setOutputBufferSize(int bufferSize) {
  * @brief	reads data from the input (ADC) buffer into Patmos
  * @param[in]	*l	pointer to left audio data
  * @param[in]	*r	pointer to right audio data
- * @return	returns 0 if successful and a 1 if there was an error.
+ * @return	returns 0 if successful
  */
 int getInputBufferSPM(volatile _SPM short *l, volatile _SPM short *r) {
-  while(*audioAdcBufferEmptyReg == 1);// wait until not empty
-  *audioAdcBufferReadPulseReg = 1; // begin pulse
-  *audioAdcBufferReadPulseReg = 0; // end pulse
-  *l = *audioAdcLReg;
-  *r = *audioAdcRReg;
-  return 0;
-}
-
-int getInputBuffer(volatile short *l, volatile short *r) {
   while(*audioAdcBufferEmptyReg == 1);// wait until not empty
   *audioAdcBufferReadPulseReg = 1; // begin pulse
   *audioAdcBufferReadPulseReg = 0; // end pulse
@@ -213,20 +202,8 @@ int getInputBuffer(volatile short *l, volatile short *r) {
  * @brief	writes data from patmos into the output (DAC) buffer
  * @param[in]	l	left audio data
  * @param[in]	r	right audio data
- * @return	returns 0 if successful and a 1 if there was an error.
+ * @return	returns 0 if successful
  */
-int setOutputBuffer(short l, short r) {
-  //write data first: it will stay in AudioInterface, won't go to
-  //AudioDacBuffer until the write pulse
-  *audioDacLReg = l;
-  *audioDacRReg = r;
-  while(*audioDacBufferFullReg == 1); // wait until not full
-  *audioDacBufferWritePulseReg = 1; // begin pulse
-  *audioDacBufferWritePulseReg = 0; // end pulse
-
-  return 0;
-}
-
 int setOutputBufferSPM(volatile _SPM short *l, volatile _SPM short *r) {
   //write data first: it will stay in AudioInterface, won't go to
   //AudioDacBuffer until the write pulse
@@ -297,7 +274,7 @@ int alloc_space(unsigned int BASE_ADDR, unsigned int LAST_ADDR) {
 
 unsigned int alloc_filter_vars(_SPM struct Filter *filtP, unsigned int LAST_ADDR, int Fc, float QorFb, int thisType) {
 
-    //calculate filter coefficients (3rd order)
+    //calculate filter coefficients (2nd order)
     filtP->type = thisType;
     if (filtP->type < 2) { //HP or LP
         filter_coeff_hp_lp(3, filtP->B, filtP->A, Fc, QorFb, &filtP->sftLft, 0, thisType); //type: HPF or LPF
@@ -308,7 +285,7 @@ unsigned int alloc_filter_vars(_SPM struct Filter *filtP, unsigned int LAST_ADDR
 
     filtP->pnt = 2;
 
-    LAST_ADDR += (sizeof(struct Filter)); //+4 needed??
+    LAST_ADDR += (sizeof(struct Filter));
 
     return LAST_ADDR;
 }
@@ -412,17 +389,15 @@ unsigned int alloc_wahwah_vars(_SPM struct WahWah *wahP, unsigned int LAST_ADDR)
     storeSin(wahP->fb_array, WAHWAH_P, WAHWAH_FB_CEN, WAHWAH_FB_AMP);
 
     //calculate band-pass filter coefficients
-    //printf("calculating modulation coefficients...\n");
     for(int i=0; i<WAHWAH_P; i++) {
         filter_coeff_bp_br(3, wahP->B, wahP->A, wahP->fc_array[i], wahP->fb_array[i], &wahP->sftLft, 1);
         wahP->b_array[2][i] = wahP->B[2];
         wahP->b_array[1][i] = wahP->B[1];
         wahP->b_array[0][i] = wahP->B[0];
-        wahP->a_array[2][i] = 0; //needed?
+        wahP->a_array[2][i] = 0;
         wahP->a_array[1][i] = wahP->A[1];
         wahP->a_array[0][i] = wahP->A[0];
     }
-    //printf("calculation of modulation coefficients finished!\n");
 
     wahP->wah_pnt = 2;
 
@@ -440,15 +415,15 @@ int audio_wahwah(_SPM struct WahWah *wahP, volatile _SPM short *xP, volatile _SP
     wahP->A[0] = wahP->a_array[0][wahP->wah_pnt]; //a2
     //update pointers
     wahP->wah_pnt = (wahP->wah_pnt+1) % WAHWAH_P;
-    wahP->pnt = (wahP->pnt+1) % 3; //FILTER_ORDER_1PLUS = 3
+    wahP->pnt = (wahP->pnt+1) % 3;
     //first, read sample
     wahP->x_buf[wahP->pnt][0] = xP[0];
     wahP->x_buf[wahP->pnt][1] = xP[1];
     //then, calculate filter
     filterIIR_2nd(&wahP->pnt, wahP->x_buf, wahP->y_buf, wahP->accum, wahP->B, wahP->A, &wahP->sftLft);
     //Band-Pass stuff
-    wahP->accum[0] = ( (int)xP[0] - (int)wahP->y_buf[wahP->pnt][0] ); // >> 1;
-    wahP->accum[1] = ( (int)xP[1] - (int)wahP->y_buf[wahP->pnt][1] ); // >> 1;
+    wahP->accum[0] = ( (int)xP[0] - (int)wahP->y_buf[wahP->pnt][0] );
+    wahP->accum[1] = ( (int)xP[1] - (int)wahP->y_buf[wahP->pnt][1] );
     //mix with original: gains are fixed
     wahP->accum[0] = ( (int)(WAHWAH_WET_GAIN*wahP->accum[0]) >> 15 )  + ( (int)(WAHWAH_DRY_GAIN*xP[0]) >> 15 );
     wahP->accum[1] = ( (int)(WAHWAH_WET_GAIN*wahP->accum[1]) >> 15 )  + ( (int)(WAHWAH_DRY_GAIN*xP[1]) >> 15 );
@@ -556,7 +531,7 @@ unsigned int alloc_delay_vars(_SPM struct IIRdelay *delP, unsigned int LAST_ADDR
     //initialise delay variables
     //set gains: for comb delay:
     delP->g[1] = ONE_16b;       // g0 = 1
-    delP->g[0] = ONE_16b * 0.5; // g1 = 0.7
+    delP->g[0] = ONE_16b * 0.5; // g1 = 0.5
     //set delays:
     delP->del[1] = 0; // always d0 = 0
     delP->del[0] = DELAY_L - 1; // d1 = as long as delay buffer
