@@ -22,6 +22,7 @@ const int CHAN_BUF_AMOUNT[CHAN_AMOUNT] = { 8, 8, 8, };
 //latency from input to output in samples (without considering NoC)
 const int LATENCY = 4;
 */
+/*
 //max amount of cores
 const int ALL_CORES = 3;
 //configuration modes
@@ -40,7 +41,7 @@ const int FX_SCHED_1[5][10] = {
     {0, 0, 0, 8, 8, 1, 0, 0, -1,  1},
     {1, 0, 1, 8, 8, 8, 0, 1,  0,  0},
     {2, 1, 12, 8, 1, 1, 1, 1,  0,  1},
-    {3, 2, 7, 1, 8, 1, 1, 1,  1,  2},
+    {3, 2, 6, 1, 8, 1, 1, 1,  1,  2},
     {4, 0, 0, 8, 8, 1, 1, 0,  2, -1}
 };
 const int *FX_SCHED_PNT[MODES] = {
@@ -53,7 +54,7 @@ const int CHAN_AMOUNT = 3;
 const int CHAN_BUF_AMOUNT[CHAN_AMOUNT] = {8, 8, 8, };
 //latency from input to output in samples (without considering NoC)
 const int LATENCY[MODES] = {0, 4, };
-
+*/
 /*
 //how many cores take part in the audio system
 const int AUDIO_CORES = 4;
@@ -95,36 +96,46 @@ const int CHAN_BUF_AMOUNT[CHAN_AMOUNT] = { 4, 4, 4, 4, };
 const int LATENCY = 11;
 */
 
-/*
+
 //max amount of cores
-const int ALL_CORES = 1;
+const int ALL_CORES = 4;
 //configuration modes
-const int MODES = 2;
+const int MODES = 3;
 //how many cores take part in the audio system
-const int AUDIO_CORES[MODES] = {1, 1, };
+const int AUDIO_CORES[MODES] = {1, 3, 4, };
 //how many effects are on the system in total
-const int FX_AMOUNT[MODES] = {1, 2, };
+const int FX_AMOUNT[MODES] = {1, 4, 5, };
 //maximum FX_AMOUNT
-const int MAX_FX = 2;
+const int MAX_FX = 5;
 // FX_ID | CORE | FX_TYPE | XB_SIZE | YB_SIZE | P (S) | IN_TYPE | OUT_TYPE | FROM_ID | TO_ID //
 const int FX_SCHED_0[1][10] = {
     {0, 0, 2, 1, 1, 1, 0, 0, -1, -1}
 };
-const int FX_SCHED_1[2][10] = {
-    {0, 0, 7, 1, 1, 1, 0, 0, -1,  1},
-    {1, 0, 2, 1, 1, 1, 0, 0,  0, -1}
+const int FX_SCHED_2[5][10] = {
+    {0, 0,  0, 1, 1, 1, 0, 1, -1,  0},
+    {1, 1,  /*8*/0, 1, 8, 1, 1, 1,  0,  1},
+    {2, 3,  1, 8, 8, 8, 1, 1,  1,  2},
+    {3, 2, /*12*/0, 8, 1, 1, 1, 1,  2,  3},
+    {4, 0,  0, 1, 1, 1, 1, 0,  3, -1}
+};
+const int FX_SCHED_1[4][10] = {
+    {0, 0, 0,  8, 8, 1, 0, 1, -1,  4},
+    {1, 1, 0,  8, 1, 1, 1, 1,  4,  5},
+    {2, 3, 0,  1, 8, 1, 1, 1,  5,  6},
+    {3, 0, 0,  8, 8, 1, 1, 0,  6, -1},
 };
 const int *FX_SCHED_PNT[MODES] = {
     (const int *)FX_SCHED_0,
     (const int *)FX_SCHED_1,
+    (const int *)FX_SCHED_2,
 };
 //amount of NoC channels
-const int CHAN_AMOUNT = 0;
+const int CHAN_AMOUNT = 7;
 //amount of buffers on each NoC channel ID
-const int CHAN_BUF_AMOUNT[CHAN_AMOUNT] = {};
+const int CHAN_BUF_AMOUNT[CHAN_AMOUNT] = {8, 8, 8, 8, 8, 8, 8, };
 //latency from input to output in samples (without considering NoC)
-const int LATENCY[MODES] = {0, 0, };
-*/
+const int LATENCY[MODES] = {0, 4, 19};
+
 
 
 #endif /* _AUDIOINIT_H_ */

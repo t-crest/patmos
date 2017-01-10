@@ -350,8 +350,8 @@ int main() {
     }
 
     //CPU cycles stuff
-    //int CPUcycles[LIM] = {0};
-    //unsigned int cpu_pnt = 0;
+    int CPUcycles[LIM] = {0};
+    unsigned int cpu_pnt = 0;
 
     //short audio_in[LIM][2] = {0};
     //short audio_out[LIM][2] = {0};
@@ -374,19 +374,26 @@ int main() {
         */
         for(int n=0; n<FX_HERE[current_mode/*P*/]; n++) {
             audio_process(&FXp[current_mode/*P*/][n]);
+
             /*
-              if(n==0) {
-              audio_in[cpu_pnt][0] = FXp[n].x[0];
-              audio_in[cpu_pnt][1] = FXp[n].x[1];
-              }
-              if(n==(FX_HERE-1)) {
-              audio_out[cpu_pnt-WAIT][0] = FXp[n].y[0];
-              audio_out[cpu_pnt-WAIT][1] = FXp[n].y[1];
-              }
+            if(n==0) {
+                audio_in[cpu_pnt][0] = FXp[current_mode][n].x[0];
+                audio_in[cpu_pnt][1] = FXp[current_mode][n].x[1];
+            }
+            if(n==(FX_HERE[current_mode]-1)) {
+                audio_out[cpu_pnt-LATENCY[current_mode]][0] = FXp[current_mode][n].y[0];
+                audio_out[cpu_pnt-LATENCY[current_mode]][1] = FXp[current_mode][n].y[1];
+            }
             */
         }
 
-        /*
+        for(int i=0; i<1; i++) {
+            printf("i=%d:    in: %d, %d          out: %d, %d \n", i,
+                FXp[current_mode][0].x[2*i], FXp[current_mode][0].x[2*i+1],
+                FXp[current_mode][FX_HERE[current_mode]-1].y[2*i],
+                FXp[current_mode][FX_HERE[current_mode]-1].y[2*i+1]);
+        }
+
         //store CPU Cycles
         CPUcycles[cpu_pnt] = get_cpu_cycles();
         cpu_pnt++;
@@ -394,7 +401,7 @@ int main() {
             //break;
             cpu_pnt = 0;
         }
-        */
+
 
     }
 
@@ -417,7 +424,7 @@ int main() {
     */
 
     /*
-    for(int i=0; i<(LIM-WAIT); i++) {
+    for(int i=0; i<(LIM-LATENCY[current_mode]); i++) {
         if( (audio_in[i][0] != audio_out[i][0]) || (audio_in[i][1] != audio_out[i][1]) ){
             printf("CORRUPT: i=%d: x[0]=%d, y[0]=%d   :   x[1]=%d, y[1]=%d\n", i, audio_in[i][0], audio_out[i][0], audio_in[i][1], audio_out[i][1]);
         }

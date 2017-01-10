@@ -224,12 +224,14 @@ int setOutputBufferSPM(volatile _SPM short *l, volatile _SPM short *r) {
 void audioIn(struct AudioFX *audioP, volatile _SPM short *xP) {
     for(unsigned int i=0; i < *audioP->xb_size; i++) {
         getInputBufferSPM(&xP[i*2], &xP[i*2+1]);
+        //printf("audio IN: %d, %d   [ 0x%x, 0x%x ] \n", xP[i*2], xP[i*2+1], (unsigned int)&xP[i*2], (unsigned int)&xP[i*2+1]);
     }
 }
 
 void audioOut(struct AudioFX *audioP, volatile _SPM short *yP) {
     for(unsigned int i=0; i < *audioP->yb_size; i++) {
         setOutputBufferSPM(&yP[i*2], &yP[i*2+1]);
+        //printf("audio OUT: %d, %d   [ 0x%x, 0x%x ] \n", yP[i*2], yP[i*2+1], (unsigned int)&yP[i*2], (unsigned int)&yP[i*2+1]);
     }
 }
 
@@ -991,11 +993,14 @@ int audio_process(struct AudioFX *audioP) {
 
     switch(*audioP->pt) {
     case XeY:
+        //printf("%%%%\n ID: %d \n%%%%\n", *audioP->fx_id);
         //check if it is 0, is last and needs to wait due to latency
         if( (*audioP->cpuid != 0) || (*audioP->is_lst == NO_LAST) || (*audioP->last_init == 0) ) {
             //printf("ID=%d: processing\n", *audioP->fx_id);
             //RECEIVE ONCE
             if(*audioP->in_con == NOC) { //receive from NoC
+                //qpd_t *recvChanDebugga = (qpd_t *)*audioP->recvChanP;
+                //printf("receive address: 0x%x\n", (unsigned int)recvChanDebugga->read_buf);
                 if(mp_recv((qpd_t *)*audioP->recvChanP, TIMEOUT) == 0) {
                     if(get_cpuid() == 0) {
                         printf("RECV TIMED OUT!\n");
@@ -1014,9 +1019,11 @@ int audio_process(struct AudioFX *audioP) {
             //PROCESS PPSR TIMES
             switch(*audioP->fx) {
             case DRY:
+                //printf("PPSR %d\n", *audioP->ppsr);
                 for(unsigned int i=0; i < *audioP->ppsr; i++) {
                     ind = 2 * i * (*audioP->p);
                     audio_dry(&xP[ind], &yP[ind]);
+                    //printf("copied %d, %d   to %d, %d   [ 0x%x, 0x%x ] -> [ 0x%x, 0x%x ] \n", xP[ind], xP[ind+1], yP[ind], yP[ind+1], (unsigned int)&xP[ind], (unsigned int)&xP[ind+1], (unsigned int)&yP[ind], (unsigned int)&yP[ind+1]);
                 }
                 break;
             case DRY_8S:
@@ -1101,6 +1108,8 @@ int audio_process(struct AudioFX *audioP) {
             }
             //SEND ONCE
             if(*audioP->out_con == NOC) { //send to NoC
+                //qpd_t *sendChanDebugga = (qpd_t *)*audioP->sendChanP;
+                //printf("send address: 0x%x\n", (unsigned int)sendChanDebugga->write_buf);
                 if(mp_send((qpd_t *)*audioP->sendChanP, TIMEOUT) == 0) {
                     if(get_cpuid() == 0) {
                         printf("SEND TIMED OUT!\n");
