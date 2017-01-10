@@ -190,7 +190,7 @@ int free_audio_vars(struct AudioFX *audioP);
 //same core:
 int audio_connect_same_core(struct AudioFX *srcP, struct AudioFX *dstP);
 //NoC:
-int audio_connect_to_core(struct AudioFX *srcP, const unsigned int sendChanID);
+int audio_connect_to_core(struct AudioFX *srcP, const unsigned int sendChanID, unsigned int s_ind);
 int audio_connect_from_core(const unsigned int recvChanID, struct AudioFX *dstP, unsigned int r_ind);
 
 //audio processing

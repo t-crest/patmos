@@ -1,7 +1,7 @@
 #ifndef _AUDIOINIT_H_
 #define _AUDIOINIT_H_
 
-
+/*
 //how many cores take part in the audio system
 const int AUDIO_CORES = 4; //3;
 //how many effects are on the system in total
@@ -39,7 +39,7 @@ const int RECV_ARRAY[FX_AMOUNT][CHAN_AMOUNT] = {
 };
 //latency from input to output in samples (without considering NoC)
 const int LATENCY = 4;
-
+*/
 /*
 //how many cores take part in the audio system
 const int AUDIO_CORES = 3;
@@ -100,7 +100,7 @@ const int CHAN_BUF_AMOUNT[CHAN_AMOUNT] = { 4, 4, 4, 4, };
 //latency from input to output in samples (without considering NoC)
 const int LATENCY = 11;
 */
-/*
+
 //how many cores take part in the audio system
 const int AUDIO_CORES = 4;
 //how many effects are on the system in total
@@ -141,7 +141,7 @@ const int RECV_ARRAY[FX_AMOUNT][CHAN_AMOUNT] = {
 };
 //latency from input to output in samples (without considering NoC)
 const int LATENCY = 4;
-*/
+
 
 
 

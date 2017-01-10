@@ -66,21 +66,6 @@ int allocFX(struct AudioFX *FXp, int FX_HERE, int cpuid) {
                 send_pnt++;
             }
         }
-
-        if(*FXp[n].in_con == NOC) {
-            printf("N=%d:\nrecvChanID = ", n);
-            for(int i=0; i<*FXp[n].recv_am; i++) {
-                printf("%d, ", recvChanID[i]);
-            }
-        }
-        if(*FXp[n].out_con == NOC) {
-            printf("\nsendChanID = ");
-            for(int i=0; i<*FXp[n].send_am; i++) {
-                printf("%d, ", sendChanID[i]);
-            }
-        }
-        printf("\n");
-
         //NoC
         if(*FXp[n].in_con == NOC) {
             for(int r=0; r<*FXp[n].recv_am; r++) {
@@ -92,7 +77,7 @@ int allocFX(struct AudioFX *FXp, int FX_HERE, int cpuid) {
         }
         if(*FXp[n].out_con == NOC) {
             for(int s=0; s<*FXp[n].send_am; s++) {
-                audio_connect_to_core(&FXp[n], sendChanID[s]);
+                audio_connect_to_core(&FXp[n], sendChanID[s], s);
                 if(cpuid == 0) {
                     printf("Connected FX ID %d to NoC Chanel ID %d\n", *FXp[n].fx_id, sendChanID[s]);
                 }
