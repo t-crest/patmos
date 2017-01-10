@@ -680,7 +680,7 @@ int audio_distortion(_SPM struct Distortion *distP, volatile _SPM short *xP, vol
     return 0;
 }
 
-int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_con, con_t out_con, unsigned int IN_SIZE, unsigned int OUT_SIZE, unsigned int P_AMOUNT) {
+int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_con, con_t out_con, unsigned int RECV_AM, unsigned int SEND_AM, unsigned int IN_SIZE, unsigned int OUT_SIZE, unsigned int P_AMOUNT) {
     /*
       LOCATION IN SPM
     */
@@ -697,13 +697,16 @@ int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_c
     // INPUT
     const unsigned int ADDR_IN_CON  = ADDR_CPUID + sizeof(int);
     const unsigned int ADDR_X_PNT   = ADDR_IN_CON + sizeof(int);
-    const unsigned int ADDR_XB_SIZE = ADDR_X_PNT  + sizeof(int);
+    const unsigned int ADDR_RECV_AM = ADDR_X_PNT  + sizeof(int)*RECV_AM;
+    const unsigned int ADDR_XB_SIZE = ADDR_RECV_AM  + sizeof(int);
     //SPM variables
     audioP->in_con =  ( _SPM con_t *)          ADDR_IN_CON;
     audioP->x_pnt  =  ( _SPM unsigned int *)   ADDR_X_PNT;
+    audioP->recv_am = ( _SPM unsigned int *)   ADDR_RECV_AM;
     audioP->xb_size = ( _SPM unsigned int *)   ADDR_XB_SIZE;
     //init vars
     *audioP->in_con = in_con;
+    *audioP->recv_am = RECV_AM;
     *audioP->xb_size = IN_SIZE;
     //see what kind of node it is
     if ( (*audioP->in_con == SAME) || (*audioP->in_con == FIRST) ) { //same core or first
@@ -723,14 +726,17 @@ int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_c
     // OUTPUT
     const unsigned int ADDR_OUT_CON = LAST_ADDR;
     const unsigned int ADDR_Y_PNT   = ADDR_OUT_CON + sizeof(int);
-    const unsigned int ADDR_YB_SIZE = ADDR_Y_PNT   + sizeof(int);
+    const unsigned int ADDR_SEND_AM = ADDR_Y_PNT   + sizeof(int)*SEND_AM;
+    const unsigned int ADDR_YB_SIZE = ADDR_SEND_AM + sizeof(int);
     LAST_ADDR                       = ADDR_YB_SIZE + sizeof(int);
     //SPM variables
     audioP->out_con = ( _SPM con_t *)        ADDR_OUT_CON;
     audioP->y_pnt   = ( _SPM unsigned int *) ADDR_Y_PNT;
+    audioP->send_am = ( _SPM unsigned int *) ADDR_SEND_AM;
     audioP->yb_size = ( _SPM unsigned int *) ADDR_YB_SIZE;
     //init vars
     *audioP->out_con = out_con;
+    *audioP->send_am = SEND_AM;
     *audioP->yb_size = OUT_SIZE;
     if(*audioP->out_con == LAST) {
         const unsigned int ADDR_Y          = LAST_ADDR;
@@ -970,7 +976,7 @@ int audio_connect_to_core(struct AudioFX *srcP, const unsigned int sendChanID) {
     }
 }
 
-int audio_connect_from_core(const unsigned int recvChanID, struct AudioFX *dstP) {
+int audio_connect_from_core(const unsigned int recvChanID, struct AudioFX *dstP, unsigned int r_ind) {
     if (*dstP->in_con != NOC) {
         if(get_cpuid() == 0) {
             printf("ERROR IN CONNECTION\n");

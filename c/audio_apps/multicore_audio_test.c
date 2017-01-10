@@ -12,6 +12,7 @@ int allocFX(struct AudioFX *FXp, int FX_HERE, int cpuid) {
     fx_t fx_type;
     int xb_size, yb_size, p;
     con_t in_con, out_con;
+    int recv_am, send_am;
 
     // READ FROM SCHEDULER
     int fx_ind = 0;
@@ -25,9 +26,21 @@ int allocFX(struct AudioFX *FXp, int FX_HERE, int cpuid) {
             p       =         FX_SCHED[n][5];
             in_con  = (con_t) FX_SCHED[n][6];
             out_con = (con_t) FX_SCHED[n][7];
+            recv_am = 0;
+            send_am = 0;
+            for(int ch=0; ch<CHAN_AMOUNT; ch++) {
+                if(RECV_ARRAY[n][ch] == 1) {
+                    recv_am++;
+                }
+                if(SEND_ARRAY[n][ch] == 1) {
+                    send_am++;
+                }
+            }
+            if(recv_am == 0) { recv_am = 1; } //there is always at least 1
+            if(send_am == 0) { send_am = 1; } //there is always at least 1
             //allocate
             alloc_audio_vars(&FXp[fx_ind], fx_id, fx_type, in_con,
-                out_con, xb_size, yb_size, p);
+                out_con, recv_am, send_am, xb_size, yb_size, p);
             fx_ind++;
         }
     }
@@ -40,36 +53,58 @@ int allocFX(struct AudioFX *FXp, int FX_HERE, int cpuid) {
         }
 
         // OUTPUT
-        int recvChanID, sendChanID; // channel ID to connect from and to
+        int recvChanID[*FXp[n].recv_am]; // channel ID to connect from
+        int sendChanID[*FXp[n].send_am]; // channel ID to connect to
+        int recv_pnt, send_pnt = 0; //amount of send and receive channels (for forks and joins)
         for(int ch=0; ch<CHAN_AMOUNT; ch++) {
-            if(SEND_ARRAY[*FXp[n].fx_id][ch] == 1) {
-                sendChanID = ch; //found channel ID to connect to
-            }
             if(RECV_ARRAY[*FXp[n].fx_id][ch] == 1) {
-                recvChanID = ch; //found channel ID to connect to
+                recvChanID[recv_pnt] = ch; //found channel ID to connect from
+                recv_pnt++;
             }
-        }
-        //NoC
-        if(*FXp[n].in_con == NOC) {
-            audio_connect_from_core(recvChanID, &FXp[n]);
-            if(cpuid == 0) {
-                printf("Connected NoC Chanel ID %d to FX ID %d\n", recvChanID, *FXp[n].fx_id);
-            }
-        }
-        if(*FXp[n].out_con == NOC) {
-            audio_connect_to_core(&FXp[n], sendChanID);
-            if(cpuid == 0) {
-                printf("Connected FX ID %d to NoC Chanel ID %d\n", *FXp[n].fx_id, sendChanID);
+            if(SEND_ARRAY[*FXp[n].fx_id][ch] == 1) {
+                sendChanID[send_pnt] = ch; //found channel ID to connect to
+                send_pnt++;
             }
         }
 
+        if(*FXp[n].in_con == NOC) {
+            printf("N=%d:\nrecvChanID = ", n);
+            for(int i=0; i<*FXp[n].recv_am; i++) {
+                printf("%d, ", recvChanID[i]);
+            }
+        }
+        if(*FXp[n].out_con == NOC) {
+            printf("\nsendChanID = ");
+            for(int i=0; i<*FXp[n].send_am; i++) {
+                printf("%d, ", sendChanID[i]);
+            }
+        }
+        printf("\n");
+
+        //NoC
+        if(*FXp[n].in_con == NOC) {
+            for(int r=0; r<*FXp[n].recv_am; r++) {
+                audio_connect_from_core(recvChanID[r], &FXp[n], r);
+                if(cpuid == 0) {
+                    printf("Connected NoC Chanel ID %d to FX ID %d\n", recvChanID[r], *FXp[n].fx_id);
+                }
+            }
+        }
+        if(*FXp[n].out_con == NOC) {
+            for(int s=0; s<*FXp[n].send_am; s++) {
+                audio_connect_to_core(&FXp[n], sendChanID[s]);
+                if(cpuid == 0) {
+                    printf("Connected FX ID %d to NoC Chanel ID %d\n", *FXp[n].fx_id, sendChanID[s]);
+                }
+            }
+        }
         //same core
         if(*FXp[n].out_con == SAME) {
             //search for effect in this core with same receive channel
             int con_same_bool = 0;
             for(int m=0; m<FX_HERE; m++) {
                 if( (m != n) && (*FXp[m].in_con == SAME) &&
-                    (RECV_ARRAY[*FXp[m].fx_id][sendChanID] == 1) ) {
+                    (RECV_ARRAY[*FXp[m].fx_id][sendChanID[0]] == 1) ) { //there is just one output
                     con_same_bool = 1; //connection found!
                     audio_connect_same_core(&FXp[n], &FXp[m]);
                     if(cpuid == 0) {
@@ -210,8 +245,10 @@ int main() {
     allocsDoneP[cpuid] = 1;
     for(int i=0; i<AUDIO_CORES; i++) {
         while(allocsDoneP[i] == 0);
+        printf("core %d alloc done\n", i);
     }
 
+    printf("gonna initialise NoC channels...\n");
 
     // Initialize the communication channels
     int nocret = mp_init_ports();

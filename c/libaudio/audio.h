@@ -150,12 +150,15 @@ struct AudioFX {
     //connection type
     _SPM con_t *in_con;  //input  connection: first, same core or NoC
     _SPM con_t *out_con; //output connection: last,  same core or NoC
+    //amount of send and receive channels (fork or join effects)
+    _SPM unsigned int *send_am;
+    _SPM unsigned int *recv_am;
     //pointers to SPM data
     _SPM unsigned int *x_pnt; //pointer to x location
     _SPM unsigned int *y_pnt; //pointer to y location
-    //send and receive NoC channel pointers
-    _SPM unsigned int *sendChanP;
+    //receive and send NoC channel pointers
     _SPM unsigned int *recvChanP;
+    _SPM unsigned int *sendChanP;
     //processing type
     _SPM pt_t *pt;
     //parameters: P, RPR, SPR, PPSR
@@ -180,7 +183,7 @@ struct AudioFX {
 };
 
 //audio FX SPM allocation
-int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_con, con_t out_con, unsigned int IN_SIZE, unsigned int OUT_SIZE, unsigned int P_AMOUNT);
+int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_con, con_t out_con, unsigned int RECV_AM, unsigned int SEND_AM, unsigned int IN_SIZE, unsigned int OUT_SIZE, unsigned int P_AMOUNT);
 
 int free_audio_vars(struct AudioFX *audioP);
 
@@ -188,7 +191,7 @@ int free_audio_vars(struct AudioFX *audioP);
 int audio_connect_same_core(struct AudioFX *srcP, struct AudioFX *dstP);
 //NoC:
 int audio_connect_to_core(struct AudioFX *srcP, const unsigned int sendChanID);
-int audio_connect_from_core(const unsigned int recvChanID, struct AudioFX *dstP);
+int audio_connect_from_core(const unsigned int recvChanID, struct AudioFX *dstP, unsigned int r_ind);
 
 //audio processing
 int audio_process(struct AudioFX *audioP); // __attribute__((section("text.spm")));
