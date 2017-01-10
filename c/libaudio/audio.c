@@ -680,7 +680,7 @@ int audio_distortion(_SPM struct Distortion *distP, volatile _SPM short *xP, vol
     return 0;
 }
 
-int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_con, con_t out_con, unsigned int IN_SIZE, unsigned int OUT_SIZE, unsigned int P_AMOUNT, fst_t is_fst, lst_t is_lst) {
+int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_con, con_t out_con, unsigned int IN_SIZE, unsigned int OUT_SIZE, unsigned int P_AMOUNT) {
     /*
       LOCATION IN SPM
     */
@@ -688,26 +688,14 @@ int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_c
     unsigned int LAST_ADDR;
     // FX ID
     const unsigned int ADDR_FXID = BASE_ADDR;
-    LAST_ADDR                    = ADDR_FXID + sizeof(int);
     audioP->fx_id = (_SPM int * ) ADDR_FXID;
     *audioP->fx_id = FX_ID;
     // CPUID
-    const unsigned int ADDR_CPUID  = LAST_ADDR;
-    LAST_ADDR                      = ADDR_CPUID + sizeof(int);
+    const unsigned int ADDR_CPUID  = ADDR_FXID + sizeof(int);
     audioP->cpuid = ( _SPM int * ) ADDR_CPUID;
     *audioP->cpuid = get_cpuid();
-    if(*audioP->cpuid == 0) {
-        const unsigned int ADDR_IS_FST = LAST_ADDR;
-        const unsigned int ADDR_IS_LST = ADDR_IS_FST + sizeof(int);
-        LAST_ADDR                     = ADDR_IS_LST + sizeof(int);
-        //SPM variables
-        audioP->is_fst = ( _SPM fst_t * ) ADDR_IS_FST;
-        audioP->is_lst = ( _SPM lst_t * ) ADDR_IS_LST;
-        *audioP->is_fst = is_fst;
-        *audioP->is_lst = is_lst;
-    }
     // INPUT
-    const unsigned int ADDR_IN_CON  = LAST_ADDR;
+    const unsigned int ADDR_IN_CON  = ADDR_CPUID + sizeof(int);
     const unsigned int ADDR_X_PNT   = ADDR_IN_CON + sizeof(int);
     const unsigned int ADDR_XB_SIZE = ADDR_X_PNT  + sizeof(int);
     //SPM variables
@@ -718,13 +706,13 @@ int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_c
     *audioP->in_con = in_con;
     *audioP->xb_size = IN_SIZE;
     //see what kind of node it is
-    if (*audioP->in_con == NO_NOC) { //same core
+    if ( (*audioP->in_con == SAME) || (*audioP->in_con == FIRST) ) { //same core or first
         const unsigned int ADDR_X      = ADDR_XB_SIZE + sizeof(int);
         LAST_ADDR                     = ADDR_X       + IN_SIZE * 2 * sizeof(short);
         //SPM variables
         audioP->x      = ( volatile _SPM short *) ADDR_X;
         //initialise pointer values
-        *audioP->x_pnt  = (int)audioP->x; // = ADDR_X;
+        *audioP->x_pnt  = (unsigned int)audioP->x; // = ADDR_X;
     }
     else { //NoC
         const unsigned int ADDR_RECV_CP = ADDR_XB_SIZE + sizeof(int);
@@ -736,6 +724,7 @@ int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_c
     const unsigned int ADDR_OUT_CON = LAST_ADDR;
     const unsigned int ADDR_Y_PNT   = ADDR_OUT_CON + sizeof(int);
     const unsigned int ADDR_YB_SIZE = ADDR_Y_PNT   + sizeof(int);
+    LAST_ADDR                       = ADDR_YB_SIZE + sizeof(int);
     //SPM variables
     audioP->out_con = ( _SPM con_t *)        ADDR_OUT_CON;
     audioP->y_pnt   = ( _SPM unsigned int *) ADDR_Y_PNT;
@@ -743,8 +732,8 @@ int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_c
     //init vars
     *audioP->out_con = out_con;
     *audioP->yb_size = OUT_SIZE;
-    if( (*audioP->out_con == NO_NOC) && (*audioP->is_lst == LAST) ) { //same core and last
-        const unsigned int ADDR_Y          = ADDR_YB_SIZE    + sizeof(int);
+    if(*audioP->out_con == LAST) {
+        const unsigned int ADDR_Y          = LAST_ADDR;
         const unsigned int ADDR_LAST_INIT  = ADDR_Y          + OUT_SIZE * 2 * sizeof(short);
         const unsigned int ADDR_LAST_COUNT = ADDR_LAST_INIT  + sizeof(int);
         LAST_ADDR                          = ADDR_LAST_COUNT + sizeof(unsigned int);
@@ -753,7 +742,7 @@ int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_c
         audioP->last_init  = ( _SPM int * )         ADDR_LAST_INIT;
         audioP->last_count = ( _SPM unsigned int *) ADDR_LAST_COUNT;
         //init values
-        *audioP->y_pnt      = (int)audioP->y; // = ADDR_Y;
+        *audioP->y_pnt      = (unsigned int)audioP->y; // = ADDR_Y;
         if(LATENCY == 0) {
             *audioP->last_init = 0;
         }
@@ -762,11 +751,13 @@ int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_c
         }
         *audioP->last_count = 0; //start counting from 0
     }
-    else { //NoC
-        const unsigned int ADDR_SEND_CP = ADDR_YB_SIZE + sizeof(int);
-        LAST_ADDR                      = ADDR_SEND_CP + sizeof(int);
-        //SPM variables
-        audioP->sendChanP = ( _SPM unsigned int *) ADDR_SEND_CP;
+    else {
+        if(*audioP->out_con == NOC) { //NoC
+            const unsigned int ADDR_SEND_CP = LAST_ADDR;
+            LAST_ADDR                      =  ADDR_SEND_CP + sizeof(int);
+            //SPM variables
+            audioP->sendChanP = ( _SPM unsigned int *) ADDR_SEND_CP;
+        }
     }
     //PARAMETERS
     //Processing Type
@@ -945,13 +936,17 @@ int free_audio_vars(struct AudioFX *audioP) {
 }
 
 int audio_connect_same_core(struct AudioFX *srcP, struct AudioFX *dstP) {
-    if ( (*srcP->out_con != NO_NOC) || (*dstP->in_con != NO_NOC) ) {
-        printf("ERROR: IN/OUT CONNECTION TYPES\n");
+    if ( (*srcP->out_con != SAME) || (*dstP->in_con != SAME) ) {
+        if(get_cpuid() == 0) {
+            printf("ERROR: IN/OUT CONNECTION TYPES\n");
+        }
         return 1;
     }
     if (*srcP->yb_size != *dstP->xb_size) {
-        printf("ERROR: BUFFER SIZES DON'T MATCH: %d != %d\n", *srcP->yb_size, *dstP->xb_size);
-        printf("sender: %d, receiver: %d\n", *srcP->fx_id, *dstP->fx_id);
+        if(get_cpuid() == 0) {
+            printf("ERROR: BUFFER SIZES DON'T MATCH: %d != %d\n", *srcP->yb_size, *dstP->xb_size);
+            printf("sender: %d, receiver: %d\n", *srcP->fx_id, *dstP->fx_id);
+        }
         return 1;
     }
 
@@ -961,7 +956,9 @@ int audio_connect_same_core(struct AudioFX *srcP, struct AudioFX *dstP) {
 
 int audio_connect_to_core(struct AudioFX *srcP, const unsigned int sendChanID) {
     if (*srcP->out_con != NOC) {
-        printf("ERROR IN CONNECTION\n");
+        if(get_cpuid() == 0) {
+            printf("ERROR IN CONNECTION\n");
+        }
         return 1;
     }
     else {
@@ -975,7 +972,9 @@ int audio_connect_to_core(struct AudioFX *srcP, const unsigned int sendChanID) {
 
 int audio_connect_from_core(const unsigned int recvChanID, struct AudioFX *dstP) {
     if (*dstP->in_con != NOC) {
-        printf("ERROR IN CONNECTION\n");
+        if(get_cpuid() == 0) {
+            printf("ERROR IN CONNECTION\n");
+        }
         return 1;
     }
     else {
@@ -997,10 +996,10 @@ int audio_process(struct AudioFX *audioP) {
     /* ---------X and Y locations----------- */
     volatile _SPM short * xP;
     volatile _SPM short * yP;
-    if(*audioP->in_con == NO_NOC) { //same core : data=**x_pnt
+    if(*audioP->in_con != NOC) { //same core : data=**x_pnt
         xP = (volatile _SPM short *)*audioP->x_pnt;
     }
-    if(*audioP->out_con == NO_NOC) { //same core: data=**y_pnt
+    if(*audioP->out_con != NOC) { //same core: data=**y_pnt
         yP = (volatile _SPM short *)*audioP->y_pnt;
     }
 
@@ -1017,7 +1016,8 @@ int audio_process(struct AudioFX *audioP) {
     switch(*audioP->pt) {
     case XeY:
         //check if it is 0, is last and needs to wait due to latency
-        if( (*audioP->cpuid != 0) || (*audioP->is_lst == NO_LAST) || (*audioP->last_init == 0) ) {
+        if( (*audioP->cpuid != 0) || (*audioP->out_con == SAME) ||
+            (*audioP->out_con == NOC) || (*audioP->last_init == 0) ) {
             //printf("ID=%d: processing\n", *audioP->fx_id);
             //RECEIVE ONCE
             if(*audioP->in_con == NOC) { //receive from NoC
@@ -1030,7 +1030,7 @@ int audio_process(struct AudioFX *audioP) {
                 //xP = ((qpd_t *)*audioP->recvChanP)->read_buf;
             }
             else { //same core
-                if( (*audioP->cpuid == 0) && (*audioP->is_fst == FIRST) ) {
+                if( (*audioP->cpuid == 0) && (*audioP->in_con == FIRST) ) {
                     audioIn(audioP, xP);
                 }
             }
@@ -1126,7 +1126,7 @@ int audio_process(struct AudioFX *audioP) {
                 }
             }
             else { //same core
-                if( (*audioP->cpuid == 0) && (*audioP->is_lst == LAST) ) {
+                if( (*audioP->cpuid == 0) && (*audioP->out_con == LAST) ) {
                     audioOut(audioP, yP);
                 }
             }

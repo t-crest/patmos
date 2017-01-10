@@ -129,11 +129,9 @@ int     setInputBufferSize(int bufferSize);
 //const int DEBUG_ELEMENTS = 4;
 //const int DEBUG_LOOPLENGTH = 64;
 
-// first/last: connection to AudioInterface
-typedef enum {NO_FIRST, FIRST} fst_t;
-typedef enum {NO_LAST, LAST} lst_t;
-// connected to same core or to NoC
-typedef enum {NO_NOC, NOC} con_t;
+//
+//type of connection: first last, to NoC, or to same core
+typedef enum {FIRST, LAST, NOC, SAME} con_t;
 // comparison of receive/send buffer sizes
 typedef enum {XeY, XgY, XlY} pt_t;
 // possible effects:
@@ -150,10 +148,8 @@ struct AudioFX {
     //core number
     _SPM int *cpuid;
     //connection type
-    _SPM fst_t *is_fst; // audio input node
-    _SPM lst_t *is_lst; // audio output node
-    _SPM con_t *in_con;  //input  connection: same core or NoC
-    _SPM con_t *out_con; //output connection: same core or NoC
+    _SPM con_t *in_con;  //input  connection: first, same core or NoC
+    _SPM con_t *out_con; //output connection: last,  same core or NoC
     //pointers to SPM data
     _SPM unsigned int *x_pnt; //pointer to x location
     _SPM unsigned int *y_pnt; //pointer to y location
@@ -184,7 +180,7 @@ struct AudioFX {
 };
 
 //audio FX SPM allocation
-int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_con, con_t out_con, unsigned int IN_SIZE, unsigned int OUT_SIZE, unsigned int P_AMOUNT, fst_t is_fst, lst_t is_lst);
+int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_con, con_t out_con, unsigned int IN_SIZE, unsigned int OUT_SIZE, unsigned int P_AMOUNT);
 
 int free_audio_vars(struct AudioFX *audioP);
 

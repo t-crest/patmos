@@ -5,6 +5,93 @@ const int LIM = 1000;
 //master core
 const int NOC_MASTER = 0;
 
+int allocFX(struct AudioFX *FXp, int FX_HERE, int cpuid) {
+
+    //struct parameters:
+    int fx_id;
+    fx_t fx_type;
+    int xb_size, yb_size, p;
+    con_t in_con, out_con;
+
+    // READ FROM SCHEDULER
+    int fx_ind = 0;
+    for(int n=0; n<FX_AMOUNT; n++) {
+        if(FX_SCHED[n][1] == cpuid) { //same core
+            //assign parameters from SCHEDULER
+            fx_id   =         FX_SCHED[n][0];
+            fx_type = (fx_t)  FX_SCHED[n][2];
+            xb_size =         FX_SCHED[n][3];
+            yb_size =         FX_SCHED[n][4];
+            p       =         FX_SCHED[n][5];
+            in_con  = (con_t) FX_SCHED[n][6];
+            out_con = (con_t) FX_SCHED[n][7];
+            //allocate
+            alloc_audio_vars(&FXp[fx_ind], fx_id, fx_type, in_con,
+                out_con, xb_size, yb_size, p);
+            fx_ind++;
+        }
+    }
+
+    //CONNECT EFFECTS
+    for(int n=0; n<FX_HERE; n++) {
+        //print input effects
+        if( (cpuid == 0) && (*FXp[n].in_con == FIRST) ) {
+            printf("FIRST: ID=%d\n", *FXp[n].fx_id);
+        }
+
+        // OUTPUT
+        int recvChanID, sendChanID; // channel ID to connect from and to
+        for(int ch=0; ch<CHAN_AMOUNT; ch++) {
+            if(SEND_ARRAY[*FXp[n].fx_id][ch] == 1) {
+                sendChanID = ch; //found channel ID to connect to
+            }
+            if(RECV_ARRAY[*FXp[n].fx_id][ch] == 1) {
+                recvChanID = ch; //found channel ID to connect to
+            }
+        }
+        //NoC
+        if(*FXp[n].in_con == NOC) {
+            audio_connect_from_core(recvChanID, &FXp[n]);
+            if(cpuid == 0) {
+                printf("Connected NoC Chanel ID %d to FX ID %d\n", recvChanID, *FXp[n].fx_id);
+            }
+        }
+        if(*FXp[n].out_con == NOC) {
+            audio_connect_to_core(&FXp[n], sendChanID);
+            if(cpuid == 0) {
+                printf("Connected FX ID %d to NoC Chanel ID %d\n", *FXp[n].fx_id, sendChanID);
+            }
+        }
+
+        //same core
+        if(*FXp[n].out_con == SAME) {
+            //search for effect in this core with same receive channel
+            int con_same_bool = 0;
+            for(int m=0; m<FX_HERE; m++) {
+                if( (m != n) && (*FXp[m].in_con == SAME) &&
+                    (RECV_ARRAY[*FXp[m].fx_id][sendChanID] == 1) ) {
+                    con_same_bool = 1; //connection found!
+                    audio_connect_same_core(&FXp[n], &FXp[m]);
+                    if(cpuid == 0) {
+                        printf("Connected FX ID %d to FX ID %d\n", *FXp[n].fx_id, *FXp[m].fx_id);
+                    }
+                    break;
+                }
+            }
+            if( (cpuid == 0) && (con_same_bool == 0) ) {
+                printf("ERROR: Same core connection mismatch: no destination found\n");
+            }
+        }
+
+        //print output effects
+        if( (cpuid == 0) && (*FXp[n].out_con == LAST) ) {
+            printf("LAST: ID=%d\n", *FXp[n].fx_id);
+        }
+    }
+
+    return 0;
+}
+
 
 void threadFunc(void* args) {
     volatile _UNCACHED int **inArgs = (volatile _UNCACHED int **) args;
@@ -28,71 +115,8 @@ void threadFunc(void* args) {
     }
     //create structs
     struct AudioFX FXp[FX_HERE];
-    //struct parameters:
-    int fx_id;
-    fx_t fx_type;
-    int xb_size, yb_size, p;
-    con_t in_con;
-    con_t out_con;
-    fst_t is_fst;
-    lst_t is_lst;
 
-    // READ FROM SCHEDULER
-    int fx_ind = 0;
-    for(int n=0; n<FX_AMOUNT; n++) {
-        if(FX_SCHED[n][1] == cpuid) { //same core
-            //assign parameters from SCHEDULER
-            fx_id   =         FX_SCHED[n][0];
-            fx_type = (fx_t)  FX_SCHED[n][2];
-            xb_size =         FX_SCHED[n][3];
-            yb_size =         FX_SCHED[n][4];
-            p       =         FX_SCHED[n][5];
-            in_con  = (con_t) FX_SCHED[n][6];
-            out_con = (con_t) FX_SCHED[n][7];
-            if(FX_SCHED[n][8] == -1) {
-                is_fst = FIRST;
-            }
-            else {
-                is_fst = NO_FIRST;
-            }
-            if(FX_SCHED[n][9] == -1) {
-                is_lst = LAST;
-            }
-            else {
-                is_lst = NO_LAST;
-            }
-            //allocate
-            alloc_audio_vars(&FXp[fx_ind], fx_id, fx_type, in_con,
-                out_con, xb_size, yb_size, p, is_fst, is_lst);
-            fx_ind++;
-        }
-    }
-
-    //CONNECT EFFECTS
-    for(int n=0; n<FX_HERE; n++) {
-        // same core
-        if(*FXp[n].out_con == NO_NOC) {
-            int destID = FX_SCHED[*FXp[n].fx_id][9]; //ID to connect to
-            if(FX_SCHED[destID][8] != *FXp[n].fx_id) {
-                printf("ERROR: SAME CORE CONNECTION MISMATCH\n");
-            }
-            for(int m=0; m<FX_HERE; m++) {
-                if(*FXp[m].fx_id == destID) {
-                    audio_connect_same_core(&FXp[n], &FXp[m]);
-                    break;
-                }
-            }
-        }
-        // NoC
-        if(*FXp[n].in_con == NOC) {
-            int recvChanID = FX_SCHED[*FXp[n].fx_id][8]; //NoC receive channel ID
-            audio_connect_from_core(recvChanID, &FXp[n]);
-        }
-        if(*FXp[n].out_con == NOC) {
-            int sendChanID = FX_SCHED[*FXp[n].fx_id][9]; //NoC send channel ID
-            audio_connect_to_core(&FXp[n], sendChanID);
-        }
-    }
+    allocFX(FXp, FX_HERE, cpuid);
 
     // wait until all cores are ready
     allocsDoneP[cpuid] = 1;
@@ -179,82 +203,8 @@ int main() {
     }
     //create structs
     struct AudioFX FXp[FX_HERE];
-    //struct parameters:
-    int fx_id;
-    fx_t fx_type;
-    int xb_size, yb_size, p;
-    con_t in_con;
-    con_t out_con;
-    fst_t is_fst;
-    lst_t is_lst;
 
-    // READ FROM SCHEDULER
-    int fx_ind = 0;
-    for(int n=0; n<FX_AMOUNT; n++) {
-        if(FX_SCHED[n][1] == cpuid) { //same core
-            //assign parameters from SCHEDULER
-            fx_id   =         FX_SCHED[n][0];
-            fx_type = (fx_t)  FX_SCHED[n][2];
-            xb_size =         FX_SCHED[n][3];
-            yb_size =         FX_SCHED[n][4];
-            p       =         FX_SCHED[n][5];
-            in_con  = (con_t) FX_SCHED[n][6];
-            out_con = (con_t) FX_SCHED[n][7];
-            if(FX_SCHED[n][8] == -1) {
-                is_fst = FIRST;
-            }
-            else {
-                is_fst = NO_FIRST;
-            }
-            if(FX_SCHED[n][9] == -1) {
-                is_lst = LAST;
-            }
-            else {
-                is_lst = NO_LAST;
-            }
-            //allocate
-            alloc_audio_vars(&FXp[fx_ind], fx_id, fx_type, in_con,
-                out_con, xb_size, yb_size, p, is_fst, is_lst);
-            fx_ind++;
-        }
-    }
-
-    //CONNECT EFFECTS
-    for(int n=0; n<FX_HERE; n++) {
-        //print input effects
-        if(*FXp[n].is_fst == FIRST) {
-            printf("FIRST: ID=%d\n", *FXp[n].fx_id);
-        }
-        // same core
-        if( (*FXp[n].out_con == NO_NOC) && (*FXp[n].is_lst == NO_LAST) ) {
-            int destID = FX_SCHED[*FXp[n].fx_id][9]; //ID to connect to
-            if(FX_SCHED[destID][8] != *FXp[n].fx_id) {
-                printf("ERROR: SAME CORE CONNECTION MISMATCH\n");
-            }
-            for(int m=0; m<FX_HERE; m++) {
-                if(*FXp[m].fx_id == destID) {
-                    audio_connect_same_core(&FXp[n], &FXp[m]);
-                    printf("SAME CORE: connected ID=%d and ID=%d\n", *FXp[n].fx_id, *FXp[m].fx_id);
-                    break;
-                }
-            }
-        }
-        // NoC
-        if(*FXp[n].in_con == NOC) {
-            int recvChanID = FX_SCHED[*FXp[n].fx_id][8]; //NoC receive channel ID
-            audio_connect_from_core(recvChanID, &FXp[n]);
-            printf("NoC: connected recvChanelID=%d to ID=%d\n", recvChanID, *FXp[n].fx_id);
-        }
-        if(*FXp[n].out_con == NOC) {
-            int sendChanID = FX_SCHED[*FXp[n].fx_id][9]; //NoC send channel ID
-            audio_connect_to_core(&FXp[n], sendChanID);
-            printf("NoC: connected ID=%d to sendChanelID=%d\n", *FXp[n].fx_id, sendChanID);
-        }
-        //print output effects
-        if(*FXp[n].is_lst == LAST) {
-            printf("LAST: ID=%d\n", *FXp[n].fx_id);
-        }
-    }
+    allocFX(FXp, FX_HERE, cpuid);
 
     // wait until all cores are ready
     allocsDoneP[cpuid] = 1;
