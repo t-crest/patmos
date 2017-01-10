@@ -55,7 +55,8 @@ int allocFX(struct AudioFX *FXp, int FX_HERE, int cpuid) {
         // OUTPUT
         int recvChanID[*FXp[n].recv_am]; // channel ID to connect from
         int sendChanID[*FXp[n].send_am]; // channel ID to connect to
-        int recv_pnt, send_pnt = 0; //amount of send and receive channels (for forks and joins)
+        int recv_pnt = 0; //amount of receive channels (for joins)
+        int send_pnt = 0; //amount of send    channels (for forks)
         for(int ch=0; ch<CHAN_AMOUNT; ch++) {
             if(RECV_ARRAY[*FXp[n].fx_id][ch] == 1) {
                 recvChanID[recv_pnt] = ch; //found channel ID to connect from
