@@ -309,6 +309,8 @@ int main() {
             */
         }
 
+        //printf("in: %d, %d       out: %d, %d\n", FXp[0].x[0], FXp[0].x[1], FXp[FX_HERE-1].y[0], FXp[FX_HERE-1].y[1]);
+
 
         //store CPU Cycles
         CPUcycles[cpu_pnt] = get_cpu_cycles();
@@ -331,11 +333,11 @@ int main() {
     exit = 1;
     printf("waiting for all threads to finish...\n");
 
-
+    /*
     for(int i=1; i<LIM; i++) {
         printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
-
+    */
 
     /*
     for(int i=0; i<(LIM-WAIT); i++) {
