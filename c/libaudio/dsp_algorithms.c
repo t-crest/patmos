@@ -86,20 +86,20 @@ int filterIIR_2nd_32(int pnt_i, volatile _SPM short (*x)[2], volatile _SPM short
 */
 
 int storeSinInterpol(int *sinArray, short *fracArray, int SIZE, int OFFSET, int AMP) {
-    printf("Storing sin array and frac array...\n");
+    //printf("Storing sin array and frac array...\n");
     float zeiger;
     for(int i=0; i<SIZE; i++) {
         zeiger = (float)OFFSET + ((float)AMP)*sin(2.0*M_PI* i / SIZE);
         sinArray[i] = (int)floor(zeiger);
         fracArray[i] = (zeiger-(float)sinArray[i])*(pow(2,15)-1);
     }
-    printf("Sin array and frac array storage done\n");
+    //printf("Sin array and frac array storage done\n");
 
     return 0;
 }
 
 int storeSin(int *sinArray, int SIZE, int OFFSET, int AMP) {
-    printf("Storing sin array...\n");
+    //printf("Storing sin array...\n");
     for(int i=0; i<SIZE; i++) {
         sinArray[i] = OFFSET + AMP*sin(2.0*M_PI* i / SIZE);
     }
@@ -116,7 +116,7 @@ int storeSin(int *sinArray, int SIZE, int OFFSET, int AMP) {
         sinArray[HALF + i] = -sinArray[HALF - (i-ADDER)];
     }
     */
-    printf("Sin array storage done\n");
+    //printf("Sin array storage done\n");
 
     return 0;
 }
@@ -154,12 +154,12 @@ int checkRanges(int FILT_ORD_1PL, float *Bfl, float *Afl, _SPM int *shiftLeft, i
                 maxVal = maxVal / (*shiftLeft * 2) ; //similar to shifting
             }
             if (maxVal > 1) { // if its still out of range
-                printf("ERROR! coefficients are out of range, max is %f\n", maxVal);
+                //printf("ERROR! coefficients are out of range, max is %f\n", maxVal);
                 return 1;
             }
         }
         if(!fixedShift) {
-            printf("Greatest coefficient found is %f, ", maxVal);
+            //printf("Greatest coefficient found is %f, ", maxVal);
         }
     }
     while(maxVal > 1) { //loop until maxVal < 1
@@ -167,7 +167,7 @@ int checkRanges(int FILT_ORD_1PL, float *Bfl, float *Afl, _SPM int *shiftLeft, i
         maxVal--;
     }
     if(!fixedShift) {
-        printf("shift left amount is %d\n", *shiftLeft);
+        //printf("shift left amount is %d\n", *shiftLeft);
     }
 
     return 0;
@@ -186,7 +186,7 @@ int filter_coeff_bp_br(int FILT_ORD_1PL, _SPM short *B, _SPM short *A, int Fc, i
     }
     if(FILT_ORD_1PL == 2) { //1st order
         if(!fixedShift) {
-            printf("Calculating 1st order coefficients...\n");
+            //printf("Calculating 1st order coefficients...\n");
         }
         c = ( tan(M_PI * Fc / Fs) - 1) / ( tan(M_PI * Fc / Fs) + 1 );
         Bfl[1] = c; // b0
@@ -196,7 +196,7 @@ int filter_coeff_bp_br(int FILT_ORD_1PL, _SPM short *B, _SPM short *A, int Fc, i
     else {
         if(FILT_ORD_1PL == 3) { // 2nd order
             if(!fixedShift) {
-                printf("Calculating 2nd order coefficients...\n");
+                //printf("Calculating 2nd order coefficients...\n");
             }
             c = ( tan(M_PI * Fb / Fs) - 1) / ( tan(M_PI * Fb / Fs) + 1 );
             d = -1 * cos(2 * M_PI * Fc / Fs);
@@ -219,10 +219,10 @@ int filter_coeff_bp_br(int FILT_ORD_1PL, _SPM short *B, _SPM short *A, int Fc, i
     }
     if(!fixedShift) {
         if(FILT_ORD_1PL == 2) {
-            printf("done! c: %f, b0: %d, b1: %d, a0, %d, a1: %d\n", c, B[1], B[0], A[1], A[0]);
+            //printf("done! c: %f, b0: %d, b1: %d, a0, %d, a1: %d\n", c, B[1], B[0], A[1], A[0]);
         }
         if(FILT_ORD_1PL == 3) {
-            printf("done! c: %f, d: %f, b0: %d, b1: %d, b2 : %d, a0: %d, a1: %d, a2: %d\n", c, d, B[2], B[1], B[0], A[2], A[1], A[0]);
+            //printf("done! c: %f, d: %f, b0: %d, b1: %d, b2 : %d, a0: %d, a1: %d, a2: %d\n", c, d, B[2], B[1], B[0], A[2], A[1], A[0]);
         }
     }
 
@@ -297,14 +297,14 @@ int filter_coeff_hp_lp(int FILT_ORD_1PL, _SPM short *B, _SPM short *A, int Fc, f
     float common_factor;
     if(type == 0) { //LPF
         if(FILT_ORD_1PL == 2) { //1st order
-            printf("Calculating LPF for 1st order...\n");
+            //printf("Calculating LPF for 1st order...\n");
             Bfl[1] = K/(K+1); //b0
             Bfl[0] = K/(K+1); //b1
             Afl[0] = (K-1)/(K+1); //a1
         }
         else {
             if(FILT_ORD_1PL == 3) { //2nd order
-                printf("Calculating LPF for 2nd order...\n");
+                //printf("Calculating LPF for 2nd order...\n");
                 common_factor = 1/(pow(K,2)*Q + K + Q);
                 Bfl[2] = pow(K,2)*Q*common_factor; //b0
                 Bfl[1] = 2*pow(K,2)*Q*common_factor; //b1
@@ -317,14 +317,14 @@ int filter_coeff_hp_lp(int FILT_ORD_1PL, _SPM short *B, _SPM short *A, int Fc, f
     else {
         if(type == 1) { // HPF
             if(FILT_ORD_1PL == 2) { //1st order
-                printf("Calculating HPF for 1st order...\n");
+                //printf("Calculating HPF for 1st order...\n");
                 Bfl[1] =  1/(K+1); //b0
                 Bfl[0] = -1/(K+1); //b1
                 Afl[0] = (K-1)/(K+1); //a1
             }
             else {
                 if(FILT_ORD_1PL == 3) { //2nd order
-                    printf("Calculating HPF for 2nd order...\n");
+                    //printf("Calculating HPF for 2nd order...\n");
                     common_factor = 1/(pow(K,2)*Q + K + Q);
                     Bfl[2] = Q*common_factor; //b0
                     Bfl[1] = -2*Q*common_factor; //b1
@@ -346,10 +346,10 @@ int filter_coeff_hp_lp(int FILT_ORD_1PL, _SPM short *B, _SPM short *A, int Fc, f
         A[i] = (short) ( (int) (ONE_16b * Afl[i]) >> *shiftLeft );
     }
     if(FILT_ORD_1PL == 2) {
-        printf("done! K: %f, b0: %d, b1: %d, a0, %d, a1: %d\n", K, B[1], B[0], A[1], A[0]);
+        //printf("done! K: %f, b0: %d, b1: %d, a0, %d, a1: %d\n", K, B[1], B[0], A[1], A[0]);
     }
     if(FILT_ORD_1PL == 3) {
-        printf("done! K: %f, common_factor: %f, b0: %d, b1: %d, b2 : %d, a0: %d, a1: %d, a2: %d\n", K, common_factor, B[2], B[1], B[0], A[2], A[1], A[0]);
+        //printf("done! K: %f, common_factor: %f, b0: %d, b1: %d, b2 : %d, a0: %d, a1: %d, a2: %d\n", K, common_factor, B[2], B[1], B[0], A[2], A[1], A[0]);
     }
 
     return 0;
