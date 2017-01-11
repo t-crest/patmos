@@ -726,7 +726,7 @@ int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_c
         audioP->last_count = ( _SPM unsigned int *) ADDR_LAST_COUNT;
         //init values
         *(audioP->y_pnt+0)      = (unsigned int)audioP->y; // = ADDR_Y;
-        if(LATENCY == 0) {
+        if(LATENCY[current_mode] == 0) {
             *audioP->last_init = 0;
         }
         else {
@@ -1160,7 +1160,7 @@ int audio_process(struct AudioFX *audioP) {
         else {
             *audioP->last_count = *audioP->last_count + 1;
             //printf("increasing last_count, now is %u\n", *audioP->last_count);
-            if(*audioP->last_count == LATENCY) {
+            if(*audioP->last_count == LATENCY[current_mode]) {
                 *audioP->last_init = 0;
                 //printf("latency limit reached!\n");
             }

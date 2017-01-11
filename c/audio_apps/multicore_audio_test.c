@@ -5,7 +5,55 @@ const int LIM = 1000;
 //master core
 const int NOC_MASTER = 0;
 
-int allocFX(struct AudioFX *FXp, int FX_HERE, int cpuid) {
+int allocFX(struct AudioFX *FXp, int cpuid) {
+
+    int FX_HERE = 0; //amount of effects in this core
+
+    //read current FX_SCHED, SEND_ARRAY and RECV_ARRAY
+    int FX_SCHED[MAX_FX][8];
+    int SEND_ARRAY[MAX_FX][CHAN_AMOUNT];
+    int RECV_ARRAY[MAX_FX][CHAN_AMOUNT];
+    for(int fx=0; fx<FX_AMOUNT[current_mode]; fx++) {
+        for(int col=0; col<8; col++) { //FX_SCHED first
+            FX_SCHED[fx][col] = *((FX_SCHED_P[current_mode]) + fx*8 + col);
+        }
+        for(int ch=0; ch<CHAN_AMOUNT; ch++) { //then, SEND_ARRAY and RECV_ARRAY
+            SEND_ARRAY[fx][ch] = *((SEND_ARRAY_P[current_mode]) + fx*CHAN_AMOUNT + ch);
+            RECV_ARRAY[fx][ch] = *((RECV_ARRAY_P[current_mode]) + fx*CHAN_AMOUNT + ch);
+        }
+    }
+
+
+    printf("FX_SCHED[%d][8] = {\n", FX_AMOUNT[current_mode]);
+    for(int fx=0; fx<FX_AMOUNT[current_mode]; fx++) {
+        printf("  { ");
+        for(int col=0; col<8; col++) { //FX_SCHED first
+            printf("%d, ", FX_SCHED[fx][col]);
+        }
+        printf(" },\n");
+    }
+    printf("};\n");
+
+    printf("SEND_ARRAY[%d][%d] = {\n", FX_AMOUNT[current_mode], CHAN_AMOUNT);
+    for(int fx=0; fx<FX_AMOUNT[current_mode]; fx++) {
+        printf("  { ");
+        for(int ch=0; ch<CHAN_AMOUNT; ch++) { //FX_SCHED first
+            printf("%d, ", SEND_ARRAY[fx][ch]);
+        }
+        printf(" },\n");
+    }
+    printf("};\n");
+
+    printf("RECV_ARRAY[%d][%d] = {\n", FX_AMOUNT[current_mode], CHAN_AMOUNT);
+    for(int fx=0; fx<FX_AMOUNT[current_mode]; fx++) {
+        printf("  { ");
+        for(int ch=0; ch<CHAN_AMOUNT; ch++) { //FX_SCHED first
+            printf("%d, ", RECV_ARRAY[fx][ch]);
+        }
+        printf(" },\n");
+    }
+    printf("};\n");
+
 
     //struct parameters:
     int fx_id;
@@ -16,8 +64,11 @@ int allocFX(struct AudioFX *FXp, int FX_HERE, int cpuid) {
 
     // READ FROM SCHEDULER
     int fx_ind = 0;
-    for(int n=0; n<FX_AMOUNT; n++) {
+    for(int n=0; n<FX_AMOUNT[current_mode]; n++) {
+
         if(FX_SCHED[n][1] == cpuid) { //same core
+            //one more FX on this core
+            FX_HERE++;
             //assign parameters from SCHEDULER
             fx_id   =         FX_SCHED[n][0];
             fx_type = (fx_t)  FX_SCHED[n][2];
@@ -44,6 +95,8 @@ int allocFX(struct AudioFX *FXp, int FX_HERE, int cpuid) {
             fx_ind++;
         }
     }
+
+    printf("FX_HERE: %d\n", FX_HERE);
 
     //CONNECT EFFECTS
     for(int n=0; n<FX_HERE; n++) {
@@ -110,7 +163,7 @@ int allocFX(struct AudioFX *FXp, int FX_HERE, int cpuid) {
         }
     }
 
-    return 0;
+    return FX_HERE;
 }
 
 
@@ -128,16 +181,10 @@ void threadFunc(void* args) {
 
     // -------------------ALLOCATE FX------------------//
 
-    int FX_HERE = 0; //amount of effects in this core
-    for(int n=0; n<FX_AMOUNT; n++) {
-        if(FX_SCHED[n][1] == cpuid) {
-            FX_HERE++;
-        }
-    }
     //create structs
-    struct AudioFX FXp[FX_HERE];
+    struct AudioFX FXp[MAX_FX];
 
-    allocFX(FXp, FX_HERE, cpuid);
+    int FX_HERE = allocFX(FXp, cpuid);
 
     // wait until all cores are ready
     allocsDoneP[cpuid] = 1;
@@ -216,16 +263,10 @@ int main() {
 
     // -------------------ALLOCATE FX------------------//
 
-    int FX_HERE = 0; //amount of effects in this core
-    for(int n=0; n<FX_AMOUNT; n++) {
-        if(FX_SCHED[n][1] == cpuid) {
-            FX_HERE++;
-        }
-    }
     //create structs
-    struct AudioFX FXp[FX_HERE];
+    struct AudioFX FXp[MAX_FX];
 
-    allocFX(FXp, FX_HERE, cpuid);
+    int FX_HERE  = allocFX(FXp, cpuid);
 
     // wait until all cores are ready
     allocsDoneP[cpuid] = 1;
@@ -282,7 +323,7 @@ int main() {
             */
         }
 
-        //printf("in: %d, %d       out: %d, %d\n", FXp[0].x[0], FXp[0].x[1], FXp[FX_HERE-1].y[0], FXp[FX_HERE-1].y[1]);
+        //printf("in: %d, %d       out: %d, %d    %d, %d\n", FXp[0].x[0], FXp[0].x[1], FXp[FX_HERE-1].x[0], FXp[FX_HERE-1].x[1], FXp[FX_HERE-1].y[0], FXp[FX_HERE-1].y[1]);
 
 
         //store CPU Cycles
@@ -306,11 +347,11 @@ int main() {
     exit = 1;
     printf("waiting for all threads to finish...\n");
 
-
+    /*
     for(int i=1; i<LIM; i++) {
         printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
-
+    */
 
     /*
     for(int i=0; i<(LIM-WAIT); i++) {

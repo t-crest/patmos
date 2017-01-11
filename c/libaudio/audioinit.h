@@ -176,12 +176,16 @@ const int RECV_ARRAY[FX_AMOUNT][CHAN_AMOUNT] = {
 const int LATENCY = 3;
 */
 
+//total amount of modes
+const int MODES = 2;
 //how many cores take part in the audio system
 const int AUDIO_CORES = 4;
-//how many effects are on the system in total
-const int FX_AMOUNT = 6;
+//how many effects are on each mode
+const int FX_AMOUNT[MODES] = {6, 2, };
+//maximum amount of FX
+const int MAX_FX = 6;
 // FX_ID | CORE | FX_TYPE | XB_SIZE | YB_SIZE | S | IN_TYPE | OUT_TYPE //
-const int FX_SCHED[FX_AMOUNT][8] = {
+const int FX_SCHED_0[6][8] = {
     {0, 0,  0,  32, 32, 1, 0, 2},
     {1, 1,  1,  32, 32, 8, 2, 2},
     {2, 3,  2,  32, 32, 1, 2, 3},
@@ -189,30 +193,57 @@ const int FX_SCHED[FX_AMOUNT][8] = {
     {4, 2, 11,  32, 32, 1, 2, 2},
     {5, 0,  0,  32, 32, 1, 2, 1},
 };
-//amount of NoC channels (NoC or same core!!)
-const int CHAN_AMOUNT = 6;
+const int FX_SCHED_1[2][8] = {
+    {0, 0,  0, 16, 16, 1, 0, 3},
+    {1, 0,  6, 16, 16, 1, 3, 1},
+};
+//pointer to schedules
+const int *FX_SCHED_P[MODES] = {
+    (const int *)FX_SCHED_0,
+    (const int *)FX_SCHED_1,
+};
+//amount of NoC channels (NoC or same core!!) ON ALL MODES
+const int CHAN_AMOUNT = 7;
 //amount of buffers on each NoC channel ID
 const int CHAN_BUF_AMOUNT[CHAN_AMOUNT] = { 2, 2, 2, 2, 2, 2, };
 // column: FX_ID source   ,   row: CHAN_ID dest
-const int SEND_ARRAY[FX_AMOUNT][CHAN_AMOUNT] = {
-    {1, 1, 0, 0, 0, 0, },
-    {0, 0, 1, 0, 0, 0, },
-    {0, 0, 0, 1, 0, 0, },
-    {0, 0, 0, 0, 1, 0, },
-    {0, 0, 0, 0, 0, 1, },
-    {0, 0, 0, 0, 0, 0, },
+const int SEND_ARRAY_0[6][CHAN_AMOUNT] = {
+    {1, 1, 0, 0, 0, 0, 0, },
+    {0, 0, 1, 0, 0, 0, 0, },
+    {0, 0, 0, 1, 0, 0, 0, },
+    {0, 0, 0, 0, 1, 0, 0, },
+    {0, 0, 0, 0, 0, 1, 0, },
+    {0, 0, 0, 0, 0, 0, 0, },
+};
+const int SEND_ARRAY_1[2][CHAN_AMOUNT] = {
+    {0, 0, 0, 0, 0, 0, 1, },
+    {0, 0, 0, 0, 0, 0, 0, },
+};
+//pointer to send arrays
+const int *SEND_ARRAY_P[MODES] = {
+    (const int *)SEND_ARRAY_0,
+    (const int *)SEND_ARRAY_1,
 };
 // column: FX_ID dest   ,   row: CHAN_ID source
-const int RECV_ARRAY[FX_AMOUNT][CHAN_AMOUNT] = {
-    {0, 0, 0, 0, 0, 0, },
-    {1, 0, 0, 0, 0, 0, },
-    {0, 1, 0, 0, 0, 0, },
-    {0, 0, 0, 1, 0, 0, },
-    {0, 0, 1, 0, 1, 0, },
-    {0, 0, 0, 0, 0, 1, },
+const int RECV_ARRAY_0[6][CHAN_AMOUNT] = {
+    {0, 0, 0, 0, 0, 0, 0, },
+    {1, 0, 0, 0, 0, 0, 0, },
+    {0, 1, 0, 0, 0, 0, 0, },
+    {0, 0, 0, 1, 0, 0, 0, },
+    {0, 0, 1, 0, 1, 0, 0, },
+    {0, 0, 0, 0, 0, 1, 0, },
+};
+const int RECV_ARRAY_1[2][CHAN_AMOUNT] = {
+    {0, 0, 0, 0, 0, 0, 0, },
+    {0, 0, 0, 0, 0, 0, 1, },
+};
+//pointer to receive arrays
+const int *RECV_ARRAY_P[MODES] = {
+    (const int *)RECV_ARRAY_0,
+    (const int *)RECV_ARRAY_1,
 };
 //latency from input to output in samples (without considering NoC)
-const int LATENCY = 4;
+const int LATENCY[MODES] = {4, 0};
 
 /*
 //how many cores take part in the audio system
