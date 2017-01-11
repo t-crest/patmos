@@ -1019,7 +1019,7 @@ int audio_process(struct AudioFX *audioP) {
                     }
                 }
                 //update X pointer after each recv
-                xP = (volatile _SPM short *)*(_SPM unsigned int *)*(audioP->x_pnt+0/*((*audioP->recv_am)-1)*/);
+                xP = (volatile _SPM short *)*(_SPM unsigned int *)*(audioP->x_pnt+0);
                 //after receiving, add all signals into recvChanel[0]
                 int shift_am = *audioP->recv_am - 1;
                 for(int i=1; i<(*audioP->recv_am); i++) {
@@ -1030,7 +1030,6 @@ int audio_process(struct AudioFX *audioP) {
                         xP[2*j+1] = (xP[2*j+1]>>shift_am) + (xnxtP[2*j+1]>>shift_am);
                     }
                 }
-
             }
             else { //same core
                 if( (*audioP->cpuid == 0) && (*audioP->in_con == FIRST) ) {
@@ -1170,13 +1169,24 @@ int audio_process(struct AudioFX *audioP) {
     case XgY:
         //RECEIVE ONCE
         if(*audioP->in_con == NOC) { //receive from NoC
-            if(mp_recv((qpd_t *)*(audioP->recvChanP+0), TIMEOUT) == 0) {
-                //printf("RECV TIMED OUT!\n");
-                retval = 1;
+            //receive from all recv channels
+            for(int i=0; i<*audioP->recv_am; i++) {
+                if(mp_recv((qpd_t *)*(audioP->recvChanP+i), TIMEOUT) == 0) {
+                    retval = 1;
+                }
             }
             //update X pointer after each recv
             xP = (volatile _SPM short *)*(_SPM unsigned int *)*(audioP->x_pnt+0);
-            //xP = ((qpd_t *)*audioP->recvChanP)->read_buf;
+            //after receiving, add all signals into recvChanel[0]
+            int shift_am = *audioP->recv_am - 1;
+            for(int i=1; i<(*audioP->recv_am); i++) {
+                volatile _SPM short * xnxtP =
+                    (volatile _SPM short *)*(_SPM unsigned int *)*(audioP->x_pnt+i);
+                for(int j=0; j<(*audioP->xb_size); j++) {
+                    xP[2*j]   = (xP[2*j]>>shift_am)   + (xnxtP[2*j]>>shift_am);
+                    xP[2*j+1] = (xP[2*j+1]>>shift_am) + (xnxtP[2*j+1]>>shift_am);
+                }
+            }
         }
         //REPEAT SPR TIMES:
         for(unsigned int j=0;j<*audioP->spr; j++) {
@@ -1263,16 +1273,18 @@ int audio_process(struct AudioFX *audioP) {
             //ACK: ONLY ONCE AT THE END
             if(j == (*audioP->spr - 1)) {
                 if(*audioP->in_con == NOC) {
-                    if(mp_ack((qpd_t *)*(audioP->recvChanP+0), TIMEOUT) == 0) {
-                        //printf("ACK TIMED OUT!\n");
-                        retval = 1;
+                    //acknowledge to all recv channels
+                    for(int i=0; i<*audioP->recv_am; i++) {
+                        if(mp_ack((qpd_t *)*(audioP->recvChanP+i), TIMEOUT) == 0) {
+                            retval = 1;
+                        }
                     }
                 }
             }
             //SEND ONCE
             if(*audioP->out_con == NOC) { //send to NoC
                 //before sending, copy send data to all send channel buffers
-                for(int i=1; i<*audioP->send_am; i++) {
+                for(int i=1; i<(*audioP->send_am); i++) {
                     volatile _SPM short * ynxtP =
                         (volatile _SPM short *)*(_SPM unsigned int *)*(audioP->y_pnt+i);
                     for(int j=0; j<(*audioP->yb_size); j++) {
@@ -1283,13 +1295,11 @@ int audio_process(struct AudioFX *audioP) {
                 //send to all send channels
                 for(int i=0; i<*audioP->send_am; i++) {
                     if(mp_send((qpd_t *)*(audioP->sendChanP+i), TIMEOUT) == 0) {
-                        //printf("SEND TIMED OUT!\n");
                         retval = 1;
                     }
                 }
                 //update Y pointer after each send
                 yP = (volatile _SPM short *)*(_SPM unsigned int *)*(audioP->y_pnt+0);
-                //yP = ((qpd_t *)*audioP->sendChanP)->write_buf;
             }
         }
         break;
@@ -1298,13 +1308,24 @@ int audio_process(struct AudioFX *audioP) {
         for(unsigned int j=0; j<*audioP->rpr; j++) {
             //RECEIVE ONCE
             if(*audioP->in_con == NOC) { //receive from NoC
-                if(mp_recv((qpd_t *)*(audioP->recvChanP+0), TIMEOUT) == 0) {
-                    //printf("RECV TIMED OUT!\n");
-                    retval = 1;
+                //receive from all recv channels
+                for(int i=0; i<*audioP->recv_am; i++) {
+                    if(mp_recv((qpd_t *)*(audioP->recvChanP+i), TIMEOUT) == 0) {
+                        retval = 1;
+                    }
                 }
                 //update X pointer after each recv
                 xP = (volatile _SPM short *)*(_SPM unsigned int *)*(audioP->x_pnt+0);
-                //xP = ((qpd_t *)*audioP->recvChanP)->read_buf;
+                //after receiving, add all signals into recvChanel[0]
+                int shift_am = *audioP->recv_am - 1;
+                for(int i=1; i<(*audioP->recv_am); i++) {
+                    volatile _SPM short * xnxtP =
+                        (volatile _SPM short *)*(_SPM unsigned int *)*(audioP->x_pnt+i);
+                    for(int j=0; j<(*audioP->xb_size); j++) {
+                        xP[2*j]   = (xP[2*j]>>shift_am)   + (xnxtP[2*j]>>shift_am);
+                        xP[2*j+1] = (xP[2*j+1]>>shift_am) + (xnxtP[2*j+1]>>shift_am);
+                    }
+                }
             }
             //PROCESS PPSR TIMES
             offs = 2 * j * (*audioP->xb_size);
@@ -1388,16 +1409,18 @@ int audio_process(struct AudioFX *audioP) {
             }
             //ACK ONCE
             if(*audioP->in_con == NOC) {
-                if(mp_ack((qpd_t *)*(audioP->recvChanP+0), TIMEOUT) == 0) {
-                    //printf("ACK TIMED OUT!\n");
-                    retval = 1;
+                //acknowledge to all recv channels
+                for(int i=0; i<*audioP->recv_am; i++) {
+                    if(mp_ack((qpd_t *)*(audioP->recvChanP+i), TIMEOUT) == 0) {
+                        retval = 1;
+                    }
                 }
             }
         }
         //SEND ONCE
         if(*audioP->out_con == NOC) { //send to NoC
             //before sending, copy send data to all send channel buffers
-            for(int i=1; i<*audioP->send_am; i++) {
+            for(int i=1; i<(*audioP->send_am); i++) {
                 volatile _SPM short * ynxtP =
                     (volatile _SPM short *)*(_SPM unsigned int *)*(audioP->y_pnt+i);
                 for(int j=0; j<(*audioP->yb_size); j++) {
@@ -1406,9 +1429,8 @@ int audio_process(struct AudioFX *audioP) {
                 }
             }
             //send to all send channels
-            for(int i=0; i<*audioP->send_am; i++) {
-                if(mp_send((qpd_t *)*(audioP->sendChanP+0), TIMEOUT) == 0) {
-                    //printf("SEND TIMED OUT!\n");
+            for(int i=0; i<(*audioP->send_am); i++) {
+                if(mp_send((qpd_t *)*(audioP->sendChanP+i), TIMEOUT) == 0) {
                     retval = 1;
                 }
             }

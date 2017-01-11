@@ -306,11 +306,11 @@ int main() {
     exit = 1;
     printf("waiting for all threads to finish...\n");
 
-    /*
+
     for(int i=1; i<LIM; i++) {
         printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
-    */
+
 
     /*
     for(int i=0; i<(LIM-WAIT); i++) {
