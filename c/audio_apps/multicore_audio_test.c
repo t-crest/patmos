@@ -182,7 +182,8 @@ void threadFunc(void* args) {
     // -------------------ALLOCATE FX------------------//
 
     //create structs
-    struct AudioFX FXp[MAX_FX];
+    //struct AudioFX FXp[MAX_FX];
+    struct AudioFX *FXp = malloc(sizeof(struct AudioFX) * MAX_FX);
 
     int FX_HERE = allocFX(FXp, cpuid);
 
@@ -264,7 +265,8 @@ int main() {
     // -------------------ALLOCATE FX------------------//
 
     //create structs
-    struct AudioFX FXp[MAX_FX];
+    //struct AudioFX FXp[MAX_FX];
+    struct AudioFX *FXp = malloc(sizeof(struct AudioFX) * MAX_FX);
 
     int FX_HERE  = allocFX(FXp, cpuid);
 
