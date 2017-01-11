@@ -657,7 +657,7 @@ int audio_distortion(_SPM struct Distortion *distP, volatile _SPM short *xP, vol
     return 0;
 }
 
-int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_con, con_t out_con, unsigned int RECV_AM, unsigned int SEND_AM, unsigned int IN_SIZE, unsigned int OUT_SIZE, unsigned int P_AMOUNT) {
+int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_con, con_t out_con, unsigned int RECV_AM, unsigned int SEND_AM, unsigned int IN_SIZE, unsigned int OUT_SIZE, unsigned int P_AMOUNT, unsigned int LAT) {
     /*
       LOCATION IN SPM
     */
@@ -719,20 +719,23 @@ int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_c
         const unsigned int ADDR_Y          = LAST_ADDR;
         const unsigned int ADDR_LAST_INIT  = ADDR_Y          + OUT_SIZE * 2 * sizeof(short);
         const unsigned int ADDR_LAST_COUNT = ADDR_LAST_INIT  + sizeof(int);
-        LAST_ADDR                          = ADDR_LAST_COUNT + sizeof(unsigned int);
+        const unsigned int ADDR_LATENCY    = ADDR_LAST_COUNT + sizeof(unsigned int);
+        LAST_ADDR                          = ADDR_LATENCY    + sizeof(unsigned int);
         //SPM variables
         audioP->y          = ( volatile _SPM short *)        ADDR_Y;
         audioP->last_init  = ( _SPM int * )         ADDR_LAST_INIT;
         audioP->last_count = ( _SPM unsigned int *) ADDR_LAST_COUNT;
+        audioP->latency    = ( _SPM unsigned int *) ADDR_LATENCY;
         //init values
         *(audioP->y_pnt+0)      = (unsigned int)audioP->y; // = ADDR_Y;
-        if(LATENCY[current_mode] == 0) {
+        if(LAT == 0) {
             *audioP->last_init = 0;
         }
         else {
             *audioP->last_init  = 1; //start: wait for latency
         }
         *audioP->last_count = 0; //start counting from 0
+        *audioP->latency = LAT;
     }
     else {
         if(*audioP->out_con == NOC) { //NoC
@@ -1160,7 +1163,7 @@ int audio_process(struct AudioFX *audioP) {
         else {
             *audioP->last_count = *audioP->last_count + 1;
             //printf("increasing last_count, now is %u\n", *audioP->last_count);
-            if(*audioP->last_count == LATENCY[current_mode]) {
+            if(*audioP->last_count == *audioP->latency) {
                 *audioP->last_init = 0;
                 //printf("latency limit reached!\n");
             }

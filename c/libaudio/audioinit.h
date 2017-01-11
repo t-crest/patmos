@@ -243,7 +243,7 @@ const int *RECV_ARRAY_P[MODES] = {
     (const int *)RECV_ARRAY_1,
 };
 //latency from input to output in samples (without considering NoC)
-const int LATENCY[MODES] = {4, 0};
+const unsigned int LATENCY[MODES] = {4, 0};
 
 /*
 //how many cores take part in the audio system

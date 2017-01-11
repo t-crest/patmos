@@ -118,7 +118,7 @@ int     setInputBufferSize(int bufferSize);
   GENERAL
 */
 
-unsigned int current_mode = 1; // [MODES]
+unsigned int current_mode = 0; // [MODES]
 
 //DEBUG STUFF
 //const int DEBUG_ELEMENTS = 4;
@@ -175,10 +175,11 @@ struct AudioFX {
     _SPM int *last_init;
     //Latency counter (from input to output)
     _SPM unsigned int *last_count;
+    _SPM unsigned int *latency;
 };
 
 //audio FX SPM allocation
-int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_con, con_t out_con, unsigned int RECV_AM, unsigned int SEND_AM, unsigned int IN_SIZE, unsigned int OUT_SIZE, unsigned int P_AMOUNT);
+int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_con, con_t out_con, unsigned int RECV_AM, unsigned int SEND_AM, unsigned int IN_SIZE, unsigned int OUT_SIZE, unsigned int P_AMOUNT, unsigned int LAT);
 
 int free_audio_vars(struct AudioFX *audioP);
 
