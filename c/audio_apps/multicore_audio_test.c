@@ -5,7 +5,7 @@ const int LIM = 1000;
 //master core
 const int NOC_MASTER = 0;
 
-int *allocFX(struct AudioFX *FXp, int *FX_HERE, int cpuid, int mode) {
+int allocFX(struct AudioFX *FXp, int *FX_HERE, int cpuid, int mode) {
 
     //read current FX_SCHED, SEND_ARRAY and RECV_ARRAY
     int FX_SCHED[MAX_FX][8];
@@ -21,7 +21,7 @@ int *allocFX(struct AudioFX *FXp, int *FX_HERE, int cpuid, int mode) {
         }
     }
 
-
+    /*
     printf("FX_SCHED[%d][8] = {\n", FX_AMOUNT[mode]);
     for(int fx=0; fx<FX_AMOUNT[mode]; fx++) {
         printf("  { ");
@@ -51,7 +51,7 @@ int *allocFX(struct AudioFX *FXp, int *FX_HERE, int cpuid, int mode) {
         printf(" },\n");
     }
     printf("};\n");
-
+    */
 
     //struct parameters:
     int fx_id;
@@ -119,7 +119,9 @@ int *allocFX(struct AudioFX *FXp, int *FX_HERE, int cpuid, int mode) {
         //NoC
         if(*FXp[n].in_con == NOC) {
             for(int r=0; r<*FXp[n].recv_am; r++) {
-                audio_connect_from_core(recvChanID[r], &FXp[n], r);
+                if(audio_connect_from_core(recvChanID[r], &FXp[n], r) == 1) {
+                    return 1;
+                }
                 if(cpuid == 0) {
                     printf("Connected NoC Chanel ID %d to FX ID %d\n", recvChanID[r], *FXp[n].fx_id);
                 }
@@ -127,7 +129,9 @@ int *allocFX(struct AudioFX *FXp, int *FX_HERE, int cpuid, int mode) {
         }
         if(*FXp[n].out_con == NOC) {
             for(int s=0; s<*FXp[n].send_am; s++) {
-                audio_connect_to_core(&FXp[n], sendChanID[s], s);
+                if(audio_connect_to_core(&FXp[n], sendChanID[s], s) == 1) {
+                    return 1;
+                }
                 if(cpuid == 0) {
                     printf("Connected FX ID %d to NoC Chanel ID %d\n", *FXp[n].fx_id, sendChanID[s]);
                 }
@@ -141,7 +145,9 @@ int *allocFX(struct AudioFX *FXp, int *FX_HERE, int cpuid, int mode) {
                 if( (m != n) && (*FXp[m].in_con == SAME) &&
                     (RECV_ARRAY[*FXp[m].fx_id][sendChanID[0]] == 1) ) { //there is just one output
                     con_same_bool = 1; //connection found!
-                    audio_connect_same_core(&FXp[n], &FXp[m]);
+                    if(audio_connect_same_core(&FXp[n], &FXp[m]) == 1) {
+                        return 1;
+                    }
                     if(cpuid == 0) {
                         printf("Connected FX ID %d to FX ID %d\n", *FXp[n].fx_id, *FXp[m].fx_id);
                     }
@@ -150,6 +156,7 @@ int *allocFX(struct AudioFX *FXp, int *FX_HERE, int cpuid, int mode) {
             }
             if( (cpuid == 0) && (con_same_bool == 0) ) {
                 printf("ERROR: Same core connection mismatch: no destination found\n");
+                return 1;
             }
         }
 
@@ -169,14 +176,9 @@ void threadFunc(void* args) {
     volatile _UNCACHED int *current_modeP = inArgs[1];
     volatile _UNCACHED int *allocsDoneP = inArgs[2];
 
-
-    /*
-      AUDIO STUFF HERE
-    */
+    // -------------------ALLOCATE FX------------------//
 
     int cpuid = get_cpuid();
-
-    // -------------------ALLOCATE FX------------------//
 
     //create structs
     struct AudioFX FXp[MODES][MAX_FX];
@@ -186,7 +188,9 @@ void threadFunc(void* args) {
 
     //iterate through modes
     for(int mode=0; mode<MODES; mode++) {
-        allocFX(FXp[mode], FX_HERE, cpuid, mode);
+        if(allocFX(FXp[mode], FX_HERE, cpuid, mode) == 1) {
+            *exitP = 1;
+        }
     }
 
     // wait until all cores are ready
@@ -202,6 +206,8 @@ void threadFunc(void* args) {
     //copy of current_mode in the SPM
     _SPM unsigned int *cmode_spm;
     cmode_spm = (_SPM unsigned int *) mp_alloc(sizeof(unsigned int));
+
+    //-------------------PROCESS AUDIO------------------//
 
     //loop
     //audioValuesP[0] = 0;
@@ -250,12 +256,22 @@ int main() {
     threadFunc_args[1] = current_modeP;
     threadFunc_args[2] = allocsDoneP;
 
+
+    //check if amount of FX cores exceeds available cores
+    if(AUDIO_CORES > NOC_CORES) {
+        printf("ERROR: need %d audio cores, but current platform has %d\n", AUDIO_CORES, NOC_CORES);
+        exit = 1;
+    }
+
     printf("starting thread and NoC channels...\n");
     //set thread function and start thread
     corethread_t threads[AUDIO_CORES-1];
     for(int i=0; i<(AUDIO_CORES-1); i++) {
         threads[i] = (corethread_t) (i+1);
-        corethread_create(&threads[i], &threadFunc, (void*) threadFunc_args);
+        if (corethread_create(&threads[i], &threadFunc, (void*) threadFunc_args) != 0) {
+            printf("ERROR: Thread %d was not creaded correctly\n", i+1);
+            exit = 1;
+        }
         printf("Thread created on core %d\n", i+1);
     }
 
@@ -265,17 +281,23 @@ int main() {
     setup(0); //for volca
     #endif
 
-    // enable input and output
-    *audioDacEnReg = 1;
+    // enable input
     *audioAdcEnReg = 1;
+    //let input buffer fill in before starting to output
+    for(unsigned int i=0; i<(BUFFER_SIZE * 1536); i++) { //wait for BUFFER_SIZE samples
+        *audioDacEnReg = 0;
+    }
+    //finally, enable output
+    *audioDacEnReg = 1;
 
     setInputBufferSize(BUFFER_SIZE);
     setOutputBufferSize(BUFFER_SIZE);
 
 
-    int cpuid = get_cpuid();
 
     // -------------------ALLOCATE FX------------------//
+
+    int cpuid = get_cpuid();
 
     //create structs
     struct AudioFX FXp[MODES][MAX_FX];
@@ -285,25 +307,32 @@ int main() {
 
     //iterate through modes
     for(int mode=0; mode<MODES; mode++) {
-        allocFX(FXp[mode], FX_HERE, cpuid, mode);
+        if(allocFX(FXp[mode], FX_HERE, cpuid, mode) == 1) {
+            printf("ERROR DURING FX ALLOCATION\n");
+            exit = 1;
+        }
     }
 
     // wait until all cores are ready
     allocsDoneP[cpuid] = 1;
     for(int i=0; i<AUDIO_CORES; i++) {
-        while(allocsDoneP[i] == 0);
-        printf("core %d alloc done\n", i);
+        if(*exitP == 0) {
+            while(allocsDoneP[i] == 0);
+            printf("core %d alloc done\n", i);
+        }
     }
 
-    printf("gonna initialise NoC channels...\n");
 
     // Initialize the communication channels
-    int nocret = mp_init_ports();
-    if(nocret == 1) {
-        printf("Thread and NoC initialised correctly\n");
-    }
-    else {
-        printf("ERROR: Problem with NoC initialisation\n");
+    if(*exitP == 0) {
+        printf("gonna initialise NoC channels...\n");
+        if(mp_init_ports() == 1) {
+            printf("Thread and NoC initialised correctly\n");
+        }
+        else {
+            printf("ERROR: Problem with NoC initialisation\n");
+            exit = 1;
+        }
     }
 
     /*
@@ -329,43 +358,58 @@ int main() {
     keyReg_prev = (_SPM unsigned int *) mp_alloc(sizeof(unsigned int));
     *keyReg_prev = *keyReg;
 
-    while(*keyReg != 3) {
+    //only process if all initialisation was done correctly
+    if(*exitP == 0) {
+    //-------------------PROCESS AUDIO------------------//
 
-        //check if there is a mode change
-        if( (*keyReg == 14) && (*keyReg != *keyReg_prev) ) {
-            *current_modeP = (*current_modeP + 1) % MODES;
+        while(*keyReg != 3) {
+
+            //check if there is a mode change
+            if( (*keyReg == 14) && (*keyReg != *keyReg_prev) ) {
+                *current_modeP = (*current_modeP + 1) % MODES;
+                printf("mode: %d\n", *current_modeP);
+            }
+            if( (*keyReg == 13) && (*keyReg != *keyReg_prev) ) {
+                if(*current_modeP == 0) {
+                    *current_modeP = MODES - 1;
+                }
+                else {
+                    *current_modeP = (*current_modeP - 1) % MODES;
+                }
+                printf("mode: %d\n", *current_modeP);
+            }
+            *keyReg_prev = *keyReg;
+
+            //update current mode SPM
+            *cmode_spm = *current_modeP;
+
+            for(int n=0; n<FX_HERE[*cmode_spm]; n++) {
+                audio_process(&FXp[*cmode_spm][n]);
+                /*
+                  if(n==0) {
+                  audio_in[cpu_pnt][0] = FXp[n].x[0];
+                  audio_in[cpu_pnt][1] = FXp[n].x[1];
+                  }
+                  if(n==(FX_HERE-1)) {
+                  audio_out[cpu_pnt-WAIT][0] = FXp[n].y[0];
+                  audio_out[cpu_pnt-WAIT][1] = FXp[n].y[1];
+                  }
+                */
+            }
+
+            //printf("in: %d, %d       out: %d, %d    %d, %d\n", FXp[0].x[0], FXp[0].x[1], FXp[FX_HERE-1].x[0], FXp[FX_HERE-1].x[1], FXp[FX_HERE-1].y[0], FXp[FX_HERE-1].y[1]);
+
+
+            //store CPU Cycles
+            CPUcycles[cpu_pnt] = get_cpu_cycles();
+            cpu_pnt++;
+            if(cpu_pnt == LIM) {
+                //break;
+                cpu_pnt = 0;
+            }
+
+
         }
-        *keyReg_prev = *keyReg;
-
-        //update current mode SPM
-        *cmode_spm = *current_modeP;
-
-        for(int n=0; n<FX_HERE[*cmode_spm]; n++) {
-            audio_process(&FXp[*cmode_spm][n]);
-            /*
-              if(n==0) {
-              audio_in[cpu_pnt][0] = FXp[n].x[0];
-              audio_in[cpu_pnt][1] = FXp[n].x[1];
-              }
-              if(n==(FX_HERE-1)) {
-              audio_out[cpu_pnt-WAIT][0] = FXp[n].y[0];
-              audio_out[cpu_pnt-WAIT][1] = FXp[n].y[1];
-              }
-            */
-        }
-
-        //printf("in: %d, %d       out: %d, %d    %d, %d\n", FXp[0].x[0], FXp[0].x[1], FXp[FX_HERE-1].x[0], FXp[FX_HERE-1].x[1], FXp[FX_HERE-1].y[0], FXp[FX_HERE-1].y[1]);
-
-
-        //store CPU Cycles
-        CPUcycles[cpu_pnt] = get_cpu_cycles();
-        cpu_pnt++;
-        if(cpu_pnt == LIM) {
-            //break;
-            cpu_pnt = 0;
-        }
-
-
     }
 
     //free memory allocation
