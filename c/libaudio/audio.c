@@ -957,9 +957,11 @@ int audio_connect_to_core(struct AudioFX *srcP, const unsigned int sendChanID, u
         }
         *(srcP->sendChanP+s_ind) = (unsigned int)thisPort;
         *(srcP->y_pnt+s_ind) = (int)&((qpd_t *)*(srcP->sendChanP+s_ind))->write_buf;
+        /*
         if(get_cpuid() == 0) {
             printf("y_pnt[%d] address and sendChanP[%d] set\n", s_ind, s_ind);
         }
+        */
         return 0;
     }
 }
@@ -982,9 +984,11 @@ int audio_connect_from_core(const unsigned int recvChanID, struct AudioFX *dstP,
         }
         *(dstP->recvChanP+r_ind) = (unsigned int)thisPort;
         *(dstP->x_pnt+r_ind) = (int)&((qpd_t *)*(dstP->recvChanP+r_ind))->read_buf;
+        /*
         if(get_cpuid() == 0) {
             printf("x_pnt[%d] address and recvChanP[%d] set\n", r_ind, r_ind);
         }
+        */
         return 0;
     }
 }

@@ -92,7 +92,7 @@ int allocFX(struct AudioFX *FXp, int *FX_HERE, int cpuid, int mode,
             if(alloc_audio_vars(&FXp[fx_ind], fx_id, fx_type, in_con,
                     out_con, recv_am, send_am, xb_size, yb_size, p, LATENCY[mode]) == 1) {
                 if(cpuid == 0) {
-                    printf("allocation failed: not enough space on SPM\n");
+                    printf("ERROR: allocation failed: not enough space on SPM\n");
                 }
                 return 1;
             }
@@ -188,13 +188,15 @@ void threadFunc(void* args) {
     volatile _UNCACHED int *send_chans_conP = inArgs[2+AUDIO_CORES];
     volatile _UNCACHED int *recv_chans_conP = inArgs[3+AUDIO_CORES];
 
+
+    *ledReg = 0;
+
     // -------------------ALLOCATE FX------------------//
 
     int cpuid = get_cpuid();
 
     //create structs
-    struct AudioFX FXp[MODES][MAX_FX];
-    //struct AudioFX *FXp = malloc(sizeof(struct AudioFX) * MAX_FX);
+    struct AudioFX FXp[MODES][MAX_FX_PER_CORE[cpuid]];
 
     int FX_HERE[MODES] = {0};
 
@@ -207,6 +209,7 @@ void threadFunc(void* args) {
 
     // wait until all cores are ready
     allocsDoneP[cpuid] = 1;
+    *ledReg = 1;
     for(int i=0; i<AUDIO_CORES; i++) {
         while(allocsDoneP[i] == 0);
     }
@@ -249,6 +252,7 @@ void threadFunc(void* args) {
 
     // exit with return value
     int ret = 0;
+    *ledReg = 0;
     corethread_exit(&ret);
     return;
 }
@@ -274,6 +278,7 @@ int main() {
     threadFunc_args[2+AUDIO_CORES] = send_chans_conP;
     threadFunc_args[3+AUDIO_CORES] = recv_chans_conP;
 
+    *ledReg = 0;
 
     //check if amount of FX cores exceeds available cores
     if(AUDIO_CORES > NOC_CORES) {
@@ -318,13 +323,13 @@ int main() {
     int cpuid = get_cpuid();
 
     //create structs
-    struct AudioFX FXp[MODES][MAX_FX];
-    //struct AudioFX *FXp = malloc(sizeof(struct AudioFX) * MAX_FX);
+    struct AudioFX FXp[MODES][MAX_FX_PER_CORE[cpuid]];
 
     int FX_HERE[MODES] = {0};
 
     //iterate through modes
     for(int mode=0; mode<MODES; mode++) {
+        printf("**\n**************** ALLOCATING FX OF MODE %d ****************\n**\n", mode);
         if(allocFX(FXp[mode], FX_HERE, cpuid, mode, send_chans_conP, recv_chans_conP) == 1) {
             printf("ERROR DURING FX ALLOCATION\n");
             exit = 1;
@@ -333,12 +338,14 @@ int main() {
 
     // wait until all cores are ready
     allocsDoneP[cpuid] = 1;
+    *ledReg = 1;
+    printf("waiting for all cores to finish allocation... (look at the LEDs)\n");
     for(int i=0; i<AUDIO_CORES; i++) {
         if(*exitP == 0) {
             while(allocsDoneP[i] == 0);
-            printf("core %d alloc done\n", i);
         }
     }
+    printf("all cores finished allocation!\n");
 
     //check if all NoC channels have been connected correctly
     if(*exitP == 0) {
@@ -395,6 +402,7 @@ int main() {
     }
     if(*exitP == 0) {
     //-------------------PROCESS AUDIO------------------//
+        printf("READY TO PLAY!!!!\n");
 
         while(*keyReg != 3) {
 
@@ -458,11 +466,11 @@ int main() {
     exit = 1;
     printf("waiting for all threads to finish...\n");
 
-    /*
+
     for(int i=1; i<LIM; i++) {
         printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
-    */
+
 
     /*
     for(int i=0; i<(LIM-WAIT); i++) {
@@ -479,6 +487,8 @@ int main() {
         corethread_join(threads[i], (void **)&retval);
         printf("thread %d finished!\n", (i+1));
     }
+
+    *ledReg = 0;
 
     return 0;
 }
