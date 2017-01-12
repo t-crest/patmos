@@ -410,6 +410,9 @@ int main() {
             if( (*keyReg == 14) && (*keyReg != *keyReg_prev) ) {
                 *current_modeP = (*current_modeP + 1) % MODES;
                 printf("mode: %d\n", *current_modeP);
+                //restore latency
+                //*FXp[FX_HERE[*cmode_spm]-1]->last_count = 0;
+                //*FXp[FX_HERE[*cmode_spm]-1]->last_init = 1;
             }
             if( (*keyReg == 13) && (*keyReg != *keyReg_prev) ) {
                 if(*current_modeP == 0) {
