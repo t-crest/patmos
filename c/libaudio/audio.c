@@ -875,7 +875,6 @@ int alloc_audio_vars(struct AudioFX *audioP, int FX_ID, fx_t FX_TYPE, con_t in_c
         //nothing to do
         break;
     }
-
     //update spm_alloc
     int retval = alloc_space(BASE_ADDR, LAST_ADDR);
 
@@ -948,8 +947,15 @@ int audio_connect_to_core(struct AudioFX *srcP, const unsigned int sendChanID, u
         return 1;
     }
     else {
-        *(srcP->sendChanP+s_ind) = (unsigned int)mp_create_qport(sendChanID, SOURCE,
+        qpd_t * thisPort = mp_create_qport(sendChanID, SOURCE,
             (*srcP->yb_size * 4), CHAN_BUF_AMOUNT[sendChanID]); // ID, yb_size * 4 bytes, buf amount
+        if(thisPort == NULL) {
+            if(get_cpuid() == 0) {
+                printf("ERROR: mp_create_qport failed for DESTINATION %d\n", sendChanID);
+            }
+            return 1;
+        }
+        *(srcP->sendChanP+s_ind) = (unsigned int)thisPort;
         *(srcP->y_pnt+s_ind) = (int)&((qpd_t *)*(srcP->sendChanP+s_ind))->write_buf;
         if(get_cpuid() == 0) {
             printf("y_pnt[%d] address and sendChanP[%d] set\n", s_ind, s_ind);
@@ -966,8 +972,15 @@ int audio_connect_from_core(const unsigned int recvChanID, struct AudioFX *dstP,
         return 1;
     }
     else {
-        *(dstP->recvChanP+r_ind) = (unsigned int)mp_create_qport(recvChanID, SINK,
+        qpd_t * thisPort = mp_create_qport(recvChanID, SINK,
             (*dstP->xb_size * 4), CHAN_BUF_AMOUNT[recvChanID]); // ID, xb_size * 4 bytes, buf amount
+        if(thisPort == NULL) {
+            if(get_cpuid() == 0) {
+                printf("ERROR: mp_create_qport failed for SINK %d\n", recvChanID);
+            }
+            return 1;
+        }
+        *(dstP->recvChanP+r_ind) = (unsigned int)thisPort;
         *(dstP->x_pnt+r_ind) = (int)&((qpd_t *)*(dstP->recvChanP+r_ind))->read_buf;
         if(get_cpuid() == 0) {
             printf("x_pnt[%d] address and recvChanP[%d] set\n", r_ind, r_ind);

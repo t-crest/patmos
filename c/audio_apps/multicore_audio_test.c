@@ -5,7 +5,8 @@ const int LIM = 1000;
 //master core
 const int NOC_MASTER = 0;
 
-int allocFX(struct AudioFX *FXp, int *FX_HERE, int cpuid, int mode) {
+int allocFX(struct AudioFX *FXp, int *FX_HERE, int cpuid, int mode,
+    volatile _UNCACHED int *send_chans_conP, volatile _UNCACHED int *recv_chans_conP) {
 
     //read current FX_SCHED, SEND_ARRAY and RECV_ARRAY
     int FX_SCHED[MAX_FX][8];
@@ -88,8 +89,13 @@ int allocFX(struct AudioFX *FXp, int *FX_HERE, int cpuid, int mode) {
             if(recv_am == 0) { recv_am = 1; } //there is always at least 1
             if(send_am == 0) { send_am = 1; } //there is always at least 1
             //allocate
-            alloc_audio_vars(&FXp[fx_ind], fx_id, fx_type, in_con,
-                out_con, recv_am, send_am, xb_size, yb_size, p, LATENCY[mode]);
+            if(alloc_audio_vars(&FXp[fx_ind], fx_id, fx_type, in_con,
+                    out_con, recv_am, send_am, xb_size, yb_size, p, LATENCY[mode]) == 1) {
+                if(cpuid == 0) {
+                    printf("allocation failed: not enough space on SPM\n");
+                }
+                return 1;
+            }
             fx_ind++;
         }
     }
@@ -125,6 +131,7 @@ int allocFX(struct AudioFX *FXp, int *FX_HERE, int cpuid, int mode) {
                 if(cpuid == 0) {
                     printf("Connected NoC Chanel ID %d to FX ID %d\n", recvChanID[r], *FXp[n].fx_id);
                 }
+                *recv_chans_conP += 1;
             }
         }
         if(*FXp[n].out_con == NOC) {
@@ -135,6 +142,7 @@ int allocFX(struct AudioFX *FXp, int *FX_HERE, int cpuid, int mode) {
                 if(cpuid == 0) {
                     printf("Connected FX ID %d to NoC Chanel ID %d\n", *FXp[n].fx_id, sendChanID[s]);
                 }
+                *send_chans_conP += 1;
             }
         }
         //same core
@@ -151,6 +159,8 @@ int allocFX(struct AudioFX *FXp, int *FX_HERE, int cpuid, int mode) {
                     if(cpuid == 0) {
                         printf("Connected FX ID %d to FX ID %d\n", *FXp[n].fx_id, *FXp[m].fx_id);
                     }
+                    *send_chans_conP += 1;
+                    *recv_chans_conP += 1;
                     break;
                 }
             }
@@ -172,9 +182,11 @@ int allocFX(struct AudioFX *FXp, int *FX_HERE, int cpuid, int mode) {
 
 void threadFunc(void* args) {
     volatile _UNCACHED int **inArgs = (volatile _UNCACHED int **) args;
-    volatile _UNCACHED int *exitP      = inArgs[0];
-    volatile _UNCACHED int *current_modeP = inArgs[1];
-    volatile _UNCACHED int *allocsDoneP = inArgs[2];
+    volatile _UNCACHED int *exitP           = inArgs[0];
+    volatile _UNCACHED int *current_modeP   = inArgs[1];
+    volatile _UNCACHED int *allocsDoneP     = inArgs[2];
+    volatile _UNCACHED int *send_chans_conP = inArgs[2+AUDIO_CORES];
+    volatile _UNCACHED int *recv_chans_conP = inArgs[3+AUDIO_CORES];
 
     // -------------------ALLOCATE FX------------------//
 
@@ -188,7 +200,7 @@ void threadFunc(void* args) {
 
     //iterate through modes
     for(int mode=0; mode<MODES; mode++) {
-        if(allocFX(FXp[mode], FX_HERE, cpuid, mode) == 1) {
+        if(allocFX(FXp[mode], FX_HERE, cpuid, mode, send_chans_conP, recv_chans_conP) == 1) {
             *exitP = 1;
         }
     }
@@ -248,13 +260,19 @@ int main() {
     //arguments to thread 1 function
     int exit = 0;
     int allocsDone[AUDIO_CORES] = {0};
-    volatile _UNCACHED int *exitP = (volatile _UNCACHED int *) &exit;
-    volatile _UNCACHED int *current_modeP = (volatile _UNCACHED int *) &current_mode;
-    volatile _UNCACHED int *allocsDoneP = (volatile _UNCACHED int *) &allocsDone;
-    volatile _UNCACHED int (*threadFunc_args[2+AUDIO_CORES]);
+    int send_chans_con = 0;
+    int recv_chans_con = 0;
+    volatile _UNCACHED int *exitP           = (volatile _UNCACHED int *) &exit;
+    volatile _UNCACHED int *current_modeP   = (volatile _UNCACHED int *) &current_mode;
+    volatile _UNCACHED int *allocsDoneP     = (volatile _UNCACHED int *) &allocsDone;
+    volatile _UNCACHED int *send_chans_conP = (volatile _UNCACHED int *) &send_chans_con;
+    volatile _UNCACHED int *recv_chans_conP = (volatile _UNCACHED int *) &recv_chans_con;
+    volatile _UNCACHED int (*threadFunc_args[2+AUDIO_CORES+2]);
     threadFunc_args[0] = exitP;
     threadFunc_args[1] = current_modeP;
     threadFunc_args[2] = allocsDoneP;
+    threadFunc_args[2+AUDIO_CORES] = send_chans_conP;
+    threadFunc_args[3+AUDIO_CORES] = recv_chans_conP;
 
 
     //check if amount of FX cores exceeds available cores
@@ -307,7 +325,7 @@ int main() {
 
     //iterate through modes
     for(int mode=0; mode<MODES; mode++) {
-        if(allocFX(FXp[mode], FX_HERE, cpuid, mode) == 1) {
+        if(allocFX(FXp[mode], FX_HERE, cpuid, mode, send_chans_conP, recv_chans_conP) == 1) {
             printf("ERROR DURING FX ALLOCATION\n");
             exit = 1;
         }
@@ -322,6 +340,19 @@ int main() {
         }
     }
 
+    //check if all NoC channels have been connected correctly
+    if(*exitP == 0) {
+        if(*send_chans_conP != CHAN_AMOUNT) {
+            printf("ERROR: NoC Channel connection unbalanced: %d channels, but have %d sources\n",
+                CHAN_AMOUNT, *send_chans_conP);
+            exit = 1;
+        }
+        if(*recv_chans_conP != CHAN_AMOUNT) {
+            printf("ERROR: NoC Channel connection unbalanced: %d channels, but have %d destinations\n",
+                CHAN_AMOUNT, *recv_chans_conP);
+            exit = 1;
+        }
+    }
 
     // Initialize the communication channels
     if(*exitP == 0) {
@@ -359,6 +390,9 @@ int main() {
     *keyReg_prev = *keyReg;
 
     //only process if all initialisation was done correctly
+    if(*exitP == 1) {
+        printf("ERROR: ALLOCATION FAILED IN ONE OF THE SLAVE CORES\n");
+    }
     if(*exitP == 0) {
     //-------------------PROCESS AUDIO------------------//
 
