@@ -25,8 +25,9 @@ else
 	S=\;
 endif
 
-# The FPGA vendor (Altera, Xilinx)
+# The FPGA vendor (Altera, Xilinx, XilinxVivado)
 #VENDOR?=Xilinx
+#VENDOR?=XilinxVivado
 VENDOR?=Altera
 
 # The Quartus/ISE project
@@ -184,7 +185,11 @@ patmos: gen synth config
 config:
 ifeq ($(VENDOR),Xilinx)
 	$(INSTALLDIR)/bin/config_xilinx hardware/ise/$(BOARD)/patmos_top.bit
-else
+endif
+ifeq ($(VENDOR),XilinxVivado)
+	vivado -mode batch -source hardware/vivado/$(BOARD)/config.tcl
+endif
+ifeq ($(VENDOR),Altera)
 	$(INSTALLDIR)/bin/config_altera -b $(BLASTER_TYPE) hardware/quartus/$(BOARD)/patmos.sof
 endif
 
@@ -194,7 +199,11 @@ gen:
 synth:
 ifeq ($(VENDOR),Xilinx)
 	$(MAKE) -C hardware synth_ise BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
-else
+endif
+ifeq ($(VENDOR),XilinxVivado)
+	$(MAKE) -C hardware synth_vivado BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
+endif
+ifeq ($(VENDOR),Altera)
 	$(MAKE) -C hardware synth_quartus BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
 endif
 
