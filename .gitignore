@@ -62,7 +62,7 @@ hardware/quartus/altde2-115-mc
 *.tmp
 *.jdi
 
-# Ignore Viviado journal files
+# Ignore Vivado journal files
 vivado*.jou
 
 # Ignore LaTeX temp files
