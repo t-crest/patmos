@@ -104,31 +104,33 @@ architecture Behavioral of ocp_burst_to_ddr3_ctrl is
 
 begin
 
-	--Registers
+		--Registers
 	process(clk, rst)
 	begin
-		if rst = '1' then
-			state              <= IDLE;
-			MDataByteEn_buffer <= (others => '1');
-			MData_buffer       <= (others => '0');
-			MAddr_buffer       <= (others => '0');
-			SData_buffer       <= (others => '0');
-		elsif rising_edge(clk) then
-			state              <= next_state;
-			MDataByteEn_buffer <= next_MDataByteEn_buffer;
-			MData_buffer       <= next_MData_buffer;
-			MAddr_buffer       <= next_MAddr_buffer;
-			SData_buffer       <= next_SData_buffer;
+		if rising_edge(clk) then
+			if rst = '1' then
+				state              <= IDLE;
+				MDataByteEn_buffer <= (others => '1');
+				MData_buffer       <= (others => '0');
+				MAddr_buffer       <= (others => '0');
+				SData_buffer       <= (others => '0');
+			else
+				state              <= next_state;
+				MDataByteEn_buffer <= next_MDataByteEn_buffer;
+				MData_buffer       <= next_MData_buffer;
+				MAddr_buffer       <= next_MAddr_buffer;
+				SData_buffer       <= next_SData_buffer;
+			end if;
 		end if;
 	end process;
 
 	--Counter
 	process(clk, rst)
 	begin
-		if rst = '1' then
+		if rising_edge(clk) then
+			if rst = '1' then
 			count <= (others => '0');
-		elsif rising_edge(clk) then
-			if (count_en = '1') then
+			elsif (count_en = '1') then
 				count <= count + 1;
 			end if;
 		end if;
