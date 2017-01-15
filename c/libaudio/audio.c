@@ -993,7 +993,7 @@ int audio_connect_from_core(const unsigned int recvChanID, struct AudioFX *dstP,
     }
 }
 
-const int TIMEOUT = 5804;  // timeout ~256 samples
+const int TIMEOUT = 4915;  // timeout ~256 samples
 //const int TIMEOUT = 0;
 //const int TIMEOUT = 0xFFFFF;
 

@@ -20,7 +20,6 @@
 
 #define ONE_16b 0x7FFF
 #define ONE_32b 0x7FFFFFFF
-#define BUFFER_SIZE 128
 #define Fs 52083 // Hz
 
 // ADDRESSES FOR OCP

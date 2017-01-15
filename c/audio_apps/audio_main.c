@@ -232,7 +232,16 @@ void threadFunc(void* args) {
     //for(int i=0; i<DEBUG_LOOPLENGTH; i++) {
 
         //update current mode SPM
-        *cmode_spm = *current_modeP;
+        if(*cmode_spm != *current_modeP) {
+            *cmode_spm = *current_modeP;
+            /*
+            //wait for TIMEOUT time
+            //for(int i=0; 0<1000; i++) {
+                unsigned int cpuusecs = get_cpu_usecs();
+                while( (get_cpu_usecs()-cpuusecs) < 2*TIMEOUT);
+            //}
+            */
+        }
 
         for(int n=0; n<FX_HERE[*cmode_spm]; n++) {
             if (audio_process(&FXp[*cmode_spm][n]) == 1) {
@@ -409,10 +418,23 @@ int main() {
             //check if there is a mode change
             if( (*keyReg == 14) && (*keyReg != *keyReg_prev) ) {
                 *current_modeP = (*current_modeP + 1) % MODES;
-                printf("mode: %d\n", *current_modeP);
-                //restore latency
-                //*FXp[FX_HERE[*cmode_spm]-1]->last_count = 0;
-                //*FXp[FX_HERE[*cmode_spm]-1]->last_init = 1;
+                //update current mode SPM
+                *cmode_spm = *current_modeP;
+#ifdef NOC_RECONFIG
+                //reconfiguration function
+                noc_sched_set(*cmode_spm);
+#endif
+                printf("mode: %d\n", *cmode_spm);
+                //reset latency
+                *FXp[*cmode_spm][FX_HERE[*cmode_spm]-1].last_count = 0;
+                *FXp[*cmode_spm][FX_HERE[*cmode_spm]-1].last_init = 1;
+                /*
+                //wait for TIMEOUT time
+                //for(int i=0; 0<1000; i++) {
+                    unsigned int cpuusecs = get_cpu_usecs();
+                    while( (get_cpu_usecs()-cpuusecs) < 2*(TIMEOUT+10));
+                //}
+                */
             }
             if( (*keyReg == 13) && (*keyReg != *keyReg_prev) ) {
                 if(*current_modeP == 0) {
@@ -421,12 +443,25 @@ int main() {
                 else {
                     *current_modeP = (*current_modeP - 1) % MODES;
                 }
-                printf("mode: %d\n", *current_modeP);
+                //update current mode SPM
+                *cmode_spm = *current_modeP;
+#ifdef NOC_RECONFIG
+                //reconfiguration function
+                noc_sched_set(*cmode_spm);
+#endif
+                printf("mode: %d\n", *cmode_spm);
+                //reset latency
+                *FXp[*cmode_spm][FX_HERE[*cmode_spm]-1].last_count = 0;
+                *FXp[*cmode_spm][FX_HERE[*cmode_spm]-1].last_init = 1;
+                /*
+                //wait for TIMEOUT time
+                //for(int i=0; 0<1000; i++) {
+                    unsigned int cpuusecs = get_cpu_usecs();
+                    while( (get_cpu_usecs()-cpuusecs) < 2*(TIMEOUT+10));
+                //}
+                */
             }
             *keyReg_prev = *keyReg;
-
-            //update current mode SPM
-            *cmode_spm = *current_modeP;
 
             for(int n=0; n<FX_HERE[*cmode_spm]; n++) {
                 audio_process(&FXp[*cmode_spm][n]);
