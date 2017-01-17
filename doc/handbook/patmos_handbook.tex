@@ -3162,7 +3162,8 @@ Install \code{sbt} with:
 
 \begin{verbatim}
 echo "deb https://dl.bintray.com/sbt/debian /" | sudo tee -a /etc/apt/sources.list.d/sbt.list
-sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2EE0EA64E40A89B84B2DF73499E82A75642AC823
+sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 \
+  --recv 2EE0EA64E40A89B84B2DF73499E82A75642AC823
 sudo apt-get update
 sudo apt-get install sbt
 \end{verbatim}
@@ -3174,34 +3175,6 @@ sudo rm /bin/sh
 sudo ln -s /bin/bash /bin/sh
 \end{verbatim}
 
-\subsection{Setup on Ubuntu 14.04.3 LTS 64-Bit}
-
-\todo{This setup shall be replaced by the instructions for Ubuntu 16.04.}
-
-In the following we present the setup of tools within a recent Ubuntu version.
-Here is the list of needed (or recommended) packages:
-
-\begin{verbatim}
-sudo apt-get install git openjdk-7-jdk gitk cmake make g++ texinfo flex bison \
-  subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby-full \
-  liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala
-\end{verbatim}
-
-Install \code{sbt} with:
-
-\begin{verbatim}
-echo "deb https://dl.bintray.com/sbt/debian /" | sudo tee -a /etc/apt/sources.list.d/sbt.list
-sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 642AC823
-sudo apt-get update
-sudo apt-get install sbt
-\end{verbatim}
-
-For the Quartus setup it is best to change the default shell to \code{/bin/bash}:
-
-\begin{verbatim}
-sudo rm /bin/sh
-sudo ln -s /bin/bash /bin/sh
-\end{verbatim}
 
 
 %\subsection{Setup On Ubuntu 14.04 LTS 32-Bit}
@@ -3311,7 +3284,7 @@ git clone https://github.com/t-crest/patmos-misc.git misc
 
 
 For developers with push permission generate an ssh key and upload
-it at GitHub (see \url{https://help.github.com/articles/generating-ssh-keys}
+it at GitHub (see \url{https://help.github.com/articles/connecting-to-github-with-ssh/}
 for detailed instructions).
 The ssh based clone string for write access is then:
 
