@@ -1,7 +1,5 @@
 config.mk*
 *~
-c/nocinit.c
-c/cmp/nocinit.c
 hardware/project
 hardware/target
 hardware/build
