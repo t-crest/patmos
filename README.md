@@ -39,7 +39,7 @@ Install sbt with:
 
 We assume that the T-CREST project will live in $HOME/t-crest.
 Before building the compiler, add the path
-to the compiler executables into your .profile:
+to the compiler executables into your .bashrc or .profile:
 
     export PATH=$PATH:$HOME/t-crest/local/bin
 
