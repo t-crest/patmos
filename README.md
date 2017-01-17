@@ -7,7 +7,7 @@ See also: http://www.t-crest.org/ and http://patmos.compute.dtu.dk/
 
 The Patmos [Reference Handbook]
 (http://patmos.compute.dtu.dk/patmos_handbook.pdf)
-is work in progress, but contains build instructions in Section 5.
+contains build instructions in Section 5.
 
 For questions and discussions join the Patmos mailing list at:
 https://groups.yahoo.com/group/patmos-processor/
@@ -32,7 +32,8 @@ On a restricted machine (e.g. Cloud9) the bare minimum is:
 Install sbt with:
 
     echo "deb https://dl.bintray.com/sbt/debian /" | sudo tee -a /etc/apt/sources.list.d/sbt.list
-    sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2EE0EA64E40A89B84B2DF73499E82A75642AC823
+    sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 \
+      --recv 2EE0EA64E40A89B84B2DF73499E82A75642AC823
     sudo apt-get update
     sudo apt-get install sbt
 
@@ -77,7 +78,7 @@ and run with the simulator as follows:
     pasim a.out
 
 However, this innocent examples is quiet challenging for an embedded system.
-For further details and how to build Patmos for an FPGA see:
+For further details and how to build Patmos for an FPGA see Section 6 in the
 [Patmos Reference Handbook] (http://patmos.compute.dtu.dk/patmos_handbook.pdf).
 
 Known Issues
