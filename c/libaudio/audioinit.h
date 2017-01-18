@@ -18,10 +18,10 @@
         // FX_ID | CORE | FX_TYPE | XB_SIZE | YB_SIZE | S | IN_TYPE | OUT_TYPE //
         const int FX_SCHED_0[6][8] = {
             { 0, 0, 0, 16, 16, 1, 0, 2 },
-            { 1, 1, 2, 16, 4, 1, 2, 2 },
-            { 2, 2, 0, 4, 4, 1, 2, 3 },
-            { 3, 2, 7, 4, 4, 1, 3, 2 },
-            { 4, 3, 5, 4, 16, 1, 2, 2 },
+            { 1, 1, 2, 16, 64, 1, 2, 2 },
+            { 2, 2, 0, 64, 64, 1, 2, 3 },
+            { 3, 2, 7, 64, 64, 1, 3, 2 },
+            { 4, 3, 12, 64, 16, 1, 2, 2 },
             { 5, 0, 0, 16, 16, 1, 2, 1 },
         };
         const int FX_SCHED_1[5][8] = {
@@ -34,7 +34,7 @@
         const int FX_SCHED_2[4][8] = {
             { 0, 0, 0, 16, 16, 1, 0, 2 },
             { 1, 1, 3, 16, 4, 1, 2, 2 },
-            { 2, 2, 11, 4, 16, 1, 2, 2 },
+            { 2, 2, 8, 4, 16, 1, 2, 2 },
             { 3, 0, 0, 16, 16, 1, 2, 1 },
         };
         //pointer to schedules
@@ -46,7 +46,7 @@
         //amount of NoC channels (NoC or same core) on all modes
         const int CHAN_AMOUNT = 13;
         //amount of buffers on each NoC channel ID
-        const int CHAN_BUF_AMOUNT[CHAN_AMOUNT] = { 3, 3, 1, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, };
+        const int CHAN_BUF_AMOUNT[CHAN_AMOUNT] = { 2, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, };
         // column: FX_ID source   ,   row: CHAN_ID dest
         const int SEND_ARRAY_0[6][CHAN_AMOUNT] = {
             {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
@@ -104,6 +104,6 @@
             (const int *)RECV_ARRAY_2,
         };
         //latency from input to output in samples (without considering NoC)
-        const unsigned int LATENCY[MODES] = {4, 4, 4, };
+        const unsigned int LATENCY[MODES] = {11, 4, 4, };
 
         #endif /* _AUDIOINIT_H_ */

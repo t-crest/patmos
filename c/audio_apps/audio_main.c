@@ -186,29 +186,32 @@ void threadFunc(void* args) {
     volatile _UNCACHED int *current_modeP   = inArgs[1];
     volatile _UNCACHED int *allocsDoneP     = inArgs[2];
     volatile _UNCACHED int *send_chans_conP = inArgs[2+AUDIO_CORES];
-    volatile _UNCACHED int *recv_chans_conP = inArgs[3+AUDIO_CORES];
+    volatile _UNCACHED int *recv_chans_conP = inArgs[2+AUDIO_CORES+1];
+    volatile _UNCACHED int *reconfigDoneP   = inArgs[2+AUDIO_CORES+2];
 
 
     *ledReg = 0;
 
     // -------------------ALLOCATE FX------------------//
 
-    int cpuid = get_cpuid();
+    _SPM int *cpuid;
+    cpuid = (_SPM int *) mp_alloc(sizeof(int));
+    *cpuid = get_cpuid();
 
     //create structs
-    struct AudioFX FXp[MODES][MAX_FX_PER_CORE[cpuid]];
+    struct AudioFX FXp[MODES][MAX_FX_PER_CORE[*cpuid]];
 
     int FX_HERE[MODES] = {0};
 
     //iterate through modes
     for(int mode=0; mode<MODES; mode++) {
-        if(allocFX(FXp[mode], FX_HERE, cpuid, mode, send_chans_conP, recv_chans_conP) == 1) {
+        if(allocFX(FXp[mode], FX_HERE, *cpuid, mode, send_chans_conP, recv_chans_conP) == 1) {
             *exitP = 1;
         }
     }
 
     // wait until all cores are ready
-    allocsDoneP[cpuid] = 1;
+    allocsDoneP[*cpuid] = 1;
     *ledReg = 1;
     for(int i=0; i<AUDIO_CORES; i++) {
         while(allocsDoneP[i] == 0);
@@ -221,6 +224,18 @@ void threadFunc(void* args) {
     //copy of current_mode in the SPM
     _SPM unsigned int *cmode_spm;
     cmode_spm = (_SPM unsigned int *) mp_alloc(sizeof(unsigned int));
+    *cmode_spm = MODES; //to force new mode
+
+    //initial stuff
+    while(reconfigDoneP[0] == 0); //wait until its 1
+    *cmode_spm = *current_modeP;
+    // wait until all cores see the new mode
+    for(int i=0; i<AUDIO_CORES; i++) {
+        if(i == *cpuid) {
+            reconfigDoneP[i] = 1;
+        }
+        while(reconfigDoneP[i] == 0);
+    }
 
     //-------------------PROCESS AUDIO------------------//
 
@@ -234,13 +249,15 @@ void threadFunc(void* args) {
         //update current mode SPM
         if(*cmode_spm != *current_modeP) {
             *cmode_spm = *current_modeP;
-            /*
-            //wait for TIMEOUT time
-            //for(int i=0; 0<1000; i++) {
-                unsigned int cpuusecs = get_cpu_usecs();
-                while( (get_cpu_usecs()-cpuusecs) < 2*TIMEOUT);
-            //}
-            */
+
+            // wait until all cores see the new mode
+            for(int i=0; i<AUDIO_CORES; i++) {
+                if(i == *cpuid) {
+                    reconfigDoneP[i] = 1;
+                }
+                while(reconfigDoneP[i] == 0);
+            }
+
         }
 
         for(int n=0; n<FX_HERE[*cmode_spm]; n++) {
@@ -275,17 +292,20 @@ int main() {
     int allocsDone[AUDIO_CORES] = {0};
     int send_chans_con = 0;
     int recv_chans_con = 0;
+    int reconfigDone[AUDIO_CORES] = {0};
     volatile _UNCACHED int *exitP           = (volatile _UNCACHED int *) &exit;
     volatile _UNCACHED int *current_modeP   = (volatile _UNCACHED int *) &current_mode;
     volatile _UNCACHED int *allocsDoneP     = (volatile _UNCACHED int *) &allocsDone;
     volatile _UNCACHED int *send_chans_conP = (volatile _UNCACHED int *) &send_chans_con;
     volatile _UNCACHED int *recv_chans_conP = (volatile _UNCACHED int *) &recv_chans_con;
-    volatile _UNCACHED int (*threadFunc_args[2+AUDIO_CORES+2]);
+    volatile _UNCACHED int *reconfigDoneP   = (volatile _UNCACHED int *) &reconfigDone;
+    volatile _UNCACHED int (*threadFunc_args[2+AUDIO_CORES+2+AUDIO_CORES]);
     threadFunc_args[0] = exitP;
     threadFunc_args[1] = current_modeP;
     threadFunc_args[2] = allocsDoneP;
     threadFunc_args[2+AUDIO_CORES] = send_chans_conP;
-    threadFunc_args[3+AUDIO_CORES] = recv_chans_conP;
+    threadFunc_args[2+AUDIO_CORES+1] = recv_chans_conP;
+    threadFunc_args[2+AUDIO_CORES+2] = reconfigDoneP;
 
     *ledReg = 0;
 
@@ -400,6 +420,11 @@ int main() {
     //copy of current_mode in the SPM
     _SPM unsigned int *cmode_spm;
     cmode_spm = (_SPM unsigned int *) mp_alloc(sizeof(unsigned int));
+    *cmode_spm = *current_modeP;
+#ifdef NOC_RECONFIG
+    //reconfiguration function
+    noc_sched_set(*cmode_spm);
+#endif
     //previous keyReg value
     _SPM unsigned int *keyReg_prev;
     keyReg_prev = (_SPM unsigned int *) mp_alloc(sizeof(unsigned int));
@@ -412,6 +437,19 @@ int main() {
     if(*exitP == 0) {
     //-------------------PROCESS AUDIO------------------//
         printf("READY TO PLAY!!!!\n");
+
+
+        // all cores should sync here
+        for(int i=0; i<AUDIO_CORES; i++) {
+            if(i == 0) {
+                reconfigDoneP[0] = 1;
+            }
+            while(reconfigDoneP[i] == 0);
+        }
+        printf("starting\n");
+        for(int i=0; i<AUDIO_CORES; i++) {
+            reconfigDoneP[i] = 0;
+        }
 
         while(*keyReg != 3) {
 
@@ -428,13 +466,18 @@ int main() {
                 //reset latency
                 *FXp[*cmode_spm][FX_HERE[*cmode_spm]-1].last_count = 0;
                 *FXp[*cmode_spm][FX_HERE[*cmode_spm]-1].last_init = 1;
-                /*
-                //wait for TIMEOUT time
-                //for(int i=0; 0<1000; i++) {
-                    unsigned int cpuusecs = get_cpu_usecs();
-                    while( (get_cpu_usecs()-cpuusecs) < 2*(TIMEOUT+10));
-                //}
-                */
+
+                // wait until all cores see the new mode
+                for(int i=0; i<AUDIO_CORES; i++) {
+                    if(i == 0) {
+                        reconfigDoneP[0] = 1;
+                    }
+                    while(reconfigDoneP[i] == 0);
+                }
+                for(int i=0; i<AUDIO_CORES; i++) {
+                    reconfigDoneP[i] = 0;
+                }
+
             }
             if( (*keyReg == 13) && (*keyReg != *keyReg_prev) ) {
                 if(*current_modeP == 0) {
@@ -453,13 +496,18 @@ int main() {
                 //reset latency
                 *FXp[*cmode_spm][FX_HERE[*cmode_spm]-1].last_count = 0;
                 *FXp[*cmode_spm][FX_HERE[*cmode_spm]-1].last_init = 1;
-                /*
-                //wait for TIMEOUT time
-                //for(int i=0; 0<1000; i++) {
-                    unsigned int cpuusecs = get_cpu_usecs();
-                    while( (get_cpu_usecs()-cpuusecs) < 2*(TIMEOUT+10));
-                //}
-                */
+
+                // wait until all cores see the new mode
+                for(int i=0; i<AUDIO_CORES; i++) {
+                    if(i == 0) {
+                        reconfigDoneP[0] = 1;
+                    }
+                    while(reconfigDoneP[i] == 0);
+                }
+                for(int i=0; i<AUDIO_CORES; i++) {
+                    reconfigDoneP[i] = 0;
+                }
+
             }
             *keyReg_prev = *keyReg;
 
