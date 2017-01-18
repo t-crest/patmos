@@ -2,6 +2,32 @@ This is a scratchpad to collect questions on Patmos and T-CREST.
 The questions shall resolve in improvement of the handbook or
 in a FAQ document.
 
+WCET Analysis and Memory Questions:
+-----------------------------------
+
+llvm/tools/platin/etc/patmos contains two .pml files. Non of
+the two represents the DE2-115 board. What is the difference?
+Are those files used somewhere?
+
+Generating a .pml file with platin ....
+generates a .pml file with the correct 21 clock cycles latency.
+Where are those defaults defined?
+What does bloc-size of 8 mean in the method-cache? If it is for
+the variable block cache, then it shall be burst size, which is
+16 bytes.
+
+What is the meaning of the associativity in the stack cache?
+Why is the block size there 4? What does this mean?
+Bursts are for all caches the same. It is a property of the
+memory system.
+
+What is the tripple good for in platin pml-config? platin accepts
+anything that starts with patmos.
+
+
+General Questions:
+------------------
+
 How and where are the pins of an IO device connected?
 
 Where is the NoC schedule stored?
