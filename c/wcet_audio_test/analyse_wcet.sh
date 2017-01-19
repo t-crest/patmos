@@ -17,7 +17,8 @@ function run() {
 }
 
 # Architecture configuration file
-CONFIG_PML=config_ait.pml
+#CONFIG_PML=config_ait.pml
+CONFIG_PML=config_de2_115.pml
 
 # Functions to analyse
 #ENTRIES=audio_distortion

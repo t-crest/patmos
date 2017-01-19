@@ -57,7 +57,7 @@ int allocFX(struct AudioFX *FXp, int *FX_HERE, int cpuid, int mode,
     //struct parameters:
     int fx_id;
     fx_t fx_type;
-    int xb_size, yb_size, p;
+    int xb_size, yb_size, s;
     con_t in_con, out_con;
     int recv_am, send_am;
 
@@ -73,7 +73,7 @@ int allocFX(struct AudioFX *FXp, int *FX_HERE, int cpuid, int mode,
             fx_type = (fx_t)  FX_SCHED[n][2];
             xb_size =         FX_SCHED[n][3];
             yb_size =         FX_SCHED[n][4];
-            p       =         FX_SCHED[n][5];
+            s       =         FX_SCHED[n][5];
             in_con  = (con_t) FX_SCHED[n][6];
             out_con = (con_t) FX_SCHED[n][7];
             recv_am = 0;
@@ -90,7 +90,7 @@ int allocFX(struct AudioFX *FXp, int *FX_HERE, int cpuid, int mode,
             if(send_am == 0) { send_am = 1; } //there is always at least 1
             //allocate
             if(alloc_audio_vars(&FXp[fx_ind], fx_id, fx_type, in_con,
-                    out_con, recv_am, send_am, xb_size, yb_size, p, LATENCY[mode]) == 1) {
+                    out_con, recv_am, send_am, xb_size, yb_size, s, LATENCY[mode]) == 1) {
                 if(cpuid == 0) {
                     printf("ERROR: allocation failed: not enough space on SPM\n");
                 }
@@ -406,7 +406,7 @@ int main() {
     printf("SOME INFO: \n");
     printf("FX_HERE=%d\n", FX_HERE);
     printf("fx_id: %d, cpuid: %d, is_fst:%u, is_lst: %u, in_con: %u, out_con: %u\n", *FXp[0].fx_id, *FXp[0].cpuid, *FXp[0].is_fst, *FXp[0].is_lst, *FXp[0].in_con, *FXp[0].out_con);
-    printf("x_pnt=0x%x, y_pnt=0x%x, pt=%u, p=%u, rpr=%u, spr=%u, ppsr=%u, xb_size=%u, yb_size=%u, fx=%u, fx_pnt=0x%x\n", *FXp[0].x_pnt, *FXp[0].y_pnt, *FXp[0].pt, *FXp[0].p, *FXp[0].rpr, *FXp[0].spr, *FXp[0].ppsr, *FXp[0].xb_size, *FXp[0].yb_size, *FXp[0].fx, *FXp[0].fx_pnt);
+    printf("x_pnt=0x%x, y_pnt=0x%x, pt=%u, s=%u, rpr=%u, spr=%u, ppsr=%u, xb_size=%u, yb_size=%u, fx=%u, fx_pnt=0x%x\n", *FXp[0].x_pnt, *FXp[0].y_pnt, *FXp[0].pt, *FXp[0].p, *FXp[0].rpr, *FXp[0].spr, *FXp[0].ppsr, *FXp[0].xb_size, *FXp[0].yb_size, *FXp[0].fx, *FXp[0].fx_pnt);
     */
 
 

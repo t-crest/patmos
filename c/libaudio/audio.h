@@ -155,11 +155,11 @@ struct AudioFX {
     _SPM unsigned int *sendChanP;
     //processing type
     _SPM pt_t *pt;
-    //parameters: P, RPR, SPR, PPSR
-    _SPM unsigned int *p;
-    _SPM unsigned int *rpr;
-    _SPM unsigned int *spr;
-    _SPM unsigned int *ppsr;
+    //parameters: S, Nr, Ns, Nf
+    _SPM unsigned int *s;
+    _SPM unsigned int *Nr;
+    _SPM unsigned int *Ns;
+    _SPM unsigned int *Nf;
     //in and out buffer size ( both for NoC or same core, in samples, multiples of 2)
     _SPM unsigned int *xb_size; //x buffer
     _SPM unsigned int *yb_size; //y buffer
