@@ -10,6 +10,7 @@
 #include "libcorethread/corethread.h"
 
 #include "audioinit.h"
+#include "latencyinit.h"
 
 
 //for guitar:

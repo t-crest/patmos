@@ -155,7 +155,7 @@ $(LIBETH): $(patsubst ethlib/%.c,$(BUILDDIR)/ethlib/%.o,$(wildcard ethlib/*.c))
 .PHONY: libaudio
 libaudio: $(LIBAUDIO)
 $(BUILDDIR)/libaudio/dsp_algorithms.o: libaudio/dsp_algorithms.h
-$(BUILDDIR)/libaudio/audio.o: libaudio/audio.h libaudio/audioinit.h
+$(BUILDDIR)/libaudio/audio.o: libaudio/audio.h libaudio/audioinit.h libaudio/latencyinit.h
 $(LIBAUDIO): $(BUILDDIR)/libaudio/dsp_algorithms.o $(BUILDDIR)/libaudio/audio.o
 	patmos-ar r $@ $^
 

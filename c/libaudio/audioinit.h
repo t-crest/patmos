@@ -103,7 +103,5 @@
             (const int *)RECV_ARRAY_1,
             (const int *)RECV_ARRAY_2,
         };
-        //latency from input to output in samples (without considering NoC)
-        const unsigned int LATENCY[MODES] = {11, 4, 4, };
 
         #endif /* _AUDIOINIT_H_ */
