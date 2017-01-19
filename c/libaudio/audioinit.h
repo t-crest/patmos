@@ -3,6 +3,8 @@
         #define _AUDIOINIT_H_
 
         
+        //NoC Reconfiguration enabled
+        #define NOC_RECONFIG
         //input/output buffer sizes
         const unsigned int BUFFER_SIZE = 128;
         //amount of configuration modes
@@ -17,10 +19,10 @@
         const int MAX_FX = 4;
         // FX_ID | CORE | FX_TYPE | XB_SIZE | YB_SIZE | S | IN_TYPE | OUT_TYPE //
         const int FX_SCHED_0[4][8] = {
-            { 0, 0, 0, 32, 32, 1, 0, 2 },
-            { 1, 1, 0, 32, 32, 1, 2, 3 },
-            { 2, 1, 1, 32, 32, 8, 3, 2 },
-            { 3, 0, 0, 32, 32, 1, 2, 1 },
+            { 0, 0, 0, 16, 16, 1, 0, 2 },
+            { 1, 1, 1, 16, 16, 8, 2, 3 },
+            { 2, 1, 0, 16, 16, 1, 3, 2 },
+            { 3, 0, 0, 16, 16, 1, 2, 1 },
         };
         const int FX_SCHED_1[4][8] = {
             { 0, 0, 0, 32, 32, 1, 0, 2 },

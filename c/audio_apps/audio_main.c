@@ -459,6 +459,9 @@ int main() {
             }
             *keyReg_prev = *keyReg;
 
+
+            //printf("******* ITERATION %d *******\n", cpu_pnt);
+
             for(int n=0; n<FX_HERE[*cmode_spm]; n++) {
                 audio_process(&FXp[*cmode_spm][n]);
             }
@@ -488,11 +491,11 @@ int main() {
     exit = 1;
     printf("waiting for all threads to finish...\n");
 
-
+    /*
     for(int i=1; i<LIM; i++) {
         printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
-
+    */
     //join with thread 1
 
     int *retval;
