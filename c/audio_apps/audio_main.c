@@ -22,38 +22,6 @@ int allocFX(struct AudioFX *FXp, int *FX_HERE, int cpuid, int mode,
         }
     }
 
-    /*
-    printf("FX_SCHED[%d][8] = {\n", FX_AMOUNT[mode]);
-    for(int fx=0; fx<FX_AMOUNT[mode]; fx++) {
-        printf("  { ");
-        for(int col=0; col<8; col++) { //FX_SCHED first
-            printf("%d, ", FX_SCHED[fx][col]);
-        }
-        printf(" },\n");
-    }
-    printf("};\n");
-
-    printf("SEND_ARRAY[%d][%d] = {\n", FX_AMOUNT[mode], CHAN_AMOUNT);
-    for(int fx=0; fx<FX_AMOUNT[mode]; fx++) {
-        printf("  { ");
-        for(int ch=0; ch<CHAN_AMOUNT; ch++) { //FX_SCHED first
-            printf("%d, ", SEND_ARRAY[fx][ch]);
-        }
-        printf(" },\n");
-    }
-    printf("};\n");
-
-    printf("RECV_ARRAY[%d][%d] = {\n", FX_AMOUNT[mode], CHAN_AMOUNT);
-    for(int fx=0; fx<FX_AMOUNT[mode]; fx++) {
-        printf("  { ");
-        for(int ch=0; ch<CHAN_AMOUNT; ch++) { //FX_SCHED first
-            printf("%d, ", RECV_ARRAY[fx][ch]);
-        }
-        printf(" },\n");
-    }
-    printf("};\n");
-    */
-
     //struct parameters:
     int fx_id;
     fx_t fx_type;
@@ -240,16 +208,11 @@ void threadFunc(void* args) {
     //-------------------PROCESS AUDIO------------------//
 
     //loop
-    //audioValuesP[0] = 0;
-    //int i=0;
     while(*exitP == 0) {
-    //i++;
-    //for(int i=0; i<DEBUG_LOOPLENGTH; i++) {
 
         //update current mode SPM
         if(*cmode_spm != *current_modeP) {
             *cmode_spm = *current_modeP;
-
             // wait until all cores see the new mode
             for(int i=0; i<AUDIO_CORES; i++) {
                 if(i == *cpuid) {
@@ -257,13 +220,10 @@ void threadFunc(void* args) {
                 }
                 while(reconfigDoneP[i] == 0);
             }
-
         }
 
         for(int n=0; n<FX_HERE[*cmode_spm]; n++) {
-            if (audio_process(&FXp[*cmode_spm][n]) == 1) {
-                //timeout stuff here
-            }
+            audio_process(&FXp[*cmode_spm][n]);
         }
 
     }
@@ -274,7 +234,6 @@ void threadFunc(void* args) {
             free_audio_vars(&FXp[mode][n]);
         }
     }
-
 
     // exit with return value
     int ret = 0;
@@ -402,20 +361,9 @@ int main() {
         }
     }
 
-    /*
-    printf("SOME INFO: \n");
-    printf("FX_HERE=%d\n", FX_HERE);
-    printf("fx_id: %d, cpuid: %d, is_fst:%u, is_lst: %u, in_con: %u, out_con: %u\n", *FXp[0].fx_id, *FXp[0].cpuid, *FXp[0].is_fst, *FXp[0].is_lst, *FXp[0].in_con, *FXp[0].out_con);
-    printf("x_pnt=0x%x, y_pnt=0x%x, pt=%u, s=%u, rpr=%u, spr=%u, ppsr=%u, xb_size=%u, yb_size=%u, fx=%u, fx_pnt=0x%x\n", *FXp[0].x_pnt, *FXp[0].y_pnt, *FXp[0].pt, *FXp[0].p, *FXp[0].rpr, *FXp[0].spr, *FXp[0].ppsr, *FXp[0].xb_size, *FXp[0].yb_size, *FXp[0].fx, *FXp[0].fx_pnt);
-    */
-
-
     //CPU cycles stuff
     int CPUcycles[LIM] = {0};
     unsigned int cpu_pnt = 0;
-
-    //short audio_in[LIM][2] = {0};
-    //short audio_out[LIM][2] = {0};
 
     //copy of current_mode in the SPM
     _SPM unsigned int *cmode_spm;
@@ -458,10 +406,6 @@ int main() {
                 *current_modeP = (*current_modeP + 1) % MODES;
                 //update current mode SPM
                 *cmode_spm = *current_modeP;
-#ifdef NOC_RECONFIG
-                //reconfiguration function
-                noc_sched_set(*cmode_spm);
-#endif
                 printf("mode: %d\n", *cmode_spm);
                 //reset latency
                 *FXp[*cmode_spm][FX_HERE[*cmode_spm]-1].last_count = 0;
@@ -477,6 +421,10 @@ int main() {
                 for(int i=0; i<AUDIO_CORES; i++) {
                     reconfigDoneP[i] = 0;
                 }
+#ifdef NOC_RECONFIG
+                //reconfiguration function
+                noc_sched_set(*cmode_spm);
+#endif
 
             }
             if( (*keyReg == 13) && (*keyReg != *keyReg_prev) ) {
@@ -488,10 +436,6 @@ int main() {
                 }
                 //update current mode SPM
                 *cmode_spm = *current_modeP;
-#ifdef NOC_RECONFIG
-                //reconfiguration function
-                noc_sched_set(*cmode_spm);
-#endif
                 printf("mode: %d\n", *cmode_spm);
                 //reset latency
                 *FXp[*cmode_spm][FX_HERE[*cmode_spm]-1].last_count = 0;
@@ -507,26 +451,19 @@ int main() {
                 for(int i=0; i<AUDIO_CORES; i++) {
                     reconfigDoneP[i] = 0;
                 }
+#ifdef NOC_RECONFIG
+                //reconfiguration function
+                noc_sched_set(*cmode_spm);
+#endif
 
             }
             *keyReg_prev = *keyReg;
 
             for(int n=0; n<FX_HERE[*cmode_spm]; n++) {
                 audio_process(&FXp[*cmode_spm][n]);
-                /*
-                  if(n==0) {
-                  audio_in[cpu_pnt][0] = FXp[n].x[0];
-                  audio_in[cpu_pnt][1] = FXp[n].x[1];
-                  }
-                  if(n==(FX_HERE-1)) {
-                  audio_out[cpu_pnt-WAIT][0] = FXp[n].y[0];
-                  audio_out[cpu_pnt-WAIT][1] = FXp[n].y[1];
-                  }
-                */
             }
 
             //printf("in: %d, %d       out: %d, %d    %d, %d\n", FXp[0].x[0], FXp[0].x[1], FXp[FX_HERE-1].x[0], FXp[FX_HERE-1].x[1], FXp[FX_HERE-1].y[0], FXp[FX_HERE-1].y[1]);
-
 
             //store CPU Cycles
             CPUcycles[cpu_pnt] = get_cpu_cycles();
@@ -535,7 +472,6 @@ int main() {
                 //break;
                 cpu_pnt = 0;
             }
-
 
         }
     }
@@ -556,15 +492,6 @@ int main() {
     for(int i=1; i<LIM; i++) {
         printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
-
-
-    /*
-    for(int i=0; i<(LIM-WAIT); i++) {
-        if( (audio_in[i][0] != audio_out[i][0]) || (audio_in[i][1] != audio_out[i][1]) ){
-            printf("CORRUPT: i=%d: x[0]=%d, y[0]=%d   :   x[1]=%d, y[1]=%d\n", i, audio_in[i][0], audio_out[i][0], audio_in[i][1], audio_out[i][1]);
-        }
-    }
-    */
 
     //join with thread 1
 

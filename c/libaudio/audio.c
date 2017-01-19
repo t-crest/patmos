@@ -957,11 +957,7 @@ int audio_connect_to_core(struct AudioFX *srcP, const unsigned int sendChanID, u
         }
         *(srcP->sendChanP+s_ind) = (unsigned int)thisPort;
         *(srcP->y_pnt+s_ind) = (int)&((qpd_t *)*(srcP->sendChanP+s_ind))->write_buf;
-        /*
-        if(get_cpuid() == 0) {
-            printf("y_pnt[%d] address and sendChanP[%d] set\n", s_ind, s_ind);
-        }
-        */
+
         return 0;
     }
 }
@@ -984,16 +980,13 @@ int audio_connect_from_core(const unsigned int recvChanID, struct AudioFX *dstP,
         }
         *(dstP->recvChanP+r_ind) = (unsigned int)thisPort;
         *(dstP->x_pnt+r_ind) = (int)&((qpd_t *)*(dstP->recvChanP+r_ind))->read_buf;
-        /*
-        if(get_cpuid() == 0) {
-            printf("x_pnt[%d] address and recvChanP[%d] set\n", r_ind, r_ind);
-        }
-        */
+
         return 0;
     }
 }
 
-const int TIMEOUT = 4915;  // timeout ~256 samples
+//const int TIMEOUT = 4915;  // timeout ~256 samples
+const int TIMEOUT = 10000;  // timeout ~512 samples
 //const int TIMEOUT = 0;
 //const int TIMEOUT = 0xFFFFF;
 
@@ -1022,13 +1015,11 @@ int audio_process(struct AudioFX *audioP) {
 
     switch(*audioP->pt) {
     case XeY:
-        //printf("%%%%\n ID: %d \n%%%%\n", *audioP->fx_id);
         //check if it is 0, is last and needs to wait due to latency
         if( (*audioP->cpuid != 0) || (*audioP->out_con == SAME) ||
             (*audioP->out_con == NOC) || (*audioP->last_init == 0) ) {
-            //printf("ID=%d: processing\n", *audioP->fx_id);
             //RECEIVE ONCE
-            if(*audioP->in_con == NOC) { //receive from NoC
+            if(*audioP->in_con == NOC) {
                 //receive from all recv channels
                 for(int i=0; i<*audioP->recv_am; i++) {
                     if(mp_recv((qpd_t *)*(audioP->recvChanP+i), TIMEOUT) == 0) {
@@ -1063,7 +1054,6 @@ int audio_process(struct AudioFX *audioP) {
                 for(unsigned int i=0; i < *audioP->Nf; i++) {
                     ind = 2 * i * (*audioP->s);
                     audio_dry(&xP[ind], &yP[ind]);
-                    //printf("copied %d, %d   to %d, %d   [ 0x%x, 0x%x ] -> [ 0x%x, 0x%x ] \n", xP[ind], xP[ind+1], yP[ind], yP[ind+1], (unsigned int)&xP[ind], (unsigned int)&xP[ind+1], (unsigned int)&yP[ind], (unsigned int)&yP[ind+1]);
                 }
                 break;
             case DRY_8S:
@@ -1179,7 +1169,6 @@ int audio_process(struct AudioFX *audioP) {
         //if it is last and needs to wait
         else {
             *audioP->last_count = *audioP->last_count + 1;
-            //printf("increasing last_count, now is %u\n", *audioP->last_count);
             if(*audioP->last_count == *audioP->latency) {
                 *audioP->last_init = 0;
                 //printf("latency limit reached!\n");
@@ -1302,7 +1291,7 @@ int audio_process(struct AudioFX *audioP) {
                 }
             }
             //SEND ONCE
-            if(*audioP->out_con == NOC) { //send to NoC
+            if(*audioP->out_con == NOC) {
                 //before sending, copy send data to all send channel buffers
                 for(int i=1; i<(*audioP->send_am); i++) {
                     volatile _SPM short * ynxtP =
@@ -1327,7 +1316,7 @@ int audio_process(struct AudioFX *audioP) {
         //REPEAT Nr TIMES:
         for(unsigned int j=0; j<*audioP->Nr; j++) {
             //RECEIVE ONCE
-            if(*audioP->in_con == NOC) { //receive from NoC
+            if(*audioP->in_con == NOC) {
                 //receive from all recv channels
                 for(int i=0; i<*audioP->recv_am; i++) {
                     if(mp_recv((qpd_t *)*(audioP->recvChanP+i), TIMEOUT) == 0) {
@@ -1438,7 +1427,7 @@ int audio_process(struct AudioFX *audioP) {
             }
         }
         //SEND ONCE
-        if(*audioP->out_con == NOC) { //send to NoC
+        if(*audioP->out_con == NOC) {
             //before sending, copy send data to all send channel buffers
             for(int i=1; i<(*audioP->send_am); i++) {
                 volatile _SPM short * ynxtP =
