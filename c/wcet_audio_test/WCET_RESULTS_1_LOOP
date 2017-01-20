@@ -2,224 +2,215 @@
 EXECUTING WCET ANALYSIS OF audio_delay
  
 patmos-clang -mpatmos-method-cache-size=8192 -mpatmos-stack-cache-block-size=4 -mpatmos-stack-cache-size=4096 -o wcet_audio wcet_audio.c -mserialize=wcet_audio.pml -mserialize-roots=audio_delay
-pasim --gsize 67108864 --bsize 8 --tdelay 6 --gtime 1 --dcsize 4096 --dlsize 32 --dckind lru1 --scsize 4096 --sckind block --icache mcache --mcsize 8192 --mbsize 256 --mcmethods 32 --mckind fifo wcet_audio
 mkdir -p tmp
-platin wcet --enable-wca --enable-trace-analysis --trace-entry audio_delay -b wcet_audio -i config_ait.pml -i wcet_audio.pml -e audio_delay --outdir tmp --report --disable-ait
+platin wcet --enable-wca --enable-trace-analysis --trace-entry audio_delay -b wcet_audio -i config_de2_115.pml -i wcet_audio.pml -e audio_delay --outdir tmp --report --disable-ait
 ---
 - analysis-entry: audio_delay
   source: trace
-  cycles: 4732
+  cycles: 16294
 - analysis-entry: audio_delay
   source: platin
-  cycles: 9321
-  cache-max-cycles-instr: 1652
+  cycles: 22745
+  cache-max-cycles-instr: 10126
   cache-min-hits-instr: 143
   cache-max-misses-instr: 12
   cache-max-cycles-stack: 0
   cache-max-misses-stack: 0
-  cache-max-cycles-data: 2520
+  cache-max-cycles-data: 7470
   cache-min-hits-data: 0
   cache-max-misses-data: 68
   cache-max-stores-data: 22
   cache-unknown-address-data: 90
-  cache-max-cycles: 4172
+  cache-max-cycles: 17596
  
 EXECUTING WCET ANALYSIS OF audio_overdrive
  
 patmos-clang -mpatmos-method-cache-size=8192 -mpatmos-stack-cache-block-size=4 -mpatmos-stack-cache-size=4096 -o wcet_audio wcet_audio.c -mserialize=wcet_audio.pml -mserialize-roots=audio_overdrive
-pasim --gsize 67108864 --bsize 8 --tdelay 6 --gtime 1 --dcsize 4096 --dlsize 32 --dckind lru1 --scsize 4096 --sckind block --icache mcache --mcsize 8192 --mbsize 256 --mcmethods 32 --mckind fifo wcet_audio
 mkdir -p tmp
-platin wcet --enable-wca --enable-trace-analysis --trace-entry audio_overdrive -b wcet_audio -i config_ait.pml -i wcet_audio.pml -e audio_overdrive --outdir tmp --report --disable-ait
+platin wcet --enable-wca --enable-trace-analysis --trace-entry audio_overdrive -b wcet_audio -i config_de2_115.pml -i wcet_audio.pml -e audio_overdrive --outdir tmp --report --disable-ait
 ---
 - analysis-entry: audio_overdrive
   source: trace
-  cycles: 497
+  cycles: 4732
 - analysis-entry: audio_overdrive
   source: platin
-  cycles: 3334
-  cache-max-cycles-instr: 812
-  cache-min-hits-instr: 12
-  cache-max-misses-instr: 9
+  cycles: 11806
+  cache-max-cycles-instr: 5395
+  cache-min-hits-instr: 11
+  cache-max-misses-instr: 10
   cache-max-cycles-stack: 0
   cache-max-misses-stack: 0
-  cache-max-cycles-data: 2072
+  cache-max-cycles-data: 5976
   cache-min-hits-data: 0
-  cache-max-misses-data: 62
+  cache-max-misses-data: 60
   cache-max-stores-data: 12
-  cache-unknown-address-data: 74
-  cache-max-cycles: 2884
+  cache-unknown-address-data: 72
+  cache-max-cycles: 11371
  
 EXECUTING WCET ANALYSIS OF audio_wahwah
  
 patmos-clang -mpatmos-method-cache-size=8192 -mpatmos-stack-cache-block-size=4 -mpatmos-stack-cache-size=4096 -o wcet_audio wcet_audio.c -mserialize=wcet_audio.pml -mserialize-roots=audio_wahwah
-pasim --gsize 67108864 --bsize 8 --tdelay 6 --gtime 1 --dcsize 4096 --dlsize 32 --dckind lru1 --scsize 4096 --sckind block --icache mcache --mcsize 8192 --mbsize 256 --mcmethods 32 --mckind fifo wcet_audio
 mkdir -p tmp
-platin wcet --enable-wca --enable-trace-analysis --trace-entry audio_wahwah -b wcet_audio -i config_ait.pml -i wcet_audio.pml -e audio_wahwah --outdir tmp --report --disable-ait
+platin wcet --enable-wca --enable-trace-analysis --trace-entry audio_wahwah -b wcet_audio -i config_de2_115.pml -i wcet_audio.pml -e audio_wahwah --outdir tmp --report --disable-ait
 ---
 - analysis-entry: audio_wahwah
   source: trace
-  cycles: 1394
+  cycles: 13601
 - analysis-entry: audio_wahwah
   source: platin
-  cycles: 7168
-  cache-max-cycles-instr: 1764
+  cycles: 24910
+  cache-max-cycles-instr: 10541
   cache-min-hits-instr: 11
   cache-max-misses-instr: 9
   cache-max-cycles-stack: 0
   cache-max-misses-stack: 0
-  cache-max-cycles-data: 4564
+  cache-max-cycles-data: 13529
   cache-min-hits-data: 0
   cache-max-misses-data: 139
   cache-max-stores-data: 24
   cache-unknown-address-data: 163
-  cache-max-cycles: 6328
+  cache-max-cycles: 24070
  
 EXECUTING WCET ANALYSIS OF audio_chorus
  
 patmos-clang -mpatmos-method-cache-size=8192 -mpatmos-stack-cache-block-size=4 -mpatmos-stack-cache-size=4096 -o wcet_audio wcet_audio.c -mserialize=wcet_audio.pml -mserialize-roots=audio_chorus
-pasim --gsize 67108864 --bsize 8 --tdelay 6 --gtime 1 --dcsize 4096 --dlsize 32 --dckind lru1 --scsize 4096 --sckind block --icache mcache --mcsize 8192 --mbsize 256 --mcmethods 32 --mckind fifo wcet_audio
 mkdir -p tmp
-platin wcet --enable-wca --enable-trace-analysis --trace-entry audio_chorus -b wcet_audio -i config_ait.pml -i wcet_audio.pml -e audio_chorus --outdir tmp --report --disable-ait
+platin wcet --enable-wca --enable-trace-analysis --trace-entry audio_chorus -b wcet_audio -i config_de2_115.pml -i wcet_audio.pml -e audio_chorus --outdir tmp --report --disable-ait
 ---
 - analysis-entry: audio_chorus
   source: trace
-  cycles: 6726
+  cycles: 19834
 - analysis-entry: audio_chorus
   source: platin
-  cycles: 12423
-  cache-max-cycles-instr: 1960
+  cycles: 27942
+  cache-max-cycles-instr: 11869
   cache-min-hits-instr: 214
   cache-max-misses-instr: 13
   cache-max-cycles-stack: 0
   cache-max-misses-stack: 0
-  cache-max-cycles-data: 2856
+  cache-max-cycles-data: 8466
   cache-min-hits-data: 0
   cache-max-misses-data: 81
   cache-max-stores-data: 21
   cache-unknown-address-data: 102
-  cache-max-cycles: 4816
+  cache-max-cycles: 20335
  
 EXECUTING WCET ANALYSIS OF audio_distortion
  
 patmos-clang -mpatmos-method-cache-size=8192 -mpatmos-stack-cache-block-size=4 -mpatmos-stack-cache-size=4096 -o wcet_audio wcet_audio.c -mserialize=wcet_audio.pml -mserialize-roots=audio_distortion
-pasim --gsize 67108864 --bsize 8 --tdelay 6 --gtime 1 --dcsize 4096 --dlsize 32 --dckind lru1 --scsize 4096 --sckind block --icache mcache --mcsize 8192 --mbsize 256 --mcmethods 32 --mckind fifo wcet_audio
 mkdir -p tmp
-platin wcet --enable-wca --enable-trace-analysis --trace-entry audio_distortion -b wcet_audio -i config_ait.pml -i wcet_audio.pml -e audio_distortion --outdir tmp --report --disable-ait
+platin wcet --enable-wca --enable-trace-analysis --trace-entry audio_distortion -b wcet_audio -i config_de2_115.pml -i wcet_audio.pml -e audio_distortion --outdir tmp --report --disable-ait
 ---
 - analysis-entry: audio_distortion
   source: trace
-  cycles: 4283
+  cycles: 8619
 - analysis-entry: audio_distortion
   source: platin
-  cycles: 7399
-  cache-max-cycles-instr: 987
+  cycles: 15221
+  cache-max-cycles-instr: 6059
   cache-min-hits-instr: 141
   cache-max-misses-instr: 10
   cache-max-cycles-stack: 0
   cache-max-misses-stack: 0
-  cache-max-cycles-data: 1400
+  cache-max-cycles-data: 4150
   cache-min-hits-data: 0
   cache-max-misses-data: 40
   cache-max-stores-data: 10
   cache-unknown-address-data: 50
-  cache-max-cycles: 2387
+  cache-max-cycles: 10209
  
 EXECUTING WCET ANALYSIS OF audio_filter
  
 patmos-clang -mpatmos-method-cache-size=8192 -mpatmos-stack-cache-block-size=4 -mpatmos-stack-cache-size=4096 -o wcet_audio wcet_audio.c -mserialize=wcet_audio.pml -mserialize-roots=audio_filter
-pasim --gsize 67108864 --bsize 8 --tdelay 6 --gtime 1 --dcsize 4096 --dlsize 32 --dckind lru1 --scsize 4096 --sckind block --icache mcache --mcsize 8192 --mbsize 256 --mcmethods 32 --mckind fifo wcet_audio
 mkdir -p tmp
-platin wcet --enable-wca --enable-trace-analysis --trace-entry audio_filter -b wcet_audio -i config_ait.pml -i wcet_audio.pml -e audio_filter --outdir tmp --report --disable-ait
+platin wcet --enable-wca --enable-trace-analysis --trace-entry audio_filter -b wcet_audio -i config_de2_115.pml -i wcet_audio.pml -e audio_filter --outdir tmp --report --disable-ait
 ---
 - analysis-entry: audio_filter
   source: trace
-  cycles: 1217
+  cycles: 11093
 - analysis-entry: audio_filter
   source: platin
-  cycles: 6336
-  cache-max-cycles-instr: 1435
+  cycles: 21819
+  cache-max-cycles-instr: 9130
   cache-min-hits-instr: 11
-  cache-max-misses-instr: 11
+  cache-max-misses-instr: 12
   cache-max-cycles-stack: 0
   cache-max-misses-stack: 0
-  cache-max-cycles-data: 4144
+  cache-max-cycles-data: 11952
   cache-min-hits-data: 0
-  cache-max-misses-data: 124
+  cache-max-misses-data: 120
   cache-max-stores-data: 24
-  cache-unknown-address-data: 148
-  cache-max-cycles: 5579
+  cache-unknown-address-data: 144
+  cache-max-cycles: 21082
  
 EXECUTING WCET ANALYSIS OF audio_filter_2
  
 patmos-clang -mpatmos-method-cache-size=8192 -mpatmos-stack-cache-block-size=4 -mpatmos-stack-cache-size=4096 -o wcet_audio wcet_audio.c -mserialize=wcet_audio.pml -mserialize-roots=audio_filter_2
-pasim --gsize 67108864 --bsize 8 --tdelay 6 --gtime 1 --dcsize 4096 --dlsize 32 --dckind lru1 --scsize 4096 --sckind block --icache mcache --mcsize 8192 --mbsize 256 --mcmethods 32 --mckind fifo wcet_audio
 mkdir -p tmp
-platin wcet --enable-wca --enable-trace-analysis --trace-entry audio_filter_2 -b wcet_audio -i config_ait.pml -i wcet_audio.pml -e audio_filter_2 --outdir tmp --report --disable-ait
+platin wcet --enable-wca --enable-trace-analysis --trace-entry audio_filter_2 -b wcet_audio -i config_de2_115.pml -i wcet_audio.pml -e audio_filter_2 --outdir tmp --report --disable-ait
 ---
 - analysis-entry: audio_filter_2
   source: trace
-  cycles: 1082
+  cycles: 6609
 - analysis-entry: audio_filter_2
   source: platin
-  cycles: 6336
-  cache-max-cycles-instr: 1435
+  cycles: 21819
+  cache-max-cycles-instr: 9130
   cache-min-hits-instr: 11
-  cache-max-misses-instr: 11
+  cache-max-misses-instr: 12
   cache-max-cycles-stack: 0
   cache-max-misses-stack: 0
-  cache-max-cycles-data: 4144
+  cache-max-cycles-data: 11952
   cache-min-hits-data: 0
-  cache-max-misses-data: 124
+  cache-max-misses-data: 120
   cache-max-stores-data: 24
-  cache-unknown-address-data: 148
-  cache-max-cycles: 5579
+  cache-unknown-address-data: 144
+  cache-max-cycles: 21082
  
 EXECUTING WCET ANALYSIS OF audio_vibrato
  
 patmos-clang -mpatmos-method-cache-size=8192 -mpatmos-stack-cache-block-size=4 -mpatmos-stack-cache-size=4096 -o wcet_audio wcet_audio.c -mserialize=wcet_audio.pml -mserialize-roots=audio_vibrato
-pasim --gsize 67108864 --bsize 8 --tdelay 6 --gtime 1 --dcsize 4096 --dlsize 32 --dckind lru1 --scsize 4096 --sckind block --icache mcache --mcsize 8192 --mbsize 256 --mcmethods 32 --mckind fifo wcet_audio
 mkdir -p tmp
-platin wcet --enable-wca --enable-trace-analysis --trace-entry audio_vibrato -b wcet_audio -i config_ait.pml -i wcet_audio.pml -e audio_vibrato --outdir tmp --report --disable-ait
+platin wcet --enable-wca --enable-trace-analysis --trace-entry audio_vibrato -b wcet_audio -i config_de2_115.pml -i wcet_audio.pml -e audio_vibrato --outdir tmp --report --disable-ait
 ---
 - analysis-entry: audio_vibrato
   source: trace
-  cycles: 624
+  cycles: 6321
 - analysis-entry: audio_vibrato
   source: platin
-  cycles: 2919
-  cache-max-cycles-instr: 805
+  cycles: 10393
+  cache-max-cycles-instr: 4814
   cache-min-hits-instr: 4
   cache-max-misses-instr: 4
   cache-max-cycles-stack: 0
   cache-max-misses-stack: 0
-  cache-max-cycles-data: 1764
+  cache-max-cycles-data: 5229
   cache-min-hits-data: 0
   cache-max-misses-data: 50
   cache-max-stores-data: 13
   cache-unknown-address-data: 63
-  cache-max-cycles: 2569
+  cache-max-cycles: 10043
  
 EXECUTING WCET ANALYSIS OF audio_tremolo
  
 patmos-clang -mpatmos-method-cache-size=8192 -mpatmos-stack-cache-block-size=4 -mpatmos-stack-cache-size=4096 -o wcet_audio wcet_audio.c -mserialize=wcet_audio.pml -mserialize-roots=audio_tremolo
-pasim --gsize 67108864 --bsize 8 --tdelay 6 --gtime 1 --dcsize 4096 --dlsize 32 --dckind lru1 --scsize 4096 --sckind block --icache mcache --mcsize 8192 --mbsize 256 --mcmethods 32 --mckind fifo wcet_audio
 mkdir -p tmp
-platin wcet --enable-wca --enable-trace-analysis --trace-entry audio_tremolo -b wcet_audio -i config_ait.pml -i wcet_audio.pml -e audio_tremolo --outdir tmp --report --disable-ait
+platin wcet --enable-wca --enable-trace-analysis --trace-entry audio_tremolo -b wcet_audio -i config_de2_115.pml -i wcet_audio.pml -e audio_tremolo --outdir tmp --report --disable-ait
 ---
 - analysis-entry: audio_tremolo
   source: trace
-  cycles: 319
+  cycles: 3986
 - analysis-entry: audio_tremolo
   source: platin
-  cycles: 1564
-  cache-max-cycles-instr: 553
+  cycles: 5981
+  cache-max-cycles-instr: 3320
   cache-min-hits-instr: 1
   cache-max-misses-instr: 2
   cache-max-cycles-stack: 0
   cache-max-misses-stack: 0
-  cache-max-cycles-data: 840
+  cache-max-cycles-data: 2490
   cache-min-hits-data: 0
   cache-max-misses-data: 24
   cache-max-stores-data: 6
   cache-unknown-address-data: 30
-  cache-max-cycles: 1393
+  cache-max-cycles: 5810
