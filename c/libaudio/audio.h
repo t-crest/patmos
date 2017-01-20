@@ -143,8 +143,8 @@ struct AudioFX {
     //core number
     _SPM int *cpuid;
     //connection type
-    _SPM con_t *in_con;  //input  connection: first, same core or NoC
-    _SPM con_t *out_con; //output connection: last,  same core or NoC
+    _SPM con_t *in_con;
+    _SPM con_t *out_con;
     //amount of send and receive channels (fork or join effects)
     _SPM unsigned int *send_am;
     _SPM unsigned int *recv_am;
