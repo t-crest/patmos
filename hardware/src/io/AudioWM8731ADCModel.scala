@@ -1,5 +1,5 @@
 // Simulation model for the WM8731 audio CODEC (only ADC part)
-// first writes data (01:02) (LFT:RGT) and then increments each value by 2
+// first writes data (1024:1025) (LFT:RGT) and then increments each value by 2
 
 package io
 
@@ -15,8 +15,8 @@ class AudioWM8731ADCModel(AUDIOBITLENGTH: Int) extends Module {
   }
 
   // audio data registers
-  val audioLReg = Reg(init = UInt(1, AUDIOBITLENGTH))
-  val audioRReg = Reg(init = UInt(2, AUDIOBITLENGTH))
+  val audioLReg = Reg(init = UInt(1024, AUDIOBITLENGTH))
+  val audioRReg = Reg(init = UInt(1025, AUDIOBITLENGTH))
 
   //register for output data bit
   val adcDatReg = Reg(init = UInt(0, 1))

@@ -8,12 +8,13 @@ LIBNOC=$(BUILDDIR)/libnoc.a
 LIBMP=$(BUILDDIR)/libmp.a
 LIBCORETHREAD=$(BUILDDIR)/libcorethread.a
 LIBETH=$(BUILDDIR)/libeth.a
+LIBAUDIO=$(BUILDDIR)/libaudio.a
 LIBELF=$(BUILDDIR)/libelf.a
 
 NOCINIT?=cmp/nocinit.c
 
 SHELL=/bin/bash
-#BOOTSPM data is by default in data SPM 
+#BOOTSPM data is by default in data SPM
 BOOTSPM_BASE?=0x00020000
 
 # Flags for compiling to boot ROM
@@ -61,16 +62,16 @@ LDFLAGS-VM?= \
 .PHONY: compile
 compile: $(BUILDDIR)/$(APP).elf
 
-VPATH = .:bootable:bootloader:cmp:dhry:include
+VPATH = .:bootable:bootloader:cmp:dhry:include:audio_apps
 
 $(BUILDDIR)/%.o: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS) -c -o $@ $(filter %.c,$^)
 
 # A target for regular applications
-$(BUILDDIR)/%.elf: %.c $(NOCINIT) $(LIBMP) $(LIBNOC) $(LIBCORETHREAD) $(LIBETH) $(LIBELF) Makefile
+$(BUILDDIR)/%.elf: %.c $(NOCINIT) $(LIBMP) $(LIBNOC) $(LIBCORETHREAD) $(LIBETH) $(LIBAUDIO) $(LIBELF) Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc -lcorethread -leth -lelf
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc -lcorethread -leth -lelf -lm -laudio
 
 $(BUILDDIR)/%.s: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
@@ -148,6 +149,14 @@ $(LIBCORETHREAD): $(BUILDDIR)/libcorethread/corethread.o
 .PHONY: libeth
 libeth: $(LIBETH)
 $(LIBETH): $(patsubst ethlib/%.c,$(BUILDDIR)/ethlib/%.o,$(wildcard ethlib/*.c))
+	patmos-ar r $@ $^
+
+#library for audio
+.PHONY: libaudio
+libaudio: $(LIBAUDIO)
+$(BUILDDIR)/libaudio/dsp_algorithms.o: libaudio/dsp_algorithms.h
+$(BUILDDIR)/libaudio/audio.o: libaudio/audio.h libaudio/audioinit.h libaudio/latencyinit.h
+$(LIBAUDIO): $(BUILDDIR)/libaudio/dsp_algorithms.o $(BUILDDIR)/libaudio/audio.o
 	patmos-ar r $@ $^
 
 # library for parsing ELF files
