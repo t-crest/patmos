@@ -24,6 +24,41 @@ memory system.
 What is the tripple good for in platin pml-config? platin accepts
 anything that starts with patmos.
 
+Compile Questions:
+------------------
+
+When I compile a simple progam just with patmos-clang. Why are
+there functions such as __corethread_worker included in the
+executable? Where does this come from? I don't think we need
+this.
+
+Why are simple arguments to a function stored in the shadow
+stack and not the stack cache? Visible with -O0.
+
+Follwing simple code:
+
+int foo(int b, int val) {
+
+  if (b) {
+    val = val * 3;
+  } else {
+    val = val + 4;
+  }
+
+  return val;
+}
+
+generates some prolog like:
+
+   20bc4:	03 00 00 08                                  	         sres	8
+   20bc8:	00 7f f0 08                                  	         sub	$r31 = $r31, 8
+   20bcc:	02 c0 0f 00                                  	         sws	[0] = $r30
+   20bd0:	02 44 00 30                                  	         mfs	$r2 = $s0
+   20bd4:	00 3d f0 00                                  	         mov	$r30 = $r31
+   20bd8:	02 c5 e1 80                                  	         swc	[$r30] = $r3
+   20bdc:	02 c5 e2 01                                  	         swc	[$r30 + 1] = $r4
+   20be0:	02 87 e1 00                                  	         lwc	$r3 = [$r30]
+
 
 General Questions:
 ------------------

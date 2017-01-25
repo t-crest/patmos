@@ -3939,50 +3939,87 @@ send out result emails listed in \code{recipients.txt}.
 Patmos is currently supported by two WCET analysis tools:
 the AbsInt tool aiT~\cite{aiT} (\code{a3patmos}) and platin also contains
 a WCET analysis backend~\cite{compiler:platin:kps15}.
-\todo{Is the above really the best paper on platin and the WCET analysis?}
 In the section we will give a minimal ``Hello World'' example for WCET analysis
-with platin.
-
-First we can generate a hardware configuration description containing the
-default configuration with:
+with platin. We use following simple C program, where it is not obvious if the
+addition or multiplication path is the WCET path.
 
 \begin{verbatim}
-platin pml-config --target patmos -o de2-115.pml
+#include <stdio.h>
+
+// foo is the analysis entry point that would be inlined with -O2
+int foo(int b, int val, int val2) __attribute__((noinline));
+int foo(int b, int val, int val2) {
+
+  int i;
+
+  if (b) {
+    for (i=0; i<51; ++i) {
+      val = val * val2;
+    }
+  } else {
+    for (i=0; i<73; ++i) {
+      val = val + val2;
+    }
+  }
+
+  return val;
+}
+
+// The compiler shall not compute the result
+volatile int seed = 3;
+
+int main(int argc, char** argv) {
+
+  int val = seed;
+  int val2 = seed+seed;
+  int b = seed/4;
+
+  int i = foo(b, val, val2);
+//  printf("%d\n", i);
+
+  return i;
+}
 \end{verbatim}
 
-\todo{Do we need this in the first place? Can we just use the defaults?}
 
-The default configuration is written into \code{de2-115.pml} and
-represents a single core Patmos on the Altera
-DE2-115 board, with a memory that is configured for 4 32-bit bursts in 21
+
+To be able to analyze a program, the compiler needs to be instructed to
+ouput the program in .pml format during compilation:
+
+\begin{verbatim}
+    patmos-clang -O2 -mserialize=simple.pml simple.c
+\end{verbatim}
+
+The WCET analysis with platin is excuted as follows:
+
+\begin{verbatim}
+    platin wcet -i simple.pml -b a.out -e foo --report
+\end{verbatim}
+
+
+Those commands assume a standard configuration of Patmos that is
+the default single core configuration with the DE2-115 memory timing,
+which is for 4 32-bit bursts in 21
 clock cycles for a cache line read or write. The configuration of the different
 caches within Patmos is as the default is in the hardware configuration.
-\todo{Is the default really correct?}
 
+This folder \code{patmos/wcet} contains this minimal example to explore
+WCET analysis with \code{platin} for Patmos.
+The two commands and further commands to explore the result are
+included in the \code{Makefile}.
 
+\todo{Is the default really correct? Where does it come from?}
 
-\begin{verbatim}
-make test
-\end{verbatim}
-\begin{verbatim}
-make test
-\end{verbatim}
-\begin{verbatim}
-make test
-\end{verbatim}
-
-
-
-Details on WCET analysis with platin can be found in Section~\ref{sec:toolchain:platin}.
+More details on WCET analysis with \code{platin} can be found in Section~\ref{sec:toolchain:platin}.
 This section also includes a more elaborated example in
 Subsection~\ref{sec:toolchain:platin:example}.
 
-The benchmark collection of T-CREST (in folder \code{bench}) includes targets
-for WCET analysis.
-When the aiT version for Patmos (\code{a3patmos}) is in the path, the build of
-the benchmarks includes WCET analysis tasks, where appropriate.
-In \code{bench/build/Malardaln/src} start the tests including Platin WCET
-analysis with \code{ctest}.
+%The benchmark collection of T-CREST (in folder \code{bench}) includes targets
+%for WCET analysis.
+%When the aiT version for Patmos (\code{a3patmos}) is in the path, the build of
+%the benchmarks includes WCET analysis tasks, where appropriate.
+%In \code{bench/build/Malardaln/src} start the tests including Platin WCET
+%analysis with \code{ctest}.
 
 
 \section{ModelSim License}
