@@ -14,8 +14,8 @@ The WCET analysis with platin is excuted as follows:
 
     platin wcet -i simple.pml -b a.out -e foo --report
 
-Thoes commands assume a standard configuration of Patmos that is
-the default singl core configuration with the DE2-115 memory timing.
+Those commands assume a standard configuration of Patmos that is
+the default single core configuration with the DE2-115 memory timing.
 
 The two commands and further commands to explore the result are
 included in the `Makefile`.
