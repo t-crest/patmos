@@ -2,6 +2,67 @@ This is a scratchpad to collect questions on Patmos and T-CREST.
 The questions shall resolve in improvement of the handbook or
 in a FAQ document.
 
+WCET Analysis and Memory Questions:
+-----------------------------------
+
+llvm/tools/platin/etc/patmos contains two .pml files. Non of
+the two represents the DE2-115 board. What is the difference?
+Are those files used somewhere?
+
+Generating a .pml file with platin ....
+generates a .pml file with the correct 21 clock cycles latency.
+Where are those defaults defined?
+What does bloc-size of 8 mean in the method-cache? If it is for
+the variable block cache, then it shall be burst size, which is
+16 bytes.
+
+What is the meaning of the associativity in the stack cache?
+Why is the block size there 4? What does this mean?
+Bursts are for all caches the same. It is a property of the
+memory system.
+
+What is the tripple good for in platin pml-config? platin accepts
+anything that starts with patmos.
+
+Compile Questions:
+------------------
+
+When I compile a simple progam just with patmos-clang. Why are
+there functions such as __corethread_worker included in the
+executable? Where does this come from? I don't think we need
+this.
+
+Why are simple arguments to a function stored in the shadow
+stack and not the stack cache? Visible with -O0.
+
+Follwing simple code:
+
+int foo(int b, int val) {
+
+  if (b) {
+    val = val * 3;
+  } else {
+    val = val + 4;
+  }
+
+  return val;
+}
+
+generates some prolog like:
+
+   20bc4:	03 00 00 08                                  	         sres	8
+   20bc8:	00 7f f0 08                                  	         sub	$r31 = $r31, 8
+   20bcc:	02 c0 0f 00                                  	         sws	[0] = $r30
+   20bd0:	02 44 00 30                                  	         mfs	$r2 = $s0
+   20bd4:	00 3d f0 00                                  	         mov	$r30 = $r31
+   20bd8:	02 c5 e1 80                                  	         swc	[$r30] = $r3
+   20bdc:	02 c5 e2 01                                  	         swc	[$r30 + 1] = $r4
+   20be0:	02 87 e1 00                                  	         lwc	$r3 = [$r30]
+
+
+General Questions:
+------------------
+
 How and where are the pins of an IO device connected?
 
 Where is the NoC schedule stored?

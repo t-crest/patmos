@@ -3142,18 +3142,18 @@ all tools installed for download from: \url{http://patmos.compute.dtu.dk/}
 %\end{itemize}
 %
 
-\section{Setup On Ubuntu and Mac OS X}
+\section{Setup on Ubuntu and Mac OS X}
 
 In the following we present the Patmos build instructions including setup of
 tools in Ubuntu and for the Mac OS X.
 
-\subsection{Setup On Ubuntu 14.04.3 LTS 64-Bit}
+\subsection{Setup on Ubuntu 16.04 LTS 64-Bit}
 
 In the following we present the setup of tools within a recent Ubuntu version.
 Here is the list of needed (or recommended) packages:
 
 \begin{verbatim}
-sudo apt-get install git openjdk-7-jdk gitk cmake make g++ texinfo flex bison \
+sudo apt-get install git default-jdk gitk cmake make g++ texinfo flex bison \
   subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby-full \
   liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala
 \end{verbatim}
@@ -3162,18 +3162,11 @@ Install \code{sbt} with:
 
 \begin{verbatim}
 echo "deb https://dl.bintray.com/sbt/debian /" | sudo tee -a /etc/apt/sources.list.d/sbt.list
-sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 642AC823
+sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 \
+  --recv 2EE0EA64E40A89B84B2DF73499E82A75642AC823
 sudo apt-get update
 sudo apt-get install sbt
 \end{verbatim}
-
-%\begin{verbatim}
-%wget http://dl.bintray.com/sbt/debian/sbt-0.13.2.deb
-%sudo dpkg -i sbt-0.13.2.deb
-%sudo apt-get update
-%sudo apt-get install sbt
-%rm sbt-0.13.2.deb
-%\end{verbatim}
 
 For the Quartus setup it is best to change the default shell to \code{/bin/bash}:
 
@@ -3181,6 +3174,7 @@ For the Quartus setup it is best to change the default shell to \code{/bin/bash}
 sudo rm /bin/sh
 sudo ln -s /bin/bash /bin/sh
 \end{verbatim}
+
 
 
 %\subsection{Setup On Ubuntu 14.04 LTS 32-Bit}
@@ -3290,7 +3284,7 @@ git clone https://github.com/t-crest/patmos-misc.git misc
 
 
 For developers with push permission generate an ssh key and upload
-it at GitHub (see \url{https://help.github.com/articles/generating-ssh-keys}
+it at GitHub (see \url{https://help.github.com/articles/connecting-to-github-with-ssh/}
 for detailed instructions).
 The ssh based clone string for write access is then:
 
@@ -3327,8 +3321,7 @@ and distribution further mix up the files in non-standard ways.}
 not sure about this.}
 
 
-For correct correct signing of your changes set the username and
-email in git with:
+For correct signing of your changes set the username and email in git with:
 
 \begin{verbatim}
 git config --global user.name "Joe Someone"
@@ -3362,12 +3355,14 @@ bash setup.sh
 
 Then add the \code{bin} directory of Quartus to your \$PATH.
 %
-For access to the serial port and access rights for the USB Blaster following additional steps are needed:
+For access to the serial port the user needs access rights.
 
 \begin{verbatim}
 # Add user to dialout group for the serial port access
 sudo usermod -a -G dialout user
 \end{verbatim}
+
+Logout and login again to update the group settings.
 
 Getting the Altera USB Blaster working on Ubuntu is a little bit brittle.
 Here a collection of tips collected from different places that helped me to
@@ -3941,15 +3936,90 @@ send out result emails listed in \code{recipients.txt}.
 
 \section{Worst-Case Execution Time Analysis}
 
-The aiT WCET analysis tool supports Patmos as target. The benchmark collection
-of T-CREST (in folder \code{bench}) includes targets for WCET analysis.
+Patmos is currently supported by two WCET analysis tools:
+the AbsInt tool aiT~\cite{aiT} (\code{a3patmos}) and platin also contains
+a WCET analysis backend~\cite{compiler:platin:kps15}.
+In the section we will give a minimal ``Hello World'' example for WCET analysis
+with platin. We use following simple C program, where it is not obvious if the
+addition or multiplication path is the WCET path.
 
-When the aiT version for Patmos (\code{a3patmos}) is in the path, the build of
-the benchmarks includes WCET analysis tasks, where appropriate.
+\begin{verbatim}
+#include <stdio.h>
 
-Details on WCET analysis with platin, including an elaborated example,
-can be found in Section~\ref{sec:toolchain:platin}.
-In \code{bench/build/Malardaln/src} start the tests including Platin WCET analysis with \code{ctest}.
+// foo is the analysis entry point that would be inlined with -O2
+int foo(int b, int val, int val2) __attribute__((noinline));
+int foo(int b, int val, int val2) {
+
+  int i;
+
+  if (b) {
+    for (i=0; i<51; ++i) {
+      val = val * val2;
+    }
+  } else {
+    for (i=0; i<73; ++i) {
+      val = val + val2;
+    }
+  }
+
+  return val;
+}
+
+// The compiler shall not compute the result
+volatile int seed = 3;
+
+int main(int argc, char** argv) {
+
+  int val = seed;
+  int val2 = seed+seed;
+  int b = seed/4;
+
+  int i = foo(b, val, val2);
+//  printf("%d\n", i);
+
+  return i;
+}
+\end{verbatim}
+
+
+
+To be able to analyze a program, the compiler needs to be instructed to
+ouput the program in .pml format during compilation:
+
+\begin{verbatim}
+    patmos-clang -O2 -mserialize=simple.pml simple.c
+\end{verbatim}
+
+The WCET analysis with platin is excuted as follows:
+
+\begin{verbatim}
+    platin wcet -i simple.pml -b a.out -e foo --report
+\end{verbatim}
+
+
+Those commands assume a standard configuration of Patmos that is
+the default single core configuration with the DE2-115 memory timing,
+which is for 4 32-bit bursts in 21
+clock cycles for a cache line read or write. The configuration of the different
+caches within Patmos is as the default is in the hardware configuration.
+
+This folder \code{patmos/wcet} contains this minimal example to explore
+WCET analysis with \code{platin} for Patmos.
+The two commands and further commands to explore the result are
+included in the \code{Makefile}.
+
+\todo{Is the default really correct? Where does it come from?}
+
+More details on WCET analysis with \code{platin} can be found in Section~\ref{sec:toolchain:platin}.
+This section also includes a more elaborated example in
+Subsection~\ref{sec:toolchain:platin:example}.
+
+%The benchmark collection of T-CREST (in folder \code{bench}) includes targets
+%for WCET analysis.
+%When the aiT version for Patmos (\code{a3patmos}) is in the path, the build of
+%the benchmarks includes WCET analysis tasks, where appropriate.
+%In \code{bench/build/Malardaln/src} start the tests including Platin WCET
+%analysis with \code{ctest}.
 
 
 \section{ModelSim License}

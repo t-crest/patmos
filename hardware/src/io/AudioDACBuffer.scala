@@ -13,8 +13,8 @@ class AudioDACBuffer(AUDIOBITLENGTH: Int, MAXDACBUFFERPOWER: Int) extends Module
     val audioLIPatmos = UInt(INPUT, AUDIOBITLENGTH)
     val audioRIPatmos = UInt(INPUT, AUDIOBITLENGTH)
     val enDacI = UInt(INPUT, 1) // enable signal
-    val reqI = UInt(INPUT, 1)  // handshake REQ
-    val ackO = UInt(OUTPUT, 1) // handshake ACK
+    val writePulseI = UInt(INPUT, 1)
+    val fullO = UInt(OUTPUT, 1) // full buffer indicator
     val bufferSizeI = UInt(INPUT, MAXDACBUFFERPOWER+1) // maximum bufferSizeI: (2^MAXDACBUFFERPOWER) + 1
     // to/from AudioDAC
     val audioLIDAC = UInt(OUTPUT, AUDIOBITLENGTH)
@@ -39,6 +39,7 @@ class AudioDACBuffer(AUDIOBITLENGTH: Int, MAXDACBUFFERPOWER: Int) extends Module
   val r_pnt = Reg(init = UInt(0, MAXDACBUFFERPOWER))
   val fullReg  = Reg(init = UInt(0, 1))
   val emptyReg = Reg(init = UInt(1, 1)) // starts empty
+  io.fullO := fullReg
   val w_inc = Reg(init = UInt(0, 1)) // write pointer increment
   val r_inc = Reg(init = UInt(0, 1)) // read pointer increment
 
@@ -48,7 +49,7 @@ class AudioDACBuffer(AUDIOBITLENGTH: Int, MAXDACBUFFERPOWER: Int) extends Module
   val stateOut = Reg(init = sOutIdle)
 
   // input handshake state machine
-  val sInIdle :: sInReqHi :: sInAckHi :: sInReqLo :: Nil = Enum(UInt(), 4)
+  val sInIdle :: sInWriting :: Nil = Enum(UInt(), 2)
   val stateIn = Reg(init = sInIdle)
 
   // full and empty state machine
@@ -108,45 +109,21 @@ class AudioDACBuffer(AUDIOBITLENGTH: Int, MAXDACBUFFERPOWER: Int) extends Module
 
 
 
-
-
-  // audio input handshake: if enable
-  when (io.enDacI === UInt(1)) {
+  // audio input handshake: if enable and not full
+  when ( (io.enDacI === UInt(1)) && (fullReg === UInt(0)) ) {
     //state machine
     switch (stateIn) {
       is (sInIdle) {
-        io.ackO := UInt(0)
-        when(io.reqI === UInt(1)) {
-          //update state
-          stateIn := sInReqHi
-        }
-      }
-      is (sInReqHi) {
-        io.ackO := UInt(0)
-        //check if buffer is not full
-        when(fullReg === UInt(0)) {
-          stateIn := sInAckHi
-        }
-        //check if PATMOS cancels handshake
-        when(io.reqI === UInt(0)) {
-          stateIn := sInIdle
-        }
-      }
-      is (sInAckHi) {
-        io.ackO := UInt(1)
-        when(io.reqI === UInt(0)) {
-          stateIn := sInReqLo
-        }
-      }
-      is (sInReqLo) {
-        io.ackO := UInt(1)
-        when(fullReg === UInt(0)) { // for safety, wait until buffer not full
-          //read and store input, increment write pointer
+        when(io.writePulseI === UInt(1)) {
           audioBufferL(w_pnt) := io.audioLIPatmos
           audioBufferR(w_pnt) := io.audioRIPatmos
+          stateIn := sInWriting
+        }
+      }
+      is (sInWriting) {
+        when(io.writePulseI === UInt(0)) {
           w_pnt := (w_pnt + UInt(1)) & (io.bufferSizeI - UInt(1))
           w_inc := UInt(1)
-          //update state
           stateIn := sInIdle
         }
       }
@@ -154,10 +131,7 @@ class AudioDACBuffer(AUDIOBITLENGTH: Int, MAXDACBUFFERPOWER: Int) extends Module
   }
   .otherwise {
     stateIn := sInIdle
-    io.ackO := UInt(0)
-    w_inc := UInt(0)
   }
-
 
 
 

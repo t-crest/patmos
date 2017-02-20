@@ -18,8 +18,8 @@ class AudioADCBuffer(AUDIOBITLENGTH: Int, MAXADCBUFFERPOWER: Int) extends Module
     val enAdcI = UInt(INPUT, 1)
     val audioLPatmosO = UInt(OUTPUT, AUDIOBITLENGTH)
     val audioRPatmosO = UInt(OUTPUT, AUDIOBITLENGTH)
-    val reqI = UInt(INPUT, 1) // handshake REQ
-    val ackO = UInt(OUTPUT, 1) // handshake ACK
+    val readPulseI = UInt(INPUT, 1)
+    val emptyO = UInt(OUTPUT, 1) // empty buffer indicator
     val bufferSizeI = UInt(INPUT, MAXADCBUFFERPOWER+1) // maximum bufferSizeI: (2^MAXADCBUFFERPOWER) + 1
   }
 
@@ -38,6 +38,7 @@ class AudioADCBuffer(AUDIOBITLENGTH: Int, MAXADCBUFFERPOWER: Int) extends Module
   val r_pnt = Reg(init = UInt(0, MAXADCBUFFERPOWER))
   val fullReg  = Reg(init = UInt(0, 1))
   val emptyReg = Reg(init = UInt(1, 1)) // starts empty
+  io.emptyO := emptyReg
   val w_inc = Reg(init = UInt(0, 1)) // write pointer increment
   val r_inc = Reg(init = UInt(0, 1)) // read pointer increment
 
@@ -49,7 +50,7 @@ class AudioADCBuffer(AUDIOBITLENGTH: Int, MAXADCBUFFERPOWER: Int) extends Module
   val READCNTLIMIT = UInt(3)
 
   // output handshake state machine (to Patmos)
-  val sOutIdle :: sOutReqHi :: sOutAckHi :: sOutReqLo :: Nil = Enum(UInt(), 4)
+  val sOutIdle :: sOutReading :: Nil = Enum(UInt(), 2)
   val stateOut = Reg(init = sOutIdle)
 
   // full and empty state machine
@@ -77,13 +78,16 @@ class AudioADCBuffer(AUDIOBITLENGTH: Int, MAXADCBUFFERPOWER: Int) extends Module
         when(io.readEnAdcI === UInt(1)) {
           //wait READCNTLIMIT cycles until input data is written
           when(readCntReg === READCNTLIMIT) {
-            // read only when its not full
-            when(fullReg === UInt(0)) {
-              //read input, increment write pointer
-              audioBufferL(w_pnt) := io.audioLAdcI
-              audioBufferR(w_pnt) := io.audioRAdcI
-              w_pnt := (w_pnt + UInt(1)) & (io.bufferSizeI - UInt(1))
-              w_inc := UInt(1)
+            //read input, increment write pointer
+            audioBufferL(w_pnt) := io.audioLAdcI
+            audioBufferR(w_pnt) := io.audioRAdcI
+            w_pnt := (w_pnt + UInt(1)) & (io.bufferSizeI - UInt(1))
+            w_inc := UInt(1)
+            //if it is full, write, but increment read pointer too
+            //to store new samples and dump older ones
+            when(fullReg === UInt(1)) {
+              r_pnt := (r_pnt + UInt(1)) & (io.bufferSizeI - UInt(1))
+              r_inc := UInt(1)
             }
             //update state
             stateIn := sInRead
@@ -111,58 +115,33 @@ class AudioADCBuffer(AUDIOBITLENGTH: Int, MAXADCBUFFERPOWER: Int) extends Module
 
 
 
-  // audio output handshake: if enable
-  when (io.enAdcI === UInt(1)) {
+  // audio output state machine: if enable and not empty
+  when ( (io.enAdcI === UInt(1)) && (emptyReg === UInt(0)) ) {
     //state machine
     switch (stateOut) {
       is (sOutIdle) {
-        io.ackO := UInt(0)
-        when(io.reqI === UInt(1)) {
-          //update state
-          stateOut := sOutReqHi
-        }
-      }
-      is (sOutReqHi) {
-        io.ackO := UInt(0)
-        //check if buffer is not empty
-        when(emptyReg === UInt(0)) {
-          //write output, increment read pointer
+        when(io.readPulseI === UInt(1)) {
           audioLReg := audioBufferL(r_pnt)
           audioRReg := audioBufferR(r_pnt)
+          stateOut := sOutReading
+        }
+      }
+      is (sOutReading) {
+        when(io.readPulseI === UInt(0)) {
           r_pnt := (r_pnt + UInt(1)) & (io.bufferSizeI - UInt(1))
           r_inc := UInt(1)
-          //update state
-          stateOut := sOutAckHi
-        }
-        //check if PATMOS cancels handshake
-        when(io.reqI === UInt(0)) {
           stateOut := sOutIdle
         }
-      }
-      is (sOutAckHi) {
-        io.ackO := UInt(1)
-        when(io.reqI === UInt(0)) {
-          stateOut := sOutReqLo
-        }
-      }
-      is (sOutReqLo) {
-        io.ackO := UInt(1)
-        //update state
-        stateOut := sOutIdle
       }
     }
   }
   .otherwise {
     stateOut := sOutIdle
-    io.ackO := UInt(0)
-    r_inc := UInt(0)
   }
 
 
 
-
-
-//update full and empty states
+  //update full and empty states
   when ( (w_inc === UInt(1)) || (r_inc === UInt(1)) ) {
     //default: set back variables
     w_inc := UInt(0)

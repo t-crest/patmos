@@ -1,23 +1,23 @@
 [*]
 [*] GTKWave Analyzer v3.3.66 (w)1999-2015 BSI
-[*] Wed Sep  7 08:34:36 2016
+[*] Mon Sep 12 15:59:45 2016
 [*]
 [dumpfile] "/home/dani/t-crest/patmos/Patmos.vcd"
-[dumpfile_mtime] "Wed Sep  7 08:09:59 2016"
-[dumpfile_size] 2341861428
+[dumpfile_mtime] "Mon Sep 12 15:55:22 2016"
+[dumpfile_size] 3919932666
 [savefile] "/home/dani/t-crest/patmos/hardware/wave_files/audio_inout_buffer_test.gtkw"
-[timestart] 605825
-[size] 1851 1081
-[pos] -1 -1
-*-2.722081 605831 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[timestart] 638320
+[size] 1855 1176
+[pos] -1 -548
+*-11.191640 642106 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] Patmos.
 [treeopen] Patmos.core.
 [treeopen] Patmos.core.iocomp.
 [treeopen] Patmos.core.iocomp.AudioInterface.
-[sst_width] 219
+[sst_width] 303
 [signals_width] 236
 [sst_expanded] 1
-[sst_vpaned_height] 331
+[sst_vpaned_height] 549
 @200
 -WM8731 ADC model
 @22
@@ -53,9 +53,17 @@ Patmos.core.iocomp.AudioInterface.mAudioAdcBuffer.audioBufferL_7[15:0]
 Patmos.core.iocomp.AudioInterface.mAudioAdcBuffer.audioBufferR_7[15:0]
 @200
 -AudioInterface
+@28
+Patmos.core.iocomp.AudioInterface.audioAdcBufferReqReg
+Patmos.core.iocomp.AudioInterface.audioAdcBufferAckReg
 @22
 Patmos.core.iocomp.AudioInterface.audioAdcLReg[15:0]
 Patmos.core.iocomp.AudioInterface.audioAdcRReg[15:0]
+Patmos.core.iocomp.AudioInterface.audioDacLReg[15:0]
+Patmos.core.iocomp.AudioInterface.audioDacRReg[15:0]
+@28
+Patmos.core.iocomp.AudioInterface.audioDacBufferReqReg
+Patmos.core.iocomp.AudioInterface.audioDacBufferAckReg
 @200
 -DACBuffer
 @22
@@ -77,19 +85,14 @@ Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioBufferL_7[15:0]
 Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioBufferR_7[15:0]
 @24
 Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.stateFE[2:0]
-@28
+@29
 Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.r_inc
+@28
 Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.w_inc
 Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.emptyReg
 Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.fullReg
-@22
-Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.w_pnt[7:0]
-Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.r_pnt[7:0]
-@28
 Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.enOutReg
-@29
 Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.io_writeEnDacI
-@28
 Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.stateOut
 @200
 -DAC

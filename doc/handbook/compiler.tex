@@ -388,7 +388,7 @@ optimisations based on timing-analysis feedback.
 PML files are \emph{YAML} files that adhere to the PML schema. The schema file can be found in
 
 \begin{verbatim}
-patmos-llvm/tools/platin/lib/core/pml.yml
+llvm/tools/platin/lib/core/pml.yml
 \end{verbatim}
 
 \stefan{There is a tool to generate a HTML document out of it..}
@@ -405,9 +405,17 @@ Typically, the configuration is stored in a separate PML file that is passed to 
 additional input file using the \code{-i} option. Sample configuration files can be found in
 
 \begin{verbatim}
-patmos-llvm/tools/platin/etc/
+llvm/tools/platin/etc/patmos
 \end{verbatim}
 \stefan{Maybe we will install those files somewhere along with the .rb files.}
+
+\todo{Martin is unhappy about those two examples: the ait version represents
+memory timing non of our platforms fulfills, the other version is for the depreciated
+DE2-70 and the timing info is for a page mode that we never used.
+Furthermore, those two examples are not the base for generation of a .pml
+file. Where do the defaults come from? If no one minds, I would like to delete
+those two.}
+
 
 
 
@@ -424,6 +432,8 @@ There are three configuration sections:
 
 
 % TODO make this a figure or something. Maybe shorten?
+\todo{What is the meaning of 8 bytes for the method cache and 4 bytes for
+the stack cache?}
 \begin{verbatim}
 ---
 format: pml-0.1
@@ -433,10 +443,10 @@ machine-configuration:
     - name: "main"
       size: 0x200000
       transfer-size: 16
-      read-latency: 3
-      read-transfer-time: 4
-      write-latency: 3
-      write-transfer-time: 4
+      read-latency: 0
+      read-transfer-time: 21
+      write-latency: 0
+      write-transfer-time: 21
     - name: "local"
       size: 2048
       transfer-size: 4
@@ -513,7 +523,14 @@ The machine configuration consists of three sections:
   t_{req} = \left\lceil \frac{\max(B, \texttt{min-burst-size})}{\texttt{max-burst-size}}\right\rceil \cdot \texttt{latency} +
             \left\lceil \frac{\max(B, \texttt{min-burst-size})}{\texttt{transfer-size}}\right\rceil \cdot \texttt{transfer-time}
   \]
-  For unaligned requests that span over a single burst, the transfer time can increase by up to $\texttt{latency} + \texttt{transfer-time}$.
+  For unaligned requests that span over a single burst, the transfer time can increase by up to $\texttt{latency} + \texttt{transfer-time}$. \todo{Which component does an unaligned request?
+ What is exactly a request?}
+  
+The caches of Patmos exchange data with the main memory in bursts of constant size,
+which is a power of 2. The time for this burst shall be configured with \texttt{transfer-time} and
+\texttt{latency} shall be set to 0. The default configuration of Patmos is 4 32-bit word
+bursts. Therefore, the \texttt{transfer-size} is 16 bytes. On the DE2-115 with the external
+16-bit SRAM a burst transfer takes 21 clock cycles.
 
   \textbf{Ideal memory:} A memory is \emph{ideal}, if all latency and transfer time delays are set to zero.
 
@@ -747,6 +764,7 @@ the flow facts (\emph{main} by default).
 
 
 \subsection{Example}
+\label{sec:toolchain:platin:example}
 
 %SH: This section is taken from the KPS'2015 paper.
 
