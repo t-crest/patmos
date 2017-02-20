@@ -3398,6 +3398,15 @@ and hope for an output similar to:
   020F70DD   EP3C120/EP4CE115
 \end{verbatim}
 
+In some cases, killing the the jtagd process can make the connection work againg:
+
+\begin{verbatim}
+$ sudo killall -9 jtagd
+$ sudo killall -9 jtagd # Verify that is not running
+jtagd: no process found
+$ jtagconfig
+\end{verbatim}
+
 Some more fixes might be needed (not on a recent try with Ubuntu 14.04):
 
 \begin{verbatim}
