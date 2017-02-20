@@ -1,6 +1,7 @@
 genesys2.cache/
 genesys2.hw/
 genesys2.runs/
+genesys2.sim/
 genesys2.srcs/sources_1/ip/clk_manager/clk_manager.dcp
 genesys2.srcs/sources_1/ip/clk_manager/clk_manager.v
 genesys2.srcs/sources_1/ip/clk_manager/clk_manager.xdc
