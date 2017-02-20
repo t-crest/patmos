@@ -27,4 +27,4 @@ genesys2.srcs/sources_1/ip/ddr3_ctrl/ddr3_ctrl_stub.v
 genesys2.srcs/sources_1/ip/ddr3_ctrl/ddr3_ctrl_stub.vhdl
 genesys2.srcs/sources_1/ip/ddr3_ctrl/ddr3_ctrl_xmdf.tcl
 genesys2.srcs/sources_1/ip/ddr3_ctrl/xil_txt.in
-
+!genesys2.srcs/sources_1/ip/ddr3_ctrl/*.prj

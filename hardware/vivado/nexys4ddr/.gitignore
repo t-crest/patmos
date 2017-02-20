@@ -1,3 +1,7 @@
-genesys2.cache/
-genesys2.hw/
-genesys2.runs/
+nexys4ddr.ip_user_files/
+nexys4ddr.hw/
+nexys4ddr.runs/
+nexys4ddr.sim/
+
+!nexys4ddr.srcs/sources_1/ip/ddr2_ctrl/*.prj
+
