@@ -1,11 +1,10 @@
 <patmos default="default.xml">
-  <description>default configuration for DE2-70 board</description>
+  <description>Default configuration for DE2-70 board with SDRAM memory.</description>
 
   <frequency Hz="50000000" />
-  <!--Burst-lenght modified to 1-->
+
   <bus burstLength="4" writeCombine="false" mmu="false" />
 
-  <!--<ExtMem size="2M" DevTypeRef="Ssram32" />-->
   <ExtMem size="64M" DevTypeRef="MemBridge" />
 
   <IOs>
@@ -31,12 +30,7 @@
   		<param name="keyCount" value="4"/>
   	  </params>
   	</Dev>
-    <!--<Dev DevType="Ssram32" entity="SSRam32Ctrl" iface="OcpBurst">
-        <params>
-            <param name="ocpAddrWidth" value="21" />
-        </params>
-    </Dev>-->
-    <Dev DevType="MemBridge" entity="MemBridge" iface="OcpBurst">
+    	<Dev DevType="MemBridge" entity="MemBridge" iface="OcpBurst">
     </Dev>
   </Devs>
 </patmos>
