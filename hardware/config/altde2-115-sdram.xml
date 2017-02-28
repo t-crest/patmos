@@ -1,0 +1,42 @@
+<patmos default="default.xml">
+  <description>default configuration for DE2-115 board</description>
+
+  <frequency Hz="80000000" />
+  <!--Burst-lenght modified to 1-->
+  <bus burstLength="4" writeCombine="false" mmu="false" />
+
+  <!--<ExtMem size="2M" DevTypeRef="Ssram32" />-->
+  <ExtMem size="128M" DevTypeRef="MemBridge" />
+
+  <IOs>
+	<IO DevTypeRef="Uart" offset="8"/>
+	<IO DevTypeRef="Leds" offset="9"/>
+	<IO DevTypeRef="Keys" offset="10" intrs="2,3,4,5"/>
+  </IOs>
+
+  <Devs>
+	<Dev DevType="Uart" entity="Uart" iface="OcpCore">
+	  <params>
+		<param name="baudRate" value="115200"/>
+  		<param name="fifoDepth" value="16"/>
+	  </params>
+	</Dev>
+	<Dev DevType="Leds" entity="Leds" iface="OcpCore">
+	  <params>
+		<param name="ledCount" value="9"/>
+	  </params>
+	</Dev>
+  	<Dev DevType="Keys" entity="Keys" iface="OcpCore">
+  	  <params>
+  		<param name="keyCount" value="4"/>
+  	  </params>
+  	</Dev>
+    <!--<Dev DevType="Ssram32" entity="SSRam32Ctrl" iface="OcpBurst">
+        <params>
+            <param name="ocpAddrWidth" value="21" />
+        </params>
+    </Dev>-->
+    <Dev DevType="MemBridge" entity="MemBridge" iface="OcpBurst">
+    </Dev>
+  </Devs>
+</patmos>
