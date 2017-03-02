@@ -193,11 +193,11 @@ The latest version of this document is contained as LaTeX source in the Patmos r
 
 \chapter{Introduction}
 
-This document presents the background required to write a multicore program utilizing the Argo NoC for intercore communication.
+This document presents the background required to write a multicore program utilizing the Argo NoC~\cite{t-crest:argo:tvlsi2015} for intercore communication in the T-CREST plaform~\cite{t-crest:2015}.
 The exercises should give the reader a good understanding of how the Argo NoC can be utilized in a multicore application.
 The reader will get experience in how to write a multicore application that uses message passing.
 In the exercises we assume that the reader is familiar with the C programming language and multi-threaded programming in general.
-Furthermore, we assume that the reader has already run a single core application on a Patmos processor in an FPGA, refer to the Patmos handbook~\cite{patmos-handbook} for details on the patmos processor.
+Furthermore, we assume that the reader has already run a single core application on a Patmos processor in an FPGA, refer to the Patmos handbook~\cite{patmos:handbook} for details on the Patmos processor.
 
 An example of the multicore platform is shown in Fig.~\ref{fig:mc-patmos}. Core $P_0$ is referred to as the master core and the rest of the cores are referred to as slave cores. The reason that $P_0$ is the master core is that when an application is downloaded to the platform, the application starts executing \code{main()} on the master core, also the serial console  is connected to the master core. All cores are connected to the shared external memory, but the bandwidth towards the external memory is quiet low.
 Therefore, the programmer should utilize the NoC as much as possible for core-to-core communication.
@@ -697,7 +697,7 @@ The \code{download} target of the Makefile depends on the comp target,
 therefore it is not necessary to execute the \code{comp} target before every download.
 Also, it is not strictly necessary to configure the FPGA with the hardware
 platform between each download of a program, but we advice you to do so.
-This will ensure that the hardware platform is probably iniitaliized
+This will ensure that the hardware platform is probably initialized
 before your download a program.
 
 
@@ -720,6 +720,7 @@ before your download a program.
 \input{../c_doc/latex/noc_8h}
 
 \bibliographystyle{abbrv}
-\bibliography{argobib.bib}
+%\bibliography{argobib.bib}
+\bibliography{../html/t-crest.bib}
 
 \end{document}
