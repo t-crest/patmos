@@ -149,9 +149,9 @@
 \title{The Argo software perspective}
 \subtitle{A multicore programming exercise}
 
-\author{Rasmus Bo S{\o}rensen}
+\author{Rasmus Bo S{\o}rensen \\ {\normalsize Updated by Luca Pezzarossa}}
 
-\lowertitleback{Copyright \copyright{} 2015 Technical University of Denmark
+\lowertitleback{Copyright \copyright{} 2017 Technical University of Denmark
   \medskip\\
   \begin{tabular}{lp{.8\textwidth}}
     \raisebox{-12pt}{\includegraphics[height=18pt]{fig/cc_by_sa}} &
@@ -171,7 +171,7 @@ This exercise manual is written for the course `02211 Advanced Computer Architec
 but is intended as a stand alone document for anybody interested in learning about multicore programming with the Argo Network-on-Chip.
 
 This document is subject to continuous development along the the platform it describes.
-In case you have suggestions for improvement or find that the text is unclear and needs to be elaborated, please write to \href{mailto:rboso@dtu.dk}{rboso@dtu.dk}
+In case you have suggestions for improvement or find that the text is unclear and needs to be elaborated, please write to \href{mailto:rboso@dtu.dk}{rboso@dtu.dk} or \href{mailto:lpez@dtu.dk}{lpez@dtu.dk}.
 The latest version of this document is contained as LaTeX source in the Patmos repository in directory
 \code{patmos/doc} and can be built with \code{make noc}.
 
@@ -444,35 +444,47 @@ This exercise is split into \ref{list:ex1:num2}~tasks:
 \end{framed}
 
 \noindent In each task you should verify the your program is working as expected by compiling and downloading the program to the platform.
+Figure~\ref{fig:header} shows the libraries to include in your program and the definition of the NoC master core as core 0.
+Moreover, it shows some useful functions to get information related to the multicore platform.
+
+\begin{figure}
+\begin{Verbatim}[xleftmargin=1cm,xrightmargin=1cm,frame=single,framesep=3mm]
+const int NOC_MASTER = 0;
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <machine/patmos.h>
+#include "libcorethread/corethread.h"
+#include "libmp/mp.h"
+
+get_cpucnt(); // returns the number of cores
+get_cpuid(); // returns the core ID
+\end{Verbatim}
+\caption{\label{fig:header}Libraries to include, definition of the NoC master, and some useful functions.}
+\end{figure}
 
 \subsection{Task 1}
 In this task you should create a function that blinks the LED and execute the function on the slaves processors.
 The frequency of blinking the LED should be in the order of 1~-~10~Hz so that it is visible to the eye.
-We suggest to set the frequency of the blinking through a parameter of the blinking function.
-Figure~\ref{fig:ctrl_led} shows an example of how to blink an LED.
+Figure~\ref{fig:ctrl_led} shows an example of how to blink an LED, where the frequency of the blinking is set through a parameter of the blinking function.
 To turn the LED on and off, write a 1 and 0, respectively to the hardware address of the LED. 
 
 \begin{figure}
 \begin{Verbatim}[xleftmargin=1cm,xrightmargin=1cm,frame=single,framesep=3mm]
-// The hardware address of the LED
-#define LED ( *( ( volatile _IODEV unsigned * ) 0xf0090000 ) )
-for (;;) {
-  for ( int i=2000; i!=0; --i ) {
-    for ( int j=2000; j!=0; --j ) {
-      // Turn off LED
-      LED = 1;
-    }
-  }
+//blink function, period=0 -> ~10Hz, period=255 -> ~1Hz
+void blink(int period) {
+	// The hardware address of the LED
+	#define LED ( *( ( volatile _IODEV unsigned * ) 0xF0090000 ) )
 
-  for ( int i=2000; i!=0; --i ) {
-    for ( int j=2000; j!=0; --j ) {
-      // Turn off LED
-      LED = 0;
+	for (;;)
+    {
+		for (int i=400000+14117*period; i!=0; --i){LED = 1;}
+		for (int i=400000+14117*period; i!=0; --i){LED = 0;}
     }
-  }
+	return;
 }
 \end{Verbatim}
-\caption{\label{fig:ctrl_led}An example of how to blink an LED}
+\caption{\label{fig:ctrl_led}An example of a function to blink a LED with the period as parameter.}
 \end{figure}
 
 To execute the \code{blink()} function on the slave core there is an example of
@@ -521,37 +533,72 @@ The \code{get\_cpu\_usecs()} function returns the value of the microsecond count
 The 8 LEDs should now independently blink with random varying frequencies.
 
 \subsection{Task 3}
-In this task you will start sending messages.
-Before messages can be sent or received you need to initialize the message passing channels with the \code{mp\_chan\_init()} function.
+In this task you will start sending messages in order to move the tokens between the slave cores.
 The use of the message passing function is described in Section~\ref{sec:libmp}.
-The initialization of the message passing channels shall be done in the \code{main()} function before the corethreads are started.
-If the channels are initialized after the corehtreads are created the behavior of
-\code{mp\_send()} and \code{mp\_recv()} is undefined.
-
+The initialization of the message passing channels shall be done in the slave threads and before messages can be sent or received, each slave needs to initialize the message passing channels with the \code{mp\_chan\_init()} function.
+Figure~\ref{fig:open_channel} shows an example of how slave core 1 opens a source port (to send) towards core 2 and how slave core 2 opens a sink port (to receive) form core 1, creating a communication channel identified by the id 1 (first parameter in the function).
 
 \paragraph*{Expected output}
 It should now be observable that the tokens move between cores.
+
+\begin{figure}
+\begin{Verbatim}[xleftmargin=1cm,xrightmargin=1cm,frame=single,framesep=3mm]
+#define MP_CHAN_NUM_BUF 2
+#define MP_CHAN_BUF_SIZE 40
+
+...
+
+// Slave function running on core 1
+void slave1(void* param) {
+	// Create the port for channel 1
+	qpd_t * chan1 = mp_create_qport(1, SOURCE, 
+	MP_CHAN_BUF_SIZE, MP_CHAN_NUM_BUF);
+	mp_init_ports();
+
+	// Do something
+	return;
+}
+
+// Slave function running on core 2
+void slave2(void* param) {
+	// Create the port for channel 1
+	qpd_t * chan1 = mp_create_qport(1, SINK, 
+	MP_CHAN_BUF_SIZE, MP_CHAN_NUM_BUF);
+	mp_init_ports();
+
+	// Do something
+	return;
+}
+\end{Verbatim}
+\caption{\label{fig:open_channel}An example of how to create a communication channel.}
+\end{figure}
+
 
 \subsection{Task 4}
 For the sake of the example, you should now pair a seed value to each tokens.
 To send the seed value along with the message, you need to write the seed value into
 the \code{write\_buf} before sending the message, and read out the seed value from the \code{read\_buf}
 after receiving a message.
-Figure~\ref{fig:msg_data} shows an example of how message data can be read and written.
+Figure~\ref{fig:msg_data} shows an example of how to receive, send, acknowledge reception, read, and write message data.
 
 \begin{figure}
 \begin{Verbatim}[xleftmargin=1cm,xrightmargin=1cm,frame=single,framesep=3mm]
-// Reading an unsigned integer value from the channel read buffer
-seed = *( ( volatile unsigned int _SPM * ) ( &chan.read_buf ) );
+// Receiving, reading and acknowledge reception of 
+// an unsigned integer value from the channel read buffer
+mp_recv(chan,0);
+seed = *(( volatile int _SPM * ) ( chan->read_buf )); 
+mp_ack(chan,0);
 
-// Writing an unsigned integer value to the channel write buffer
-*( volatile unsigned int _SPM * ) ( &chan.write_buf ) = seed; 
+// Writing an unsigned integer value to the channel 
+// write buffer and sending it.
+*( volatile int _SPM * ) ( chan->write_buf ) = seed; 
+mp_send(chan,0);
 \end{Verbatim}
-\caption{\label{fig:msg_data}An example of how to read and write message data}
+\caption{\label{fig:msg_data}An example of how to receive, send, acknowledge reception, read, and write message data.}
 \end{figure}
 
 \paragraph*{Expected output}
-The output should not be different form task 3.
+It should now be observable that the tokens move between cores, like task 3 but with random intervals.
 
 \subsection{Extensions}
 If you have more time left or just can not get enough of programming message passing applications, you can extend your application  in several ways:
