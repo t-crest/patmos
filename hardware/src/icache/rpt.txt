@@ -1,2 +1,0 @@
-idx trig type dest it nxt count depth retdest
-36 18465 1 0 0 0 0 0 0 
