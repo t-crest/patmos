@@ -237,11 +237,12 @@ class ICacheReplDm() extends Module {
   // Check for a hit of both instructions in the address bundle
   hitEven := Bool(true)
   hitOdd := Bool(true)
+
+  fetchAddr := addrEvenReg
   when ((tagEven != addrEvenReg(TAG_HIGH, TAG_LOW)) || (!validEven)) {
     hitEven := Bool(false)
   } 
-  fetchAddr := addrEvenReg
-  when ((tagOdd != addrOddReg(TAG_HIGH, TAG_LOW)) || (!validOdd)) {
+  .elsewhen ((tagOdd != addrOddReg(TAG_HIGH, TAG_LOW)) || (!validOdd)) {
     hitOdd := Bool(false)
     fetchAddr := addrOddReg
   }

@@ -288,7 +288,6 @@ class PICache2LRURepl() extends Module {
   val tagPrefFirst = Mux(addrPrefReg(INDEX_LOW), toutOddPrefFirst, toutEvenPrefFirst)
   val tagPrefSecond = Mux(addrPrefReg(INDEX_LOW), toutOddPrefSecond, toutEvenPrefSecond)
  
-
   // Check if line is valid
   val validEvenFirst = validVecFirst(addrEvenReg(INDEX_HIGH, INDEX_LOW))
   val validOddFirst = validVecFirst(addrOddReg(INDEX_HIGH, INDEX_LOW))
@@ -324,7 +323,6 @@ class PICache2LRURepl() extends Module {
   when (((tagEvenFirst === addrEvenReg(TAG_HIGH, TAG_LOW)) && (validEvenFirst)) || ((tagEvenSecond === addrEvenReg(TAG_HIGH, TAG_LOW)) && (validEvenSecond))) {
     replVec(LRUIndexEven) := Mux((tagEvenFirst === addrEvenReg(TAG_HIGH, TAG_LOW)), Bool(true), Bool(false))
   }
-
 
   // Keep signals alive for emulator
   debug(hitEven)
@@ -476,6 +474,7 @@ class PICache2LRUCtrl() extends Module {
     }
     when (fetchCnt < UInt(LINE_WORD_SIZE)) {
       when (fetchCnt === UInt(LINE_WORD_SIZE - 1)) {
+        // Write Tag
 	wTag := Bool(true)
       }
       when (ocpSlaveReg.Resp === OcpResp.DVA) {

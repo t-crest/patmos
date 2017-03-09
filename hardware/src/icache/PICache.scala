@@ -262,7 +262,6 @@ class PICacheReplDm() extends Module {
   val tagOdd = Mux(addrOddReg(INDEX_LOW), toutOdd, toutEven)
   val tagPref = Mux(addrPrefReg(INDEX_LOW), toutOddPref, toutEvenPref)
 
-
   // Check if line is valid
   val validEven = validVec(addrEvenReg(INDEX_HIGH, INDEX_LOW))
   val validOdd = validVec(addrOddReg(INDEX_HIGH, INDEX_LOW))
@@ -272,7 +271,6 @@ class PICacheReplDm() extends Module {
   hitEven := Bool(true)
   hitOdd := Bool(true)
   hitPref := Bool(true)
-
 
   fetchAddr := addrEvenReg
 
@@ -284,7 +282,8 @@ class PICacheReplDm() extends Module {
     fetchAddr := addrOddReg
   }
   .elsewhen ((tagPref != addrPrefReg(TAG_HIGH, TAG_LOW)) || (!validPref)) { 
-    when ((addrPrefReg(INDEX_HIGH, INDEX_LOW) != addrEvenReg(INDEX_HIGH, INDEX_LOW)) && (addrPrefReg(INDEX_HIGH, INDEX_LOW) != addrOddReg(INDEX_HIGH, INDEX_LOW))) {
+    // Avoid cache-prefetch conflict
+    when ((addrPrefReg(INDEX_HIGH, INDEX_LOW) != addrEvenReg(INDEX_HIGH, INDEX_LOW )) && (addrPrefReg(INDEX_HIGH, INDEX_LOW ) != addrOddReg(INDEX_HIGH, INDEX_LOW))) {
 	hitPref := Bool(false)
         fetchAddr := addrPrefReg
     }
