@@ -334,7 +334,7 @@ So all-in-all the recoverable process state is: general-purpose registers
 registers mapped to the `special' register files \code{S}.
 
 Concurrently writing and reading the same register in the same cycle
-will, for the read, yield the old value of the register. Reads in
+will, for the read, yield the new value of the register. Reads in
 subsequent cycles return the result most recently written to the
 register, i.e., the pipeline implements full forwarding.
 
@@ -2990,6 +2990,164 @@ immediately.
 \item The slave responds to the write burst by setting \code{SResp} to
   \code{DVA}.
 \end{enumerate}
+
+\section{Example I/O Device}
+
+In this section we summarize the chapter by showing how to build a simple
+I/O device, a counter.
+Several examples of I/O devices can be found in \code{patmos/hardware/src/io}.
+Adding an I/O device to Patmos consists of 2--3 steps:
+
+\begin{itemize}
+\item Describing the I/O device in Chisel
+\item Adding the device and the address into the configuration file
+\item If the device contains pins to the external world, the pins need to be added to
+the top-level (VHDL) file and to the Quartus (.qsf) or Xilinx configuration files
+\end{itemize}
+
+
+An I/O device has to extend \code{CoreDevice} and needs to define a
+companion object that extends \code{DeviceObject}. The interface to the
+processor is usually \code{OCPcore} where handshaking for the data
+is available via \code{SResp}.
+In this example we will define a read only device that implements a simple
+counter. The complete code for this device can be found in
+\code{patmos/hardware/src/io/Counter.scala}.
+
+\begin{lstlisting}[float, caption={Companion object for the counter device\label{lst:ioex:obj}}]
+object Counter extends DeviceObject {
+
+  def init(params: Map[String, String]) = {}
+
+  def create(params: Map[String, String]): Counter = Module(new Counter())
+
+  trait Pins {}
+}
+\end{lstlisting}
+
+Each device needs to define a companion object that is used as a factory
+object to create devices and needs to overwrite two methods: \code{init()}
+and \code{create()} and needs to overwrite the trait \code{Pins}.
+Listing~\ref{lst:ioex:obj} shows the the companion object for our counter
+device. The method \code{init()} can be used to pass parameters from the
+configuration file (e.g., altde2-115.xml). As we do not use parameters in our
+simple example we just define an empty method. The method \code{create()}
+is the singleton method that shall return an instance of an I/O device.
+In our example we create one \code{Counter} object, wrap it into a \code{Module},
+as any Chisel component, and return it from \code{creat()}. The method
+\code{create()} itself can receive parameter, which we do not use in this example.
+
+\begin{lstlisting}[float, caption={Class for the counter device\label{lst:ioex:class}}]
+class Counter() extends CoreDevice() {
+
+  io.ocp.S.Data := UInt(42)
+  
+  val respReg = Reg(init = OcpResp.NULL)
+  
+  respReg := OcpResp.NULL
+  when(io.ocp.M.Cmd === OcpCmd.RD) {
+    respReg := OcpResp.DVA
+  }
+  
+  io.ocp.S.Resp := respReg
+}
+\end{lstlisting}
+
+Listing~\ref{lst:ioex:class} shows the first version of our I/O device.
+We simply return 42 on a read from the device. However, we also need to
+adhere to the OCP signaling. We need to response to a read command
+in the next clock cycle with a data valid signal (\code{DVA}). Otherwise we need to
+set the response to \code{NULL}.
+
+\begin{lstlisting}[float, caption={Configuring the processor to include our
+counter device\label{lst:ioex:xml}}]
+<IO DevTypeRef="Counter" offset="11"/>
+
+<Dev DevType="Counter" entity="Counter" iface="OcpCore"/>
+\end{lstlisting}
+
+Listing~\ref{lst:ioex:xml} shows the last step, configuring Patmos to use the
+counter. In our example we change the configuration file that is used for
+the default configuration: \code{patmos/hardware/config/altde2-115.xml}.
+The two lines from Listing~\ref{lst:ioex:xml} need to added into section \code{IOs}
+and \code{Devs}, respectively. Offset 11 is the next available I/O address and
+results in mapping our counter to I/O address \code{0xf00b0000}
+(each I/O device has a 16 bit local address and 11 in decimal is `b' in hexadecimal).
+
+\begin{lstlisting}[float, caption={Testing the counter device\label{lst:ioex:c}}]
+#include <machine/patmos.h>
+#include <stdio.h>
+
+int main() {
+
+  volatile _IODEV int *io_ptr = (volatile _IODEV int *) 0xf00b0000;
+  int val;
+
+  val = *io_ptr;
+  printf("%d\n", val);
+}
+
+\end{lstlisting}
+
+Listing~\ref{lst:ioex:c} shows a small test program to read our counter device
+and write the value to stdout. As our I/O device lives in the local memory
+area we need to tell the C compiler to the local load and store instructions
+to access the I/O device. This is performed by defining a special pointer
+with the macro \code{\_IODEV}, which we import by including \code{<machine/patmos.h>}.
+
+\begin{lstlisting}[float, caption={Chisel code for counting\label{lst:ioex:cnt}}]
+  val countReg = Reg(init = UInt(0, 32))
+  countReg := countReg + UInt(1)
+  io.ocp.S.Data := countReg
+\end{lstlisting}
+
+To implement a counter we need a register and some addition.
+Listing~\ref{lst:ioex:cnt} hows the Chisel code for this free running counter.
+We now have a device the ticks at the processor frequency and can be used
+to measure execution time. Listing~\ref{lst:ioex:measure} shows how to use
+our counter to measure the execution time of the print function with a simple
+string print out.
+
+\begin{lstlisting}[float, caption={Measure execution time\label{lst:ioex:measure}}]
+  val1 = *io_ptr;
+  printf("Hello");
+  val2 = *io_ptr;
+
+  printf("Execution time is %d\n", val2-val1);
+\end{lstlisting}
+
+\begin{lstlisting}[float, caption={A writable counter\label{lst:ioex:write}}]
+class Counter() extends CoreDevice() {
+
+  val countReg = Reg(init = UInt(0, 32))
+  countReg := countReg + UInt(1)
+  when (io.ocp.M.Cmd === OcpCmd.WR) {
+    countReg := io.ocp.M.Data 
+  }
+  
+  val respReg = Reg(init = OcpResp.NULL)
+  respReg := OcpResp.NULL
+  when(io.ocp.M.Cmd === OcpCmd.RD || io.ocp.M.Cmd === OcpCmd.WR) {
+    respReg := OcpResp.DVA
+  }
+  
+  io.ocp.S.Data := countReg  
+  io.ocp.S.Resp := respReg
+}
+\end{lstlisting}
+
+To complete the example we add a write to the device where we can set
+the value of the counter. Listing~\ref{lst:ioex:write} shows now the complete
+code of our counter where we can set the value. On a OCP write we take the
+data value in the same clock cycle as input to the counter register.
+As with the read operation, we acknowledge the write in the following clock
+cycle with a \code{DVA}.
+
+When the I/O device has more than one register (or some memory), the
+address signals from the OCP connection (\code{io.ocp.M.Addr}) are used
+for address decoding. See for an example the \code{CpuInfo} device.
+
+
 
 
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
