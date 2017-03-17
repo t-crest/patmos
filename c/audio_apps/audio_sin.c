@@ -3,6 +3,8 @@
 
 const int BUFFER_SIZE = 128;
 
+short sineArray[220];
+
 int main() {
 
     setup(0); //line in
@@ -30,10 +32,19 @@ int main() {
     right = (volatile _SPM short *) RIGHT_ADDR;
 
 
+    //Fill sine array:
+    for (int i = 0; i < 220; i++) {
+        sineArray[i] = 16384*sin(2.0*M_PI* i /220);
+    }
+
     while(*keyReg != 3) {
 
-        getInputBufferSPM(left, right);
-        setOutputBufferSPM(left, right);
+        for (int i = 0; i < 220; i++) {
+            *left = sineArray[i];
+            *right = sineArray[i];
+
+            setOutputBufferSPM(left, right);
+        }
 
     }
 
