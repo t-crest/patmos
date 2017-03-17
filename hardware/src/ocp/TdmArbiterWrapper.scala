@@ -63,7 +63,7 @@ class TdmArbiterWrapper(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen: In
   
   for (i <- 0 until cnt) {
     val nodeID = UInt(i, width=6)
-    val arb = Module(new ocp.NodeTdmArbiter(cnt, addrWidth, dataWidth, burstLen, 16))
+    val arb = Module(new ocp.NodeTdmArbiter((cnt + 1), addrWidth, dataWidth, burstLen, 5))
     arb.io.master <> io.master(i)
     arb.io.node := nodeID
     
