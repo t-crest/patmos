@@ -2110,6 +2110,16 @@ Address & I/O Device & read & write \\
 \code{0xf0090000} & LED & -- & output register \\
 \cmidrule{1-4}
 \code{0xf00a0000} & Keys & input register & -- \\
+\cmidrule{1-4}
+\code{0xf00b0000} & Deadline & may stall the pipeline & deadline cycles \\
+\cmidrule{1-4}
+\code{0xf00c0000} & Audio & & \\
+\dots             & Audio & \multicolumn{2}{c}{Audio interface (tbd)} \\
+\code{0xf00cffff} & Audio & & \\
+\cmidrule{1-4}
+\code{0xf00d0000} & EthMac & & \\
+\dots             & EthMac & \multicolumn{2}{c}{EthMac device (see Section~\ref{sec:ethmac})} \\
+\code{0xf00dffff} & EthMac & & \\
 \bottomrule
 \end{tabular}
 \caption{I/O devices and registers}
@@ -2259,11 +2269,21 @@ Bit & Status & & Control & \\
 \label{tab:uart}
 \end{table}
 
+
+\subsection{Deadline}
+
+The deadline device provides a facility for delaying execution for a
+specified amount of time.
+In each subsequent cycle, the counter is decremented by 1.
+A load to the address stalls the processor pipeline until the counter
+reaches 0.
+
 \subsection{EthMac}
+\label{sec:ethmac}
 
 Patmos supports Ethernet connections through an EthMac device
 \cite{mohor2002ethernet,pezzarossa2015ethernet}. This device is
-usually mapped starting at address \code{0xf00b0000}. The RX/TX buffer
+usually mapped starting at address \code{0xf00d0000}. The RX/TX buffer
 of the device is mapped to offsets \code{0x0000} to \code{0xefff},
 while the device registers of the Ethernet controller are mapped to
 offsets \code{0xf000} to \code{0xffff}. For detailed information on

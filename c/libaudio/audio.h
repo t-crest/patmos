@@ -33,22 +33,26 @@
 
 #define LED_ADDR       (volatile _SPM int *) 0xF0090000
 #define KEY_ADDR       (volatile _SPM int *) 0xF00A0000
-#define DACL_ADDR      (volatile _SPM int *) 0xF00B0000
-#define DACR_ADDR      (volatile _SPM int *) 0xF00B0010
-#define DACEN_ADDR     (volatile _SPM int *) 0xF00B0020
-#define DACBUFS_ADDR   (volatile _SPM int *) 0xF00B0040
-#define DACBUFWP_ADDR  (volatile _SPM int *) 0xF00B0050
-#define DACBUFFU_ADDR  (volatile _SPM int *) 0xF00B0060
-#define ADCL_ADDR      (volatile _SPM int *) 0xF00B0080
-#define ADCR_ADDR      (volatile _SPM int *) 0xF00B0090
-#define ADCEN_ADDR     (volatile _SPM int *) 0xF00B00A0
-#define ADCBUFS_ADDR   (volatile _SPM int *) 0xF00B00B0
-#define ADCBUFRP_ADDR  (volatile _SPM int *) 0xF00B00C0
-#define ADCBUFEM_ADDR  (volatile _SPM int *) 0xF00B00D0
-#define I2CDATA_ADDR   (volatile _SPM int *) 0xF00B00E0
-#define I2CADDR_ADDR   (volatile _SPM int *) 0xF00B00F0
-#define I2CACK_ADDR    (volatile _SPM int *) 0xF00B0100
-#define I2CREQ_ADDR    (volatile _SPM int *) 0xF00B0110
+
+
+#define AUDIODEV_BASE   0xF00C0000
+
+#define DACL_ADDR      (volatile _SPM int *)(AUDIODEV_BASE+0x0000)
+#define DACR_ADDR      (volatile _SPM int *)(AUDIODEV_BASE+0x0010)
+#define DACEN_ADDR     (volatile _SPM int *)(AUDIODEV_BASE+0x0020)
+#define DACBUFS_ADDR   (volatile _SPM int *)(AUDIODEV_BASE+0x0040)
+#define DACBUFWP_ADDR  (volatile _SPM int *)(AUDIODEV_BASE+0x0050)
+#define DACBUFFU_ADDR  (volatile _SPM int *)(AUDIODEV_BASE+0x0060)
+#define ADCL_ADDR      (volatile _SPM int *)(AUDIODEV_BASE+0x0080)
+#define ADCR_ADDR      (volatile _SPM int *)(AUDIODEV_BASE+0x0090)
+#define ADCEN_ADDR     (volatile _SPM int *)(AUDIODEV_BASE+0x00A0)
+#define ADCBUFS_ADDR   (volatile _SPM int *)(AUDIODEV_BASE+0x00B0)
+#define ADCBUFRP_ADDR  (volatile _SPM int *)(AUDIODEV_BASE+0x00C0)
+#define ADCBUFEM_ADDR  (volatile _SPM int *)(AUDIODEV_BASE+0x00D0)
+#define I2CDATA_ADDR   (volatile _SPM int *)(AUDIODEV_BASE+0x00E0)
+#define I2CADDR_ADDR   (volatile _SPM int *)(AUDIODEV_BASE+0x00F0)
+#define I2CACK_ADDR    (volatile _SPM int *)(AUDIODEV_BASE+0x0100)
+#define I2CREQ_ADDR    (volatile _SPM int *)(AUDIODEV_BASE+0x0110)
 
 //Leds
 volatile _SPM int *ledReg = LED_ADDR;
