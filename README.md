@@ -5,8 +5,7 @@ Patmos is a time-predictable VLIW processor.
 Patmos is the processor for the T-CREST project.
 See also: http://www.t-crest.org/ and http://patmos.compute.dtu.dk/
 
-The Patmos [Reference Handbook]
-(http://patmos.compute.dtu.dk/patmos_handbook.pdf)
+The Patmos [Reference Handbook](http://patmos.compute.dtu.dk/patmos_handbook.pdf)
 contains build instructions in Section 5.
 
 For questions and discussions join the Patmos mailing list at:
