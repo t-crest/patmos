@@ -60,7 +60,7 @@ build.sh will checkout several other repositories (the compiler, library,
 the Patmos source, and benchmarks) and
 build the compiler, the Patmos simulator, and the test benches.
 Therefore, take a cup of coffee and find some nice reading
-(e.g., the [Patmos Reference Handbook] (http://patmos.compute.dtu.dk/patmos_handbook.pdf)).
+(e.g., the [Patmos Reference Handbook](http://patmos.compute.dtu.dk/patmos_handbook.pdf)).
 
 
 We can start with the standard, harmless looking Hello
@@ -78,7 +78,7 @@ and run with the simulator as follows:
 
 However, this innocent examples is quiet challenging for an embedded system.
 For further details and how to build Patmos for an FPGA see Section 6 in the
-[Patmos Reference Handbook] (http://patmos.compute.dtu.dk/patmos_handbook.pdf).
+[Patmos Reference Handbook](http://patmos.compute.dtu.dk/patmos_handbook.pdf).
 
 Known Issues
 ============
