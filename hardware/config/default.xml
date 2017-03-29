@@ -5,8 +5,8 @@
   <pipeline dual="true" />
   <bus burstLength="4" writeCombine="false" mmu="false" />
 
-  <ICache type="method" size="4k" assoc="16" repl="fifo" />
-  <DCache size="2k" assoc="1" repl="" writeThrough="true" />
+  <ICache type="method" size="8k" assoc="16" repl="fifo" />
+  <DCache size="4k" assoc="1" repl="" writeThrough="true" />
   <SCache size="2k" />
   <ISPM size="1k" />
   <DSPM size="2k" />
