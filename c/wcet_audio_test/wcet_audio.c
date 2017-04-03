@@ -121,7 +121,7 @@ struct WahWah {
 };
 
 
-unsigned int alloc_filter_vars(_SPM struct Filter *filtP, int Fc, float QorFb, int thisType) {
+unsigned int alloc_filter_vars(_SPM struct Filter *filtP, unsigned int LAST_ADDR, int thisType) {
 
     //calculate filter coefficients (3rd order)
     filtP->type = thisType;
@@ -136,10 +136,12 @@ unsigned int alloc_filter_vars(_SPM struct Filter *filtP, int Fc, float QorFb, i
 
     filtP->pnt = 2;
 
-    return 0;
+    LAST_ADDR += (sizeof(struct Filter));
+
+    return LAST_ADDR;
 }
 
-unsigned int alloc_vibrato_vars(_SPM struct Vibrato *vibrP) {
+unsigned int alloc_vibrato_vars(_SPM struct Vibrato *vibrP, unsigned int LAST_ADDR) {
 
     //modulation arrays
     vibrP->audio_buf_pnt = malloc(VIBRATO_L * 2 * sizeof(short)); // short audio_buf[2][VIBRATO_L]
@@ -156,10 +158,12 @@ unsigned int alloc_vibrato_vars(_SPM struct Vibrato *vibrP) {
     vibrP->pnt = VIBRATO_L - 1; //start on top
     vibrP->v_pnt = 0;
 
-    return 0;
+    LAST_ADDR += (sizeof(struct Vibrato));
+
+    return LAST_ADDR;
 }
 
-unsigned int alloc_wahwah_vars(_SPM struct WahWah *wahP) {
+unsigned int alloc_wahwah_vars(_SPM struct WahWah *wahP, unsigned int LAST_ADDR) {
 
     //shift left is fixed!
     wahP->sftLft = 1;
@@ -171,7 +175,7 @@ unsigned int alloc_wahwah_vars(_SPM struct WahWah *wahP) {
     wahP->a_array  = malloc(WAHWAH_P * 3 * sizeof(short)); // short a_array[3][WAHWAH_P]
     wahP->b_array  = malloc(WAHWAH_P * 3 * sizeof(short)); // short b_array[3][WAHWAH_P]
 
-    /*
+
     //random array of coefficients
     for(int i=0; i<WAHWAH_P; i++) {
         wahP->b_array[2][i] = ONE_16b * 0.3;
@@ -181,14 +185,16 @@ unsigned int alloc_wahwah_vars(_SPM struct WahWah *wahP) {
         wahP->a_array[1][i] = ONE_16b * -0.6;
         wahP->a_array[0][i] = ONE_16b * 0.6;
     }
-    */
+
 
     wahP->wah_pnt = 2;
 
-    return 0;
+    LAST_ADDR += (sizeof(struct WahWah));
+
+    return LAST_ADDR;
 }
 
-unsigned int alloc_tremolo_vars(_SPM struct Tremolo *tremP) {
+unsigned int alloc_tremolo_vars(_SPM struct Tremolo *tremP, unsigned int LAST_ADDR) {
 
     //modulation arrays
     tremP->mod_array  = malloc(TREMOLO_P * sizeof(int)); // int mod_array[TREMOLO_P]
@@ -198,10 +204,12 @@ unsigned int alloc_tremolo_vars(_SPM struct Tremolo *tremP) {
     tremP->pnt = 0;
     tremP->pnt_n = 1;
 
-    return 0;
+    LAST_ADDR += (sizeof(struct Tremolo));
+
+    return LAST_ADDR;
 }
 
-unsigned int alloc_chorus_vars(_SPM struct Chorus *chorP) {
+unsigned int alloc_chorus_vars(_SPM struct Chorus *chorP, unsigned int LAST_ADDR) {
 
     //initialise chorus variables
     //set gains:
@@ -227,10 +235,12 @@ unsigned int alloc_chorus_vars(_SPM struct Chorus *chorP) {
     chorP->c1_pnt = 0;
     chorP->c2_pnt = 0;
 
-    return 0;
+    LAST_ADDR += (sizeof(struct Chorus));
+
+    return LAST_ADDR;
 }
 
-unsigned int alloc_distortion_vars(_SPM struct Distortion *distP) {
+unsigned int alloc_distortion_vars(_SPM struct Distortion *distP, unsigned int LAST_ADDR) {
 
     //initialise k, kOnePlus, shiftLeft:
     float amount = 0.9;
@@ -242,10 +252,12 @@ unsigned int alloc_distortion_vars(_SPM struct Distortion *distP) {
     }
     distP->kOnePlus = 0x98000 >> distP->sftLft;
 
-    return 0;
+    LAST_ADDR += (sizeof(struct Distortion));
+
+    return LAST_ADDR;
 }
 
-unsigned int alloc_delay_vars(_SPM struct IIRdelay *delP) {
+unsigned int alloc_delay_vars(_SPM struct IIRdelay *delP, unsigned int LAST_ADDR) {
 
     //initialise delay variables
     //set gains: for comb delay:
@@ -266,9 +278,17 @@ unsigned int alloc_delay_vars(_SPM struct IIRdelay *delP) {
         delP->audio_buf[1][i] = 0;
     }
 
-    return 0;
+    LAST_ADDR += (sizeof(struct IIRdelay));
+
+    return LAST_ADDR;
 }
 
+unsigned int alloc_overdrive_vars(_SPM struct Overdrive *odP, unsigned int LAST_ADDR) {
+
+    LAST_ADDR += (sizeof(struct Overdrive));
+
+    return LAST_ADDR;
+}
 
 
 
@@ -306,109 +326,94 @@ int filterIIR_2nd(_SPM int *pnt_i, _SPM short (*x)[2], _SPM short (*y)[2], _SPM 
 }
 
 int audio_filter(_SPM struct Filter *filtP, volatile _SPM short *xP, volatile _SPM short *yP) {
-    _Pragma("loopbound min LOOPS max LOOPS")
-    for(int i=0; i<LOOPS; i++) {
-        int index = 2 * i;
-        //increment pointer
-        filtP->pnt = ( filtP->pnt + 1 ) % 3;
-        //first, read sample
-        filtP->x_buf[filtP->pnt][0] = xP[index];
-        filtP->x_buf[filtP->pnt][1] = xP[index+1];
-        //then, calculate filter
-        filterIIR_2nd(&filtP->pnt, filtP->x_buf, filtP->y_buf, filtP->accum, filtP->B, filtP->A, &filtP->sftLft);
-        //check if it is BP/BR
-        if(filtP->type == 2) { //BP
-            filtP->accum[0] = ( (int)xP[index]   - (int)filtP->y_buf[filtP->pnt][0] ) >> 1;
-            filtP->accum[1] = ( (int)xP[index+1] - (int)filtP->y_buf[filtP->pnt][1] ) >> 1;
-        }
-        else {
-            if(filtP->type == 3) { //BR
-                filtP->accum[0] = ( (int)xP[index]   + (int)filtP->y_buf[filtP->pnt][0] ) >> 1;
-                filtP->accum[1] = ( (int)xP[index+1] + (int)filtP->y_buf[filtP->pnt][1] ) >> 1;
-            }
-            else { //HP or LP
-                filtP->accum[0] = filtP->y_buf[filtP->pnt][0];
-                filtP->accum[1] = filtP->y_buf[filtP->pnt][1];
-            }
-        }
-        //set output
-        yP[index]   = (short)filtP->accum[0];
-        yP[index+1] = (short)filtP->accum[1];
+    //increment pointer
+    filtP->pnt = ( filtP->pnt + 1 ) % 3;
+    //first, read sample
+    filtP->x_buf[filtP->pnt][0] = xP[0];
+    filtP->x_buf[filtP->pnt][1] = xP[1];
+    //then, calculate filter
+    filterIIR_2nd(&filtP->pnt, filtP->x_buf, filtP->y_buf, filtP->accum, filtP->B, filtP->A, &filtP->sftLft);
+    //check if it is BP/BR
+    if(filtP->type == 2) { //BP
+        filtP->accum[0] = ( (int)xP[0] - (int)filtP->y_buf[filtP->pnt][0] ) >> 1;
+        filtP->accum[1] = ( (int)xP[1] - (int)filtP->y_buf[filtP->pnt][1] ) >> 1;
     }
+    else {
+        if(filtP->type == 3) { //BR
+            filtP->accum[0] = ( (int)xP[0] + (int)filtP->y_buf[filtP->pnt][0] ) >> 1;
+            filtP->accum[1] = ( (int)xP[1] + (int)filtP->y_buf[filtP->pnt][1] ) >> 1;
+        }
+        else { //HP or LP
+            filtP->accum[0] = filtP->y_buf[filtP->pnt][0];
+            filtP->accum[1] = filtP->y_buf[filtP->pnt][1];
+        }
+    }
+    //set output
+    yP[0] = (short)filtP->accum[0];
+    yP[1] = (short)filtP->accum[1];
 
     return 0;
 }
 
 int audio_filter_2(_SPM struct Filter *filtP, volatile _SPM short *xP, volatile _SPM short *yP) {
-    _Pragma("loopbound min LOOPS max LOOPS")
-    for(int i=0; i<LOOPS; i++) {
-        int index = 2 * i;
-        //increment pointer
-        filtP->pnt = ( filtP->pnt + 1 ) % 3;
-        //first, read sample
-        filtP->x_buf[filtP->pnt][0] = xP[index];
-        filtP->x_buf[filtP->pnt][1] = xP[index+1];
-        //then, calculate filter
-        filterIIR_2nd(&filtP->pnt, filtP->x_buf, filtP->y_buf, filtP->accum, filtP->B, filtP->A, &filtP->sftLft);
-        //check if it is BP/BR
-        if(filtP->type == 2) { //BP
-            filtP->accum[0] = ( (int)xP[index]   - (int)filtP->y_buf[filtP->pnt][0] ) >> 1;
-            filtP->accum[1] = ( (int)xP[index+1] - (int)filtP->y_buf[filtP->pnt][1] ) >> 1;
-        }
-        else {
-            if(filtP->type == 3) { //BR
-                filtP->accum[0] = ( (int)xP[index]   + (int)filtP->y_buf[filtP->pnt][0] ) >> 1;
-                filtP->accum[1] = ( (int)xP[index+1] + (int)filtP->y_buf[filtP->pnt][1] ) >> 1;
-            }
-            else { //HP or LP
-                filtP->accum[0] = filtP->y_buf[filtP->pnt][0];
-                filtP->accum[1] = filtP->y_buf[filtP->pnt][1];
-            }
-        }
-        //set output
-        yP[index]   = (short)filtP->accum[0];
-        yP[index+1] = (short)filtP->accum[1];
+    //increment pointer
+    filtP->pnt = ( filtP->pnt + 1 ) % 3;
+    //first, read sample
+    filtP->x_buf[filtP->pnt][0] = xP[0];
+    filtP->x_buf[filtP->pnt][1] = xP[1];
+    //then, calculate filter
+    filterIIR_2nd(&filtP->pnt, filtP->x_buf, filtP->y_buf, filtP->accum, filtP->B, filtP->A, &filtP->sftLft);
+    //check if it is BP/BR
+    if(filtP->type == 2) { //BP
+        filtP->accum[0] = ( (int)xP[0] - (int)filtP->y_buf[filtP->pnt][0] ) >> 1;
+        filtP->accum[1] = ( (int)xP[1] - (int)filtP->y_buf[filtP->pnt][1] ) >> 1;
     }
+    else {
+        if(filtP->type == 3) { //BR
+            filtP->accum[0] = ( (int)xP[0] + (int)filtP->y_buf[filtP->pnt][0] ) >> 1;
+            filtP->accum[1] = ( (int)xP[1] + (int)filtP->y_buf[filtP->pnt][1] ) >> 1;
+        }
+        else { //HP or LP
+            filtP->accum[0] = filtP->y_buf[filtP->pnt][0];
+            filtP->accum[1] = filtP->y_buf[filtP->pnt][1];
+        }
+    }
+    //set output
+    yP[0] = (short)filtP->accum[0];
+    yP[1] = (short)filtP->accum[1];
 
     return 0;
 }
 
 int audio_vibrato(_SPM struct Vibrato *vibrP, volatile _SPM short *xP, volatile _SPM short *yP) {
-    _Pragma("loopbound min LOOPS max LOOPS")
-    for(int i=0; i<LOOPS; i++) {
-        //update delay pointers
-        vibrP->del = vibrP->sin_array_pnt[vibrP->v_pnt];
-        vibrP->frac = vibrP->frac_array_pnt[vibrP->v_pnt];
-        short frac1Minus = ONE_16b - vibrP->frac;
-        vibrP->v_pnt = ( vibrP->v_pnt + 1 )%VIBRATO_P;
-        //vibrato pointers:
-        vibrP->audio_pnt   = (vibrP->pnt+vibrP->del)%VIBRATO_L;
-        vibrP->n_audio_pnt = (vibrP->pnt+vibrP->del+1)%VIBRATO_L;
-        _Pragma("loopbound min 2 max 2")
-        for(int j=0; j<2; j++) { //stereo
-            int index = 2 * i + j;
+    //update delay pointers
+    vibrP->del = vibrP->sin_array_pnt[vibrP->v_pnt];
+    vibrP->frac = vibrP->frac_array_pnt[vibrP->v_pnt];
+    short frac1Minus = ONE_16b - vibrP->frac;
+    vibrP->v_pnt = ( vibrP->v_pnt + 1 )%VIBRATO_P;
+    //vibrato pointers:
+    vibrP->audio_pnt   = (vibrP->pnt+vibrP->del)%VIBRATO_L;
+    vibrP->n_audio_pnt = (vibrP->pnt+vibrP->del+1)%VIBRATO_L;
+    _Pragma("loopbound min 2 max 2")
+        for(int i=0; i<2; i++) { //stereo
             //first, read sample
-            vibrP->audio_buf_pnt[j][vibrP->pnt] = xP[index];
-            vibrP->accum[j] =  (vibrP->audio_buf_pnt[j][vibrP->n_audio_pnt] * (vibrP->frac));
-            vibrP->accum[j] += (vibrP->audio_buf_pnt[j][vibrP->audio_pnt]   * (frac1Minus));
-            yP[index] = vibrP->accum[j] >> 15;
+            vibrP->audio_buf_pnt[i][vibrP->pnt] = xP[i];
+            vibrP->accum[i] =  (vibrP->audio_buf_pnt[i][vibrP->n_audio_pnt] * (vibrP->frac));
+            vibrP->accum[i] += (vibrP->audio_buf_pnt[i][vibrP->audio_pnt]   * (frac1Minus));
+            yP[i] = vibrP->accum[i] >> 15;
         }
-        //update input pointer
-        if(vibrP->pnt == 0) {
-            vibrP->pnt = VIBRATO_L - 1;
-        }
-        else {
-            vibrP->pnt = vibrP->pnt - 1;
-        }
+    //update input pointer
+    if(vibrP->pnt == 0) {
+        vibrP->pnt = VIBRATO_L - 1;
+    }
+    else {
+        vibrP->pnt = vibrP->pnt - 1;
     }
 
     return 0;
 }
 
 int audio_wahwah(_SPM struct WahWah *wahP, volatile _SPM short *xP, volatile _SPM short *yP) {
-    _Pragma("loopbound min LOOPS max LOOPS")
-    for(int i=0; i<LOOPS; i++) {
-        int index = 2 * i;
         //update filter coefficients
         wahP->B[2] = wahP->b_array[2][wahP->wah_pnt]; //b0
         wahP->B[1] = wahP->b_array[1][wahP->wah_pnt]; //b1
@@ -419,41 +424,37 @@ int audio_wahwah(_SPM struct WahWah *wahP, volatile _SPM short *xP, volatile _SP
         wahP->wah_pnt = (wahP->wah_pnt+1) % WAHWAH_P;
         wahP->pnt = (wahP->pnt+1) % 3; //FILTER_ORDER_1PLUS = 3
         //first, read sample
-        wahP->x_buf[wahP->pnt][0] = xP[index];
-        wahP->x_buf[wahP->pnt][1] = xP[index+1];
+        wahP->x_buf[wahP->pnt][0] = xP[0];
+        wahP->x_buf[wahP->pnt][1] = xP[1];
         //then, calculate filter
         filterIIR_2nd(&wahP->pnt, wahP->x_buf, wahP->y_buf, wahP->accum, wahP->B, wahP->A, &wahP->sftLft);
         //Band-Pass stuff
-        wahP->accum[0] = ( (int)xP[index]   - (int)wahP->y_buf[wahP->pnt][0] ); // >> 1;
-        wahP->accum[1] = ( (int)xP[index+1] - (int)wahP->y_buf[wahP->pnt][1] ); // >> 1;
+        wahP->accum[0] = ( (int)xP[0] - (int)wahP->y_buf[wahP->pnt][0] ); // >> 1;
+        wahP->accum[1] = ( (int)xP[1] - (int)wahP->y_buf[wahP->pnt][1] ); // >> 1;
         //mix with original: gains are fixed
-        wahP->accum[0] = ( (int)(WAHWAH_WET_GAIN*wahP->accum[0]) >> 15 )  + ( (int)(WAHWAH_DRY_GAIN*xP[index])   >> 15 );
-        wahP->accum[1] = ( (int)(WAHWAH_WET_GAIN*wahP->accum[1]) >> 15 )  + ( (int)(WAHWAH_DRY_GAIN*xP[index+1]) >> 15 );
+        wahP->accum[0] = ( (int)(WAHWAH_WET_GAIN*wahP->accum[0]) >> 15 )  + ( (int)(WAHWAH_DRY_GAIN*xP[0]) >> 15 );
+        wahP->accum[1] = ( (int)(WAHWAH_WET_GAIN*wahP->accum[1]) >> 15 )  + ( (int)(WAHWAH_DRY_GAIN*xP[1]) >> 15 );
         //set output
-        yP[index]   = (short)wahP->accum[0];
-        yP[index+1] = (short)wahP->accum[1];
+        yP[0] = (short)wahP->accum[0];
+        yP[1] = (short)wahP->accum[1];
     }
 
     return 0;
 }
 
 int audio_tremolo(_SPM struct Tremolo *tremP, volatile _SPM short *xP, volatile _SPM short *yP) {
-    _Pragma("loopbound min LOOPS max LOOPS")
-    for(int i=0; i<LOOPS; i++) {
-        int index = 2 * i;
-        //update pointer
-        tremP->pnt = (tremP->pnt + 1) % TREMOLO_P;
-        tremP->pnt_n = (tremP->pnt_n + 1) % TREMOLO_P;
-        //modulation values
-        tremP->frac = tremP->frac_array[tremP->pnt];
-        tremP->frac1Minus = ONE_16b - tremP->frac;
-        tremP->mod  = tremP->mod_array[tremP->pnt] * tremP->frac1Minus;
-        tremP->mod += tremP->mod_array[tremP->pnt_n] * tremP->frac;
-        tremP->mod = tremP->mod >> 15;
-        //calculate output
-        yP[index]   = (xP[index]   * tremP->mod) >> 15;
-        yP[index+1] = (xP[index+1] * tremP->mod) >> 15;
-    }
+    //update pointer
+    tremP->pnt = (tremP->pnt + 1) % TREMOLO_P;
+    tremP->pnt_n = (tremP->pnt_n + 1) % TREMOLO_P;
+    //modulation values
+    tremP->frac = tremP->frac_array[tremP->pnt];
+    tremP->frac1Minus = ONE_16b - tremP->frac;
+    tremP->mod  = tremP->mod_array[tremP->pnt] * tremP->frac1Minus;
+    tremP->mod += tremP->mod_array[tremP->pnt_n] * tremP->frac;
+    tremP->mod = tremP->mod >> 15;
+    //calculate output
+    yP[0] = (xP[0] * tremP->mod) >> 15;
+    yP[1] = (xP[1] * tremP->mod) >> 15;
 
     return 0;
 }
@@ -492,19 +493,16 @@ int combFilter_2nd(int AUDIO_BUF_LEN, _SPM int *pnt, short (*audio_buffer)[AUDIO
 }
 
 int audio_chorus(_SPM struct Chorus *chorP, volatile _SPM short *xP, volatile _SPM short *yP) {
-    _Pragma("loopbound min LOOPS max LOOPS")
-    for(int i=0; i<LOOPS; i++) {
-        int index = 2 * i;
-        // SINUSOIDAL MODULATION OF DELAY LENGTH
-        chorP->del[0] = chorP->mod_array1[chorP->c1_pnt];
-        chorP->del[1] = chorP->mod_array2[chorP->c2_pnt];
-        chorP->c1_pnt = (chorP->c1_pnt + 1) % CHORUS_P1;
-        chorP->c2_pnt = (chorP->c2_pnt + 1) % CHORUS_P2;
-        //first, read sample
-        chorP->audio_buf[0][chorP->pnt] = xP[index];
-        chorP->audio_buf[1][chorP->pnt] = xP[index+1];
-        //calculate AUDIO comb filter
-        combFilter_2nd(CHORUS_L, &chorP->pnt, chorP->audio_buf, &yP[index], chorP->accum, chorP->g, chorP->del);
+    // SINUSOIDAL MODULATION OF DELAY LENGTH
+    chorP->del[0] = chorP->mod_array1[chorP->c1_pnt];
+    chorP->del[1] = chorP->mod_array2[chorP->c2_pnt];
+    chorP->c1_pnt = (chorP->c1_pnt + 1) % CHORUS_P1;
+    chorP->c2_pnt = (chorP->c2_pnt + 1) % CHORUS_P2;
+    //first, read sample
+    chorP->audio_buf[0][chorP->pnt] = xP[0];
+    chorP->audio_buf[1][chorP->pnt] = xP[1];
+    //calculate AUDIO comb filter
+        combFilter_2nd(CHORUS_L, &chorP->pnt, chorP->audio_buf, yP, chorP->accum, chorP->g, chorP->del);
         //update pointer
         if(chorP->pnt == 0) {
             chorP->pnt = CHORUS_L - 1;
@@ -548,24 +546,20 @@ int combFilter_1st(int AUDIO_BUF_LEN, _SPM int *pnt, short (*audio_buffer)[AUDIO
 }
 
 int audio_delay(_SPM struct IIRdelay *delP, volatile _SPM short *xP, volatile _SPM short *yP) {
-    _Pragma("loopbound min LOOPS max LOOPS")
-    for(int i=0; i<LOOPS; i++) {
-        int index = 2 * i;
-        //first, read sample
-        delP->audio_buf[0][delP->pnt] = xP[index];
-        delP->audio_buf[1][delP->pnt] = xP[index+1];
-        //calculate IIR comb filter
-        combFilter_1st(DELAY_L, &delP->pnt, delP->audio_buf, &yP[index], delP->accum, delP->g, delP->del);
-        //replace content on buffer
-        delP->audio_buf[0][delP->pnt] = yP[index];
-        delP->audio_buf[1][delP->pnt] = yP[index+1];
-        //update pointer
-        if(delP->pnt == 0) {
-            delP->pnt = DELAY_L - 1;
-        }
-        else {
-            delP->pnt = delP->pnt -1;
-        }
+    //first, read sample
+    delP->audio_buf[0][delP->pnt] = xP[0];
+    delP->audio_buf[1][delP->pnt] = xP[1];
+    //calculate IIR comb filter
+    combFilter_1st(DELAY_L, &delP->pnt, delP->audio_buf, yP, delP->accum, delP->g, delP->del);
+    //replace content on buffer
+    delP->audio_buf[0][delP->pnt] = yP[0];
+    delP->audio_buf[1][delP->pnt] = yP[1];
+    //update pointer
+    if(delP->pnt == 0) {
+        delP->pnt = DELAY_L - 1;
+    }
+    else {
+        delP->pnt = delP->pnt -1;
     }
 
     return 0;
@@ -575,19 +569,15 @@ int audio_overdrive(_SPM struct Overdrive *odP, volatile _SPM short *xP, volatil
     //THRESHOLD IS 1/3 = 0x2AAB
     //input abs:
     unsigned int x_abs[2];
-
-    _Pragma("loopbound min LOOPS max LOOPS")
-    for(int i=0; i<LOOPS; i++) {
-        _Pragma("loopbound min 2 max 2")
+    _Pragma("loopbound min 2 max 2")
         for(int j=0; j<2; j++) {
-            int index = 2 * i + j;
-            x_abs[j] = abs(xP[index]);
+            x_abs[j] = abs(xP[j]);
             if(x_abs[j] > (2 * 0x2AAB)) { // saturation : y = 1
-                if (xP[index] > 0) {
-                    yP[index] = 0x7FFF;
+                if (xP[j] > 0) {
+                    yP[j] = 0x7FFF;
                 }
                 else {
-                    yP[index] = 0x8000;
+                    yP[j] = 0x8000;
                 }
             }
             else {
@@ -597,49 +587,42 @@ int audio_overdrive(_SPM struct Overdrive *odP, volatile _SPM short *xP, volatil
                     odP->accum[j] = (odP->accum[j] * odP->accum[j]) >> 15;
                     odP->accum[j] = 0x17FFF - odP->accum[j];
                     odP->accum[j] = (odP->accum[j] * 0x2AAB) >> 15;
-                    if(xP[index] > 0) { //positive
+                    if(xP[j] > 0) { //positive
                         if(odP->accum[j] > 32767) {
-                            yP[index] = 32767;
+                            yP[j] = 32767;
                         }
                         else {
-                            yP[index] = odP->accum[j];
+                            yP[j] = odP->accum[j];
                         }
                     }
                     else { // negative
-                        yP[index] = -odP->accum[j];
+                        yP[j] = -odP->accum[j];
                     }
                 }
                 else { // linear zone: y = 2*x
-                    yP[index] = xP[index] << 1;
+                    yP[j] = xP[index] << 1;
                 }
             }
         }
-    }
 
     return 0;
 }
 
 int audio_distortion(_SPM struct Distortion *distP, volatile _SPM short *xP, volatile _SPM short *yP) {
-
-    _Pragma("loopbound min LOOPS max LOOPS")
-    for(int i=0; i<LOOPS; i++) {
-
-        _Pragma("loopbound min 2 max 2")
+    _Pragma("loopbound min 2 max 2")
         for(int j=0; j<2; j++) {
-            int index = 2 * i + j;
-            distP->accum[0] = (distP->kOnePlus * xP[index]);// >> 15;
-            distP->accum[1] = (distP->k * abs(xP[index])) >> 15;
+            distP->accum[0] = (distP->kOnePlus * xP[j]);// >> 15;
+            distP->accum[1] = (distP->k * abs(xP[j])) >> 15;
             distP->accum[1] = distP->accum[1] + ((ONE_16b+distP->sftLft) >> distP->sftLft);
             distP->accum[0] = distP->accum[0] / distP->accum[1];
             //reduce if it is poisitive only
-            if (xP[index] > 0) {
-                yP[index] = distP->accum[0] - 1;
+            if (xP[j] > 0) {
+                yP[j] = distP->accum[0] - 1;
             }
             else {
-                yP[index] = distP->accum[0];
+                yP[j] = distP->accum[0];
             }
         }
-    }
 
     return 0;
 }
@@ -654,48 +637,39 @@ int main() {
 
     _SPM struct IIRdelay *delayP;
     delayP = (_SPM struct IIRdelay *) LAST_ADDR;
-    alloc_delay_vars(delayP);
-    LAST_ADDR += sizeof(struct IIRdelay);
+    LAST_ADDR = alloc_delay_vars(delayP, LAST_ADDR);
 
     _SPM struct Overdrive *overdriveP;
     overdriveP = (_SPM struct Overdrive *) LAST_ADDR;
-    //nothing to allocate
-    LAST_ADDR += sizeof(struct Overdrive);
+    LAST_ADDR = alloc_overdrive_vars(overdriveP, LAST_ADDR);
 
     _SPM struct WahWah *wahwahP;
     wahwahP = (_SPM struct WahWah *) LAST_ADDR;
-    alloc_wahwah_vars(wahwahP);
-    LAST_ADDR += sizeof(struct WahWah);
+    LAST_ADDR = alloc_wahwah_vars(wahwahP, LAST_ADDR);
 
     _SPM struct Chorus *chorusP;
     chorusP = (_SPM struct Chorus *) LAST_ADDR;
-    alloc_chorus_vars(chorusP);
-    LAST_ADDR += sizeof(struct Chorus);
+    LAST_ADDR = alloc_chorus_vars(chorusP, LAST_ADDR);
 
     _SPM struct Distortion *distortionP;
     distortionP = (_SPM struct Distortion *) LAST_ADDR;
-    alloc_distortion_vars(distortionP);
-    LAST_ADDR += sizeof(struct Distortion);
+    LAST_ADDR = alloc_distortion_vars(distortionP, LAST_ADDR);
 
     _SPM struct Filter *hpfP;
     hpfP = (_SPM struct Filter *) LAST_ADDR;
-    alloc_filter_vars(hpfP, 5000, 0.707, 1);
-    LAST_ADDR += sizeof(struct Filter);
+    LAST_ADDR = alloc_filter_vars(hpfP, 1, LAST_ADDR);
 
     _SPM struct Filter *bpfP;
     bpfP = (_SPM struct Filter *) LAST_ADDR;
-    alloc_filter_vars(hpfP, 1000, 300, 2);
-    LAST_ADDR += sizeof(struct Filter);
+    LAST_ADDR = alloc_filter_vars(hpfP, 2, LAST_ADDR);
 
     _SPM struct Vibrato *vibratoP;
     vibratoP = (_SPM struct Vibrato *) LAST_ADDR;
-    alloc_vibrato_vars(vibratoP);
-    LAST_ADDR += sizeof(struct Vibrato);
+    LAST_ADDR = alloc_vibrato_vars(vibratoP, LAST_ADDR);
 
     _SPM struct Tremolo *tremoloP;
     tremoloP = (_SPM struct Tremolo *) LAST_ADDR;
-    alloc_tremolo_vars(tremoloP);
-    LAST_ADDR += sizeof(struct Tremolo);
+    LAST_ADDR = alloc_tremolo_vars(tremoloP, LAST_ADDR);
 
     //X and Y data
     volatile _SPM short * xP;
@@ -710,15 +684,51 @@ int main() {
     }
 
     //Audio FX processing (LOOPS samples each function)
-    audio_delay(delayP, xP, yP);
-    audio_overdrive(overdriveP, xP, yP);
-    audio_wahwah(wahwahP, xP, yP);
-    audio_chorus(chorusP, xP, yP);
-    audio_distortion(distortionP, xP, yP);
-    audio_filter(hpfP, xP, yP);
-    audio_filter_2(bpfP, xP, yP);
-    audio_vibrato(vibratoP, xP, yP);
-    audio_tremolo(tremoloP, xP, yP);
+    _Pragma("loopbound min LOOPS max LOOPS")
+        for(int i=0; i<LOOPS; i++) {
+            int index = 2 * i;
+            audio_delay(delayP, &xP[index], &yP[index]);
+        }
+    _Pragma("loopbound min LOOPS max LOOPS")
+        for(int i=0; i<LOOPS; i++) {
+            int index = 2 * i;
+            audio_overdrive(overdriveP, &xP[index], &yP[index]);
+        }
+    _Pragma("loopbound min LOOPS max LOOPS")
+        for(int i=0; i<LOOPS; i++) {
+            int index = 2 * i;
+            audio_wahwah(wahwahP, &xP[index], &yP[index]);
+        }
+    _Pragma("loopbound min LOOPS max LOOPS")
+        for(int i=0; i<LOOPS; i++) {
+            int index = 2 * i;
+            audio_chorus(chorusP, &xP[index], &yP[index]);
+        }
+    _Pragma("loopbound min LOOPS max LOOPS")
+        for(int i=0; i<LOOPS; i++) {
+            int index = 2 * i;
+            audio_distortion(distortionP, &xP[index], &yP[index]);
+        }
+    _Pragma("loopbound min LOOPS max LOOPS")
+        for(int i=0; i<LOOPS; i++) {
+            int index = 2 * i;
+            audio_filter(hpfP, &xP[index], &yP[index]);
+        }
+    _Pragma("loopbound min LOOPS max LOOPS")
+        for(int i=0; i<LOOPS; i++) {
+            int index = 2 * i;
+            audio_filter_2(bpfP, &xP[index], &yP[index]);
+        }
+    _Pragma("loopbound min LOOPS max LOOPS")
+        for(int i=0; i<LOOPS; i++) {
+            int index = 2 * i;
+            audio_vibrato(vibratoP, &xP[index], &yP[index]);
+        }
+    _Pragma("loopbound min LOOPS max LOOPS")
+        for(int i=0; i<LOOPS; i++) {
+            int index = 2 * i;
+            audio_tremolo(tremoloP, &xP[index], &yP[index]);
+        }
 
     //free memory
     free(delayP->audio_buf);
