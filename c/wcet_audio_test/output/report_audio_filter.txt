@@ -1,0 +1,18 @@
+---
+- analysis-entry: audio_filter
+  source: trace
+  cycles: 40976
+- analysis-entry: audio_filter
+  source: platin
+  cycles: 52014
+  cache-max-cycles-instr: 5063
+  cache-min-hits-instr: 1293
+  cache-max-misses-instr: 8
+  cache-max-cycles-stack: 0
+  cache-max-misses-stack: 0
+  cache-max-cycles-data: 16600
+  cache-min-hits-data: 0
+  cache-max-misses-data: 100
+  cache-max-stores-data: 100
+  cache-unknown-address-data: 200
+  cache-max-cycles: 21663

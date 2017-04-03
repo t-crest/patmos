@@ -1,0 +1,18 @@
+---
+- analysis-entry: audio_wahwah
+  source: trace
+  cycles: 53015
+- analysis-entry: audio_wahwah
+  source: platin
+  cycles: 89950
+  cache-max-cycles-instr: 5395
+  cache-min-hits-instr: 1096
+  cache-max-misses-instr: 5
+  cache-max-cycles-stack: 0
+  cache-max-misses-stack: 0
+  cache-max-cycles-data: 49800
+  cache-min-hits-data: 0
+  cache-max-misses-data: 500
+  cache-max-stores-data: 100
+  cache-unknown-address-data: 600
+  cache-max-cycles: 55195

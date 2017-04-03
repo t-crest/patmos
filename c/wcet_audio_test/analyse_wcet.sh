@@ -54,7 +54,7 @@ for ENTRY in $ENTRIES; do
     # Run platin WCA tool in addition to aiT, and run trace analysis
     WCET_OPTS="--enable-wca --enable-trace-analysis --trace-entry $ENTRY"
 
-    run patmos-clang $CLANG_OPTS -o wcet_audio wcet_audio.c -mserialize=wcet_audio.pml -mserialize-roots=$ENTRY
+    run patmos-clang $CLANG_OPTS -O2 -o wcet_audio wcet_audio.c -mserialize=wcet_audio.pml -mserialize-roots=$ENTRY
 
     #next line was uncommented, but I commented it because it is actually not needed
     #run pasim $PASIM_OPTS wcet_audio
@@ -63,6 +63,10 @@ for ENTRY in $ENTRIES; do
     # The --outdir option is optional. If ommited, a temporary directoy will be used. Otherwise, the outdir
     # must exist before the tool executed.
     run mkdir -p tmp
-    run platin wcet $WCET_OPTS -b wcet_audio -i $CONFIG_PML -i wcet_audio.pml -e $ENTRY --outdir tmp --report --disable-ait
+    run platin wcet $WCET_OPTS -b wcet_audio -i $CONFIG_PML -i wcet_audio.pml -e $ENTRY --outdir tmp -o output/$ENTRY.pml --report output/report_$ENTRY.txt --disable-ait
+
+    run platin visualize -i output/$ENTRY.pml -o output -f $ENTRY --show-timings=platin
+
+
 
 done

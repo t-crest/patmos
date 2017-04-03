@@ -1,0 +1,18 @@
+---
+- analysis-entry: audio_chorus
+  source: trace
+  cycles: 44698
+- analysis-entry: audio_chorus
+  source: platin
+  cycles: 106902
+  cache-max-cycles-instr: 4067
+  cache-min-hits-instr: 498
+  cache-max-misses-instr: 3
+  cache-max-cycles-stack: 0
+  cache-max-misses-stack: 0
+  cache-max-cycles-data: 83000
+  cache-min-hits-data: 0
+  cache-max-misses-data: 800
+  cache-max-stores-data: 200
+  cache-unknown-address-data: 1000
+  cache-max-cycles: 87067
