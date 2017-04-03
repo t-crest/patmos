@@ -4,6 +4,8 @@
 #include <machine/spm.h>
 #include <machine/rtc.h>
 
+#define ANALYSIS
+
 #define LOOPS 100
 
 #define ONE_16b 0x7FFF
@@ -276,7 +278,9 @@ int filterIIR_2nd(_SPM int *pnt_i, _SPM short (*x)[2], _SPM short (*y)[2], _SPM 
     int pnt; //pointer for x_filter
     accum[0] = 0;
     accum[1] = 0;
+#ifdef ANALYSIS
     _Pragma("loopbound min 3 max 3")
+#endif
     for(int i=0; i<3; i++) { //FILTER_ORDER_1PLUS = 3
         pnt = (*pnt_i + i + 1) % 3; //FILTER_ORDER_1PLUS = 3
         // SIGNED SHIFT (arithmetical): losing a 2-bit resolution
@@ -288,7 +292,9 @@ int filterIIR_2nd(_SPM int *pnt_i, _SPM short (*x)[2], _SPM short (*y)[2], _SPM 
     //accumulator limits: [ (2^(30-2-1))-1 , -(2^(30-2-1)) ]
     //accumulator limits: [ 0x7FFFFFF, 0x8000000 ]
     // digital saturation
+#ifdef ANALYSIS
     _Pragma("loopbound min 2 max 2")
+#endif
     for(int i=0; i<2; i++) {
         if (accum[i] > 0x7FFFFFF) {
             accum[i] = 0x7FFFFFF;
@@ -306,8 +312,15 @@ int filterIIR_2nd(_SPM int *pnt_i, _SPM short (*x)[2], _SPM short (*y)[2], _SPM 
 }
 
 int audio_filter(_SPM struct Filter *filtP, volatile _SPM short *xP, volatile _SPM short *yP) {
+#ifdef ANALYSIS
     _Pragma("loopbound min LOOPS max LOOPS")
+#else
+        unsigned int CPUcycles[LOOPS] = {0};
+#endif
     for(int i=0; i<LOOPS; i++) {
+#ifndef ANALYSIS
+        CPUcycles[i] = get_cpu_cycles();
+#endif
         int index = 2 * i;
         //increment pointer
         filtP->pnt = ( filtP->pnt + 1 ) % 3;
@@ -335,13 +348,27 @@ int audio_filter(_SPM struct Filter *filtP, volatile _SPM short *xP, volatile _S
         yP[index]   = (short)filtP->accum[0];
         yP[index+1] = (short)filtP->accum[1];
     }
+
+
+#ifndef ANALYSIS
+    for(int i=1; i<LOOPS; i++) {
+        printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
+    }
+#endif
 
     return 0;
 }
 
 int audio_filter_2(_SPM struct Filter *filtP, volatile _SPM short *xP, volatile _SPM short *yP) {
+#ifdef ANALYSIS
     _Pragma("loopbound min LOOPS max LOOPS")
+#else
+        unsigned int CPUcycles[LOOPS] = {0};
+#endif
     for(int i=0; i<LOOPS; i++) {
+#ifndef ANALYSIS
+        CPUcycles[i] = get_cpu_cycles();
+#endif
         int index = 2 * i;
         //increment pointer
         filtP->pnt = ( filtP->pnt + 1 ) % 3;
@@ -370,12 +397,25 @@ int audio_filter_2(_SPM struct Filter *filtP, volatile _SPM short *xP, volatile 
         yP[index+1] = (short)filtP->accum[1];
     }
 
+#ifndef ANALYSIS
+    for(int i=1; i<LOOPS; i++) {
+        printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
+    }
+#endif
+
     return 0;
 }
 
 int audio_vibrato(_SPM struct Vibrato *vibrP, volatile _SPM short *xP, volatile _SPM short *yP) {
+#ifdef ANALYSIS
     _Pragma("loopbound min LOOPS max LOOPS")
+#else
+        unsigned int CPUcycles[LOOPS] = {0};
+#endif
     for(int i=0; i<LOOPS; i++) {
+#ifndef ANALYSIS
+        CPUcycles[i] = get_cpu_cycles();
+#endif
         //update delay pointers
         vibrP->del = vibrP->sin_array_pnt[vibrP->v_pnt];
         vibrP->frac = vibrP->frac_array_pnt[vibrP->v_pnt];
@@ -384,7 +424,9 @@ int audio_vibrato(_SPM struct Vibrato *vibrP, volatile _SPM short *xP, volatile 
         //vibrato pointers:
         vibrP->audio_pnt   = (vibrP->pnt+vibrP->del)%VIBRATO_L;
         vibrP->n_audio_pnt = (vibrP->pnt+vibrP->del+1)%VIBRATO_L;
+#ifdef ANALYSIS
         _Pragma("loopbound min 2 max 2")
+#endif
         for(int j=0; j<2; j++) { //stereo
             int index = 2 * i + j;
             //first, read sample
@@ -402,12 +444,25 @@ int audio_vibrato(_SPM struct Vibrato *vibrP, volatile _SPM short *xP, volatile 
         }
     }
 
+#ifndef ANALYSIS
+    for(int i=1; i<LOOPS; i++) {
+        printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
+    }
+#endif
+
     return 0;
 }
 
 int audio_wahwah(_SPM struct WahWah *wahP, volatile _SPM short *xP, volatile _SPM short *yP) {
+#ifdef ANALYSIS
     _Pragma("loopbound min LOOPS max LOOPS")
+#else
+        unsigned int CPUcycles[LOOPS] = {0};
+#endif
     for(int i=0; i<LOOPS; i++) {
+#ifndef ANALYSIS
+        CPUcycles[i] = get_cpu_cycles();
+#endif
         int index = 2 * i;
         //update filter coefficients
         wahP->B[2] = wahP->b_array[2][wahP->wah_pnt]; //b0
@@ -434,12 +489,25 @@ int audio_wahwah(_SPM struct WahWah *wahP, volatile _SPM short *xP, volatile _SP
         yP[index+1] = (short)wahP->accum[1];
     }
 
+#ifndef ANALYSIS
+    for(int i=1; i<LOOPS; i++) {
+        printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
+    }
+#endif
+
     return 0;
 }
 
 int audio_tremolo(_SPM struct Tremolo *tremP, volatile _SPM short *xP, volatile _SPM short *yP) {
+#ifdef ANALYSIS
     _Pragma("loopbound min LOOPS max LOOPS")
+#else
+        unsigned int CPUcycles[LOOPS] = {0};
+#endif
     for(int i=0; i<LOOPS; i++) {
+#ifndef ANALYSIS
+        CPUcycles[i] = get_cpu_cycles();
+#endif
         int index = 2 * i;
         //update pointer
         tremP->pnt = (tremP->pnt + 1) % TREMOLO_P;
@@ -454,6 +522,12 @@ int audio_tremolo(_SPM struct Tremolo *tremP, volatile _SPM short *xP, volatile 
         yP[index]   = (xP[index]   * tremP->mod) >> 15;
         yP[index+1] = (xP[index+1] * tremP->mod) >> 15;
     }
+
+#ifndef ANALYSIS
+    for(int i=1; i<LOOPS; i++) {
+        printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
+    }
+#endif
 
     return 0;
 }
@@ -474,7 +548,9 @@ int combFilter_2nd(int AUDIO_BUF_LEN, _SPM int *pnt, short (*audio_buffer)[AUDIO
     //accumulator limits: [ (2^(30-2-1))-1 , -(2^(30-2-1)) ]
     //accumulator limits: [ 0x7FFFFFF, 0x8000000 ]
     // digital saturation
+#ifdef ANALYSIS
     _Pragma("loopbound min 2 max 2")
+#endif
     for(int i=0; i<2; i++) {
         if (accum[i] > 0x7FFFFFF) {
             accum[i] = 0x7FFFFFF;
@@ -492,8 +568,15 @@ int combFilter_2nd(int AUDIO_BUF_LEN, _SPM int *pnt, short (*audio_buffer)[AUDIO
 }
 
 int audio_chorus(_SPM struct Chorus *chorP, volatile _SPM short *xP, volatile _SPM short *yP) {
+#ifdef ANALYSIS
     _Pragma("loopbound min LOOPS max LOOPS")
+#else
+        unsigned int CPUcycles[LOOPS] = {0};
+#endif
     for(int i=0; i<LOOPS; i++) {
+#ifndef ANALYSIS
+        CPUcycles[i] = get_cpu_cycles();
+#endif
         int index = 2 * i;
         // SINUSOIDAL MODULATION OF DELAY LENGTH
         chorP->del[0] = chorP->mod_array1[chorP->c1_pnt];
@@ -514,6 +597,12 @@ int audio_chorus(_SPM struct Chorus *chorP, volatile _SPM short *xP, volatile _S
         }
     }
 
+#ifndef ANALYSIS
+    for(int i=1; i<LOOPS; i++) {
+        printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
+    }
+#endif
+
     return 0;
 }
 
@@ -530,7 +619,9 @@ int combFilter_1st(int AUDIO_BUF_LEN, _SPM int *pnt, short (*audio_buffer)[AUDIO
     //accumulator limits: [ (2^(30-2-1))-1 , -(2^(30-2-1)) ]
     //accumulator limits: [ 0x7FFFFFF, 0x8000000 ]
     // digital saturation
+#ifdef ANALYSIS
     _Pragma("loopbound min 2 max 2")
+#endif
     for(int i=0; i<2; i++) {
         if (accum[i] > 0x7FFFFFF) {
             accum[i] = 0x7FFFFFF;
@@ -548,8 +639,15 @@ int combFilter_1st(int AUDIO_BUF_LEN, _SPM int *pnt, short (*audio_buffer)[AUDIO
 }
 
 int audio_delay(_SPM struct IIRdelay *delP, volatile _SPM short *xP, volatile _SPM short *yP) {
+#ifdef ANALYSIS
     _Pragma("loopbound min LOOPS max LOOPS")
+#else
+        unsigned int CPUcycles[LOOPS] = {0};
+#endif
     for(int i=0; i<LOOPS; i++) {
+#ifndef ANALYSIS
+        CPUcycles[i] = get_cpu_cycles();
+#endif
         int index = 2 * i;
         //first, read sample
         delP->audio_buf[0][delP->pnt] = xP[index];
@@ -568,6 +666,12 @@ int audio_delay(_SPM struct IIRdelay *delP, volatile _SPM short *xP, volatile _S
         }
     }
 
+#ifndef ANALYSIS
+    for(int i=1; i<LOOPS; i++) {
+        printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
+    }
+#endif
+
     return 0;
 }
 
@@ -576,9 +680,18 @@ int audio_overdrive(_SPM struct Overdrive *odP, volatile _SPM short *xP, volatil
     //input abs:
     unsigned int x_abs[2];
 
+#ifdef ANALYSIS
     _Pragma("loopbound min LOOPS max LOOPS")
+#else
+        unsigned int CPUcycles[LOOPS] = {0};
+#endif
     for(int i=0; i<LOOPS; i++) {
+#ifndef ANALYSIS
+        CPUcycles[i] = get_cpu_cycles();
+#endif
+#ifdef ANALYSIS
         _Pragma("loopbound min 2 max 2")
+#endif
         for(int j=0; j<2; j++) {
             int index = 2 * i + j;
             x_abs[j] = abs(xP[index]);
@@ -616,16 +729,31 @@ int audio_overdrive(_SPM struct Overdrive *odP, volatile _SPM short *xP, volatil
         }
     }
 
+#ifndef ANALYSIS
+    for(int i=1; i<LOOPS; i++) {
+        printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
+    }
+#endif
+
     return 0;
 }
 
 __attribute__((noinline))
 int audio_distortion(_SPM struct Distortion *distP, volatile _SPM short *xP, volatile _SPM short *yP) {
 
+#ifdef ANALYSIS
     _Pragma("loopbound min LOOPS max LOOPS")
+#else
+        unsigned int CPUcycles[LOOPS] = {0};
+#endif
     for(int i=0; i<LOOPS; i++) {
+#ifndef ANALYSIS
+        CPUcycles[i] = get_cpu_cycles();
+#endif
 
+#ifdef ANALYSIS
         _Pragma("loopbound min 2 max 2")
+#endif
         for(int j=0; j<2; j++) {
             int index = 2 * i + j;
             distP->accum[0] = (distP->kOnePlus * xP[index]);// >> 15;
@@ -641,6 +769,12 @@ int audio_distortion(_SPM struct Distortion *distP, volatile _SPM short *xP, vol
             }
         }
     }
+
+#ifndef ANALYSIS
+    for(int i=1; i<LOOPS; i++) {
+        printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
+    }
+#endif
 
     return 0;
 }
