@@ -146,7 +146,7 @@ class InOut() extends Module {
     } else {
       ChiselError.error("Can't assign multiple devices to the same offset. " +
                         "Device " + devConf.name + " conflicting on offset " +
-                        devConf.offset.toString)
+                        devConf.offset.toString + ". ")
     }
     // connect ports
     dev.io.ocp.M := io.memInOut.M
