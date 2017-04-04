@@ -11,7 +11,7 @@
 int main() {
 
   // Pointer to the deadline device
-  volatile _IODEV int *dead_ptr = (volatile _IODEV int *) 0xf00b0000;
+  volatile _IODEV int *dead_ptr = (volatile _IODEV int *) 0xf0030000;
   // Measure execution time with the clock cycle timer
   volatile _IODEV int *timer_ptr = (volatile _IODEV int *) 0xf0020004;
   // use function

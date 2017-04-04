@@ -2104,14 +2104,14 @@ Address & I/O Device & read & write \\
 \code{0xf0020008} & Timer & time in $\mu s$ (high word) & $\mu s$ interrupt time (high word) \\
 \code{0xf002000c} & Timer & time in $\mu s$ (low word) &  $\mu s$ interrupt time (low word) \\
 \cmidrule{1-4}
+\code{0xf0030000} & Deadline & may stall the pipeline & deadline cycles \\
+\cmidrule{1-4}
 \code{0xf0080000} & UART & status & control \\
 \code{0xf0080004} & UART & receive buffer & transmit buffer \\
 \cmidrule{1-4}
 \code{0xf0090000} & LED & -- & output register \\
 \cmidrule{1-4}
 \code{0xf00a0000} & Keys & input register & -- \\
-\cmidrule{1-4}
-\code{0xf00b0000} & Deadline & may stall the pipeline & deadline cycles \\
 \cmidrule{1-4}
 \code{0xf00c0000} & Audio & & \\
 \dots             & Audio & \multicolumn{2}{c}{Audio interface (tbd)} \\
@@ -3091,7 +3091,7 @@ counter. In our example we change the configuration file that is used for
 the default configuration: \code{patmos/hardware/config/altde2-115.xml}.
 The two lines from Listing~\ref{lst:ioex:xml} need to added into section \code{IOs}
 and \code{Devs}, respectively. Offset 11 is the next available I/O address and
-results in mapping our counter to I/O address \code{0xf00b0000}
+results in mapping our counter to I/O address \code{0xf0030000}
 (each I/O device has a 16 bit local address and 11 in decimal is `b' in hexadecimal).
 
 \begin{lstlisting}[float, caption={Testing the counter device\label{lst:ioex:c}}]
@@ -3100,7 +3100,7 @@ results in mapping our counter to I/O address \code{0xf00b0000}
 
 int main() {
 
-  volatile _IODEV int *io_ptr = (volatile _IODEV int *) 0xf00b0000;
+  volatile _IODEV int *io_ptr = (volatile _IODEV int *) 0xf0030000;
   int val;
 
   val = *io_ptr;
