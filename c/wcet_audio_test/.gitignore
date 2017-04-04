@@ -2,3 +2,4 @@ wcet_audio
 wcet_audio.pml
 output/*.pml
 output/*.png
+output/*.txt
