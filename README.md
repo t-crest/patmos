@@ -57,8 +57,8 @@ For developers with push permission the ssh based clone string is:
     git clone git@github.com:t-crest/patmos-misc.git misc
 
 build.sh will checkout several other repositories (the compiler, library,
-the Patmos source, and benchmarks) and
-build the compiler, the Patmos simulator, and the test benches.
+and the Patmos source) and
+build the compiler and the Patmos simulator.
 Therefore, take a cup of coffee and find some nice reading
 (e.g., the [Patmos Reference Handbook](http://patmos.compute.dtu.dk/patmos_handbook.pdf)).
 
