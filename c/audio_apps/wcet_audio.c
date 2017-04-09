@@ -35,7 +35,8 @@
 #define WAHWAH_WET_GAIN (int)(ONE_16b*0.8)
 
 
-
+//printing
+unsigned int CPUcycles[LOOPS] = {0};
 
 struct Distortion {
     int   accum[2]; //accummulator accum[2]
@@ -315,7 +316,7 @@ int audio_filter(_SPM struct Filter *filtP, volatile _SPM short *xP, volatile _S
 #ifdef ANALYSIS
     _Pragma("loopbound min LOOPS max LOOPS")
 #else
-        unsigned int CPUcycles[LOOPS] = {0};
+        printf("\n ************* FILTER ************* \n");
 #endif
     for(int i=0; i<LOOPS; i++) {
 #ifndef ANALYSIS
@@ -352,7 +353,7 @@ int audio_filter(_SPM struct Filter *filtP, volatile _SPM short *xP, volatile _S
 
 #ifndef ANALYSIS
     for(int i=1; i<LOOPS; i++) {
-        printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
+        printf("%u\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
 #endif
 
@@ -363,7 +364,7 @@ int audio_filter_2(_SPM struct Filter *filtP, volatile _SPM short *xP, volatile 
 #ifdef ANALYSIS
     _Pragma("loopbound min LOOPS max LOOPS")
 #else
-        unsigned int CPUcycles[LOOPS] = {0};
+        printf("\n ************* FILTER 2 ************* \n");
 #endif
     for(int i=0; i<LOOPS; i++) {
 #ifndef ANALYSIS
@@ -399,7 +400,7 @@ int audio_filter_2(_SPM struct Filter *filtP, volatile _SPM short *xP, volatile 
 
 #ifndef ANALYSIS
     for(int i=1; i<LOOPS; i++) {
-        printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
+        printf("%u\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
 #endif
 
@@ -410,7 +411,7 @@ int audio_vibrato(_SPM struct Vibrato *vibrP, volatile _SPM short *xP, volatile 
 #ifdef ANALYSIS
     _Pragma("loopbound min LOOPS max LOOPS")
 #else
-        unsigned int CPUcycles[LOOPS] = {0};
+        printf("\n ************* VIBRATO ************* \n");
 #endif
     for(int i=0; i<LOOPS; i++) {
 #ifndef ANALYSIS
@@ -446,7 +447,7 @@ int audio_vibrato(_SPM struct Vibrato *vibrP, volatile _SPM short *xP, volatile 
 
 #ifndef ANALYSIS
     for(int i=1; i<LOOPS; i++) {
-        printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
+        printf("%u\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
 #endif
 
@@ -457,7 +458,7 @@ int audio_wahwah(_SPM struct WahWah *wahP, volatile _SPM short *xP, volatile _SP
 #ifdef ANALYSIS
     _Pragma("loopbound min LOOPS max LOOPS")
 #else
-        unsigned int CPUcycles[LOOPS] = {0};
+        printf("\n ************* WAHWAH ************* \n");
 #endif
     for(int i=0; i<LOOPS; i++) {
 #ifndef ANALYSIS
@@ -491,7 +492,7 @@ int audio_wahwah(_SPM struct WahWah *wahP, volatile _SPM short *xP, volatile _SP
 
 #ifndef ANALYSIS
     for(int i=1; i<LOOPS; i++) {
-        printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
+        printf("%u\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
 #endif
 
@@ -502,7 +503,7 @@ int audio_tremolo(_SPM struct Tremolo *tremP, volatile _SPM short *xP, volatile 
 #ifdef ANALYSIS
     _Pragma("loopbound min LOOPS max LOOPS")
 #else
-        unsigned int CPUcycles[LOOPS] = {0};
+        printf("\n ************* TREMOLO ************* \n");
 #endif
     for(int i=0; i<LOOPS; i++) {
 #ifndef ANALYSIS
@@ -525,7 +526,7 @@ int audio_tremolo(_SPM struct Tremolo *tremP, volatile _SPM short *xP, volatile 
 
 #ifndef ANALYSIS
     for(int i=1; i<LOOPS; i++) {
-        printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
+        printf("%u\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
 #endif
 
@@ -571,7 +572,7 @@ int audio_chorus(_SPM struct Chorus *chorP, volatile _SPM short *xP, volatile _S
 #ifdef ANALYSIS
     _Pragma("loopbound min LOOPS max LOOPS")
 #else
-        unsigned int CPUcycles[LOOPS] = {0};
+        printf("\n ************* CHORUS ************* \n");
 #endif
     for(int i=0; i<LOOPS; i++) {
 #ifndef ANALYSIS
@@ -599,7 +600,7 @@ int audio_chorus(_SPM struct Chorus *chorP, volatile _SPM short *xP, volatile _S
 
 #ifndef ANALYSIS
     for(int i=1; i<LOOPS; i++) {
-        printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
+        printf("%u\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
 #endif
 
@@ -642,7 +643,7 @@ int audio_delay(_SPM struct IIRdelay *delP, volatile _SPM short *xP, volatile _S
 #ifdef ANALYSIS
     _Pragma("loopbound min LOOPS max LOOPS")
 #else
-        unsigned int CPUcycles[LOOPS] = {0};
+        printf("\n ************* DELAY ************* \n");
 #endif
     for(int i=0; i<LOOPS; i++) {
 #ifndef ANALYSIS
@@ -668,7 +669,7 @@ int audio_delay(_SPM struct IIRdelay *delP, volatile _SPM short *xP, volatile _S
 
 #ifndef ANALYSIS
     for(int i=1; i<LOOPS; i++) {
-        printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
+        printf("%u\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
 #endif
 
@@ -683,7 +684,7 @@ int audio_overdrive(_SPM struct Overdrive *odP, volatile _SPM short *xP, volatil
 #ifdef ANALYSIS
     _Pragma("loopbound min LOOPS max LOOPS")
 #else
-        unsigned int CPUcycles[LOOPS] = {0};
+        printf("\n ************* OVERDRIVE ************* \n");
 #endif
     for(int i=0; i<LOOPS; i++) {
 #ifndef ANALYSIS
@@ -731,7 +732,7 @@ int audio_overdrive(_SPM struct Overdrive *odP, volatile _SPM short *xP, volatil
 
 #ifndef ANALYSIS
     for(int i=1; i<LOOPS; i++) {
-        printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
+        printf("%u\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
 #endif
 
@@ -744,7 +745,7 @@ int audio_distortion(_SPM struct Distortion *distP, volatile _SPM short *xP, vol
 #ifdef ANALYSIS
     _Pragma("loopbound min LOOPS max LOOPS")
 #else
-        unsigned int CPUcycles[LOOPS] = {0};
+        printf("\n ************* DISTORTION ************* \n");
 #endif
     for(int i=0; i<LOOPS; i++) {
 #ifndef ANALYSIS
@@ -772,7 +773,7 @@ int audio_distortion(_SPM struct Distortion *distP, volatile _SPM short *xP, vol
 
 #ifndef ANALYSIS
     for(int i=1; i<LOOPS; i++) {
-        printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
+        printf("%u\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
 #endif
 
