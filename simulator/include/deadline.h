@@ -1,5 +1,5 @@
 /*
-   Copyright 2012 Technical University of Denmark, DTU Compute.
+   Copyright 2017 Technical University of Denmark, DTU Compute.
    All rights reserved.
 
    This file is part of the Patmos simulator.
