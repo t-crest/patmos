@@ -772,6 +772,10 @@ int main (int argc, char* argv[]) {
   for(int i = 0; i < 5; i++) {
     dat_t<1> reset = LIT<1>(1);
     c->clock_lo(reset);
+    // Print tracing information
+    if (vcd) {
+      c->dump(f, t);
+    }
     c->clock_hi(reset);
   }
 
@@ -784,6 +788,10 @@ int main (int argc, char* argv[]) {
     dat_t<1> reset = LIT<1>(0);
 
     c->clock_lo(reset);
+    // Print tracing information
+    if (vcd) {
+      c->dump(f, t);
+    }
     c->clock_hi(reset);
 
     // Emulate external devices
@@ -801,10 +809,6 @@ int main (int argc, char* argv[]) {
     emu_ethmac(c, ethmac_tap);
     #endif /* IO_ETHMAC */
 
-    // Print tracing information
-    if (vcd) {
-      c->dump(f, t);
-    }
     if (!quiet && c->Patmos_core__enableReg.to_bool()) {
       print_state(c);
     }
