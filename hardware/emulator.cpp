@@ -772,10 +772,6 @@ int main (int argc, char* argv[]) {
   for(int i = 0; i < 5; i++) {
     dat_t<1> reset = LIT<1>(1);
     c->clock_lo(reset);
-    // Print tracing information
-    if (vcd) {
-      c->dump(f, t);
-    }
     c->clock_hi(reset);
   }
 
