@@ -287,7 +287,7 @@ Patmos contains several on-chip memories, as sketched in Figure~\ref{fig:pipelin
 We apply the idea of split caches~\cite{jop:dcache:rts} to simplify and enhance
 the cache analysis. Instructions are fetched from the instruction cache.
 Patmos also supports instruction and data scratchpad memories.
-Stack allocated data is cached in a stack cache and we envision also a normal
+Stack allocated data is cached in a stack cache the other data in the
 data cache with LRU replacement. Accesses to data that are hard to analyze can
 bypass the data cache.
 
@@ -310,31 +310,31 @@ Figure~\ref{fig:registers}. In short, Patmos offers:
 The general-purpose registers \texttt{R} are read in the \code{DEC} stage
 and written in the \code{WB} stage. Full forwarding makes them available
 in the \code{EX} stage before written into the register file.
-
 The predicate registers are single bits that are set and read in the \code{EX}
 stage.
-
-The special registers \code{S} is just a collection of various `special'
-processor registers. These registers might be used by different units/stages
-in the pipeline and are not physically collected in a `register file'.
+The special registers \code{S} is just a collection of various ``special''
+processor registers (e.g., stack cache pointers).
+These registers might be used by different units/stages
+in the pipeline and are not physically collected in a ``register file''.
 The pipeline stage where those registers are read and written by the
 \code{mfs} and \code{mts} are dependent on the type of the special
 register.
-
+%
 \martin{The three `register' files shall constitute the state of the processor.
 Every non-obvious register, such as method base, shall be mapped to a
 `special' register. Even the current PC on an interrupt shall end up in a
 register that is mapped into the special register domain.}
-
+%
 \stefan{Umm .. it would be really good to define somewhere in which stages which special register is actually read or written by mfs/mts
 ;).}
-
+%
 So all-in-all the recoverable process state is: general-purpose registers
 \code{R}, the predicates \code{P}, and a collection of various processor
-registers mapped to the `special' register files \code{S}.
+registers mapped to the ``special'' register file \code{S}.
 
 Concurrently writing and reading the same register in the same cycle
-will, for the read, yield the new value of the register. Reads in
+will, for the read, yield the new value of the register (the register file
+provides internal forwarding). Reads in
 subsequent cycles return the result most recently written to the
 register, i.e., the pipeline implements full forwarding.
 
@@ -1607,6 +1607,27 @@ with a \texttt{false} predicate is equivalent to a single
 
 All control-flow instructions can only be issued on the first position
 within a bundle.
+
+\clearpage
+\subsection{Instruction List}
+
+\todo{List all Patmos instructions with a usage example}
+
+Following table lists all Patmos instructions with an example usage
+\begin{table}[hb]
+%  \centering
+  \begin{tabular}{ll}
+    \toprule
+    Instruction & Semantics \\
+    \midrule
+    addi r1 = r0, 255 & Add 255 to register r1\\
+    \bottomrule
+  \end{tabular}
+  \caption{Patmos instructions with examples}
+  \label{tab:instructions}
+\end{table}
+
+
 
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
 
@@ -4119,7 +4140,7 @@ a clean checkout of T-CREST, including the benchmarks, and performing a build
 and tests: \code{regtest-init.sh} and \code{regtest.sh}. \code{regtest-init.sh} starts
 the build process with checking out \code{misc} and therefore needs to
 be copied out of the repository to a place for scripts. The regression test will
-send out result emails listed in \code{recipients.txt}.
+send out result emails to all listed in \code{recipients.txt}.
 
 \section{Worst-Case Execution Time Analysis}
 
