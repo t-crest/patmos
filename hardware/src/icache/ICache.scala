@@ -245,7 +245,7 @@ class ICacheReplDm() extends Module {
     hitEven := Bool(false)
   }
   fetchAddr := addrEvenReg
-  when (tagOdd =/= addrOddReg(TAG_HIGH, TAG_LOW)) || (!validOdd)) {
+  when ((tagOdd =/= addrOddReg(TAG_HIGH, TAG_LOW)) || (!validOdd)) {
     hitOdd := Bool(false)
     fetchAddr := addrOddReg
   }
