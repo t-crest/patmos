@@ -241,11 +241,11 @@ class ICacheReplDm() extends Module {
   // Check for a hit of both instructions in the address bundle
   hitEven := Bool(true)
   hitOdd := Bool(true)
-  when (tagEven =/= addrEvenReg(TAG_HIGH, TAG_LOW)) {
+  when ((tagEven =/= addrEvenReg(TAG_HIGH, TAG_LOW)) || (!validEven)) {
     hitEven := Bool(false)
   }
   fetchAddr := addrEvenReg
-  when (tagOdd =/= addrOddReg(TAG_HIGH, TAG_LOW)) {
+  when (tagOdd =/= addrOddReg(TAG_HIGH, TAG_LOW)) || (!validOdd)) {
     hitOdd := Bool(false)
     fetchAddr := addrOddReg
   }
@@ -288,7 +288,7 @@ class ICacheReplDm() extends Module {
 
   // Hit/miss to control module
   io.replctrl.fetchAddr := fetchAddr
-  io.replctrl.hit := hitEven && hitOdd && valid
+  io.replctrl.hit := hitEven && hitOdd
   io.replctrl.selCache := selCacheReg
 
   when (io.invalidate) {
