@@ -51,6 +51,7 @@
 #include "uart.h"
 #include "rtc.h"
 #include "excunit.h"
+#include "deadline.h"
 
 #include <unistd.h>
 #include <termios.h>
@@ -432,6 +433,7 @@ int main(int argc, char **argv)
     ("mmu_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::MMU_OFFSET), "offset where the memory management unit is mapped")
     ("uart_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::UART_OFFSET), "offset where the UART device is mapped")
     ("led_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::LED_OFFSET), "offset where the LED device is mapped")
+    ("deadline_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::DEADLINE_OFFSET), "offset where the deadline device is mapped")
     ("ethmac_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::ETHMAC_OFFSET), "offset where the EthMac device is mapped")
     ("ethmac_ip_addr", boost::program_options::value<std::string>()->default_value(""), "Provide virtual network interface with the given IP address");
 
@@ -507,6 +509,7 @@ int main(int argc, char **argv)
   unsigned int mmu_offset = vm["mmu_offset"].as<patmos::address_t>().value();
   unsigned int uart_offset = vm["uart_offset"].as<patmos::address_t>().value();
   unsigned int led_offset = vm["led_offset"].as<patmos::address_t>().value();
+  unsigned int deadline_offset = vm["deadline_offset"].as<patmos::address_t>().value();
   unsigned int ethmac_offset = vm["ethmac_offset"].as<patmos::address_t>().value();
   std::string  ethmac_ip_addr = vm["ethmac_ip_addr"].as<std::string>();
 
@@ -674,6 +677,7 @@ int main(int argc, char **argv)
     patmos::perfcounters_t perfcounters(mmbase+perfcounters_offset);
     patmos::uart_t uart(mmbase+uart_offset, *uin, uin_istty, *uout);
     patmos::led_t leds(mmbase+led_offset, *uout);
+    patmos::deadline_t deadline(mmbase+deadline_offset);
     patmos::ethmac_t ethmac(mmbase+ethmac_offset, ethmac_ip_addr);
     patmos::noc_t noc(nocbase, nocbase+noc_route_offset, nocbase+noc_st_offset,
                       nocbase+noc_spm_offset, nocsize, nm);
@@ -683,6 +687,7 @@ int main(int argc, char **argv)
     mm.add_device(perfcounters);
     mm.add_device(uart);
     mm.add_device(leds);
+    mm.add_device(deadline);
     mm.add_device(ethmac);
     mm.add_device(rtc);
     mm.add_device(noc);

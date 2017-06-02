@@ -127,6 +127,7 @@ object Utility {
     printf("\tAddressable external memory: %s\n",
            sizeToStr(util.Config.getConfig.ExtMem.size))
     printf("\tMMU: %b\n", HAS_MMU)
+    printf("\tBurst length: %d\n", util.Config.getConfig.burstLength)
     printf("\n")
   }
 }

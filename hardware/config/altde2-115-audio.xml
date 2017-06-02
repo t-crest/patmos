@@ -1,5 +1,5 @@
 <patmos default="default.xml">
-  <description>default configuration for DE2-115 board</description>
+  <description>configuration for DE2-115 board with audio interface</description>
 
   <frequency Hz="80000000"/>
 
@@ -9,7 +9,7 @@
     <IO DevTypeRef="Uart" offset="8"/>
     <IO DevTypeRef="Leds" offset="9"/>
     <IO DevTypeRef="Keys" offset="10" intrs="2,3,4,5"/>
-    <IO DevTypeRef="AudioInterface" offset="11"/>
+    <IO DevTypeRef="AudioInterface" offset="12"/>
   </IOs>
 
   <Devs>

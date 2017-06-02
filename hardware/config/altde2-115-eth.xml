@@ -10,7 +10,7 @@
 	<IO DevTypeRef="Uart" offset="8"/>
 	<IO DevTypeRef="Leds" offset="9"/>
 	<IO DevTypeRef="Keys" offset="10" intrs="2,3,4,5"/>
-  	<IO DevTypeRef="EthMac" offset="11"/>
+	<IO DevTypeRef="EthMac" offset="13"/>
   </IOs>
 
   <Devs>

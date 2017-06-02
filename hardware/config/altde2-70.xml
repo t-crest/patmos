@@ -28,10 +28,10 @@
   		<param name="keyCount" value="4"/>
   	  </params>
   	</Dev>
-    <Dev DevType="Ssram32" entity="SSRam32Ctrl" iface="OcpBurst">
-        <params>
-            <param name="ocpAddrWidth" value="21" />
-        </params>
-    </Dev>
+	<Dev DevType="Ssram32" entity="SSRam32Ctrl" iface="OcpBurst">
+	  <params>
+		<param name="ocpAddrWidth" value="21" />
+	  </params>
+	</Dev>
   </Devs>
 </patmos>

@@ -37,7 +37,9 @@
  * 
  * TODO:
  *
- * 
+ * Issues: Dual issue executes sequential, that means register write from
+ * first instruction is seen for the second, but not the other way round.
+ * What is the behavouir in HW? Probably read old value for both.
  */
 
 package patsim

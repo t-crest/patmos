@@ -287,7 +287,7 @@ Patmos contains several on-chip memories, as sketched in Figure~\ref{fig:pipelin
 We apply the idea of split caches~\cite{jop:dcache:rts} to simplify and enhance
 the cache analysis. Instructions are fetched from the instruction cache.
 Patmos also supports instruction and data scratchpad memories.
-Stack allocated data is cached in a stack cache and we envision also a normal
+Stack allocated data is cached in a stack cache the other data in the
 data cache with LRU replacement. Accesses to data that are hard to analyze can
 bypass the data cache.
 
@@ -310,31 +310,31 @@ Figure~\ref{fig:registers}. In short, Patmos offers:
 The general-purpose registers \texttt{R} are read in the \code{DEC} stage
 and written in the \code{WB} stage. Full forwarding makes them available
 in the \code{EX} stage before written into the register file.
-
 The predicate registers are single bits that are set and read in the \code{EX}
 stage.
-
-The special registers \code{S} is just a collection of various `special'
-processor registers. These registers might be used by different units/stages
-in the pipeline and are not physically collected in a `register file'.
+The special registers \code{S} is just a collection of various ``special''
+processor registers (e.g., stack cache pointers).
+These registers might be used by different units/stages
+in the pipeline and are not physically collected in a ``register file''.
 The pipeline stage where those registers are read and written by the
 \code{mfs} and \code{mts} are dependent on the type of the special
 register.
-
+%
 \martin{The three `register' files shall constitute the state of the processor.
 Every non-obvious register, such as method base, shall be mapped to a
 `special' register. Even the current PC on an interrupt shall end up in a
 register that is mapped into the special register domain.}
-
+%
 \stefan{Umm .. it would be really good to define somewhere in which stages which special register is actually read or written by mfs/mts
 ;).}
-
+%
 So all-in-all the recoverable process state is: general-purpose registers
 \code{R}, the predicates \code{P}, and a collection of various processor
-registers mapped to the `special' register files \code{S}.
+registers mapped to the ``special'' register file \code{S}.
 
 Concurrently writing and reading the same register in the same cycle
-will, for the read, yield the new value of the register. Reads in
+will, for the read, yield the new value of the register (the register file
+provides internal forwarding). Reads in
 subsequent cycles return the result most recently written to the
 register, i.e., the pipeline implements full forwarding.
 
@@ -1608,6 +1608,27 @@ with a \texttt{false} predicate is equivalent to a single
 All control-flow instructions can only be issued on the first position
 within a bundle.
 
+\clearpage
+\subsection{Instruction List}
+
+\todo{List all Patmos instructions with a usage example}
+
+Following table lists all Patmos instructions with an example usage
+\begin{table}[hb]
+%  \centering
+  \begin{tabular}{ll}
+    \toprule
+    Instruction & Semantics \\
+    \midrule
+    addi r1 = r0, 255 & Add 255 to register r1\\
+    \bottomrule
+  \end{tabular}
+  \caption{Patmos instructions with examples}
+  \label{tab:instructions}
+\end{table}
+
+
+
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
 
 \clearpage
@@ -2104,12 +2125,22 @@ Address & I/O Device & read & write \\
 \code{0xf0020008} & Timer & time in $\mu s$ (high word) & $\mu s$ interrupt time (high word) \\
 \code{0xf002000c} & Timer & time in $\mu s$ (low word) &  $\mu s$ interrupt time (low word) \\
 \cmidrule{1-4}
+\code{0xf0030000} & Deadline & may stall the pipeline & deadline cycles \\
+\cmidrule{1-4}
 \code{0xf0080000} & UART & status & control \\
 \code{0xf0080004} & UART & receive buffer & transmit buffer \\
 \cmidrule{1-4}
 \code{0xf0090000} & LED & -- & output register \\
 \cmidrule{1-4}
 \code{0xf00a0000} & Keys & input register & -- \\
+\cmidrule{1-4}
+\code{0xf00c0000} & Audio & & \\
+\dots             & Audio & \multicolumn{2}{c}{Audio interface (tbd)} \\
+\code{0xf00cffff} & Audio & & \\
+\cmidrule{1-4}
+\code{0xf00d0000} & EthMac & & \\
+\dots             & EthMac & \multicolumn{2}{c}{EthMac device (see Section~\ref{sec:ethmac})} \\
+\code{0xf00dffff} & EthMac & & \\
 \bottomrule
 \end{tabular}
 \caption{I/O devices and registers}
@@ -2259,11 +2290,21 @@ Bit & Status & & Control & \\
 \label{tab:uart}
 \end{table}
 
+
+\subsection{Deadline}
+
+The deadline device provides a facility for delaying execution for a
+specified amount of time.
+In each subsequent cycle, the counter is decremented by 1.
+A load to the address stalls the processor pipeline until the counter
+reaches 0.
+
 \subsection{EthMac}
+\label{sec:ethmac}
 
 Patmos supports Ethernet connections through an EthMac device
 \cite{mohor2002ethernet,pezzarossa2015ethernet}. This device is
-usually mapped starting at address \code{0xf00b0000}. The RX/TX buffer
+usually mapped starting at address \code{0xf00d0000}. The RX/TX buffer
 of the device is mapped to offsets \code{0x0000} to \code{0xefff},
 while the device registers of the Ethernet controller are mapped to
 offsets \code{0xf000} to \code{0xffff}. For detailed information on
@@ -3071,7 +3112,7 @@ counter. In our example we change the configuration file that is used for
 the default configuration: \code{patmos/hardware/config/altde2-115.xml}.
 The two lines from Listing~\ref{lst:ioex:xml} need to added into section \code{IOs}
 and \code{Devs}, respectively. Offset 11 is the next available I/O address and
-results in mapping our counter to I/O address \code{0xf00b0000}
+results in mapping our counter to I/O address \code{0xf0030000}
 (each I/O device has a 16 bit local address and 11 in decimal is `b' in hexadecimal).
 
 \begin{lstlisting}[float, caption={Testing the counter device\label{lst:ioex:c}}]
@@ -3080,7 +3121,7 @@ results in mapping our counter to I/O address \code{0xf00b0000}
 
 int main() {
 
-  volatile _IODEV int *io_ptr = (volatile _IODEV int *) 0xf00b0000;
+  volatile _IODEV int *io_ptr = (volatile _IODEV int *) 0xf0030000;
   int val;
 
   val = *io_ptr;
@@ -4099,7 +4140,7 @@ a clean checkout of T-CREST, including the benchmarks, and performing a build
 and tests: \code{regtest-init.sh} and \code{regtest.sh}. \code{regtest-init.sh} starts
 the build process with checking out \code{misc} and therefore needs to
 be copied out of the repository to a place for scripts. The regression test will
-send out result emails listed in \code{recipients.txt}.
+send out result emails to all listed in \code{recipients.txt}.
 
 \section{Worst-Case Execution Time Analysis}
 

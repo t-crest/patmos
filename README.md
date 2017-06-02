@@ -5,8 +5,7 @@ Patmos is a time-predictable VLIW processor.
 Patmos is the processor for the T-CREST project.
 See also: http://www.t-crest.org/ and http://patmos.compute.dtu.dk/
 
-The Patmos [Reference Handbook]
-(http://patmos.compute.dtu.dk/patmos_handbook.pdf)
+The Patmos [Reference Handbook](http://patmos.compute.dtu.dk/patmos_handbook.pdf)
 contains build instructions in Section 5.
 
 For questions and discussions join the Patmos mailing list at:
@@ -58,10 +57,10 @@ For developers with push permission the ssh based clone string is:
     git clone git@github.com:t-crest/patmos-misc.git misc
 
 build.sh will checkout several other repositories (the compiler, library,
-the Patmos source, and benchmarks) and
-build the compiler, the Patmos simulator, and the test benches.
+and the Patmos source) and
+build the compiler and the Patmos simulator.
 Therefore, take a cup of coffee and find some nice reading
-(e.g., the [Patmos Reference Handbook] (http://patmos.compute.dtu.dk/patmos_handbook.pdf)).
+(e.g., the [Patmos Reference Handbook](http://patmos.compute.dtu.dk/patmos_handbook.pdf)).
 
 
 We can start with the standard, harmless looking Hello
@@ -79,7 +78,7 @@ and run with the simulator as follows:
 
 However, this innocent examples is quiet challenging for an embedded system.
 For further details and how to build Patmos for an FPGA see Section 6 in the
-[Patmos Reference Handbook] (http://patmos.compute.dtu.dk/patmos_handbook.pdf).
+[Patmos Reference Handbook](http://patmos.compute.dtu.dk/patmos_handbook.pdf).
 
 Known Issues
 ============

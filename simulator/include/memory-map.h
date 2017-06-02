@@ -71,8 +71,14 @@ namespace patmos
   /// Number of bytes mapped to the timer device.
   static const uword_t TIMER_MAP_SIZE = 0x0018;
 
+  /// Offset from IO base address for the deadline device.
+  static const uword_t DEADLINE_OFFSET = 0x30000;
+
+  /// Number of bytes mapped to the deadline device.
+  static const uword_t DEADLINE_MAP_SIZE = 0x00004;
+
   /// Offset from IO base address for the  performance counters device.
-  static const uword_t PERFCOUNTERS_OFFSET = 0x30000;
+  static const uword_t PERFCOUNTERS_OFFSET = 0x60000;
 
   /// Number of bytes mapped to the performance counters device.
   static const uword_t PERFCOUNTERS_MAP_SIZE = 0x0028;
@@ -96,7 +102,7 @@ namespace patmos
   static const uword_t LED_MAP_SIZE = 0x0004;
 
   /// Offset from IO base address for the EthMac device.
-  static const uword_t ETHMAC_OFFSET = 0xb0000;
+  static const uword_t ETHMAC_OFFSET = 0xd0000;
 
   /// Number of bytes mapped to the EthMac device.
   static const uword_t ETHMAC_MAP_SIZE = 0x10000;
