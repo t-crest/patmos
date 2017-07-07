@@ -14,7 +14,7 @@
 
 
 //for guitar:
-#define GUITAR 1
+#define GUITAR 0
 
 // for multicore platform with noc:
 #define MULTICORE 1
