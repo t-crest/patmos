@@ -1,6 +1,9 @@
 #include "libaudio/audio_singlecore.h"
 #include "libaudio/audio_singlecore.c"
 
+#include <stdio.h>
+#include <stdlib.h>
+
 const int BUFFER_SIZE = 128;
 
 int main() {
@@ -37,20 +40,24 @@ int main() {
     
     *mute = 0;
 
+    printf("Hello hello hello!\n");
     for (int i = 0; i < 1*480000; i++){
         getInputBufferSPM(left, right);
         setOutputBufferSPM(left, right);
     }
-
+    //for (int i = 0; i < 1000; i++){printf("Interruption. ");}
+    printf("Only left.\n");
     for (int i = 0; i < 1*480000; i++){
         getInputBufferSPM(left, right);
         setOutputBufferSPM(left, mute);
     }
-
+    printf("Only right.\n");
     for (int i = 0; i < 1*480000; i++){
         getInputBufferSPM(left, right);
         setOutputBufferSPM(mute, right);
     }
+
+    printf("Goodbye!\n");
 
     return 0;
 
