@@ -9,105 +9,172 @@
  * @brief	Setting up all the registers in the audio interface
  */
 
-/*
- * @brief		Writes the supplied data to the address register,
- sets the request signal and waits for the acknowledge signal.
- * @param[in]	addr	the address of which register to write to.
- Has to be 7 bit long.
- * @param[in]	data	the data thats supposed to be written.
- Has to be 9 Bits long
- * @reutrn		returns 0 if successful and a negative number if there was an error.
- */
-int writeToI2C(char* addrC,char* dataC) {
-  int addr = 0;
-  int data = 0;
-
-  //Convert binary String of address to int
-  for(int i = 0; i < 7; i++) {
-    addr *= 2;
-    if (*addrC++ == '1') addr += 1;
+//Writes to i2c, returns 1 if there was an error, 0 if succeded
+int i2c_write(unsigned char chipaddress, unsigned short int subaddress, unsigned char data){
+  I2C = ((((unsigned int) data & 0x000000FF) << 24) | (((unsigned int) subaddress & 0x0000FFFF) << 8) | (((unsigned int) chipaddress & 0x0000007F) << 1)) & 0xFFFFFFFE;
+  //printf("%08X\n", ((((unsigned int) data & 0x000000FF) << 24) | (((unsigned int) subaddress & 0x0000FFFF) << 8) | (((unsigned int) chipaddress & 0x0000007F) << 1)) & 0xFFFFFFFE);
+  if ((I2C & 0x00000100) != 0)
+  {
+    return -1;
+  }else{
+    return 0;
   }
-
-  //Convert binary String of data to int
-  for(int i = 0; i < 9; i++) {
-    data *= 2;
-    if (*dataC++ == '1') data += 1;
-  }
-
-  //Debug info:
-  printf("Sending Data: %i to address %i\n",data,addr);
-
-  *i2cDataReg = data;
-  *i2cAdrReg	= addr;
-  *i2cReqReg	= 1;
-
-
-  while(*i2cAckReg == 0) {
-    printf("Waiting ...\n");
-    //Maybe input something like a timeout ...
-  }
-  for (int i = 0; i<200; i++)  { *i2cReqReg=0; }
-
-  printf("success\n");
-
-  return 0;
 }
 
-/*
- * @brief	Sets the default values
- * @param[in]	guitar    used to select the input: line in or mic in
- */
-
-void setup(int guitar) {
-
-  /*
-  //----------Line in---------------------
-  char *addrLeftIn  = "0000000";
-  char *dataLineIn  = "100010111";	//disable Mute, Enable Simultaneous Load, LinVol: 10111 - Set volume to 23 (of 31)
-  writeToI2C(addrLeftIn,dataLineIn);
-
-  char *addrRigthIn = "0000001";
-  writeToI2C(addrRigthIn,dataLineIn);
-  */
-
-  //----------Headphones---------------------
-  char *addrLeftHead  = "0000010";
-  char *dataHeadphone = "001111001";	// disable simultaneous loads, zero cross disable, LinVol: 1111001 (0db)
-  writeToI2C(addrLeftHead,dataHeadphone);
-
-  char *addrRightHead = "0000011";
-  writeToI2C(addrRightHead,dataHeadphone);
-
-  //--------Analogue Audio Path Control-----
-  char *addrAnalogue  = "0000100";
-  if(guitar == 0) {
-      char *dataAnalogue = "000010010"; //DAC selected, rest disabled, MIC muted, Line input select to ADC
-      writeToI2C(addrAnalogue,dataAnalogue);
+//Reads to i2c, returns the read value, if the integer is negative there was an error
+int i2c_read(unsigned char chipaddress, unsigned short int subaddress){
+  I2C = ((((unsigned int) subaddress & 0x0000FFFF) << 8) | (((unsigned int) chipaddress & 0x0000007F) << 1)) | 0x00000001;
+  unsigned int I2C_tmp = I2C;
+  if ((I2C_tmp & 0x00000100) != 0)
+  {
+    return (int)(((unsigned int)(I2C_tmp) & 0x000000FF) | 0x80000000);
+  }else{
+    return (int)((unsigned int)(I2C_tmp) & 0x000000FF);
   }
-  else {
-      char *dataAnalogueGuit = "000010101"; //MIC selected to ADC, MIC enabled, MIC boost enabled
-      writeToI2C(addrAnalogue,dataAnalogueGuit);
+}
+
+int ADAU1761_init(int configuration){
+  int ans = 0;
+
+  if (configuration == 0)
+  {
+    //configuration 0 
+    // input = line in
+    // output = line out (speakers)
+    ans += i2c_write(CHIPADDR, 0x4000, 0x01);
+    //0x4002, 0x00 0xFD 0x00 0x0C 0x10 0x00
+    ans += i2c_write(CHIPADDR, 0x4008, 0x00);
+    ans += i2c_write(CHIPADDR, 0x4009, 0x00);
+    ans += i2c_write(CHIPADDR, 0x400A, 0x01);
+    ans += i2c_write(CHIPADDR, 0x400B, 0x05);
+    ans += i2c_write(CHIPADDR, 0x400C, 0x01);
+    ans += i2c_write(CHIPADDR, 0x400D, 0x05);
+    ans += i2c_write(CHIPADDR, 0x400E, 0x00);
+    ans += i2c_write(CHIPADDR, 0x400F, 0x00);
+    ans += i2c_write(CHIPADDR, 0x4010, 0x00);
+    ans += i2c_write(CHIPADDR, 0x4011, 0x00);
+    ans += i2c_write(CHIPADDR, 0x4012, 0x00);
+    ans += i2c_write(CHIPADDR, 0x4013, 0x00);
+    ans += i2c_write(CHIPADDR, 0x4014, 0x00);
+    //ans += i2c_write(CHIPADDR, 0x4015, 0x00);//slavemode
+    ans += i2c_write(CHIPADDR, 0x4015, 0x01);//mastermode
+    ans += i2c_write(CHIPADDR, 0x4016, 0x00);
+    ans += i2c_write(CHIPADDR, 0x4017, 0x00);
+    ans += i2c_write(CHIPADDR, 0x4018, 0x00);
+    ans += i2c_write(CHIPADDR, 0x4019, 0x03);
+    ans += i2c_write(CHIPADDR, 0x401A, 0x00);
+    ans += i2c_write(CHIPADDR, 0x401B, 0x00);
+    ans += i2c_write(CHIPADDR, 0x401C, 0x21);
+    ans += i2c_write(CHIPADDR, 0x401D, 0x00);
+    ans += i2c_write(CHIPADDR, 0x401E, 0x41);
+    ans += i2c_write(CHIPADDR, 0x401F, 0x00);
+    ans += i2c_write(CHIPADDR, 0x4020, 0x03);
+    ans += i2c_write(CHIPADDR, 0x4021, 0x09);
+    ans += i2c_write(CHIPADDR, 0x4022, 0x00);
+    ans += i2c_write(CHIPADDR, 0x4023, 0x00);
+    ans += i2c_write(CHIPADDR, 0x4024, 0x00);
+    ans += i2c_write(CHIPADDR, 0x4025, 0xE6);
+    ans += i2c_write(CHIPADDR, 0x4026, 0xE6);
+    ans += i2c_write(CHIPADDR, 0x4027, 0x00);
+    ans += i2c_write(CHIPADDR, 0x4028, 0x00);
+    ans += i2c_write(CHIPADDR, 0x4029, 0x03);
+    ans += i2c_write(CHIPADDR, 0x402A, 0x03);
+    ans += i2c_write(CHIPADDR, 0x402B, 0x00);
+    ans += i2c_write(CHIPADDR, 0x402C, 0x00);
+    ans += i2c_write(CHIPADDR, 0x402D, 0xAA);
+    ans += i2c_write(CHIPADDR, 0x402F, 0xAA);
+    ans += i2c_write(CHIPADDR, 0x4030, 0x00);
+    ans += i2c_write(CHIPADDR, 0x4031, 0x08);
+    ans += i2c_write(CHIPADDR, 0x4036, 0x03);
+    ans += i2c_write(CHIPADDR, 0x40C6, 0x00);
+    ans += i2c_write(CHIPADDR, 0x40C7, 0x00);
+    ans += i2c_write(CHIPADDR, 0x40C8, 0x00);
+    ans += i2c_write(CHIPADDR, 0x40C9, 0x00);
+    ans += i2c_write(CHIPADDR, 0x40D0, 0x00);
+    ans += i2c_write(CHIPADDR, 0x40EB, 0x01);
+    ans += i2c_write(CHIPADDR, 0x40F2, 0x01);
+    ans += i2c_write(CHIPADDR, 0x40F3, 0x01);
+    ans += i2c_write(CHIPADDR, 0x40F4, 0x00);
+    ans += i2c_write(CHIPADDR, 0x40F5, 0x00);
+    ans += i2c_write(CHIPADDR, 0x40F6, 0x00);
+    ans += i2c_write(CHIPADDR, 0x40F7, 0x00);
+    ans += i2c_write(CHIPADDR, 0x40F8, 0x00);
+    ans += i2c_write(CHIPADDR, 0x40F9, 0x7F);
+    ans += i2c_write(CHIPADDR, 0x40FA, 0x03);
+  } else if (configuration == 1)  {
+    //configuration 1 
+    // input = line in
+    // output = line out (speakers) + hppout (headphone)
+    ans += i2c_write(CHIPADDR, 0x4000, 0x01);
+    //0x4002, 0x00 0xFD 0x00 0x0C 0x10 0x00
+    ans += i2c_write(CHIPADDR, 0x4008, 0x00);
+    ans += i2c_write(CHIPADDR, 0x4009, 0x00);
+    ans += i2c_write(CHIPADDR, 0x400A, 0x01);
+    ans += i2c_write(CHIPADDR, 0x400B, 0x05);
+    ans += i2c_write(CHIPADDR, 0x400C, 0x01);
+    ans += i2c_write(CHIPADDR, 0x400D, 0x05);
+    ans += i2c_write(CHIPADDR, 0x400E, 0x00);
+    ans += i2c_write(CHIPADDR, 0x400F, 0x00);
+    ans += i2c_write(CHIPADDR, 0x4010, 0x00);
+    ans += i2c_write(CHIPADDR, 0x4011, 0x00);
+    ans += i2c_write(CHIPADDR, 0x4012, 0x00);
+    ans += i2c_write(CHIPADDR, 0x4013, 0x00);
+    ans += i2c_write(CHIPADDR, 0x4014, 0x00);
+    //ans += i2c_write(CHIPADDR, 0x4015, 0x00);//slavemode
+    ans += i2c_write(CHIPADDR, 0x4015, 0x01);//mastermode
+    ans += i2c_write(CHIPADDR, 0x4016, 0x00);
+    ans += i2c_write(CHIPADDR, 0x4017, 0x00);
+    ans += i2c_write(CHIPADDR, 0x4018, 0x00);
+    ans += i2c_write(CHIPADDR, 0x4019, 0x03);
+    ans += i2c_write(CHIPADDR, 0x401A, 0x00);
+    ans += i2c_write(CHIPADDR, 0x401B, 0x00);
+    ans += i2c_write(CHIPADDR, 0x401C, 0x21);
+    ans += i2c_write(CHIPADDR, 0x401D, 0x00);
+    ans += i2c_write(CHIPADDR, 0x401E, 0x41);
+    ans += i2c_write(CHIPADDR, 0x401F, 0x00);
+    ans += i2c_write(CHIPADDR, 0x4020, 0x03);
+    ans += i2c_write(CHIPADDR, 0x4021, 0x09);
+    ans += i2c_write(CHIPADDR, 0x4022, 0x00);
+    ans += i2c_write(CHIPADDR, 0x4023, 0xE7);//hp
+    ans += i2c_write(CHIPADDR, 0x4024, 0xE7);//hp
+    ans += i2c_write(CHIPADDR, 0x4025, 0xE6);
+    ans += i2c_write(CHIPADDR, 0x4026, 0xE6);
+    ans += i2c_write(CHIPADDR, 0x4027, 0x00);
+    ans += i2c_write(CHIPADDR, 0x4028, 0x00);
+    ans += i2c_write(CHIPADDR, 0x4029, 0x03);
+    ans += i2c_write(CHIPADDR, 0x402A, 0x03);
+    ans += i2c_write(CHIPADDR, 0x402B, 0x00);
+    ans += i2c_write(CHIPADDR, 0x402C, 0x00);
+    ans += i2c_write(CHIPADDR, 0x402D, 0xAA);
+    ans += i2c_write(CHIPADDR, 0x402F, 0xAA);
+    ans += i2c_write(CHIPADDR, 0x4030, 0x00);
+    ans += i2c_write(CHIPADDR, 0x4031, 0x08);
+    ans += i2c_write(CHIPADDR, 0x4036, 0x03);
+    ans += i2c_write(CHIPADDR, 0x40C6, 0x00);
+    ans += i2c_write(CHIPADDR, 0x40C7, 0x00);
+    ans += i2c_write(CHIPADDR, 0x40C8, 0x00);
+    ans += i2c_write(CHIPADDR, 0x40C9, 0x00);
+    ans += i2c_write(CHIPADDR, 0x40D0, 0x00);
+    ans += i2c_write(CHIPADDR, 0x40EB, 0x01);
+    ans += i2c_write(CHIPADDR, 0x40F2, 0x01);
+    ans += i2c_write(CHIPADDR, 0x40F3, 0x01);
+    ans += i2c_write(CHIPADDR, 0x40F4, 0x00);
+    ans += i2c_write(CHIPADDR, 0x40F5, 0x00);
+    ans += i2c_write(CHIPADDR, 0x40F6, 0x00);
+    ans += i2c_write(CHIPADDR, 0x40F7, 0x00);
+    ans += i2c_write(CHIPADDR, 0x40F8, 0x00);
+    ans += i2c_write(CHIPADDR, 0x40F9, 0x7F);
+    ans += i2c_write(CHIPADDR, 0x40FA, 0x03);
+  }else{
+    ans = 1;
   }
 
-
-  //--------Digital Audio Path Control-----
-  char *addrDigital  = "0000101";
-  char *dataDigital  = "000000001";	//disable soft mute and disable de-emphasis, disable highpass filter
-  writeToI2C(addrDigital,dataDigital);
-
-
-  //---------Digital Audio Interface Format---------
-  char *addrInterface  = "0000111";
-  char *dataInterface = "000010011"; //BCLK not inverted, slave, right-channel-right-data, LRP = A mode for DSP, 16-bit audio, DSP mode
-  writeToI2C(addrInterface,dataInterface);
-
-
-  //--------Sampling Control----------------
-  char *addrSample  = "0001000";
-  char *dataSample  = "000000000"; //USB mode, BOSR=1, Sample Rate = 44.1 kHz both for ADC and DAC
-  writeToI2C(addrSample,dataSample);
-
-  printf("FINISHED SETUP!\n");
+  if (ans != 0)
+  {
+    return -1;
+  }else{
+    return 0;
+  }
 }
 
 
@@ -117,28 +184,7 @@ void setup(int guitar) {
  * @reutrn		returns 0 if successful and a negative number if there was an error.
  */
 int changeVolume(int vol) {
-  //127--1111111 = +6dB
-  //121--1111001 = 0 dB
-  //48--0110000 = -73dB
-  if ((vol<-73) || (vol>6)) {
-    return -1;	//Invalid input.
-  }
-
-  //Since both Left Channel Zero Cross detect and simultaneous Load are disabled this can be send imideatly:
-  //LEFT:
-  *i2cDataReg = vol + 121;
-  *i2cAdrReg	 = 2;
-  *i2cReqReg	 = 1;
-  while(*i2cAckReg == 0);
-  for (int i = 0; i<200; i++)  { *i2cReqReg=0; }
-
-  //RIGHT:
-  *i2cDataReg = vol + 121;
-  *i2cAdrReg	 = 3;
-  *i2cReqReg	 = 1;
-  while(*i2cAckReg == 0);
-  for (int i = 0; i<200; i++)  { *i2cReqReg=0; }
-
+  printf("ERROR. Changing volume is not supported.\n");
   return 0;
 }
 
@@ -150,68 +196,47 @@ int isPowerOfTwo (unsigned int x) {
 }
 
 /*
- * @brief	sets the size of the input (ADC) buffer. Must be a power of 2
- * @param[in]	bufferSize	length of the buffer
- * @return	returns 0 if successful and a 1 if there was an error.
- */
-int setInputBufferSize(int bufferSize) {
-  if(isPowerOfTwo(bufferSize)) {
-    printf("Input buffer size set to %d\n", bufferSize);
-    *audioAdcBufferSizeReg = bufferSize;
-    return 0;
-  }
-  else {
-    printf("ERROR: Buffer Size must be power of 2\n");
-    return 1;
-  }
-}
-
-/*
- * @brief	 sets the size of the output (DAC) buffer. Must be a power of 2
- * @param[in]	 bufferSize	length of the buffer
- * @return	 returns 0 if successful and a 1 if there was an error.
- */
-int setOutputBufferSize(int bufferSize) {
-  if(isPowerOfTwo(bufferSize)) {
-    printf("Output buffer size set to %d\n", bufferSize);
-    *audioDacBufferSizeReg = bufferSize;
-    return 0;
-  }
-  else {
-    printf("ERROR: Buffer Size must be power of 2\n");
-    return 1;
-  }
-}
-
-/*
- * @brief	reads data from the input (ADC) buffer into Patmos
- * @param[in]	*l	pointer to left audio data
- * @param[in]	*r	pointer to right audio data
- * @return	returns 0 if successful
+ * @brief reads data from the input (ADC) buffer into Patmos
+ * @param[in] *l  pointer to left audio data
+ * @param[in] *r  pointer to right audio data
+ * @return  returns 0 if successful
  */
 int getInputBufferSPM(volatile _SPM short *l, volatile _SPM short *r) {
-  while(*audioAdcBufferEmptyReg == 1);// wait until not empty
-  *audioAdcBufferReadPulseReg = 1; // begin pulse
-  *audioAdcBufferReadPulseReg = 0; // end pulse
-  *l = *audioAdcLReg;
-  *r = *audioAdcRReg;
+  while(*audioAdcBufferEmptyReg == 1){;}// wait until not empty
+
+  int sample = 0;
+  short sample_left = 0;
+  short sample_right = 0;
+
+  sample = *audioAdcReg;
+  sample_left = (short)((sample >> 16) & 0x0000FFFF);
+  sample_right = (short)(sample & 0x0000FFFF);  
+
+  *l = sample_left;
+  *r = sample_right;
+
   return 0;
 }
 
 /*
- * @brief	writes data from patmos into the output (DAC) buffer
- * @param[in]	l	left audio data
- * @param[in]	r	right audio data
- * @return	returns 0 if successful
+ * @brief writes data from patmos into the output (DAC) buffer
+ * @param[in] l left audio data
+ * @param[in] r right audio data
+ * @return  returns 0 if successful
  */
 int setOutputBufferSPM(volatile _SPM short *l, volatile _SPM short *r) {
-  //write data first: it will stay in AudioInterface, won't go to
-  //AudioDacBuffer until the write pulse
-  *audioDacLReg = *l;
-  *audioDacRReg = *r;
-  while(*audioDacBufferFullReg == 1); // wait until not full
-  *audioDacBufferWritePulseReg = 1; // begin pulse
-  *audioDacBufferWritePulseReg = 0; // end pulse
+  while(*audioDacBufferFullReg == 1){;} // wait until not full
+
+  int sample = 0;
+  int sample_left = 0;
+  int sample_right = 0;
+
+  sample_left = (int)*l;
+  sample_right = (int)*r;
+  sample = ((sample_left << 16) & 0xFFFF0000) | (sample_right & 0x0000FFFF);
+
+  *audioDacReg = sample;
+  //*audioDacReg = 0xABBACAFE;
 
   return 0;
 }

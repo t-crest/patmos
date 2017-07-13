@@ -9,8 +9,15 @@ const int BUFFER_SIZE = 128;
 int main() {
 
     //setup(0); //line in
+    int init_flag = 0;
+    init_flag = ADAU1761_init(1); //line in
 
-    ADAU1761_init(1); //line in
+    if (init_flag != 0)
+    {
+        printf("ADAU1761_init failed.\n");
+    }else{
+        printf("ADAU1761_init succeded.\n");
+    }
 
     //setInputBufferSize(BUFFER_SIZE);
     //setOutputBufferSize(BUFFER_SIZE);

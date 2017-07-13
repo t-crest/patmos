@@ -286,23 +286,30 @@ int main() {
         printf("Thread created on core %d\n", i+1);
     }
 
-    #if GUITAR == 1
-    setup(1); //for guitar
-    #else
-    setup(0); //for volca
-    #endif
+    
+    int init_flag = 0;
+    init_flag = ADAU1761_init(1); //line in
 
-    // enable input
-    *audioAdcEnReg = 1;
-    //let input buffer fill in before starting to output
-    for(unsigned int i=0; i<(BUFFER_SIZE * 1536); i++) { //wait for BUFFER_SIZE samples
-        *audioDacEnReg = 0;
+    if (init_flag != 0)
+    {
+        printf("ADAU1761_init failed.\n");
+    }else{
+        printf("ADAU1761_init succeded.\n");
     }
-    //finally, enable output
-    *audioDacEnReg = 1;
+    
 
-    setInputBufferSize(BUFFER_SIZE);
-    setOutputBufferSize(BUFFER_SIZE);
+    // LUCA I am commenti this part
+    // enable input
+    //*audioAdcEnReg = 1;
+    //let input buffer fill in before starting to output
+    //for(unsigned int i=0; i<(BUFFER_SIZE * 1536); i++) { //wait for BUFFER_SIZE samples
+    //    *audioDacEnReg = 0;
+    //}
+    //finally, enable output
+    //*audioDacEnReg = 1;
+
+    //setInputBufferSize(BUFFER_SIZE);
+    //setOutputBufferSize(BUFFER_SIZE);
 
 
 

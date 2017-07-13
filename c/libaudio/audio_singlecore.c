@@ -74,6 +74,7 @@ int setOutputBufferSPM(volatile _SPM short *l, volatile _SPM short *r) {
   sample = ((sample_left << 16) & 0xFFFF0000) | (sample_right & 0x0000FFFF);
 
   *audioDacReg = sample;
+  //*audioDacReg = 0xABBACAFE;
 
   return 0;
 }
