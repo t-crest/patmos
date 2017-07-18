@@ -80,6 +80,17 @@ However, this innocent examples is quiet challenging for an embedded system.
 For further details and how to build Patmos for an FPGA see Section 6 in the
 [Patmos Reference Handbook](http://patmos.compute.dtu.dk/patmos_handbook.pdf).
 
+You can also build the Patmos handbook yourself from the source.
+You first need to insatll LaTeX (about 3 GB) with:
+
+    sudo apt-get install texlive-full doxygen
+
+The handbook is then built with:
+
+    cd patmos/doc
+    make
+
+
 Known Issues
 ============
 
