@@ -41,7 +41,7 @@
 package patsim
 
 /**
- * Opcodes are 5 bit, Arithmetic short immediate use 3 of the 8 bits for
+ * Opcodes are 5 bit, Arithmetic short immediate use 3 of the 5 bits for
  * for the function.
  */
 object Opcode {
@@ -56,6 +56,7 @@ object Opcode {
  */
 object OpcodeExt {
   val AluReg = 0x00
+  val AluMul = 0x02
 }
 
 /**
