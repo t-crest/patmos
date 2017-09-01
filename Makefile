@@ -217,8 +217,9 @@ fpgaexec: $(BUILDDIR)/$(APP).elf
 CLEANEXTENSIONS=rbf rpt sof pin summary ttf qdf dat wlf done qws
 
 mostlyclean:
-	-rm -rf $(SIMBUILDDIR) $(CTOOLSBUILDDIR) $(BUILDDIR)
+	-rm -rf $(SIMBUILDDIR) $(CTOOLSBUILDDIR) $(BUILDDIR) $(HWBUILDDIR)
 	-rm -rf $(JAVATOOLSBUILDDIR)/classes
+	-rm -rf hardware/target
 
 clean: mostlyclean
 	-rm -rf $(INSTALLDIR)/bin
