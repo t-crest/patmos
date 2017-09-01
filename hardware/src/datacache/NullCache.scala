@@ -82,7 +82,7 @@ class NullCache() extends Module {
   // Default values
   io.slave.M.Cmd := OcpCmd.IDLE
   io.slave.M.Addr := Cat(masterReg.Addr(ADDR_WIDTH-1, burstAddrBits+byteAddrBits),
-                         Fill(Bits(0), burstAddrBits+byteAddrBits))
+                         Fill(burstAddrBits+byteAddrBits, Bits(0)))
   io.slave.M.Data := Bits(0)
   io.slave.M.DataValid := Bits(0)
   io.slave.M.DataByteEn := Bits(0)

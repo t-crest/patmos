@@ -122,7 +122,7 @@ class WriteCombineBuffer() extends Module {
     io.readMaster.S.Resp := OcpResp.NULL
     when(cntReg === Bits(0)) {
       io.slave.M.Cmd := OcpCmd.WR
-      io.slave.M.Addr := Cat(tagReg, Fill(Bits(0), burstAddrBits+byteAddrBits))
+      io.slave.M.Addr := Cat(tagReg, Fill(burstAddrBits+byteAddrBits, Bits(0)))
     }
     io.slave.M.DataValid := Bits(1)
     io.slave.M.Data := dataBuffer(cntReg)
