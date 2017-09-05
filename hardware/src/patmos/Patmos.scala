@@ -228,7 +228,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
   def newPatmos(id: Int) = Module(new PatmosCore(binFile))
 
-  val nrCores = 3
+  val nrCores = 1
 
   val nrs = 0 to nrCores - 1
   val cores = nrs.map(x => newPatmos(x))
