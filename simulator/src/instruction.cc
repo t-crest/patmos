@@ -39,12 +39,12 @@
 
 namespace patmos
 {
-  instruction_data_t::instruction_data_t() : I(NULL), Pred(pn0), Address(0)
+  instruction_data_t::instruction_data_t() : I(NULL), Address(0), Pred(pn0)
   {
   }
 
   instruction_data_t::instruction_data_t(const instruction_t &i, PRR_e pred) :
-    I(&i), Pred(pred), Address(0)
+    I(&i), Address(0), Pred(pred)
   {
   }
 

@@ -85,31 +85,31 @@ namespace patmos
     virtual bool is_flow_control() const = 0;
 
     virtual bool is_call() const { return false; }
-    
+
     virtual bool is_return() const { return false; }
-    
+
     virtual bool is_load() const { return false; }
-    
+
     virtual bool is_store() const { return false; }
-    
+
     /// Returns the number of delay slot cycles of this instruction
     virtual unsigned get_delay_slots(const instruction_data_t &ops) const = 0;
 
     /// Returns the number of delay slots for interrupt triggering
     virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const = 0;
-    
+
     /// Returns the destination register of the instruction, or r0 if no destination.
-    virtual GPR_e get_dst_reg(const instruction_data_t &ops) const { 
+    virtual GPR_e get_dst_reg(const instruction_data_t &ops) const {
       return r0;
     }
-    
+
     /// Returns the first source register, or r0 if no source registers.
-    virtual GPR_e get_src1_reg(const instruction_data_t &ops) const { 
+    virtual GPR_e get_src1_reg(const instruction_data_t &ops) const {
       return r0;
     }
-    
+
     /// Return the second source register, or r0 if operation has less than two operands.
-    virtual GPR_e get_src2_reg(const instruction_data_t &ops) const { 
+    virtual GPR_e get_src2_reg(const instruction_data_t &ops) const {
       return r0;
     }
 
@@ -328,10 +328,10 @@ namespace patmos
 
     /// New stack spill pointer from EX stage.
     word_t EX_Ss;
-    
+
     /// New stack top pointer from EX stage.
     word_t EX_St;
-    
+
     /// Result register operand from EX stage.
     GPR_by_pass_t GPR_EX_Rd;
 
@@ -350,7 +350,7 @@ namespace patmos
     // -------------------------- MW -------------------------------------------
     /// Discard instructions in MW stage (stalling).
     word_t MW_Discard;
-    
+
     /// Keep track if this is the first cycle in the MW stage.
     word_t MW_Initialized;
 
@@ -561,7 +561,7 @@ namespace patmos
     /// Print the instruction's operands to an output stream.
     /// @param os The output stream to print to.
     /// @param symbols A mapping of addresses to symbols.
-    void print_operands(const simulator_t &s, std::ostream &os, 
+    void print_operands(const simulator_t &s, std::ostream &os,
 	       const symbol_map_t &symbols) const
     {
       if (I) {

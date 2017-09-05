@@ -42,8 +42,6 @@ package ocp
 import Chisel._
 import Node._
 
-// MS: I would like to follow the Scala/Java naming convention (instead of the OCP naming)
-
 // Burst masters provide handshake signals
 class OcpBurstMasterSignals(addrWidth : Int, dataWidth : Int)
   extends OcpMasterSignals(addrWidth, dataWidth) {
@@ -119,7 +117,7 @@ class OcpBurstBridge(master : OcpCacheMasterPort, slave : OcpBurstSlavePort) {
   // Default values
   slave.M.Cmd := masterReg.Cmd
   slave.M.Addr := Cat(masterReg.Addr(addrWidth-1, burstAddrBits+log2Up(dataWidth/8)),
-                      Fill(Bits(0), burstAddrBits+log2Up(dataWidth/8)))
+                      Fill(burstAddrBits+log2Up(dataWidth/8), Bits(0)))
   slave.M.Data := Bits(0)
   slave.M.DataByteEn := Bits(0)
   slave.M.DataValid := Bits(0)

@@ -51,7 +51,7 @@ bool instr_spm_t::fetch(simulator_t &s, uword_t base, uword_t address, word_t iw
   if (address < Size) {
     // Just read directly from global memory without any latency.
     // TODO we should simulate copying the data to a local buffer though
-    Memory->read_peek(s, address, reinterpret_cast<byte_t*>(iw), 
+    Memory->read_peek(s, address, reinterpret_cast<byte_t*>(iw),
                       sizeof(word_t)*NUM_SLOTS, true);
     return true;
   } else {
@@ -59,7 +59,7 @@ bool instr_spm_t::fetch(simulator_t &s, uword_t base, uword_t address, word_t iw
   }
 }
 
-bool instr_spm_t::load_method(simulator_t &s, word_t address, word_t offset)
+bool instr_spm_t::load_method(simulator_t &s, uword_t address, word_t offset)
 {
   if (address < Size) {
     Num_loads++;
@@ -70,7 +70,7 @@ bool instr_spm_t::load_method(simulator_t &s, word_t address, word_t offset)
   }
 }
 
-bool instr_spm_t::is_available(simulator_t &s, word_t address)
+bool instr_spm_t::is_available(simulator_t &s, uword_t address)
 {
   if (address < Size) {
     return true;
@@ -80,18 +80,18 @@ bool instr_spm_t::is_available(simulator_t &s, word_t address)
 }
 
 
-void instr_spm_t::print_stats(const simulator_t &s, std::ostream &os, 
+void instr_spm_t::print_stats(const simulator_t &s, std::ostream &os,
                                    const stats_options_t& options)
 {
   //os << "                              total        max.\n";
   os << "                              total\n";
   os << boost::format("   I-SPM calls/returns : %1$10d\n")
    % Num_loads;
-  
+
   if (!options.short_stats && Num_loads > 0) {
     os << "\n";
     os << "       Method:        #hits\n";
-    
+
     for(method_stats_t::iterator i(Method_stats.begin()),
         ie(Method_stats.end()); i != ie; i++)
     {
@@ -99,25 +99,25 @@ void instr_spm_t::print_stats(const simulator_t &s, std::ostream &os,
         % i->first % i->second % s.Symbols.find(i->first);
     }
   }
-   
+
   os << "\n";
-  
+
   Cache->print_stats(s, os, options);
 }
 
-void instr_spm_t::reset_stats() 
+void instr_spm_t::reset_stats()
 {
   Method_stats.clear();
   Num_loads = 0;
-  
+
   Cache->reset_stats();
 }
 
 void instr_spm_t::flush_cache()
 {
   // Note: we do not want to flush the I-SPM here (if we would Implement
-  // the SPM as a local buffer), otherwise flushing the I$ through the 
+  // the SPM as a local buffer), otherwise flushing the I$ through the
   // control-bits would also flush the I-SPM.
-  
+
   Cache->flush_cache();
 }

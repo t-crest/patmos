@@ -44,9 +44,12 @@
 
 #include <machine/patmos.h>
 
-// Pointers to the base addresses, all the addressing (addr as arguments) in the library are an offset on these addresses
-#define ETH_BASE ( ( volatile _IODEV unsigned * ) 0xF00BF000 )
-#define BUFF_BASE ( ( volatile _IODEV unsigned * ) 0xF00B0000 )
+// Pointers to the base addresses, all the addressing (addr as arguments)
+// in the library are an offset on these addresses
+#define ETH_DEV_BASE    0xF00D0000
+
+#define ETH_BASE  ((volatile _IODEV unsigned *) (ETH_DEV_BASE + 0xF000))
+#define BUFF_BASE ((volatile _IODEV unsigned *) (ETH_DEV_BASE + 0x0000))
 
 // Write to ethernet controller
 void eth_iowr(unsigned addr,unsigned data);

@@ -147,7 +147,7 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends Module {
   // Default values
   io.slave.M.Cmd := OcpCmd.IDLE
   io.slave.M.Addr := Cat(masterReg.Addr(ADDR_WIDTH-1, lineBits),
-                         Fill(Bits(0), lineBits))
+                         Fill(lineBits, Bits(0)))
   io.slave.M.Data := Bits(0)
   io.slave.M.DataValid := Bits(0)
   io.slave.M.DataByteEn := Bits(0)
@@ -161,7 +161,7 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends Module {
   when(!tagValid && (masterReg.Cmd === OcpCmd.RD || masterReg.Cmd === OcpCmd.WR)) {
     tagVMem(masterReg.Addr(addrBits + 1, lineBits)) := Bool(true)
     missIndexReg := masterReg.Addr(lineBits-1, 2).toUInt
-    memWrAddrReg := Cat(tag, masterReg.Addr(addrBits + 1, lineBits), Fill(Bits(0), lineBits))
+    memWrAddrReg := Cat(tag, masterReg.Addr(addrBits + 1, lineBits), Fill(lineBits, Bits(0)))
 
     // start writing back if block is dirty
     when(dirty) {
@@ -200,7 +200,7 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends Module {
   when(stateReg === write) {
     selWrBack := Bool(true)
     io.slave.M.Addr := Cat(memWrAddrReg(addrWidth-1, burstAddrBits+byteAddrBits),
-                           Fill(Bits(0), burstAddrBits+byteAddrBits))
+                           Fill(burstAddrBits+byteAddrBits, Bits(0)))
     when(burstCntReg === Bits(0)) {
       io.slave.M.Cmd := OcpCmd.WR
     }

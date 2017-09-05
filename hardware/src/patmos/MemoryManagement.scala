@@ -74,7 +74,8 @@ class MemoryManagement extends Module {
     when (io.superMode) (action) .otherwise { io.ctrl.S.Resp := OcpResp.ERR }
   }
 
-  val segmentVec = Reg(Vec.fill(SEG_COUNT)(new Segment()))
+  val segInfoVec = Mem(Bits(width = ADDR_WIDTH-ALIGN_BITS), SEG_COUNT)
+  val segBaseVec = Mem(Bits(width = ADDR_WIDTH-ALIGN_BITS), SEG_COUNT)
 
   // Default OCP response
   io.ctrl.S.Resp := OcpResp.NULL
@@ -86,13 +87,11 @@ class MemoryManagement extends Module {
   }
   when(masterReg.Cmd === OcpCmd.WR) {
     io.ctrl.S.Resp := OcpResp.DVA
-    checked{
-      val seg = segmentVec(masterReg.Addr(SEG_BITS+2, 3))
+    checked {
       when (masterReg.Addr(2) === Bits(0)) {
-        seg.base := masterReg.Data(DATA_WIDTH-1, ALIGN_BITS)
+        segBaseVec(masterReg.Addr(SEG_BITS+2, 3)) := masterReg.Data(DATA_WIDTH-1, ALIGN_BITS)
       } .otherwise {
-        seg.perm := masterReg.Data(DATA_WIDTH-1, DATA_WIDTH-PERM_BITS)
-        seg.length := masterReg.Data(DATA_WIDTH-PERM_BITS-1, ALIGN_BITS)
+        segInfoVec(masterReg.Addr(SEG_BITS+2, 3)) := masterReg.Data(DATA_WIDTH-1, ALIGN_BITS)
       }
     }
   }
@@ -100,7 +99,14 @@ class MemoryManagement extends Module {
   // Address translation
   val virtReg = Reg(next = io.virt.M)
   val execReg = Reg(next = io.exec)
-  val segment = segmentVec(virtReg.Addr(ADDR_WIDTH-1, ADDR_WIDTH-SEG_BITS))
+
+  val segment = new Segment()
+  val info = segInfoVec(virtReg.Addr(ADDR_WIDTH-1, ADDR_WIDTH-SEG_BITS))
+  val base = segBaseVec(virtReg.Addr(ADDR_WIDTH-1, ADDR_WIDTH-SEG_BITS))
+  segment.perm   := info(ADDR_WIDTH-ALIGN_BITS-1, ADDR_WIDTH-ALIGN_BITS-PERM_BITS)
+  segment.length := info(ADDR_WIDTH-ALIGN_BITS-PERM_BITS-1, 0)
+  segment.base   := base
+
   val translated = new OcpBurstMasterSignals(ADDR_WIDTH, DATA_WIDTH)
   translated := virtReg
   translated.Addr := Cat(segment.base, Bits(0, width = ALIGN_BITS)) + virtReg.Addr(ADDR_WIDTH-SEG_BITS-1, 0)

@@ -40,7 +40,7 @@
 #include "basic-types.h"
 #include "memory-map.h"
 
-namespace patmos 
+namespace patmos
 {
 
   /// Enumeration for interrupt types
@@ -77,25 +77,25 @@ namespace patmos
     ET_INTR_12,
     ET_INTR_13,
     ET_INTR_14,
-    ET_INTR_15,    
+    ET_INTR_15,
     NUM_EXCEPTIONS
   };
 
-  /// Structure wrapping all information needed 
+  /// Structure wrapping all information needed
   /// to handle an exception
   struct exception_t {
     // interrupt identifier
     exception_e Type;
-    
+
     // ISR address for the interrupt
     uword_t Address;
-    
+
     exception_t()
     : Type(ET_ILLEGAL_OPERATION), Address(0)
     {}
-    
+
     // interrupt constructor
-    exception_t(exception_e mType, uword_t mAddress) 
+    exception_t(exception_e mType, uword_t mAddress)
     : Type(mType), Address(mAddress)
     {}
   };
@@ -106,25 +106,25 @@ namespace patmos
     private:
 
       static const uword_t NO_ISR_ADDR = ~0u;
-      
+
       // Enable interrupts
       bool Enable_interrupts;
-      
+
       // Print out status changes
       bool Enable_debug;
-      
+
       // Status flags for enabling interrupts
       uword_t Status;
-      
+
       // Mask of enabled interrupts
       uword_t Mask;
-      
+
       // Pending interrupts mask
       uword_t Pending;
-      
+
       // Next interrupt that is going to be served (-1 if no pending interrupts)
       uword_t Source;
-      
+
       /// Vector of ISR addresses
       uword_t Exception_vector[NUM_EXCEPTIONS];
 
@@ -135,11 +135,11 @@ namespace patmos
 
       /// Check if we should handle an interrupt or exception via an ISR.
       bool may_fire(exception_e exc);
-      
+
       /// Check if an exception vector has been enabled, i.e. its mask bit is set.
       /// Does not check if throwing interrupts has been disabled.
       bool enabled(exception_e exc);
-      
+
       /// Returns true if we are in privileged mode
       bool privileged();
 
@@ -148,7 +148,7 @@ namespace patmos
 
       /// Gets the next enqued interrupt
       exception_t next();
-      
+
       /// Check if we can trap the given exception, and return the ISR address
       /// if true. This sets up Source to the exception number, but does not
       /// call the exception handler.
@@ -159,28 +159,28 @@ namespace patmos
 
       /// Get the ISR address for an exception entry. Does not modify the state
       exception_t get(exception_e exc) const;
-      
+
       virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
-      
+
       virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
-      
+
       virtual void tick(simulator_t &s);
-      
+
       /// Enables firing of interupts and exception handler ISRs. Does not disable
       /// traps.
       void enable_interrupts(bool enabled);
 
       /// Enable debug printing
       void enable_debug(bool debug);
-      
+
       /// Make an exception pending. Never throws a simulator-exception directly.
       /// If the exception unit is disabled, the exception is effectively ignored.
       /// If the exception unit is enabled but the ISR is not installed,
       /// an illegal PC exception is triggered later.
       /// To throw a fault, use one of the specialized functions of this class.
-      void fire_exception(exception_e exctype);      
+      void fire_exception(exception_e exctype);
 
-      
+
       /// Throw an illegal instruction exception.
       /// @param iw The instruction word
       void illegal(uword_t iw);
@@ -188,7 +188,7 @@ namespace patmos
       /// Throw an illegal instruction exception.
       /// @param msg The error message
       void illegal(std::string msg);
-      
+
       /// Throw an unmapped address exception.
       /// @param address The unmapped address.
       void unmapped(uword_t address);
@@ -196,7 +196,7 @@ namespace patmos
       /// Throw an illegal access exception.
       /// @param address The unmapped address.
       void illegal_access(uword_t address);
-      
+
       /// Throw a stack-cache-size-exceeded exception.
       void stack_exceeded(std::string msg);
 
@@ -208,7 +208,7 @@ namespace patmos
 
       /// Thow a PC-outsize-method exception.
       void illegal_pc(std::string msg);
-      
+
       /// Throw a unaligned exception.
       void unaligned(uword_t address);
 

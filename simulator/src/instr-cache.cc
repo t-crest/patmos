@@ -48,15 +48,15 @@ using namespace patmos;
 
 bool no_instr_cache_t::fetch(simulator_t &s, uword_t base, uword_t address, word_t iw[NUM_SLOTS])
 {
-  // TODO In case of using a data cache, we should optionally assert on two 
-  // misses, in case the hardware does not support this, so that we can 
+  // TODO In case of using a data cache, we should optionally assert on two
+  // misses, in case the hardware does not support this, so that we can
   // debug alignment with pasim.
-  
+
   for (; Fetched < NUM_SLOTS; Fetched++) {
-    
+
     uword_t addr = address + Fetched * sizeof(word_t);
 
-    bool status = Memory->read(s, addr, 
+    bool status = Memory->read(s, addr,
                                reinterpret_cast<byte_t*>(&Fetch_cache[Fetched]),
                                sizeof(word_t), true);
     if (!status) {
@@ -64,19 +64,19 @@ bool no_instr_cache_t::fetch(simulator_t &s, uword_t base, uword_t address, word
       return false;
     }
   }
-  
+
   // all words have been fetched into the cache, copy to iw and finish.
   bool first_miss = Is_miss[0];
   int misses = 0;
-  
-  for (int i = 0; i < NUM_SLOTS; i++) {
+
+  for (unsigned int i = 0; i < NUM_SLOTS; i++) {
     iw[i] = Fetch_cache[i];
     if (Is_miss[i]) {
       misses++;
       Is_miss[i] = false;
     }
   }
-  
+
   // update stats counter
   if (misses == 0) {
     Num_hits++;
@@ -87,29 +87,29 @@ bool no_instr_cache_t::fetch(simulator_t &s, uword_t base, uword_t address, word
   } else {
     Num_succ_miss++;
   }
-  
+
   Fetched = 0;
-  
+
   return true;
 }
 
-bool no_instr_cache_t::load_method(simulator_t &s, word_t address, word_t offset)
+bool no_instr_cache_t::load_method(simulator_t &s, uword_t address, word_t offset)
 {
   return true;
 }
 
-bool no_instr_cache_t::is_available(simulator_t &s, word_t address)
+bool no_instr_cache_t::is_available(simulator_t &s, uword_t address)
 {
   return true;
 }
 
 
-void no_instr_cache_t::print_stats(const simulator_t &s, std::ostream &os, 
+void no_instr_cache_t::print_stats(const simulator_t &s, std::ostream &os,
                                    const stats_options_t& options)
 {
   uint64_t total = Num_hits + Num_all_miss + Num_first_miss + Num_succ_miss;
-  
-  os << boost::format("   Fetch requests   : %1$10d\n" 
+
+  os << boost::format("   Fetch requests   : %1$10d\n"
                       "   All hits         : %2$10d  %3$10.2f%%\n"
                       "   All misses       : %4$10d  %5$10.2f%%\n"
                       "   First miss       : %6$10d  %7$10.2f%%\n"

@@ -1,0 +1,8 @@
+HOW TO RUN AUDIO APPLICATIONS:
+
+TWO POSSIBILITIES:
+
+1) to run an auto-generated audio application from a high description JSON file,
+   refer to t-crest/aegean/audio_apps/README
+
+2) Create your own application and use the functions provided in c/libaudio for FX.

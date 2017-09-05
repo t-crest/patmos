@@ -9,7 +9,8 @@
 #define _DEBUG_H_
 
 #include <stdio.h>
-#include "bootloader/cmpboot.h"
+#include <stdlib.h>
+#include <machine/boot.h>
 
 // SEVERITY
 #define INFO    0
@@ -18,48 +19,70 @@
 #define ERROR   3
 #define FAILURE 4
 
+// PREDICATE
+#define TRUE  1
+#define FALSE 0
+
 
 // TRACE LEVEL
 // Any trace with equal or higher severity than the trace level is printed
-#define TRACE_LEVEL INFO
+#ifndef TRACE_LEVEL
+#define TRACE_LEVEL ERROR
+#endif
 
-#define TRACE_NAME(x) ( x == INFO ? "INFO" : \
-                      ( x == WARNING ? "WARNING" : \
-                      ( x == FAULT ? "FAULT" : \
-                      ( x == ERROR ? "ERROR" : \
+#define SEVERITY_NAME(x) ( x == INFO ? "INFO" :             \
+                      ( x == WARNING ? "WARNING" :          \
+                      ( x == FAULT ? "FAULT" :              \
+                      ( x == ERROR ? "ERROR" :              \
                       ( x == FAILURE ? "FAILURE" : "" )))))
 
 
-
-#define ENSURE(pred, x) { \
-  if (!(pred)) { \
-    DPRINTF("ENSURE:\t%s [%s:%d]\n",x,__FILE__,__LINE__); \
-    abort(); \
-  }}
-#define TRACE(severity, pred, x) { \
-  if ((severity>=TRACE_LEVEL) && (pred))  { \
-    DPRINTF("%s:\t%s [%s:%d]\n",TRACE_NAME(severity),x,__FILE__,__LINE__); \
-  }}
-
-#ifdef DEBUG_VERBOSE
-#define debugf(x)     {std::cout << __FILE__ << ":" << __LINE__ << ":\t " #x " = '" << (x) << "'" << std::endl;}
-#define debugs(x)     {std::cout << __FILE__ << ":" << __LINE__ << ":\n " << x << "'" << std::endl;}
-#else
-#define debugf(x)
-#define debugs(x)
-#endif
-
-
 #define DPRINTF(...)  if(get_cpuid() == NOC_MASTER) { \
-                      printf(__VA_ARGS__); \
+                      printf(__VA_ARGS__);            \
                    }
 
 
-#define wait(microseconds) { \
-  unsigned long long hidden_time; \
-  hidden_time = get_cpu_usecs(); \
-  while(get_cpu_usecs() < hidden_time + microseconds); \
-} \
+#ifdef DEBUG_ENABLE
+
+#define ENSURE(pred, x) {                                  \
+  if (!(pred)) {                                           \
+    DPRINTF("ENSURE:\t%s [%s:%d]\n",x,__FILE__,__LINE__);  \
+    abort();                                               \
+  }}
+
+#define TRACE(severity, pred, ...) if (get_cpuid() == NOC_MASTER) {     \
+    if ((severity>=TRACE_LEVEL) && (pred))  {                           \
+      printf("%s: [%s:%d] ",SEVERITY_NAME(severity),__FILE__,__LINE__); \
+      printf(__VA_ARGS__);                                              \
+    }                                                                   \
+  }
+
+#define DEBUGF(x) DPRINTF("[%s:%d] :\t %s = '%d'\n",__FILE__,__LINE__,#x,(x))
+#define DEBUGD(x) DPRINTF("[%s:%d] :\t %s = '%d'\n",__FILE__,__LINE__,#x,(x))
+#define DEBUGLLD(x) DPRINTF("[%s:%d] :\t %s = '%lld'\n",__FILE__,__LINE__,#x,(x))
+#define DEBUGX(x) DPRINTF("[%s:%d] :\t %s = '%08x'\n",__FILE__,__LINE__,#x,(x))
+#define DEBUGLLX(x) DPRINTF("[%s:%d] :\t %s = '%16llx'\n",__FILE__,__LINE__,#x,(x))
+#define DEBUGS(x) DPRINTF(x)
+
+#else
+#define ENSURE(pred, x)
+#define TRACE(severity, pred, ...)
+#define DEBUGF(x)
+#define DEBUGD(x)
+#define DEBUGLLD(x)
+#define DEBUGX(x)
+#define DEBUGLLX(x)
+#define DEBUGS(x)
+#endif
+
+
+#define wait(microseconds) {                            \
+  unsigned long long hidden_time;                       \
+  hidden_time = get_cpu_usecs();                        \
+  while(get_cpu_usecs() < hidden_time + microseconds);  \
+}
+
+/*
 
 ////////////////////////////////////////////////////////////////////////////////
 // Intercore queues
@@ -160,5 +183,5 @@ static int* local_ctrl[MAX_CORES];
     } \
   } \
 } \
-
+ */
 #endif  /* _DEBUG_H_ */

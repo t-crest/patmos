@@ -36,10 +36,10 @@
         Reference Handbook</a>.</p>
     <p>For questions and discussions join the <a href="https://groups.yahoo.com/group/patmos-processor/">Patmos
         mailing list</a>.</p>
-    <h2>VM with Ubuntu</h2>
-    We provide a VM with Ubuntu (14.04.3 LTS 64-Bit) and all needed tools installed (and
+    <h2>Development VM with Ubuntu</h2>
+    We provide a VM with Ubuntu (16.04 LTS 64-Bit) and all needed tools installed (and
     compiled) to work with Patmos either in simulation or in hardware on an
-    Altera FPGA board. User name and password are: patmos.
+    Altera DE2-115 FPGA board. User name and password are: patmos.
     <ul>
       <li><a href="patmos-dev.zip">Ubuntu VM as .zip file</a></li>
     </ul>
@@ -60,5 +60,376 @@
     </ol>
     <ul>
     </ul>
+
+    <h2>Publications</h2>
+    <p>The following papers are publications related to Patmos and T-CREST.
+    You can also find the <a href="t-crest.bib">BibTex entries</a> for the papers.
+    If you have a paper related to the project please add it here and into t-crest.bib.</p>
+
+    <p>For a general reference to T-CREST please cite following Journal publication:</p>
+    <ul>
+      <li>Martin Schoeberl, Sahar Abbaspour, Benny Akesson, Neil Audsley,
+        Raffaele Capasso, Jamie Garside, Kees Goossens, Sven Goossens, Scott
+        Hansen, Reinhold Heckmann, Stefan Hepp, Benedikt Huber, Alexander
+        Jordan, Evangelia Kasapaki, Jens Knoop, Yonghui Li, Daniel Prokesch,
+        Wolfgang Puffitsch, Peter Puschner, Andre Rocha, Claudio Silva, Jens
+        Sparso, and Alessandro Tocchi.<b> T-CREST: Time-predictable multi-core
+          architecture for embedded systems.</b><br>
+        <em>Journal of Systems Architecture</em>, 61(9):449-471, 2015.
+        <a href="http://www.jopdesign.com/doc/t-crest-jnl.pdf">pdf</a>
+        <a href="http://dx.doi.org/10.1016/j.sysarc.2015.04.002">doi</a><br>
+        <br>
+      </li>
+    </ul>
+
+    <h3>The T-CREST Platform</h3>
+    <ul>
+      <li>Martin Schoeberl. <b>Is time predictability quantifiable?</b><br>
+        In <i>International Conference on Embedded Computer Systems (SAMOS
+          2012)</i>, Samos, Greece, July 2012. IEEE. <a href="http://www.jopdesign.com/doc/tpquant.pdf">pdf</a>
+        doi<br><br>
+      </li>
+      <li>Martin Schoeberl, Claudio Silva, and Andre Rocha. <b>T-CREST: A
+          time-predictable multi-core platform for aerospace applications. </b><br>
+        In <i>Proceedings of Data Systems In Aerospace (DASIA 2014)</i>,
+        Warsaw, Poland, June 2014. <a href="http://www.jopdesign.com/doc/t-crest-dasia.pdf">pdf</a><br>
+        <br>
+      </li>
+      <li>Martin Schoeberl, Rasmus Bo Sorensen, and Jens Sparso. <b>Models of
+          communication for multicore processors.</b><br>
+        In <i>Proceedings of the 11th Workshop on Software Technologies for
+          Embedded and Ubiquitous Systems (SEUS 2015)</i>, pages 44-51, Auckland,
+        New Zealand, April 2015. IEEE. <a href="http://www.jopdesign.com/doc/modcomm.pdf">pdf</a>
+        <a href="http://dx.doi.org/10.1109/ISORC.W20.21051.57.57">doi</a> <br>
+        <br>
+      <li>Martin Schoeberl, Sahar Abbaspour, Benny Akesson, Neil Audsley,
+        Raffaele Capasso, Jamie Garside, Kees Goossens, Sven Goossens, Scott
+        Hansen, Reinhold Heckmann, Stefan Hepp, Benedikt Huber, Alexander
+        Jordan, Evangelia Kasapaki, Jens Knoop, Yonghui Li, Daniel Prokesch,
+        Wolfgang Puffitsch, Peter Puschner, Andre Rocha, Claudio Silva, Jens
+        Sparso, and Alessandro Tocchi.<b> T-CREST: Time-predictable multi-core
+          architecture for embedded systems.</b><br>
+        <em>Journal of Systems Architecture</em>, 61(9):449-471, 2015.
+        <a href="http://www.jopdesign.com/doc/t-crest-jnl.pdf">pdf</a>
+        <a href="http://dx.doi.org/10.1016/j.sysarc.2015.04.002">doi</a><br>
+        <br>
+      </li>
+      <li>Martin Schoeberl.
+        <b>Lessons learned from the EU project T-CREST.</b><br>
+        In <i>Design, Automation Test in Europe Conference Exhibition (DATE
+  2016)</i>, city, land, month 2016.
+        <a href="http://www.jopdesign.com/doc/lessons.pdf">pdf</a>
+        <br><br>
+      </li>
+    </ul>
+
+    <h3>The Patmos Processor</h3>
+    <ul>
+      <li>
+        <p>Martin Schoeberl, Pascal Schleuniger, Wolfgang Puffitsch, Florian
+          Brandner, Christian W. Probst, Sven Karlsson, and Tommy Thorn. <span
+            style="font-weight: bold;">Towards a Time-predictable Dual-Issue
+            Microprocessor: The&nbsp;Patmos Approach</span>.<br>
+          In <span style="font-style: italic;">First Workshop on Bringing
+            Theory to Practice: Predictability and Performance in Embedded
+            Systems (PPES 2011)</span>, Grenoble, French, March 2011. <a href="http://www.jopdesign.com/doc/patmos_ppes.pdf">pdf</a>
+          doi</p>
+      </li>
+      <li>Sahar Abbaspour, Florian Brandner, and Martin Schoeberl. <b>A
+          time-predictable stack cache.</b><br>
+        In <i>Proceedings of the 9th Workshop on Software Technologies for
+          Embedded and Ubiquitous Systems</i>, 2013. <a href="http://www.jopdesign.com/doc/patstack.pdf">pdf</a>
+        doi <br>
+        <br>
+      </li>
+      <li>Philipp Degasperi, Stefan Hepp, Wolfgang Puffitsch, and Martin
+        Schoeberl. <b>A method cache for Patmos.</b><br>
+        In <i>Proceedings of the 17th IEEE Symposium on
+          Object/Component/Service-oriented Real-time Distributed Computing
+          (ISORC 2014)</i>, pages 100-108, Reno, Nevada, USA, June 2014. IEEE. <a
+          href="http://www.jopdesign.com/doc/mcpat.pdf">pdf</a> <a href="http://dx.doi.org/10.1109/ISORC.2014.47">doi</a><br>
+        <br>
+      </li>
+      <li>Carsten Nielsen and Martin Schoeberl. <b>Stack caching using split
+          data caches.</b><br>
+        In <i>Proceedings of the 11th Workshop on Software Technologies for
+          Embedded and Ubiquitous Systems (SEUS 2015)</i>, pages 36-43, Auckland,
+        New Zealand, April 2015. IEEE. <a href="http://www.jopdesign.com/doc/scascache.pdf">pdf</a>
+        <a href="http://dx.doi.org/10.1109/ISORC.W20.21051.59.59">doi</a> <br>
+        <br>
+      </li>
+      <li>Martin Schoeberl and Carsten Nielsen.
+        <b>A stack cache for real-time systems.</b><br>
+        In <i>Proceedings of the 19th IEEE Symposium on Real-time
+  Distributed Computing (ISORC 2016)</i>, York, United Kingdom, May 2016. IEEE.
+        <a href="http://www.jopdesign.com/doc/stkcache.pdf">pdf</a>
+        <a href="http://dx.doi.org/10.1109/ISORC.2016.29">doi</a>
+        <br><br>
+      </li>
+    </ul>
+
+    <h3>Time-predictable Network-on-Chip</h3>
+    <ul>
+      <li>
+        <p>Martin Schoeberl, Florian Brandner, Jens Sparso, and Evangelia
+          Kasapaki. <b> A statically scheduled time-division-multiplexed
+            network-on-chip for real-time systems</b>.<br>
+          In <em> Proceedings of the 6th International Symposium on
+            Networks-on-Chip (NOCS) </em>, Lyngby, Denmark, May 2012. IEEE. <a
+            href="http://www.jopdesign.com/doc/s4noc.pdf">pdf</a> <a href="http://dx.doi.org/10.1109/NOCS.2012.25">doi
+            </a><br> </p>
+      </li>
+      <li>Florian Brandner and Martin Schoeberl. <b>Static routing in symmetric
+          real-time network-on-chips</b>.<br>
+        In <i>Proceedings of the 20th International Conference on Real-Time and
+          Network Systems (RTNS 2012)</i>, Pont a Mousson, France, November
+        2012. <a href="http://www.jopdesign.com/doc/nocshd.pdf">pdf</a> doi <br>
+        <br>
+      </li>
+      <li>Rasmus Bo Sorensen, Martin Schoeberl, and Jens Sparso. <b>A
+          light-weight statically scheduled network-on-chip</b>.<br>
+        In <i>Proceedings of the 29th Norchip Conference</i>, Copenhagen,
+        November 2012. IEEE. <a href="http://www.jopdesign.com/doc/s4noceval.pdf">pdf</a>
+        doi <br>
+        <br>
+      </li>
+      <li>Ioannis Kotleas, Dean Humphreys, Rasmus Bo Sorensen, Evangelia Kasapaki,
+      Florian Brandner, and Jens Sparso. <b>A Loosely Synchronizing Asynchronous
+      Router for TDM-Scheduled NOCs</b>.<br>
+        In <i>Proc. IEEE/ACM International Symposium on Networks-on-Chip (NOCS 2014)</i>, Ferrara, Italia, September 2014. IEEE.<br>
+        <br>
+      </li>
+      <li>Wolfgang Puffitsch, Rasmus Bo Sorensen, and Martin Schoeberl.
+        <b>Time-division multiplexing vs network calculus: A comparison.</b><br>
+        In <i>Proceedings of the 23th International Conference on Real-Time
+         and Network Systems (RTNS 2015)</i>, Lille, France, November 2015.
+        <a href="http://www.jopdesign.com/doc/tdmvsnc.pdf">pdf</a>
+        <a href="http://dx.doi.org/10.1145/2834848.2834868">doi</a>
+        <br><br>
+      </li>
+    </ul>
+    <h3>The Argo Network-on-Chip</h3>
+    <ul>
+      <li> Jens Sparso, Evangelia Kasapaki, and Martin Schoeberl. <b>An
+          area-efficient network interface for a tdm-based network-on-chip.</b><br>
+        In <i>Proceedings of the Conference on Design, Automation and Test in
+          Europe</i>, DATE '13, pages 1044-1047, San Jose, CA, USA, 2013. EDA
+        Consortium. <a href="http://www.jopdesign.com/doc/tdmna-date2012.pdf">pdf</a>
+        doi<br>
+        <br>
+      </li>
+      <li> Evangelia Kasapaki, Jens Sparso, Rasmus Bo Sorensen and Kees Goossens.
+      <b>Router Designs for an Asynchronous Time-Division-Multiplexed Network-on-Chip.</b><br>
+        In <i>Proc. of Euromicro Conference on Digital System Design (DSD 2013)</i>,
+        Santander, Spain, September 2013. IEEE. <br>
+        <br>
+      </li>
+      <li> Evangelia Kasapaki, and Jens Sparso.
+      <b>Argo: A Time-Elastic Time-Division-Multiplexed NOC using Asynchronous Routers.</b><br>
+        In <i>Proc. IEEE International Symposium on Asynchronous Circuits and Systems (ASYNC 2014)</i>,
+        Potsdam, Germany, May 2014. IEEE. <br>
+        <br>
+      </li>
+      <li> Rasmus Bo Sorensen, Jens Sparso, Mark Ruvald Pedersen, Jaspur Hojgaard.
+      <b>A Metaheuristic Scheduler for Time Division Multiplexed Networks-on-Chip.</b><br>
+        In <i>Proc. IEEE/IFIP Workshop on Software Technologies for Future Embedded and
+        Ubiquitous Systems (SEUS 2014)</i>,
+        Reno, Nevada, June 2014. IEEE. <br>
+        <br>
+      </li>
+      <li>Rasmus Bo Sorensen, Wolfgang Puffitsch, Martin Schoeberl, and Jens
+        Sparso. <b>Message passing on a time-predictable multicore processor.</b><br>
+        In <i>Proceedings of the 17th IEEE Symposium on Real-time Distributed
+          Computing (ISORC 2015)</i>, pages 51-59, Auckland, New Zealand, April
+        2015. IEEE. <a href="http://www.jopdesign.com/doc/rt-mpi.pdf">pdf</a> <a
+          href="http://dx.doi.org/10.1109/ISORC.2015.15">doi</a> <br>
+        <br>
+      </li>
+      <li> Evangelia Kasapaki and Jens Sparso.
+      <b>The Argo NOC: Combining TDM and GALS.</b><br>
+        In <i>Proc. European conference on circuit theory and design (ECCTD 2015)</i>,
+        Trondheim, Norway, August 2015. IEEE. <br>
+        <br>
+      </li>
+      <li>Luca Pezzarossa, Rasmus Bo Sorensen, Martin Schoeberl, and Jens Sparso.
+        <b>Interfacing hardware accelerators to a time-division multiplexing
+         network-on-chip.</b><br>
+        In <i>Proc. of the 1st Nordic Circuits and Systems Conference
+         (NORCAS 2015)</i>, Oslo, Norway, October 2015. IEEE.
+        <a href="http://www.jopdesign.com/doc/tdm-fpu.pdf">pdf</a>
+        <a href="http://dx.doi.org/10.1109/NORCHIP.2015.7364392">doi</a>
+        <br><br>
+      </li>
+      <li>Evangelia Kasapaki, Martin Schoeberl, Rasmus Bo Sorensen, Christian T.
+        Mueller, Kees Goossens, and Jens Sparso. <b>Argo: A real-time
+          network-on-chip architecture with an efficient GALS implementation.</b><br>
+        <i>Very Large Scale Integration (VLSI) Systems, IEEE Transactions on</i>,
+        24:479-492, 2016. <a href="http://www.jopdesign.com/doc/argo-jnl.pdf">pdf</a>
+        <a href="http://dx.doi.org/10.1109/TVLSI.2015.2405614">doi</a><br>
+        <br>
+      </li>
+      <li> Rasmus Bo Sorensen, Luca Pezzarossa and Jens Sparso.
+      <b>An Area-Efficient TDM NOC Supporting Reconfiguration for Mode Changes.</b><br>
+        In <i>Proc. IEEE/ACM International Symposium on Networks-on-Chip (NOCS 2016)</i>,
+        Nara, Japan, August 2016. IEEE. <br>
+        <br>
+      </li>
+      <li>Luca Pezzarossa, Martin Schoeberl, and Jens Sparso.
+        <b>Reconfiguration in FPGA-based multi-core platforms for hard real-time
+  applications.</b><br>
+        In <i>11th International Symposium on Reconfigurable
+  Communication-centric Systems-on-Chip (ReCoSoC 2016)</i>, June 2016. IEEE.
+        <a href="http://www.jopdesign.com/doc/recon-mc.pdf">pdf</a>
+        <a href="http://dx.doi.org/10.1109/ReCoSoC.2016.7533895">doi</a>
+        <br><br>
+      </li>
+    </ul>
+
+    <h3>The Memory System</h3>
+    <ul>
+      <li>Edgar Lakis and Martin Schoeberl. <b>An SDRAM controller for
+          real-time systems.</b><br>
+        In <i>Proceedings of the 9th Workshop on Software Technologies for
+          Embedded and Ubiquitous Systems</i>, 2013. <a href="http://www.jopdesign.com/doc/sdramctrl.pdf">pdf</a>
+        doi <br>
+        <br>
+      </li>
+      <li>Jack Whitham and Martin Schoeberl. <b>WCET-based comparison of an
+          instruction scratchpad and a method cache.</b><br>
+        In <i>Proceedings of the 10th Workshop on Software Technologies for
+          Embedded and Ubiquitous Systems (SEUS 2014)</i>, Reno, Nevada, USA,
+        June 2014. <a href="http://www.jopdesign.com/doc/spmvsmc.pdf">pdf</a> <a
+          href="http://dx.doi.org/10.1109/ISORC.2014.48">doi</a> <br>
+        <br>
+      </li>
+      <li>Martin Schoeberl, David VH Chong, Wolfgang Puffitsch, and Jens Sparso.
+        <b>A time-predictable memory network-on-chip.</b><br>
+        In <i>Proceedings of the 14th International Workshop on Worst-Case
+          Execution Time Analysis (WCET 2014)</i>, pages 53-62, Madrid, Spain,
+        July 2014. <a href="http://www.jopdesign.com/doc/memnoc.pdf">pdf</a> <a
+          href="http://dx.doi.org/10.4230/OASIcs.WCET.2014.53">doi</a> <br>
+        <br>
+      </li>
+      <li>Wolfgang Puffitsch and Martin Schoeberl.
+        <b>Time-predictable virtual memory.</b><br>
+        In <i>Proceedings of the 19th IEEE Symposium on Real-time
+  Distributed Computing (ISORC 2016)</i>, York, United Kingdom, May 2016. IEEE.
+        <a href="http://www.jopdesign.com/doc/tpmmu.pdf">pdf</a>
+        <a href="http://dx.doi.org/10.1109/ISORC.2016.30">doi</a>
+        <br><br>
+      </li>
+    </ul>
+
+    <h3>The Patmos Compiler</h3>
+    <ul>
+      <li>Peter Puschner, Daniel Prokesch, Benedikt Huber, Jens Knoop,
+	Stefan Hepp, and Gernot Gebhard.
+      <b>The T-CREST Approach of Compiler and WCET-Analysis Integration.</b><br>
+        In <i>Proceedings of the 9th Workshop on Software Technologies for
+          Embedded and Ubiquitous Systems (SEUS 2013)</i>, 2013.
+        <br>
+        <br>
+      </li>
+      <li>Daniel Prokesch, Benedikt Huber, and Peter Puschner.
+        <b>Towards Automated Generation of Time-Predictable Code.</b><br>
+        In <i>Proceedings of the 14th International Workshop on Worst-Case
+        Execution Time Analysis (WCET 2014)</i>, pages 103-112, Madrid,
+        Spain, July 2014.
+        <a href="http://drops.dagstuhl.de/opus/volltexte/2014/4609/pdf/12.pdf">pdf</a>
+        <a href="http://dx.doi.org/10.4230/OASIcs.WCET.2014.103">doi</a><br>
+        <br>
+      </li>
+      <li>Stefan Hepp and Florian Brandner.
+        <b>Splitting Functions into Single-Entry Regions.</b><br>
+        In <i>2014 International Conference on Compilers, Architecture and
+          Synthesis for Embedded Systems (CASES 2014)</i>, pages 17:1-17:10,
+        Uttar Pradesh, India, October 2014. ACM.
+        <a href="http://doi.acm.org/10.1145/2656106.2656128">doi</a><br>
+        <br>
+      </li>
+      <li>Daniel Prokesch, Stefan Hepp, Peter Puschner.
+        <b>A Generator for Time-Predictable Code.</b><br>
+        In <i>Proceedings of the 17th IEEE Symposium on Real-time Distributed
+          Computing (ISORC 2015)</i>, pages 27-34, Auckland, New Zealand, April
+        2015. IEEE.
+        <a href="http://dx.doi.org/10.1109/ISORC.2015.40">doi</a><br>
+        <br>
+      </li>
+      <li>Stefan Hepp, Benedikt Huber, Jens Knoop, Daniel Prokesch, and
+        Peter Puschner.
+        <b>The platin Tool Kit - The T-CREST Approach for Compiler and WCET
+          Integration.</b><br>
+        In <i>Proceedings 18th Kolloquium Programmiersprachen und Grundlagen
+          der Programmierung (KPS 2015)</i>, Pörtschach, Austria, October 2015.
+        <a href="http://www.complang.tuwien.ac.at/kps2015/proceedings/KPS_2015_submission_49.pdf">pdf</a><br>
+        <br>
+      </li>
+    </ul>
+
+    <h3>Worst-Case Execution Time Analysis</h3>
+    <ul>
+      <li>Alexander Jordan, Florian Brandner, and Martin Schoeberl. <b>Static
+          analysis of worst-case stack cache behavior.</b><br>
+        In <i>Proceedings of the 21st International Conference on Real-Time
+          Networks and Systems (RTNS 2013)</i>, RTNS '13, pages 55-64, New York,
+        NY, USA, 2013. ACM <a href="http://www.jopdesign.com/doc/sclys.pdf">pdf</a>
+        <a href="http://dx.doi.org/10.1145/2516821.2516828">doi</a> <br>
+        <br>
+      </li>
+      <li>Benedikt Huber, Daniel Prokesch, Peter Puschner.
+        <b>Combined WCET analysis of bitcode and machine code using
+          control-flow relation graphs.</b><br>
+        In <i>SIGPLAN/SIGBED Conference on Languages, Compilers and Tools for
+          Embedded Systems 2013 (LCTES 2013)
+        </i>, pages 163-172, Seattle, WA, USA, June 2013. ACM.
+        <a href="http://doi.acm.org/10.1145/2465554.2465567">doi</a><br>
+        <br>
+      </li>
+      <li>Benedikt Huber, Stefan Hepp, and Martin Schoeberl. <b>Scope-based
+          method cache analysis.</b><br>
+        In <i>Proceedings of the 14th International Workshop on Worst-Case
+          Execution Time Analysis (WCET 2014)</i>, pages 73-82, Madrid, Spain,
+        July 2014. <a href="http://www.jopdesign.com/doc/mcana.pdf">pdf</a> <a
+          href="http://dx.doi.org/10.4230/OASIcs.WCET.2014.73">doi</a> <br>
+        <br>
+      </li>
+    </ul>
+
+    <h3>Applications and Operating Systems</h3>
+    <ul>
+      <li>Marco Ziccardi, Martin Schoeberl, and Tullio Vardanega. <b>A
+          time-composable operating system for the Patmos processor.</b><br>
+        In <i>The 30th ACM/SIGAPP Symposium On Applied Computing, Embedded
+          Systems Track</i>, Salamanca, Spain., April 13-17 2015. ACM Press. <a
+          href="http://www.jopdesign.com/doc/ospat.pdf">pdf</a> doi<br>
+        <br>
+      </li>
+      <li>Stephan E. Korsholm, Martin Schoeberl, and Wolfgang Puffitsch.
+        <b>Safety-critical Java on a time-predictable processor.</b><br>
+        In <i>Proceedings of the 13th International Workshop on Java
+         Technologies for Real-Time and Embedded Systems (JTRES 2015)</i>, Paris, France,
+         October 2015. ACM.
+        <a href="http://www.jopdesign.com/doc/scjpat.pdf">pdf</a>
+        <a href="http://dx.doi.org/10.1145/2822304.2822309">doi</a>
+        <br><br>
+      </li>
+      <li>Andre Rocha, Claudio Silva, Rasmus Bo Sorensen, Jens Sparso, and
+  Martin Schoeberl.
+        <b>Avionics applications on a time-predictable chip-multiprocessor.</b><br>
+        In <i>24th Euromicro International Conference on Parallel,
+  Distributed, and Network-Based Processing (PDP 2016)</i>, Feb 2016. IEEE.
+        <a href="http://www.jopdesign.com/doc/gmvapp.pdf">pdf</a>
+        <a href="http://dx.doi.org/10.1109/PDP.2016.36">doi</a>
+        <br><br>
+      </li>
+      <li>Florian Kluge, Martin Schoeberl, and Theo Ungerer.
+        <b>Support for the logical execution time model on a time-predictable
+  multicore processor.</b><br>
+        In <i>14th International Workshop on Real-Time Networks</i>, Toulouse, France, July 2016.
+        <a href="http://www.jopdesign.com/doc/mossca-pat.pdf">pdf</a>
+        <br><br>
+      </li>
+    </ul>
+
   </body>
 </html>

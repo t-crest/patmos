@@ -39,6 +39,8 @@
 
 package util
 
+import java.nio.file.{ Files, Paths }
+
 import Chisel._
 import Node._
 import scala.math._
@@ -62,10 +64,7 @@ object Utility {
     val bytesPerWord = (width+7) / 8
 
     println("Reading " + fileName)
-    // an encoding to read a binary file? Strange new world.
-    val source = scala.io.Source.fromFile(fileName)(scala.io.Codec.ISO8859)
-    val byteArray = source.map(_.toByte).toArray
-    source.close()
+    val byteArray = Files.readAllBytes(Paths.get(fileName))
 
     // use an array to convert input
     val arr = new Array[Bits](math.max(1, byteArray.length / bytesPerWord))
@@ -127,6 +126,7 @@ object Utility {
     printf("\tAddressable external memory: %s\n",
            sizeToStr(util.Config.getConfig.ExtMem.size))
     printf("\tMMU: %b\n", HAS_MMU)
+    printf("\tBurst length: %d\n", util.Config.getConfig.burstLength)
     printf("\n")
   }
 }

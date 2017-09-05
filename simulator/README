@@ -70,6 +70,12 @@ The simulator provides the following memory models:
 4. TDM access: Similar to fixed delay, but the memory is accessed using TDM.
    Used for multi-core configurations.
 
+5. Ramulator (optional): Simulates the main memory using the DRAM emulator
+  ramulator (single-core only). In order to enable ramulator the USE_RAMULATOR
+  option has to be activated when invoking cmake (e.g., -DUSE_RAMULATOR=on).
+  Subsequently, two additional command-line options become available --gkind and
+  --ramul-config.
+
 o) Requests and Bursts
 
 Memory read or write request are issued by the method cache or instruction
@@ -233,18 +239,65 @@ cycles, and posted writes of n bursts take
 cycles.
 
 
+4.6 Ramulator Memory
+--------------------
+
+Ramulator support is optional and needs to be activated using the USE_RAMULATOR
+option when invoking cmake (e.g., pass -DUSE_RAMULATOR=on to cmake).
+
+Once activated two additional options become available:
+  --gkind         arg    Select the main memory kind. The default value is
+        "simple", which activates one of the standard memory configurations (see
+        above). Alternative options are "ddr3", "ddr4", "lpddr3", and "lpddr4",
+        which activate the simulation of the appropriate DRAM model using
+        ramulator.
+
+  --ramul-config  file   Supply the name of a ramulator configuration file,
+        which allows to select specific device details (number of channels,
+        ranks, speed, ...). Example configuration files are included in the
+        directory ramulator/configs.
+
+
+Note that several of the other memory options are ignored when ramulator is
+active, this includes (--gtime, --tdelay, --trefresh, --psize, --posted).
+However, the device configuration is (automatically) adapted by ramulator in
+order to match the selected burst size (--bsize). This may fail, though, when
+the device configuration (provided through --ramul-config) is incompatible.
+
 5. License
 ==========
 
-The Patmos Simulator is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+   Copyright 2012 Technical University of Denmark, DTU Compute.
+   All rights reserved.
 
-The Patmos Simulator is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+   Redistribution and use in source and binary forms, with or without
+   modification, are permitted provided that the following conditions are met:
 
-You should have received a copy of the GNU General Public License
-along with the Patmos Simulator. If not, see <http://www.gnu.org/licenses/>.
+      1. Redistributions of source code must retain the above copyright notice,
+         this list of conditions and the following disclaimer.
+
+      2. Redistributions in binary form must reproduce the above copyright
+         notice, this list of conditions and the following disclaimer in the
+         documentation and/or other materials provided with the distribution.
+
+   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
+   OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+   OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
+   NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
+   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+   The views and conclusions contained in the software and documentation are
+   those of the authors and should not be interpreted as representing official
+   policies, either expressed or implied, of the copyright holder.
+
+
+
+The source code of ramulator is included in the Patmos repository and licensed
+under the GPL-compatible MIT license (aka. Expat). See ramulator/LICENSE for
+additional details.
+

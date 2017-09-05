@@ -1,0 +1,34 @@
+<patmos default="default.xml">
+  <description>Configuration for the Xilinx/Digilent Nexys4DDR board with off-chip DDR2 memory</description>
+
+  <frequency Hz="50000000" />
+  <pipeline dual="false" />
+
+  <ICache type="method" size="4k" assoc="16" repl="fifo" />
+  <DCache size="2k" assoc="1" repl="" writeThrough="true" />
+  <SCache size="2k" />
+
+  <ExtMem size="128M" DevTypeRef="MemBridge" />
+
+  <IOs>
+	<IO DevTypeRef="Uart" offset="8"/>
+	<IO DevTypeRef="Nexys4DDRIO" offset="9"/>
+  </IOs>
+
+  <Devs>
+	<Dev DevType="Uart" entity="Uart" iface="OcpCore">
+	  <params>
+		<param name="baudRate" value="115200"/>
+  		<param name="fifoDepth" value="16"/>
+	  </params>
+	</Dev>
+	<Dev DevType="Nexys4DDRIO" entity="Nexys4DDRIO" iface="OcpCore">
+          <params>
+            <param name="extAddrWidth" value="16" />
+            <param name="dataWidth" value="32" />
+          </params>
+	</Dev>
+    <Dev DevType="MemBridge" entity="MemBridge" iface="OcpBurst">
+    </Dev>
+  </Devs>
+</patmos>

@@ -41,12 +41,10 @@
 
 #include <string>
 
-#include <boost/tuple/tuple.hpp>
-
 namespace patmos
 {
   class symbol_map_t;
-  
+
   struct reloc_info_t {
     std::string SymA;
     // If not empty, the result of the relocation is A - B.
@@ -61,33 +59,33 @@ namespace patmos
     unsigned Shift;
     // Relative to PC?
     bool Relative;
-    
+
     reloc_info_t() : Addend(0), Size(0), Offset(0), Shift(0), Relative(false) {}
-    
-    void set_format(unsigned size, unsigned offset = 0, unsigned shift = 0, 
+
+    void set_format(unsigned size, unsigned offset = 0, unsigned shift = 0,
                     bool relative = false)
     {
-      Size = size; 
-      Offset = offset; 
-      Shift = shift; 
-      Relative = relative; 
+      Size = size;
+      Offset = offset;
+      Shift = shift;
+      Relative = relative;
     }
-    
-    void set_PCRel_format(unsigned size) 
+
+    void set_PCRel_format(unsigned size)
     {
       set_format(size, 0, 2, true);
     }
-    
+
     void set_word_format(unsigned size)
     {
       set_format(size, 0, 2, false);
     }
-    
+
     bool get_value(symbol_map_t &symbols, word_t &value, word_t PC = 0) const;
   };
-  
 
-  
+
+
   /// Symbol information, start address, size
   struct symbol_info_t
   {
@@ -150,15 +148,15 @@ namespace patmos
     /// @param symbol the name of the symbol.
     /// @return True if the map contains at least one symbol with that name.
     bool contains(std::string symbol) const;
-    
+
     /// Check if a symbol at a given address covers the given address, i.e,
-    /// if there is a symbol at address @symbol and @addess is in 
+    /// if there is a symbol at address @symbol and @addess is in
     /// [@symbol,@symbol+@symbol.size)
     /// @param symbol an address of a symbol
     /// @param address the address to check
     /// @return True if the a symbol at @symbol has a size attribute and covers @address
     bool covers(word_t symbol, word_t address) const;
-    
+
     /// Find a symbol given a specific address.
     /// \see print
     /// @param address The address for which symbol information should be
@@ -169,7 +167,7 @@ namespace patmos
     /// Find an address by symbol name.
     /// @return -1 if not found, the address of the symbol otherwise.
     word_t find(std::string symbol) const;
-    
+
     /// Print symbol information given a specific address to a stream.
     /// The symbol table is searched for the symbol covering the address and the
     /// name of the symbol is returned. In case labels of basic blocks within

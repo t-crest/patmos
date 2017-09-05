@@ -38,7 +38,7 @@
  */
 
 #include "boot.h"
-#include "cmpboot.h"
+#include <machine/boot.h>
 #include "include/patio.h"
 
 #include "include/bootable.h"

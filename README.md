@@ -5,9 +5,8 @@ Patmos is a time-predictable VLIW processor.
 Patmos is the processor for the T-CREST project.
 See also: http://www.t-crest.org/ and http://patmos.compute.dtu.dk/
 
-The Patmos [Reference Handbook]
-(http://patmos.compute.dtu.dk/patmos_handbook.pdf)
-is work in progress, but contains build instructions in Section 5.
+The Patmos [Reference Handbook](http://patmos.compute.dtu.dk/patmos_handbook.pdf)
+contains build instructions in Section 5.
 
 For questions and discussions join the Patmos mailing list at:
 https://groups.yahoo.com/group/patmos-processor/
@@ -19,20 +18,27 @@ Several packages need to be installed.
 The following apt-get lists the packages that need to be
 installed on a Ubuntu Linux:
 
-    sudo apt-get install openjdk-7-jdk git cmake make g++ texinfo flex bison \
-      subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby1.9.1 \
-      ruby1.9.1-dev python zlib1g-dev gtkwave gtkterm scala
+    sudo apt-get install git default-jdk gitk cmake make g++ texinfo flex bison \
+      subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby-full \
+      liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala
+
+On a restricted machine (e.g. Cloud9) the bare minimum is:
+
+    sudo apt-get install default-jdk git cmake make g++ texinfo flex bison \
+      subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby-full \
+      python zlib1g-dev
 
 Install sbt with:
 
-    wget http://dl.bintray.com/sbt/debian/sbt-0.13.2.deb
-    sudo dpkg -i sbt-0.13.2.deb
+    echo "deb https://dl.bintray.com/sbt/debian /" | sudo tee -a /etc/apt/sources.list.d/sbt.list
+    sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 \
+      --recv 2EE0EA64E40A89B84B2DF73499E82A75642AC823
     sudo apt-get update
     sudo apt-get install sbt
 
 We assume that the T-CREST project will live in $HOME/t-crest.
 Before building the compiler, add the path
-to the compiler executables into your .profile:
+to the compiler executables into your .bashrc or .profile:
 
     export PATH=$PATH:$HOME/t-crest/local/bin
 
@@ -51,10 +57,10 @@ For developers with push permission the ssh based clone string is:
     git clone git@github.com:t-crest/patmos-misc.git misc
 
 build.sh will checkout several other repositories (the compiler, library,
-the Patmos source, and benchmarks) and
-build the compiler, the Patmos simulator, and the test benches.
+and the Patmos source) and
+build the compiler and the Patmos simulator.
 Therefore, take a cup of coffee and find some nice reading
-(e.g., the [Patmos Reference Handbook] (http://patmos.compute.dtu.dk/patmos_handbook.pdf)).
+(e.g., the [Patmos Reference Handbook](http://patmos.compute.dtu.dk/patmos_handbook.pdf)).
 
 
 We can start with the standard, harmless looking Hello
@@ -71,8 +77,19 @@ and run with the simulator as follows:
     pasim a.out
 
 However, this innocent examples is quiet challenging for an embedded system.
-For further details and how to build Patmos for an FPGA see:
-[Patmos Reference Handbook] (http://patmos.compute.dtu.dk/patmos_handbook.pdf).
+For further details and how to build Patmos for an FPGA see Section 6 in the
+[Patmos Reference Handbook](http://patmos.compute.dtu.dk/patmos_handbook.pdf).
+
+You can also build the Patmos handbook yourself from the source.
+You first need to install LaTeX (about 3 GB) with:
+
+    sudo apt-get install texlive-full doxygen
+
+The handbook is then built with:
+
+    cd patmos/doc
+    make
+
 
 Known Issues
 ============

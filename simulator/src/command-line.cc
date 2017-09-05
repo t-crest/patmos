@@ -104,7 +104,7 @@ namespace patmos
 
     return os;
   }
-  
+
   std::istream &operator >>(std::istream &in, debug_cache_e &dc)
   {
     std::string tmp, kind;
@@ -261,11 +261,11 @@ namespace patmos
         os << "dm"; break;
       case SAC_LRU:
         os << "lru";
-        if (dck.associativity) os << dck.associativity; 
+        if (dck.associativity) os << dck.associativity;
         break;
       case SAC_FIFO:
         os << "fifo";
-        if (dck.associativity) os << dck.associativity; 
+        if (dck.associativity) os << dck.associativity;
         break;
     }
 
@@ -335,6 +335,50 @@ namespace patmos
         os << "lru"; break;
       case MC_FIFO:
         os << "fifo"; break;
+    }
+
+    return os;
+  }
+
+  std::istream &operator >>(std::istream &in, main_memory_kind_e &gmk)
+  {
+    std::string tmp, kind;
+    in >> tmp;
+
+    kind.resize(tmp.size());
+    std::transform(tmp.begin(), tmp.end(), kind.begin(), ::tolower);
+
+    if(kind == "simple")
+      gmk = GM_SIMPLE;
+    else if(kind == "ddr3")
+      gmk = GM_RAMUL_DDR3;
+    else if(kind == "ddr4")
+      gmk = GM_RAMUL_DDR4;
+    else if(kind == "lpddr3")
+      gmk = GM_RAMUL_LPDDR3;
+    else if(kind == "lpddr4")
+      gmk = GM_RAMUL_LPDDR4;
+    else throw boost::program_options::validation_error(
+                 boost::program_options::validation_error::invalid_option_value,
+                 "Unknown main memory kind: " + tmp);
+
+    return in;
+  }
+
+  std::ostream &operator <<(std::ostream &os, main_memory_kind_e gmk)
+  {
+    switch(gmk)
+    {
+      case GM_SIMPLE:
+        os << "simple"; break;
+      case GM_RAMUL_DDR3:
+        os << "ddr3"; break;
+      case GM_RAMUL_DDR4:
+        os << "ddr4"; break;
+      case GM_RAMUL_LPDDR3:
+        os << "lpddr3"; break;
+      case GM_RAMUL_LPDDR4:
+        os << "lpddr4"; break;
     }
 
     return os;
@@ -430,20 +474,20 @@ namespace patmos
 
     return os;
   }
-  
+
   std::istream &operator >>(std::istream &in, address_t &a)
   {
     unsigned int v;
 
     std::string tmp;
     in >> tmp;
-    
+
     std::stringstream s;
     if (tmp.size() > 2 && tmp.substr(0, 2) == "0x") {
       s << std::hex << tmp.substr(2);
     } else if (tmp.size() > 1 && tmp.substr(0, 1) == "0") {
       // TODO this might be misleading!! warn about that
-      s << std::oct << tmp.substr(1);      
+      s << std::oct << tmp.substr(1);
     } else if (tmp[0] >= '0' && tmp[0] <= '9') {
       s << tmp;
     } else {
@@ -451,10 +495,10 @@ namespace patmos
       a.set_symbol(tmp);
       return in;
     }
-    
+
     s >> v;
     a = v;
-    
+
     return in;
   }
 
@@ -463,7 +507,7 @@ namespace patmos
     unsigned int v = a.value();
 
     os << boost::format("0x%1$x") % v;
-    
+
     return os;
   }
 }

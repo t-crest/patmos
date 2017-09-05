@@ -1,0 +1,103 @@
+[*]
+[*] GTKWave Analyzer v3.3.66 (w)1999-2015 BSI
+[*] Thu Sep 22 13:33:24 2016
+[*]
+[dumpfile] "/home/dani/t-crest/patmos/Patmos.vcd"
+[dumpfile_mtime] "Thu Sep 22 13:22:03 2016"
+[dumpfile_size] 3158995107
+[savefile] "/home/dani/t-crest/patmos/hardware/wave_files/audio_dac_buffer_test.gtkw"
+[timestart] 704970
+[size] 1855 1176
+[pos] -854 -1
+*-7.403677 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] Patmos.
+[treeopen] Patmos.core.
+[treeopen] Patmos.core.iocomp.
+[treeopen] Patmos.core.iocomp.AudioInterface.
+[sst_width] 274
+[signals_width] 284
+[sst_expanded] 1
+[sst_vpaned_height] 764
+@200
+-AudioInterface
+@28
+Patmos.core.iocomp.AudioInterface.audioDacEnReg
+Patmos.core.iocomp.AudioInterface.audioDacBufferFullReg
+Patmos.core.iocomp.AudioInterface.audioDacBufferWritePulseReg
+@22
+Patmos.core.iocomp.AudioInterface.audioDacLReg[15:0]
+Patmos.core.iocomp.AudioInterface.audioDacRReg[15:0]
+@200
+-AudioDACBuffer
+@28
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.io_enDacI
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.io_enDacO
+@29
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.io_writePulseI
+@22
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.bufferSizeReg[8:0]
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.io_audioLIPatmos[15:0]
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.io_audioRIPatmos[15:0]
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.r_pnt[7:0]
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.w_pnt[7:0]
+@28
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.w_inc
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.emptyReg
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.fullReg
+@24
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.stateFE[2:0]
+@28
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.io_writeEnDacI
+@22
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioBufferL_0[15:0]
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioBufferR_0[15:0]
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioBufferL_1[15:0]
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioBufferR_1[15:0]
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioBufferL_2[15:0]
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioBufferR_2[15:0]
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioBufferL_3[15:0]
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioBufferR_3[15:0]
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioBufferL_4[15:0]
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioBufferR_4[15:0]
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioBufferL_5[15:0]
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioBufferR_5[15:0]
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioBufferL_6[15:0]
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioBufferR_6[15:0]
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioBufferL_7[15:0]
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioBufferR_7[15:0]
+@28
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.io_convEndI
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.lastOutputReg
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.enOutReg
+@24
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.stateOut
+@28
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.r_inc
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.emptyReg
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.fullReg
+@24
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.stateFE[2:0]
+@22
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioLIReg[15:0]
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioRIReg[15:0]
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.io_audioLIDAC[15:0]
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.io_audioRIDAC[15:0]
+@200
+-AudioDAC
+@28
+Patmos.core.iocomp.AudioInterface.mAudioDac.io_enDacI
+Patmos.core.iocomp.AudioInterface.mAudioDac.io_dacLrcO
+Patmos.core.iocomp.AudioInterface.mAudioDac.writeEnDacReg
+@22
+Patmos.core.iocomp.AudioInterface.mAudioDac.audioLReg[15:0]
+Patmos.core.iocomp.AudioInterface.mAudioDac.audioRReg[15:0]
+Patmos.core.iocomp.AudioInterface.mAudioDac.io_audioLI[15:0]
+Patmos.core.iocomp.AudioInterface.mAudioDac.io_audioRI[15:0]
+@28
+Patmos.core.iocomp.AudioInterface.mAudioDac.state[1:0]
+Patmos.core.iocomp.AudioInterface.mAudioDac.convEndReg
+Patmos.core.iocomp.AudioInterface.mAudioDac.io_convEndO
+@22
+Patmos.core.iocomp.AudioInterface.mAudioDac.fsCntReg[8:0]
+[pattern_trace] 1
+[pattern_trace] 0

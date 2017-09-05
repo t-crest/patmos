@@ -40,6 +40,11 @@
 #include "basic-types.h"
 #include "command-line.h"
 
+#ifdef RAMULATOR
+#include "ramulator/Config.h"
+#include "ramulator/Memory.h"
+#endif // RAMULATOR
+
 #include <map>
 #include <iostream>
 
@@ -59,7 +64,7 @@ namespace patmos
     memory_t() : Mmu(NULL) {}
 
     virtual ~memory_t() {}
-    
+
     /// A simulated access to a read port.
     /// @param s The core performing the access
     /// @param address The memory address to read from.
@@ -117,7 +122,7 @@ namespace patmos
     /// @param size The number of bytes to write.
     virtual void write_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size) = 0;
 
-    
+
     /// Read some values of a fixed size from the memory -- DO NOT SIMULATE TIMING, just read.
     /// @param address The memory address to read from.
     /// @param value A pointer to a destination to store the value read from
@@ -149,7 +154,7 @@ namespace patmos
     void set_mmu(mmu_t *mmu) {
       Mmu = mmu;
     }
-    
+
     /// Reset statistics.
     virtual void reset_stats() = 0;
   };
@@ -166,39 +171,39 @@ namespace patmos
 
     /// The content of the memory.
     byte_t *Content;
-    
+
     /// Optional vector of flags indicating whether a byte has been initialized.
     byte_t *Init_vector;
 
     bool Randomize;
-    
+
     mem_check_e Mem_check;
-    
+
     /// Ensure that the content is initialize up to the given address.
     /// @param address The address that should be accessed.
     /// @param size The access size.
     /// @param is_write Access is a write or a read
     /// @param ignore_errors Do not throw any exceptions on access errors
-    void check_initialize_content(simulator_t &s, uword_t address, uword_t size, 
+    void check_initialize_content(simulator_t &s, uword_t address, uword_t size,
                                   bool is_read, bool ignore_errors = false);
-    
+
   public:
     /// Construct a new memory instance.
     /// @param memory_size The size of the memory in bytes.
-    ideal_memory_t(unsigned int memory_size, bool randomize, 
-                   mem_check_e memchk) 
-    : Memory_size(memory_size), Initialized_offset(0), 
+    ideal_memory_t(unsigned int memory_size, bool randomize,
+                   mem_check_e memchk)
+    : Memory_size(memory_size), Initialized_offset(0),
       Randomize(randomize), Mem_check(memchk)
     {
       Content = new byte_t[memory_size];
-      
+
       if (memchk != MCK_NONE) {
         Init_vector = new byte_t[memory_size];
       } else {
         Init_vector = NULL;
       }
     }
-    
+
     ~ideal_memory_t() {
       if (Content) delete[] Content;
       if (Init_vector) delete[] Init_vector;
@@ -257,12 +262,12 @@ namespace patmos
 
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.
-    virtual void print_stats(const simulator_t &s, std::ostream &os, 
+    virtual void print_stats(const simulator_t &s, std::ostream &os,
                              const stats_options_t& options)
     {
       // nothing to be done here
     }
-    
+
     virtual void reset_stats() {}
 
   };
@@ -281,13 +286,13 @@ namespace patmos
 
     /// If true, do not wait for the request to be retrieved, but delete it.
     bool Is_posted;
-    
+
     /// Number of ticks remaining until the request completes.
     unsigned int Num_ticks_remaining;
   };
 
   /// A memory with fixed access times to transfer fixed-sized blocks.
-  /// Memory accesses are performed in blocks (NUM_BLOCK_BYTES) with a fixed 
+  /// Memory accesses are performed in blocks (NUM_BLOCK_BYTES) with a fixed
   /// access delay (Num_ticks_per_block).
   class fixed_delay_memory_t : public ideal_memory_t
   {
@@ -296,75 +301,75 @@ namespace patmos
     typedef std::vector<request_info_t> requests_t;
 
     typedef std::map<uword_t, uint64_t> request_size_map_t;
-    
+
     /// Memory access time per block in cycles.
     unsigned int Num_ticks_per_burst;
 
     /// Block transfer size
     unsigned int Num_bytes_per_burst;
-    
+
     /// Enable posted writes.
     unsigned int Num_posted_writes;
-    
+
     /// Number of initial read delay ticks.
     unsigned int Num_read_delay_ticks;
-    
+
     /// Outstanding requests to the memory.
     requests_t Requests;
 
   private:
     // -------------  Statistics -------------
-    
+
     /// End address of last request
     uword_t Last_address;
-    
+
     /// Last request was a load?
     bool    Last_is_load;
-    
+
     /// Maximum size of the queue
     unsigned Num_max_queue_size;
-    
+
     /// Number of read requests
     uint64_t Num_reads;
-    
+
     /// Number of write requests
     uint64_t Num_writes;
-    
+
     /// Total number of bytes read
     uint64_t Num_bytes_read;
-    
+
     /// Total number of bytes written
     uint64_t Num_bytes_written;
-    
+
     /// Actual number of bytes transferred for reads
     uint64_t Num_bytes_read_transferred;
 
     /// Actual number of bytes transferred for writes
     uint64_t Num_bytes_write_transferred;
-    
+
     /// Number of consecutive memory requests
     uint64_t Num_consecutive_requests;
-    
+
     /// Number of cycles the memory interface was busy.
     uint64_t Num_busy_cycles;
-    
+
     /// Number of cycles hidden by posted writes.
     uint64_t Num_posted_write_cycles;
-    
+
     /// Track number of requests per request size.
     request_size_map_t Num_requests_per_size;
-    
-  protected:  
-    virtual uword_t get_aligned_size(uword_t address, uword_t size, 
+
+  protected:
+    virtual uword_t get_aligned_size(uword_t address, uword_t size,
                                      uword_t &aligned_address);
-    
+
     virtual unsigned int get_transfer_ticks(uword_t aligned_address,
-                                            uword_t aligned_size, bool is_load, 
+                                            uword_t aligned_size, bool is_load,
                                             bool is_posted);
-    
+
     /// Let one tick pass for the given request.
     virtual void tick_request(request_info_t &req);
-    
+
     /// Find or create a request given an address, size, and load/store flag.
     /// @param address The address of the request.
     /// @param size The number of bytes request by the access.
@@ -372,35 +377,35 @@ namespace patmos
     /// @param is_posted A flag indicating whether the store is posted or not.
     /// @return An existing or newly created request info object.
     /// \see request_info_t
-    const request_info_t &find_or_create_request(simulator_t &s, 
+    const request_info_t &find_or_create_request(simulator_t &s,
                                                  uword_t address, uword_t size,
                                                  bool is_load, bool is_fetch,
                                                  bool is_posted = false);
-    
+
   public:
     /// Construct a new memory instance.
     /// @param memory_size The size of the memory in bytes.
     /// @param num_bytes_per_burst Memory block size.
-    /// @param num_posted_writes Enable posted writes, sets the max size 
+    /// @param num_posted_writes Enable posted writes, sets the max size
     ///                          of the request queue.
     /// @param num_ticks_per_burst Memory access time per block in cycles.
-    /// @param Num_read_delay_ticks Number of ticks until a response to a 
+    /// @param Num_read_delay_ticks Number of ticks until a response to a
     ///                             request is received
     fixed_delay_memory_t(unsigned int memory_size,
                          unsigned int num_bytes_per_burst,
                          unsigned int num_posted_writes,
-                         unsigned int num_ticks_per_burst, 
+                         unsigned int num_ticks_per_burst,
                          unsigned int num_read_delay_ticks,
                          bool randomize, mem_check_e memchk) :
         ideal_memory_t(memory_size, randomize, memchk),
         Num_ticks_per_burst(num_ticks_per_burst),
         Num_bytes_per_burst(num_bytes_per_burst),
         Num_posted_writes(num_posted_writes),
-        Num_read_delay_ticks(num_read_delay_ticks), Last_address(0), 
+        Num_read_delay_ticks(num_read_delay_ticks), Last_address(0),
         Last_is_load(false), Num_max_queue_size(0),
         Num_reads(0), Num_writes(0), Num_bytes_read(0), Num_bytes_written(0),
-        Num_bytes_read_transferred(0), Num_bytes_write_transferred(0), 
-        Num_consecutive_requests(0), Num_busy_cycles(0), 
+        Num_bytes_read_transferred(0), Num_bytes_write_transferred(0),
+        Num_consecutive_requests(0), Num_busy_cycles(0),
         Num_posted_write_cycles(0)
     {
     }
@@ -435,9 +440,9 @@ namespace patmos
 
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.
-    virtual void print_stats(const simulator_t &s, std::ostream &os, 
+    virtual void print_stats(const simulator_t &s, std::ostream &os,
                              const stats_options_t& options);
-    
+
     virtual void reset_stats();
 
   };
@@ -446,47 +451,47 @@ namespace patmos
   {
   private:
     unsigned int Num_bytes_per_page;
-    
+
   protected:
     virtual unsigned int get_transfer_ticks(uword_t aligned_address,
-                                            uword_t aligned_size, bool is_load, 
+                                            uword_t aligned_size, bool is_load,
                                             bool is_posted);
   public:
-    variable_burst_memory_t(unsigned int memory_size, 
+    variable_burst_memory_t(unsigned int memory_size,
                         unsigned int num_min_bytes_per_burst,
                         unsigned int num_bytes_per_page,
                         unsigned int num_posted_writes,
                         unsigned int num_min_ticks_per_burst,
                         unsigned int num_read_delay_ticks,
                         bool randomize, mem_check_e memchk)
-    : fixed_delay_memory_t(memory_size, num_min_bytes_per_burst, 
-                           num_posted_writes, 
+    : fixed_delay_memory_t(memory_size, num_min_bytes_per_burst,
+                           num_posted_writes,
                            num_min_ticks_per_burst, num_read_delay_ticks,
                            randomize, memchk),
       Num_bytes_per_page(num_bytes_per_page)
     {}
 
   };
-  
-  class tdm_memory_t : public fixed_delay_memory_t 
+
+  class tdm_memory_t : public fixed_delay_memory_t
   {
   private:
     uword_t Round_length;
-    
+
     uword_t Round_start;
-    
+
     uword_t Round_counter;
-    
+
     /// True if we are currently sending a request over the NOC
     bool Is_Transferring;
-    
+
   protected:
     virtual unsigned int get_transfer_ticks(uword_t aligned_address,
-                                            uword_t aligned_size, bool is_load, 
+                                            uword_t aligned_size, bool is_load,
                                             bool is_posted);
 
     virtual void tick_request(request_info_t &req);
-    
+
   public:
     tdm_memory_t(unsigned int memory_size, unsigned int num_bytes_per_burst,
                  unsigned int num_posted_writes,
@@ -494,11 +499,165 @@ namespace patmos
                  unsigned int cpu_id,
                  unsigned int num_ticks_per_burst,
                  unsigned int num_read_delay_ticks,
-                 unsigned int num_refresh_ticks_per_round, 
+                 unsigned int num_refresh_ticks_per_round,
                  bool randomize, mem_check_e memchk);
-    
+
     virtual void tick(simulator_t &s);
   };
+
+#ifdef RAMULATOR
+  /// Create an ramulator-based main memory.
+  /// @param ramul_config Name of ramulator configuration file.
+  /// @param kind The specific kind of the memory (DDR3, DDR4, ...)
+  /// @param core_freq Frequency of the processor core (in Mhz).
+  /// @param memory_size The total size of the memory.
+  /// @param burst_size The burst size of the memory.
+  /// @param randomize Randomize the memory contents instead of clearing it.
+  /// @param memchk Configure error reporting of invalid accesses/addresses.
+  extern memory_t *make_ramulator_memory(std::string &ramul_config,
+                                         main_memory_kind_e kind,
+                                         unsigned int core_freq,
+                                         unsigned int memory_size,
+                                         unsigned int burst_size,
+                                         bool randomize, mem_check_e memchk);
+
+  /// Use the ramulator emulation framework to emulate access latencies of main
+  /// memory.
+  template <class T>
+  class ramulator_memory_t : public ideal_memory_t
+  {
+  private:
+    typedef std::vector<Controller<T>*> Controllers_t;
+    typedef std::vector<DRAM<T>*> DRAMs_t;
+    typedef std::map<unsigned int, unsigned int> Latencies_t;
+
+
+    /// Numeric ID identifying the current core within ramulator.
+    static unsigned int CORE_ID;
+
+    /// Ramulator memory configuration
+    const ramulator::Config Config;
+
+    /// Ramulator memory simulation interface.
+    ramulator::Memory<T> *Mem;
+
+    /// Frequency translation from processor core to memory.
+    /// Number of core ticks until least common multiple is reached with memory
+    /// frequency.
+    unsigned int Num_core_ticks;
+
+    /// Frequency translation from processor core to memory. Counter needed to
+    /// perform translation.
+    unsigned int Num_core_ticks_cnt;
+
+    /// Frequency translation from processor core to memory.
+    /// Number of memory ticks until least common multiple is reached with core
+    /// frequency.
+    unsigned int Num_mem_ticks;
+
+    // Burst size (in bytes).
+    unsigned int Num_burst_bytes;
+
+    // Aligned start address of an outstanding request, or 0.
+    uword_t Pending_start;
+
+    // Number of bursts for outstanding request, or 0.
+    uword_t Num_bursts_pending;
+
+    // Number of burst requests sent/enqueued to/by memory.
+    unsigned Num_bursts_enqueued;
+
+    // Number of completed bursts of an outstanding request.
+    unsigned Num_bursts_done;
+
+    // Statistics on the number of store requests
+    unsigned Num_requests_store;
+
+    // Statistics on the number of load requests
+    unsigned Num_requests_load;
+
+    // Statistics on the number of store bursts
+    unsigned Num_bursts_store;
+
+    // Statistics on the number of load bursts
+    unsigned Num_bursts_load;
+
+    // Statistics on the number bytes transferred for stores
+    unsigned Num_bytes_store;
+
+    // Statistics on the number bytes transferred for loads
+    unsigned Num_bytes_load;
+
+    // Statistics on stall cycles for store requests
+    unsigned Num_stall_cycles_store;
+
+    // Statistics on stall cycles for load requests
+    unsigned Num_stall_cycles_load;
+
+    // Statistics on full request queues for store requests (counting retries)
+    unsigned Num_full_queue_store;
+
+    // Statistics on full request queues for load requests (counting retries)
+    unsigned Num_full_queue_load;
+
+    // Statistics on read latencies
+    Latencies_t Read_latencies;
+
+    /// Callback from ramulator to signal that a request is done.
+    void done_callback(ramulator::Request &r);
+  public:
+    /// Create an ramulator-based main memory.
+    /// @param kind The specific kind of the memory (DDR3, DDR4, ...)
+    /// @param core_freq Frequency of the processor core (in Mhz).
+    /// @param config Additional configuration parameters for ramulator.
+    /// @param memory_size The total size of the memory.
+    /// @param burst_size The burst size of the memory.
+    /// @param randomize Randomize the memory contents instead of clearing it.
+    /// @param memchk Configure error reporting of invalid accesses/addresses.
+    ramulator_memory_t(main_memory_kind_e kind, ramulator::Config &config,
+                       unsigned int core_freq,
+                       unsigned int memory_size, unsigned int burst_size,
+                       bool randomize, mem_check_e memchk);
+
+    virtual ~ramulator_memory_t();
+
+    /// A simulated access to a read port.
+    /// @param s The core performing the access
+    /// @param address The memory address to read from.
+    /// @param value A pointer to a destination to store the value read from
+    /// the memory.
+    /// @param size The number of bytes to read.
+    /// @param is_fetch Indicate whether this is an instruction fetch or a data
+    /// load.
+    /// @return True when the data is available from the read port.
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value,
+                      uword_t size, bool is_fetch);
+
+    /// A simulated access to a write port.
+    /// @param s The core performing the access
+    /// @param address The memory address to write to.
+    /// @param value The value to be written to the memory.
+    /// @param size The number of bytes to write.
+    /// @return True when the data is written finally to the memory, false
+    /// otherwise.
+    virtual bool write(simulator_t &s, uword_t address, byte_t *value,
+                       uword_t size);
+
+    /// @return False in case the memory is currently handling some request,
+    /// otherwise true.
+    virtual bool is_ready();
+
+    /// Notify the memory that a cycle has passed.
+    virtual void tick(simulator_t &s);
+
+    /// Print statistics to an output stream.
+    /// @param s The main simulator instance.
+    /// @param os The output stream to print to.
+    /// @param options Options on statistic format/verbosity/...
+    virtual void print_stats(const simulator_t &s, std::ostream &os,
+                             const stats_options_t& options);
+  };
+#endif // RAMULATOR
 }
 
 #endif // PATMOS_MEMORY_H

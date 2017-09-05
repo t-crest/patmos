@@ -14,7 +14,7 @@ const int NOC_MASTER = 0;
 #include <machine/spm.h>
 #include <stdio.h>
 #include "libnoc/noc.h"
-#include "include/patio.h"
+//#include "include/patio.h"
 #include "libcorethread/corethread.h"
 
 void blink(int nblinks);
@@ -30,13 +30,13 @@ void slave(void* param);
 int main() {
 	int slave_param = 1;
 
-  	// Clear scratch pad in all cores
+	// Clear scratch pad in all cores
 	// 16+16 integers
 	int i;
-    	for(i = 0; i < get_cpucnt()*4; i++) {
-        	*(NOC_SPM_BASE+i) = 0;
+	for(i = 0; i < get_cpucnt()*4; i++) {
+		*(NOC_SPM_BASE+i) = 0;
 		*(NOC_SPM_BASE+get_cpucnt()*4+i) = 0;
-    	}
+	}
 
 	for(int i = 0; i < get_cpucnt(); i++) {
 		if (i != NOC_MASTER) {
@@ -104,7 +104,7 @@ void master(void) {
 	puts("MASTER: sending\n");
 
 	// send message
-	noc_send(1, spm_slave, spm_base, 21); //21 bytes
+	noc_write(1, spm_slave, spm_base, 21, 0); //21 bytes
 
 	puts("MASTER: message sent: ");
 	puts(msg_snd);
@@ -119,11 +119,10 @@ void master(void) {
 	puts("MASTER: message received:");
 	// copy message to static location and print
 	for (i = 0; i < 21; i++) {
-		*(msg_rcv+i) = *(spm_slave+i);
+		msg_rcv[i] = *(spm_slave+i);
 	}
-	*(msg_rcv+i) = '\0';
+	msg_rcv[i] = '\0';
 	puts(msg_rcv);
-
 	return;
 }
 
@@ -136,7 +135,7 @@ void slave(void* param) {
 	while(*(spm_slave+20) == 0) {;}
 
 	// put message for master to spm
-        const char *msg = "Hello master ";
+    const char *msg = "Hello master ";
 	int i;
 	for (i = 6; i < 12; i++) {
 		*(spm_slave+i) = *(msg+i);
@@ -147,7 +146,7 @@ void slave(void* param) {
 
 	// send to next slave
 	int rcv_id = (get_cpuid()==(get_cpucnt()-1))? 0 : get_cpuid()+1;
-	noc_send(rcv_id, spm_slave, spm_slave, 21);
+	noc_write(rcv_id, spm_slave, spm_slave, 21, 0);
 
 	return;
 }

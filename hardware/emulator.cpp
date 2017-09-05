@@ -611,7 +611,7 @@ static void print_sc_state(Patmos_t *c) {
 
 static void print_state(Patmos_t *c) {
   static unsigned int baseReg = 0;
-  *out << (baseReg + c->Patmos_core_fetch__pcReg.to_ulong() * 4 - c->Patmos_core_fetch__relBaseReg.to_ulong() * 4) << " - ";
+  *out << ((baseReg + c->Patmos_core_fetch__pcReg.to_ulong()) * 4 - c->Patmos_core_fetch__relBaseReg.to_ulong() * 4) << " - ";
   baseReg = c->Patmos_core_icache_repl__callRetBaseReg.to_ulong();
 
   for (unsigned i = 0; i < 32; i++) {
@@ -784,6 +784,10 @@ int main (int argc, char* argv[]) {
     dat_t<1> reset = LIT<1>(0);
 
     c->clock_lo(reset);
+    // Print tracing information
+    if (vcd) {
+      c->dump(f, t);
+    }
     c->clock_hi(reset);
 
     // Emulate external devices
@@ -801,10 +805,6 @@ int main (int argc, char* argv[]) {
     emu_ethmac(c, ethmac_tap);
     #endif /* IO_ETHMAC */
 
-    // Print tracing information
-    if (vcd) {
-      c->dump(f, t);
-    }
     if (!quiet && c->Patmos_core__enableReg.to_bool()) {
       print_state(c);
     }

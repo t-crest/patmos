@@ -44,6 +44,23 @@
 
 namespace patmos
 {
+  /// Align a value according to an alignment (round down).
+  /// @param i The input value to be aligned.
+  /// @param alignment The desired alignment.
+  inline uword_t align_down(uword_t i, uword_t alignment)
+  {
+    return (i / alignment) * alignment;
+  }
+
+  /// Align a value according to an alignment (round up).
+  /// @param i The input value to be aligned.
+  /// @param alignment The desired alignment.
+  inline uword_t align_up(uword_t i, uword_t alignment)
+  {
+    return ((i+alignment-1) / alignment) * alignment;
+  }
+
+
   /// Check if the signed value fits into the given number of bits.
   /// @param value The value.
   /// @return True in case the value fits, false otherwise.

@@ -56,28 +56,28 @@ namespace patmos
 
     // Frequency of the CPU in MHz.
     double Frequency;
-    
+
     /// Latched high word of clock counter
     uword_t High_clock;
-    
+
     /// Latched high word of usec counter
     uword_t High_usec;
 
     /// Remember the last usec value to trigger only when it changed
     uint64_t Last_usec;
-    
+
     /// Latched low word of interrupt register value
     uword_t Low_interrupt_clock;
-    
+
     /// Latched low word of usec interrupt register value
     uword_t Low_interrupt_usec;
-    
+
     /// Cycle interrupt register value
     uint64_t Interrupt_clock;
 
     /// usec interrupt register value
     uint64_t Interrupt_usec;
-   
+
     /// Print debug messages
     bool Enable_debug;
   public:
@@ -87,7 +87,7 @@ namespace patmos
       Simulator(s),
       Frequency(frequency), High_clock(0), High_usec(0),
       Last_usec(0), Low_interrupt_clock(0), Low_interrupt_usec(0),
-      Interrupt_clock(std::numeric_limits<uint64_t>::max()), 
+      Interrupt_clock(std::numeric_limits<uint64_t>::max()),
       Interrupt_usec(std::numeric_limits<uint64_t>::max()),
       Enable_debug(false)
     {
@@ -97,16 +97,16 @@ namespace patmos
     void enable_debug(bool debug) {
       Enable_debug = debug;
     }
-    
+
     uint64_t getCycle() {
       return Simulator.Cycle;
     }
-    
+
     uint64_t getUSec() {
       // TODO if Frequency == 0, use wall clock for usec
       return (uint64_t)((double)Simulator.Cycle / Frequency);
     }
-    
+
     virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size) {
       if (is_word_access(address, size, 0x00)) {
         // read latched high word of cycle counter
@@ -141,9 +141,9 @@ namespace patmos
         // set the clock interrupt timer
         uword_t high_clock = get_word(value, size);
         Interrupt_clock = ((uint64_t)high_clock)<<32 | Low_interrupt_clock;
-        
+
         if (Enable_debug) {
-          std::cerr << "*** RTC: Set next cycle interrupt to " << Interrupt_clock 
+          std::cerr << "*** RTC: Set next cycle interrupt to " << Interrupt_clock
                     << ", current cycle: " << getCycle() << "\n";
         }
       }
@@ -155,9 +155,9 @@ namespace patmos
         // set the usec interrupt timer
         uword_t high_usec = get_word(value, size);
         Interrupt_usec = ((uint64_t)high_usec)<<32 | Low_interrupt_usec;
-        
+
         if (Enable_debug) {
-          std::cerr << "*** RTC: Set next usec interrupt to " << Interrupt_usec 
+          std::cerr << "*** RTC: Set next usec interrupt to " << Interrupt_usec
                     << ", current usec: " << getUSec() << ", cycle: " << getCycle() << "\n";
         }
       }

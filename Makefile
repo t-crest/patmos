@@ -18,9 +18,6 @@ APP?=hello_puts
 #BLASTER_TYPE=Arrow-USB-Blaster
 BLASTER_TYPE?=USB-Blaster
 
-# File that contains NoC initialization data
-NOCINIT?=nocinit.c
-
 # Path delimiter for Wdoz and others
 ifeq ($(WINDIR),)
 	S=:
@@ -28,8 +25,9 @@ else
 	S=\;
 endif
 
-# The FPGA vendor (Altera, Xilinx)
+# The FPGA vendor (Altera, Xilinx, XilinxVivado)
 #VENDOR?=Xilinx
+#VENDOR?=XilinxVivado
 VENDOR?=Altera
 
 # The Quartus/ISE project
@@ -146,7 +144,7 @@ comp: comp-$(APP)
 
 comp-% $(BUILDDIR)/%.elf: .FORCE
 	-mkdir -p $(dir $@)
-	$(MAKE) -C c BUILDDIR=$(BUILDDIR) NOCINIT=$(NOCINIT) APP=$* compile
+	$(MAKE) -C c BUILDDIR=$(BUILDDIR) APP=$* compile
 
 .PRECIOUS: $(BUILDDIR)/%.elf
 
@@ -154,12 +152,21 @@ comp-% $(BUILDDIR)/%.elf: .FORCE
 swsim: $(BUILDDIR)/$(BOOTAPP).bin
 	$(INSTALLDIR)/bin/pasim --debug --debug-fmt=short $(BUILDDIR)/$(BOOTAPP).bin; exit 0
 
+# ISA simulation with PatSim
+isasim: $(BUILDDIR)/$(BOOTAPP).bin
+	cd isasim; sbt "run-main patsim.PatSim $(BUILDDIR)/$(BOOTAPP).bin"
+
 # C simulation of the Chisel version of Patmos
 hwsim:
 	$(MAKE) -C hardware test BOOTBUILDROOT=$(CURDIR) BOOTAPP=$(BOOTAPP)
 
 # Testing
-test: test_emu
+test: test_compile test_emu
+
+test_compile:
+	make clean
+	make emulator
+	
 test_sim: patsim
 	cd $(SIMBUILDDIR) && make test
 test_emu:
@@ -178,7 +185,11 @@ patmos: gen synth config
 config:
 ifeq ($(VENDOR),Xilinx)
 	$(INSTALLDIR)/bin/config_xilinx hardware/ise/$(BOARD)/patmos_top.bit
-else
+endif
+ifeq ($(VENDOR),XilinxVivado)
+	vivado -mode batch -source hardware/vivado/$(BOARD)/config.tcl
+endif
+ifeq ($(VENDOR),Altera)
 	$(INSTALLDIR)/bin/config_altera -b $(BLASTER_TYPE) hardware/quartus/$(BOARD)/patmos.sof
 endif
 
@@ -188,7 +199,11 @@ gen:
 synth:
 ifeq ($(VENDOR),Xilinx)
 	$(MAKE) -C hardware synth_ise BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
-else
+endif
+ifeq ($(VENDOR),XilinxVivado)
+	$(MAKE) -C hardware synth_vivado BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
+endif
+ifeq ($(VENDOR),Altera)
 	$(MAKE) -C hardware synth_quartus BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
 endif
 
@@ -202,8 +217,9 @@ fpgaexec: $(BUILDDIR)/$(APP).elf
 CLEANEXTENSIONS=rbf rpt sof pin summary ttf qdf dat wlf done qws
 
 mostlyclean:
-	-rm -rf $(SIMBUILDDIR) $(CTOOLSBUILDDIR) $(BUILDDIR)
+	-rm -rf $(SIMBUILDDIR) $(CTOOLSBUILDDIR) $(BUILDDIR) $(HWBUILDDIR)
 	-rm -rf $(JAVATOOLSBUILDDIR)/classes
+	-rm -rf hardware/target
 
 clean: mostlyclean
 	-rm -rf $(INSTALLDIR)/bin

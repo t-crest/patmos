@@ -35,8 +35,6 @@
 // allows to write small test programs.
 //
 
-// #define BOOST_SPIRIT_DEBUG 1
-
 #include "assembler.h"
 #include "binary-formats.h"
 #include "instruction.h"
@@ -48,7 +46,6 @@
 #include <iterator>
 #include <iostream>
 #include <map>
-#include <boost/concept_check.hpp>
 
 namespace patmos
 {
@@ -56,7 +53,7 @@ namespace patmos
   {
     reset();
   }
-  
+
   unsigned lexer_t::skip_space(unsigned position) {
     unsigned pos = position;
     while (pos < Line.size() && isspace(Line[pos])) {
@@ -64,14 +61,14 @@ namespace patmos
     }
     return pos;
   }
-  
+
   void lexer_t::reset() {
     Positions.clear();
     Positions.push_back(skip_space(0));
     Token = "";
-    
+
   }
-      
+
   size_t lexer_t::pos() const {
     if (Positions.size() < 2) {
       return 0;
@@ -79,34 +76,34 @@ namespace patmos
       return Positions[Positions.size() - 2];
     }
   }
-  
+
   bool lexer_t::get_value(word_t &value, bool negate) const {
     if (!is_digit()) return false;
 
     char *nptr;
     value = strtol(Token.c_str(), &nptr, 0);
-      
+
     if (*nptr != '\0') {
       return false;
     }
-      
+
     if (negate) {
       value = -value;
     }
 
     return true;
   }
-  
+
   bool lexer_t::is_name() const {
     return !Token.empty() && is_name_start(Token[0]);
   }
-    
+
   bool lexer_t::is_digit() const {
     return !Token.empty() && isdigit(Token[0]);
   }
-    
-  bool lexer_t::push_back(unsigned count) {    
-    for (unsigned i = 0; i < count; i++) { 
+
+  bool lexer_t::push_back(unsigned count) {
+    for (unsigned i = 0; i < count; i++) {
       Positions.pop_back();
     }
     Positions.pop_back();
@@ -117,8 +114,8 @@ namespace patmos
     }
     return true;
   }
-    
-  bool lexer_t::next() 
+
+  bool lexer_t::next()
   {
     if (end()) {
       return false;
@@ -128,17 +125,17 @@ namespace patmos
       Positions.push_back(-1);
       return false;
     }
-    
+
     unsigned pos = Positions.back();
-    
+
     size_t first = pos;
     size_t last = pos;
-    
+
     // Eat a full word
     while (last < Line.size()) {
       char c = Line[last];
-      
-      // TODO we could check here if we are parsing a name or a digit and 
+
+      // TODO we could check here if we are parsing a name or a digit and
       // throw an error on malformed numbers
       if (isalnum(c) || c == '.' || c == '_') {
         last++;
@@ -146,52 +143,52 @@ namespace patmos
         break;
       }
     }
-    
+
     // include at least one (special) character in the next token
     if (last == first) last++;
     // special handling of || separator as one token
     if (Line[first] == '|' && last < Line.size() && Line[last] == '|') last++;
-    
+
     // go to the beginning of the next token
     Positions.push_back(skip_space(last));
-    
+
     Token = Line.substr(first, last - first);
-    
+
     return true;
   }
- 
+
 
   line_parser_t::line_parser_t(line_assembler_t &assembler, std::string line)
   : Lexer(line), Assembler(assembler)
   {}
- 
-  bool line_parser_t::parse_register_number(const std::string &name, 
-                                            unsigned maxregs, 
+
+  bool line_parser_t::parse_register_number(const std::string &name,
+                                            unsigned maxregs,
                                             unsigned &regno) const
   {
     unsigned length = name.size();
     if (length < 2 || length > 3) return false;
     if (!isdigit(name[1]) || (length == 3 && !isdigit(name[2]))) return false;
-    
-    // using scanf or atoi or strtol for a 2 digit number has quite some 
-    // overhead and the error handling code to reject stuff like 'r+1z' 
+
+    // using scanf or atoi or strtol for a 2 digit number has quite some
+    // overhead and the error handling code to reject stuff like 'r+1z'
     // as valid name would be larger than a simple switch over all names.
     unsigned value = name[1] - '0';
     if (length == 3) {
       value = value * 10 + (name[2] - '0');
     }
-    
+
     regno = value;
-    
+
     return value < maxregs;
   }
 
- 
+
   void line_parser_t::set_error(const std::string &msg) {
     Assembler.set_error(Lexer.pos(), msg);
   }
-  
-  bool line_parser_t::parse_expression(word_t &value, reloc_info_t &reloc, 
+
+  bool line_parser_t::parse_expression(word_t &value, reloc_info_t &reloc,
                                        bool require_paren)
   {
     bool has_paren = false;
@@ -202,17 +199,20 @@ namespace patmos
         return false;
       }
     }
-    
-    if (Lexer.is_name()) {      
+
+    if (Lexer.is_name()) {
       reloc.SymA = Lexer.tok();
       value = 0;
     } else {
       bool negate = match_token("-");
-      
+
       if (!Lexer.get_value(value, false)) {
         set_error("Error parsing number.");
         return false;
       }
+
+      if (negate)
+        value = -value;
     }
 
     if (!Lexer.next()) {
@@ -221,16 +221,16 @@ namespace patmos
       }
       return !has_paren;
     }
-    
+
     if (!reloc.SymA.empty()) {
       // TODO allow for 'SymA - SymB +|- Addend', 'SymA +|- Addend'
-      
+
       if (Lexer.tok() == "-") {
         if (require_paren && !has_paren) {
           set_error("parenthesis required for expressions.");
           return false;
         }
-        
+
         if (!Lexer.next()) {
           set_error("missing symbol or value.");
           return false;
@@ -250,7 +250,7 @@ namespace patmos
         }
       }
     }
-    
+
     if (has_paren) {
       if (Lexer.tok() == ")") {
         Lexer.next();
@@ -261,10 +261,10 @@ namespace patmos
         return false;
       }
     }
-    
+
     return true;
   }
-   
+
   bool line_parser_t::parse_GPR(GPR_e &reg)
   {
     std::string name = Lexer.tok();
@@ -289,7 +289,7 @@ namespace patmos
     Lexer.next();
     return true;
   }
-  
+
   bool line_parser_t::parse_SPR(SPR_e &reg)
   {
     std::string name = Lexer.tok();
@@ -324,7 +324,7 @@ namespace patmos
     Lexer.next();
     return true;
   }
-  
+
   bool line_parser_t::parse_PRR(PRR_e &pred, bool may_negate)
   {
     bool negated = false;
@@ -363,7 +363,7 @@ namespace patmos
     Lexer.next();
     return true;
   }
-  
+
   bool line_parser_t::match_token(const std::string &tok)
   {
     if (Lexer.tok() == tok) {
@@ -373,7 +373,7 @@ namespace patmos
     set_error(std::string("expected token '") + tok + "'");
     return false;
   }
-  
+
   bool line_parser_t::match_stmt_end()
   {
     // skip semicolon
@@ -388,14 +388,14 @@ namespace patmos
     return false;
   }
 
-   
-   
+
+
   line_assembler_t::line_assembler_t() : NOP_ID(0), Error_pos(-1)
   {
       initialize();
   }
-  
-  line_assembler_t::~line_assembler_t() 
+
+  line_assembler_t::~line_assembler_t()
   {
   }
 
@@ -403,19 +403,19 @@ namespace patmos
     Error_pos = pos;
     Error_msg = msg;
   }
-  
-  void line_assembler_t::print_error(std::ostream &out, unsigned offset) 
+
+  void line_assembler_t::print_error(std::ostream &out, unsigned offset)
   {
     if (Error_pos < 0) return;
-    
+
     for (unsigned i = 0; i < offset + Error_pos; i++) {
       out << " ";
     }
     out << "^ " << Error_msg << "\n";
   }
-  
-  void line_assembler_t::initialize() 
-  {  
+
+  void line_assembler_t::initialize()
+  {
     // initialization already done?
     if (!Instructions.empty())
       return;
@@ -460,7 +460,7 @@ namespace patmos
 
 #include "instructions.inc"
   }
-  
+
   void line_assembler_t::add_relocation(unsigned index, reloc_info_t &reloc)
   {
     if (reloc.SymA.empty()) {
@@ -468,17 +468,17 @@ namespace patmos
     }
     Relocations.push_back(std::pair<unsigned,reloc_info_t>(index, reloc));
   }
-  
-  bool line_assembler_t::parse_instruction(line_parser_t &parser, 
-                                           udword_t &encoded, 
-                                           reloc_info_t &reloc, bool &is_long) 
+
+  bool line_assembler_t::parse_instruction(line_parser_t &parser,
+                                           udword_t &encoded,
+                                           reloc_info_t &reloc, bool &is_long)
   {
     lexer_t &lexer = parser.get_lexer();
-    
+
     instruction_data_t instr;
     instr.Address = Code.size() * 4;
     instr.Pred = p0;
-    
+
     // parse guard
     // [ '(' ['!'] <pred> ')' ]
     if (lexer.tok() == "(") {
@@ -486,7 +486,7 @@ namespace patmos
         parser.set_error("missing guard name.");
         return false;
       }
-      if (!parser.parse_PRR(instr.Pred, true)) {        
+      if (!parser.parse_PRR(instr.Pred, true)) {
         return false;
       }
       if (lexer.tok() != ")") {
@@ -498,7 +498,7 @@ namespace patmos
         return false;
       }
     }
-    
+
     // parse instruction
     if (!lexer.is_name()) {
       parser.set_error("expect instruction opcode.");
@@ -514,7 +514,7 @@ namespace patmos
       instr.OPS.ALUil.Rd = r0;
       instr.OPS.ALUil.Rs1 = r0;
       instr.OPS.ALUil.Imm2 = 0;
-    } 
+    }
     else if (opcode == "halt") {
       skip_operands = true;
       opcode = "brcf";
@@ -522,22 +522,22 @@ namespace patmos
       instr.OPS.CFLrt.Rs1 = r0;
       instr.OPS.CFLrt.Rs2 = r0;
     }
-    
+
     // get the instruction format, parse operands.
     instructions_t::iterator it = Instructions.find(opcode);
     if (it == Instructions.end()) {
       parser.set_error("unknown opcode.");
       return false;
     }
-    
+
     lexer.next();
-    
+
     unsigned tokens = lexer.tokens();
-    
+
     // iterate over all instruction formats for the same mnemonic
     while (it != Instructions.end() && it->first == opcode) {
       binary_format_t *bfmt = it->second;
-          
+
       if (!skip_operands) {
         if (!bfmt->parse_operands(parser, opcode, instr, reloc)) {
           // reset the lexer
@@ -547,49 +547,49 @@ namespace patmos
           continue;
         }
       }
-    
+
       is_long = bfmt->is_long();
-      
+
       encoded = bfmt->encode(opcode, instr);
-      
+
       return true;
     }
     return false;
   }
-  
+
   bool line_assembler_t::parse_line(const std::string &line, dword_t &iw)
   {
     // [<label>:] [ .word <expr> | '('[!]<pred>')' <opcode> <operands> ]
-    
+
     // Tokenize
     line_parser_t parser(*this, line);
     lexer_t &lexer = parser.get_lexer();
     if (lexer.end()) return true;
 
     lexer.next();
-    
+
     // [ <label> ':' ]
     std::string label = lexer.tok();
-    
+
     if (lexer.is_name() && !lexer.last()) {
       lexer.next();
       if (parser.match_token(":")) {
-        
+
         // we got a label, emit it
         symbol_info_t symbol(Code.size() * 4, 0, false, label);
-        
+
         SymTab.add(symbol);
-        
+
         // continue with the next token or return if no more tokens
         if (lexer.end()) {
           return true;
         }
       } else {
-        // go back to the first token, start over 
+        // go back to the first token, start over
         lexer.push_back();
       }
     }
-    
+
     // Check directives
     // .word <symbol> [ '-' <symbol> ]
     if (lexer.tok() == ".word") {
@@ -597,25 +597,25 @@ namespace patmos
         parser.set_error("missing value.");
         return false;
       }
-      
-      word_t value; 
+
+      word_t value;
       reloc_info_t reloc;
       reloc.set_format(32);
       if (!parser.parse_expression(value, reloc, false)) {
         return false;
       }
-      
+
       // Emit a word with a relocation
       add_relocation(Code.size(), reloc);
       Code.push_back(value);
-      
+
       if (!parser.match_stmt_end()) {
         return false;
       }
     }
 
     while (!lexer.end()) {
-      
+
       reloc_info_t reloc;
       bool is_long = false;
       udword_t encoded;
@@ -623,24 +623,24 @@ namespace patmos
       if (!parse_instruction(parser, encoded, reloc, is_long)) {
         return false;
       }
-      
+
       // handle bundles
       if (lexer.tok() == "||") {
-        
+
         // TODO check if the last instruction had the bundle bit set as well
         if (is_long) {
           parser.set_error("ALUl instruction cannot be bundled.");
           return false;
         }
-        
+
         // set bundle bit
         encoded |= ((udword_t)1<<31);
-        
+
         lexer.next();
       } else if (!parser.match_stmt_end()) {
         return false;
       }
-   
+
       // add the instruction and the relocation
       if (is_long) {
         Code.push_back( (uword_t)(encoded >> 32) );
@@ -648,7 +648,7 @@ namespace patmos
       add_relocation(Code.size(), reloc);
       Code.push_back((uword_t)encoded);
     }
-    
+
     return true;
   }
 
@@ -656,15 +656,15 @@ namespace patmos
   {
     // Patch all relocations.
     for (relocations_t::iterator it=Relocations.begin(),
-          ie=Relocations.end(); it != ie; it++) 
+          ie=Relocations.end(); it != ie; it++)
     {
       unsigned index = it->first;
       reloc_info_t &reloc = it->second;
-      
+
       word_t value;
-      if (reloc.get_value(SymTab, value, index*4)) {        
+      if (reloc.get_value(SymTab, value, index*4)) {
         Code[index] = Code[index] | value;
-      } 
+      }
       else {
         if (!reloc.SymA.empty() && !SymTab.contains(reloc.SymA)) {
           std::cout << "Undefined Label: " << reloc.SymA << "\n";
@@ -676,17 +676,17 @@ namespace patmos
     }
 
     // Write program.
-    for (int i = 0; i < Code.size(); i++) {
+    for (unsigned int i = 0; i < Code.size(); i++) {
         uword_t instr = Code[i];
-        
+
         out << (char)(instr >> 24);
         out << (char)(instr >> 16);
         out << (char)(instr >>  8);
         out << (char)(instr);
     }
-    
+
     size = Code.size();
-    
+
     return true;
   }
 

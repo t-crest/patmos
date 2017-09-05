@@ -58,7 +58,7 @@ unsigned int set_assoc_data_cache_t<LRU_REPLACEMENT>::
 
 template<bool LRU_REPLACEMENT>
 set_assoc_data_cache_t<LRU_REPLACEMENT>::
-set_assoc_data_cache_t(memory_t &memory, unsigned int associativity, 
+set_assoc_data_cache_t(memory_t &memory, unsigned int associativity,
                        unsigned int num_blocks,
                        unsigned int num_block_bytes) :
     ideal_data_cache_t(memory), Num_blocks(num_blocks),
@@ -105,7 +105,7 @@ read(simulator_t &s, uword_t address, byte_t *value, uword_t size, bool is_fetch
     // Either size too big or not properly aligned
     simulation_exception_t::unaligned(address);
   }
-  
+
   // get tag information
   unsigned int entry_index = (block_address / Num_block_bytes)
 			     % Num_indexes;
@@ -269,7 +269,7 @@ void set_assoc_data_cache_t<LRU_REPLACEMENT>::
 
 template<bool LRU_REPLACEMENT>
 void set_assoc_data_cache_t<LRU_REPLACEMENT>::
-     print_stats(const simulator_t &s, std::ostream &os, 
+     print_stats(const simulator_t &s, std::ostream &os,
                  const stats_options_t& options)
 {
   // data cache statistics
@@ -288,25 +288,25 @@ void set_assoc_data_cache_t<LRU_REPLACEMENT>::
   unsigned int total_write_bytes = Num_write_hit_bytes + Num_write_miss_bytes;
   float        write_reuse = (float)total_write_bytes /
 			     (float)write_transfer_bytes;
-  
+
   // Ratio of bytes loaded from memory to bytes fetched from cache.
   // For every miss we load one full cache line.
-  unsigned int bytes_transferred = Num_read_misses * Num_block_bytes + 
+  unsigned int bytes_transferred = Num_read_misses * Num_block_bytes +
 				   Num_write_misses * Num_block_bytes;
   float transfer_ratio = total_reads == 0 && total_writes == 0 ? 0 :
-			(float)bytes_transferred / 
+			(float)bytes_transferred /
 			(float)(Num_read_hit_bytes + Num_read_miss_bytes +
 				Num_write_hit_bytes + Num_write_miss_bytes);
-				      
-			     
+
+
   os << boost::format("   Bytes Transferred   : %1$10d\n"
 		      "   Transfer Ratio      : %2$10.3f\n"
-		      "   Miss Stall Cycles   : %3$10d  %4$10.2f%%\n\n") 
+		      "   Miss Stall Cycles   : %3$10d  %4$10.2f%%\n\n")
     % bytes_transferred
     % transfer_ratio
     % Num_stall_cycles % (100.0 * (float)Num_stall_cycles/(float)s.Cycle);
 
-    
+
   os << boost::format("                           total        hit      miss    miss-rate     reuse\n"
 		      "   Reads            : %1$10d %2$10d %3$10d %4$10d%%\n"
 		      "   Bytes Read       : %5$10d %6$10d %7$10d          - %8$10.2f\n"
@@ -335,9 +335,9 @@ void set_assoc_data_cache_t<LRU_REPLACEMENT>::reset_stats()
 }
 
 template<bool LRU_REPLACEMENT>
-void set_assoc_data_cache_t<LRU_REPLACEMENT>::flush_cache() 
+void set_assoc_data_cache_t<LRU_REPLACEMENT>::flush_cache()
 {
-  for(unsigned int i = 0; i < Num_indexes; i++) 
+  for(unsigned int i = 0; i < Num_indexes; i++)
   {
     for(unsigned int j = 0; j < Associativity; j++)
     {

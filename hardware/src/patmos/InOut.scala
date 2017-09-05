@@ -71,6 +71,7 @@ class InOut() extends Module {
                                     "Conflicting addressspaces of IO devices")
 
   val validDeviceVec = Vec.fill(MAX_IO_DEVICES) { Bool() }
+  val validDevices = Array.fill(MAX_IO_DEVICES) { false }
   val selDeviceVec = Vec.fill(MAX_IO_DEVICES) { Bool() }
   val deviceSVec = Vec.fill(MAX_IO_DEVICES) { new OcpSlaveSignals(DATA_WIDTH) }
   for (i <- 0 until MAX_IO_DEVICES) {
@@ -139,7 +140,14 @@ class InOut() extends Module {
   // Creation of IO devices
   for (devConf <- Config.getConfig.Devs) {
     val dev = Config.createDevice(devConf).asInstanceOf[CoreDevice]
-    validDeviceVec(devConf.offset) := Bool(true)
+    if(!validDevices(devConf.offset)) {
+      validDeviceVec(devConf.offset) := Bool(true)
+      validDevices(devConf.offset) = true;
+    } else {
+      ChiselError.error("Can't assign multiple devices to the same offset. " +
+                        "Device " + devConf.name + " conflicting on offset " +
+                        devConf.offset.toString + ". ")
+    }
     // connect ports
     dev.io.ocp.M := io.memInOut.M
     dev.io.ocp.M.Cmd := Mux(selDeviceVec(devConf.offset), io.memInOut.M.Cmd, OcpCmd.IDLE)
@@ -154,6 +162,10 @@ class InOut() extends Module {
   io.excInOut.M := io.memInOut.M
   io.excInOut.M.Cmd := Mux(selDeviceVec(EXC_IO_OFFSET), io.memInOut.M.Cmd, OcpCmd.IDLE)
   deviceSVec(EXC_IO_OFFSET) := io.excInOut.S
+
+  // Hard-wire the sideband flags from the NI to interrupt pins
+  io.intrs(NI_MSG_INTR) := io.comConf.S.Flag(0)
+  io.intrs(NI_EXT_INTR) := io.comConf.S.Flag(1)
 
   if (HAS_MMU) {
     io.mmuInOut.M := io.memInOut.M

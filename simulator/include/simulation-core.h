@@ -68,8 +68,8 @@ namespace patmos
 
   /// Define the number of cycles for a single memory transfer.
   static const unsigned int NUM_MEMORY_TRANSFER_LATENCY = 21;
-  
-  /// Define the number of bytes in a block transferred on an access to the 
+
+  /// Define the number of bytes in a block transferred on an access to the
   /// global main memory.
   static const unsigned int NUM_MEMORY_BLOCK_BYTES = 16;
 
@@ -90,10 +90,10 @@ namespace patmos
 
   /// Define the maximum number of methods that can be cached in the method cache.
   static const unsigned int NUM_METHOD_CACHE_MAX_METHODS = 16;
-  
+
   /// Define the number of bytes in a block of the method cache.
   static const unsigned int NUM_METHOD_CACHE_BLOCK_BYTES = 8;
-  
+
   /// General-purpose register holding the program's exit code when terminating.
   static const GPR_e GPR_EXIT_CODE_INDEX = r1;
 
@@ -133,7 +133,7 @@ namespace patmos
       /// Number of times an instruction of the instruction class was retired
       /// (s.t. the predicate evaluated to false)
       unsigned int Num_discarded;
-      
+
       void reset() {
         Num_fetched = Num_retired = Num_discarded = 0;
       }
@@ -151,6 +151,9 @@ namespace patmos
     typedef std::vector<instruction_stat_t> instruction_stats_t;
 
   public:
+    // The processor's execution frequency.
+    unsigned int Freq;
+
     /// Cycle counter
     uint64_t Cycle;
 
@@ -192,7 +195,7 @@ namespace patmos
 
     /// The next value for program counter register.
     uword_t nPC;
-    
+
     /// Old value of the program counter, for debugging purposes only.
     uword_t Debug_last_PC;
 
@@ -210,10 +213,10 @@ namespace patmos
 
     /// Signal to disable the IF stage.
     bool Disable_IF;
-    
+
     /// Interrupt instruction
     instruction_t *Instr_INTR;
-    
+
     /// Halt pseudo instruction.
     instruction_t *Instr_HALT;
 
@@ -221,11 +224,11 @@ namespace patmos
     instruction_data_t Pipeline[NUM_STAGES][NUM_SLOTS];
 
     /// Keep track of delays for interrupt triggering
-    int Delay_counter;
-    
+    unsigned int Delay_counter;
+
     /// If set to true, flush the pipeline and halt the simulation.
     bool Halt;
-    
+
     /// Delay decoder when an interrupt has been executed
     int Exception_handling_counter;
 
@@ -234,7 +237,7 @@ namespace patmos
 
     /// Cycle of the last reset_stats() call.
     uint64_t Stats_Start_Cycle;
-    
+
     /// Debug accesses to those addresses.
     std::set<uword_t> Debug_mem_address;
 
@@ -243,7 +246,7 @@ namespace patmos
 
     /// Instruction counter for trace analysis
     uint64_t Traced_instructions;
-    
+
     /// Runtime statistics on all instructions, per pipeline
     instruction_stats_t Instruction_stats[NUM_SLOTS];
 
@@ -255,16 +258,16 @@ namespace patmos
 
     /// Number of NOPs executed
     uint64_t Num_NOPs;
-    
+
     /// Profiling information for function profiling
     profiling_t Profiling;
 
-    /// Print the internal register state of the simulator to an output stream 
+    /// Print the internal register state of the simulator to an output stream
     /// (excluding memories and caches)
     /// @param os An output stream.
     /// @param debug_fmt The selected output format.
     /// @param nopc skip printing cycles and PC
-    void print_registers(std::ostream &os, debug_format_e debug_fmt, 
+    void print_registers(std::ostream &os, debug_format_e debug_fmt,
                          bool nopc = false) const;
 
     /// Perform a step of the simulation for a given pipeline.
@@ -291,13 +294,13 @@ namespace patmos
     /// itself or any following stage.
     bool is_stalling(Pipeline_t pst) const;
 
-    /// Halt the simulation. All instructions currently in flight will be 
+    /// Halt the simulation. All instructions currently in flight will be
     /// completed first.
     void halt();
-    
+
     /// Check if the simulator has been requested to halt.
     bool is_halting() const;
-    
+
     /// Track retiring instructions for stats.
     void track_retiring_instructions();
 
@@ -308,13 +311,14 @@ namespace patmos
     /// Construct a new instance of a Patmos-core simulator
     /// The simulator only retains the references of the arguments passed in the
     /// constructor, i.e., it does not clone them, proclaim ownership, etc.
+    /// @param freq The execution frequency of the processor core.
     /// @param memory The main memory to use during the simulation.
     /// @param local_memory The local memory to use during the simulation.
     /// @param data_cache The data cache to use during the simulation.
     /// @param instr_cache The instruction cache to use during the simulation.
     /// @param stack_cache The stack cache to use during the simulation.
     /// @param symbols A mapping from addresses to symbols.
-    simulator_t(memory_t &memory, memory_t &local_memory,
+    simulator_t(unsigned int freq, memory_t &memory, memory_t &local_memory,
                 data_cache_t &data_cache, instr_cache_t &instr_cache,
                 stack_cache_t &stack_cache, symbol_map_t &symbols,
                 excunit_t &excunit);
@@ -324,13 +328,13 @@ namespace patmos
 
     /// Flush all data caches when reaching the given program counter.
     void flush_caches_at(uword_t address) { Flush_Cache_PC = address; }
-    
+
     /// Read a file containing watchpoints for the trace analysis.
     void read_watchpoint_file(std::string wpfilename);
-    
-    /// Print accesses to a 
+
+    /// Print accesses to a
     void debug_mem_address(uword_t address) { Debug_mem_address.insert(address); }
-    
+
     /// Run the simulator.
     /// @param entry Initialize the method cache, PC, etc. to start execution
     /// from this entry address.
@@ -372,7 +376,7 @@ namespace patmos
 
     /// Reset all simulation statistics.
     void reset_stats();
-    
+
     /// Flush all caches.
     void flush_caches();
   };

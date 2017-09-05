@@ -175,8 +175,8 @@ Jack Whitham offered his experience with RISC
 ISA design and trade-offs.
 Gernot Gebhard and Christoph Cullmann gave valuable feedback on the ISA
 related to WCET analysis.
-Sahar Abbaspourseyedi is working on the stack
-cache and verifies the ideas and concepts presented here. We thank
+Sahar Abbaspourseyedi has been working on the stack
+cache to verify the ideas and concepts presented here. We thank
 Rasmus Bo S{\o}rensen for fixing some documentation errors.
 
 This work was partially funded under the
@@ -287,7 +287,7 @@ Patmos contains several on-chip memories, as sketched in Figure~\ref{fig:pipelin
 We apply the idea of split caches~\cite{jop:dcache:rts} to simplify and enhance
 the cache analysis. Instructions are fetched from the instruction cache.
 Patmos also supports instruction and data scratchpad memories.
-Stack allocated data is cached in a stack cache and we envision also a normal
+Stack allocated data is cached in a stack cache the other data in the
 data cache with LRU replacement. Accesses to data that are hard to analyze can
 bypass the data cache.
 
@@ -310,31 +310,31 @@ Figure~\ref{fig:registers}. In short, Patmos offers:
 The general-purpose registers \texttt{R} are read in the \code{DEC} stage
 and written in the \code{WB} stage. Full forwarding makes them available
 in the \code{EX} stage before written into the register file.
-
 The predicate registers are single bits that are set and read in the \code{EX}
 stage.
-
-The special registers \code{S} is just a collection of various `special'
-processor registers. These registers might be used by different units/stages
-in the pipeline and are not physically collected in a `register file'.
+The special registers \code{S} is just a collection of various ``special''
+processor registers (e.g., stack cache pointers).
+These registers might be used by different units/stages
+in the pipeline and are not physically collected in a ``register file''.
 The pipeline stage where those registers are read and written by the
 \code{mfs} and \code{mts} are dependent on the type of the special
 register.
-
+%
 \martin{The three `register' files shall constitute the state of the processor.
 Every non-obvious register, such as method base, shall be mapped to a
 `special' register. Even the current PC on an interrupt shall end up in a
 register that is mapped into the special register domain.}
-
+%
 \stefan{Umm .. it would be really good to define somewhere in which stages which special register is actually read or written by mfs/mts
 ;).}
-
+%
 So all-in-all the recoverable process state is: general-purpose registers
 \code{R}, the predicates \code{P}, and a collection of various processor
-registers mapped to the `special' register files \code{S}.
+registers mapped to the ``special'' register file \code{S}.
 
 Concurrently writing and reading the same register in the same cycle
-will, for the read, yield the old value of the register. Reads in
+will, for the read, yield the new value of the register (the register file
+provides internal forwarding). Reads in
 subsequent cycles return the result most recently written to the
 register, i.e., the pipeline implements full forwarding.
 
@@ -490,13 +490,13 @@ section. Gray fields indicate bits whose function is determined by a sub-class
 of the instruction format. Black fields are not used.
 
 \begin{itemize}
-  \item ALUi -- Arithmetic Immediate \\[2ex]
+  \item AluImm -- Arithmetic Immediate (ALUi) \\[2ex]
     \begin{bytefield}{32}
       \bitheader{0-31} \\
       \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{2}{00} & \bitbox{3}{Func} &
       \bitbox{5}{Rd} & \bitbox{5}{Rs1} & \bitbox{12}{Immediate} \\
     \end{bytefield}
-  \item ALUl -- Long Immediate \\[2ex]
+  \item AluLongImm -- Long Immediate (ALUl) \\[2ex]
     \begin{bytefield}{32}
       \bitheader{0-31} \\
       \bitbox{1}{1} & \bitbox{4}{Pred} & \bitbox{5}{11111} &
@@ -505,7 +505,7 @@ of the instruction format. Black fields are not used.
       \bitheader{0-31} \\
       \bitbox{32}{Long Immediate} \\
     \end{bytefield}
-  \item ALU -- Arithmetic \\[2ex]
+  \item Alu -- Arithmetic (ALU) \\[2ex]
         \begin{bytefield}{32}
           \bitheader{0-31} \\
           \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
@@ -514,7 +514,7 @@ of the instruction format. Black fields are not used.
         \end{bytefield}
 
         \begin{bytefield}[leftcurly=.]{32}
-          \begin{leftwordgroup}{\parbox{8em}{ALUr -- Register}}
+          \begin{leftwordgroup}{\parbox{8em}{AluReg -- Register (ALUr)}}
             \bitheader{0-31} \\
             \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
             \bitbox{5}{Rd} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} &
@@ -687,35 +687,33 @@ of the instruction format. Black fields are not used.
 \label{sec:instruction_opcodes}
 
 This section defines the instruction set architecture, the instruction opcodes,
-and the behavior of the respective instructions of Patmos. This section should
-be less used for discussions and should slowly converge to a final definition
-of the instruction set.
+and the behavior of the respective instructions of Patmos.
 
 \subsection{Binary Arithmetic}
 
-Applies to the ALUr, ALUi, and ALUl formats.  Operand \texttt{Op2}
+Applies to the AluReg, AluImm, and AluLongImm formats.  Operand \texttt{Op2}
 denotes either the \texttt{Rs2}, or the \texttt{Immediate} operand, or
 the \texttt{Long Immediate}. The immediate operand is zero-extended.  For
-shift and rotate operations, only the lower $5$ bits of the operand
+shift and rotate operations, only the lower 5 bits of the operand
 are considered. Table~\ref{tab:alufunc} shows the encoding of the
-\texttt{func} field; for ALUi instructions, only functions in the
+\texttt{func} field; for AluImm instructions, only functions in the
 upper half of that table are available.
 
 \begin{itemize}
-  \item ALUr -- Register \\[2ex]
+  \item AluReg -- Register (ALUr) \\[2ex]
     \begin{bytefield}{32}
       \bitheader{0-31} \\
       \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
       \bitbox{5}{Rd} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} &
       \bitbox{3}{000} & \bitbox{4}{Func} \\
     \end{bytefield}
-  \item ALUi -- Arithmetic Immediate \\[2ex]
+  \item AluImm -- Arithmetic Immediate (ALUi) \\[2ex]
     \begin{bytefield}{32}
       \bitheader{0-31} \\
       \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{2}{00} & \bitbox{3}{Func} &
       \bitbox{5}{Rd} & \bitbox{5}{Rs1} & \bitbox{12}{Immediate} \\
     \end{bytefield}
-  \item ALUl -- Long Immediate\\[2ex]
+  \item AluLongImm -- Long Immediate (ALUl)\\[2ex]
     \begin{bytefield}{32}
       \bitheader{0-31} \\
       \bitbox{1}{1} & \bitbox{4}{Pred} & \bitbox{5}{11111} &
@@ -820,7 +818,7 @@ destination registers \texttt{sl} and \texttt{sh}.
 \paragraph{Note}
 
 Multiplications are pipelined, it is thus possible to issue one multiplication on
-every cycles. Multiplications can only be issued in the first slot.
+every clock cycle. Multiplications can only be issued in the first slot.
 
 \stefan{Not yet final. 64bit support and the special registers for multiply might
 vanish. Maybe merge mul and mulu into the ALU Func field somehow to kill off the ALUm format?
@@ -1358,6 +1356,8 @@ delay slots. There are no restrictions with regard to the size or type
 of instructions in the delay slot. The only exception is that
 executing control-flow instructions in a delay slot may lead to
 unspecified behavior.
+Interrupts occurring during the delay slot are delayed until the
+branch has executed.
 
 \begin{table}[hb]
   \centering
@@ -1607,6 +1607,33 @@ with a \texttt{false} predicate is equivalent to a single
 
 All control-flow instructions can only be issued on the first position
 within a bundle.
+
+\clearpage
+\subsection{Instruction List}
+
+\todo{List all Patmos instructions with a usage example}
+
+Following table lists all Patmos instructions with an example usage
+\begin{table}[hb]
+%  \centering
+  \begin{tabular}{ll}
+    \toprule
+    Instruction & Semantics \\
+    \midrule
+    addi r1 = r0, 255 & Add 255 to register r1\\
+    \bottomrule
+  \end{tabular}
+  \caption{Patmos instructions with examples}
+  \label{tab:instructions}
+\end{table}
+
+Can be found in \code{instructions.txt}:
+
+%\begin{verbatim}
+\input{instructions.txt}
+%\end{verbatim}
+
+
 
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
 
@@ -2104,12 +2131,22 @@ Address & I/O Device & read & write \\
 \code{0xf0020008} & Timer & time in $\mu s$ (high word) & $\mu s$ interrupt time (high word) \\
 \code{0xf002000c} & Timer & time in $\mu s$ (low word) &  $\mu s$ interrupt time (low word) \\
 \cmidrule{1-4}
+\code{0xf0030000} & Deadline & may stall the pipeline & deadline cycles \\
+\cmidrule{1-4}
 \code{0xf0080000} & UART & status & control \\
 \code{0xf0080004} & UART & receive buffer & transmit buffer \\
 \cmidrule{1-4}
 \code{0xf0090000} & LED & -- & output register \\
 \cmidrule{1-4}
 \code{0xf00a0000} & Keys & input register & -- \\
+\cmidrule{1-4}
+\code{0xf00c0000} & Audio & & \\
+\dots             & Audio & \multicolumn{2}{c}{Audio interface (tbd)} \\
+\code{0xf00cffff} & Audio & & \\
+\cmidrule{1-4}
+\code{0xf00d0000} & EthMac & & \\
+\dots             & EthMac & \multicolumn{2}{c}{EthMac device (see Section~\ref{sec:ethmac})} \\
+\code{0xf00dffff} & EthMac & & \\
 \bottomrule
 \end{tabular}
 \caption{I/O devices and registers}
@@ -2259,11 +2296,21 @@ Bit & Status & & Control & \\
 \label{tab:uart}
 \end{table}
 
+
+\subsection{Deadline}
+
+The deadline device provides a facility for delaying execution for a
+specified amount of time.
+In each subsequent cycle, the counter is decremented by 1.
+A load to the address stalls the processor pipeline until the counter
+reaches 0.
+
 \subsection{EthMac}
+\label{sec:ethmac}
 
 Patmos supports Ethernet connections through an EthMac device
 \cite{mohor2002ethernet,pezzarossa2015ethernet}. This device is
-usually mapped starting at address \code{0xf00b0000}. The RX/TX buffer
+usually mapped starting at address \code{0xf00d0000}. The RX/TX buffer
 of the device is mapped to offsets \code{0x0000} to \code{0xefff},
 while the device registers of the Ethernet controller are mapped to
 offsets \code{0xf000} to \code{0xffff}. For detailed information on
@@ -2639,7 +2686,7 @@ For the connection of Patmos to a memory controller, I/O devices, the
 core-to-core network on chip, and/or the memory arbiter an interface
 standard needs to be specified. Several standards are available.  We
 decided to base the interface on OCP\footnote{The OCP specification is
-  available at \url{http://www.accellera.org/downloads/standards/ocp/ocp_3.0/}}~\cite{ocp:spec}
+  available at \url{http://accellera.org/downloads/standards/ocp/}}~\cite{ocp:spec}
 and subset the standard as we need it. While we use OCP as basis for
 the hardware interface of Patmos, we expressly do not claim
 compliance with the OCP specification.
@@ -2714,7 +2761,9 @@ register. To enable sub-word transfers of data, the signal
 \subsubsection{\code{OCPio}}
 
 The \code{OCPio} level is derived from the \code{OCPcore} level by
-inserting a register in the master signals. It is slightly more
+inserting a register in the master signals. \code{OCPio} contains
+additional signals and all signals are shown in Table~\ref{tab:ocpiosignals}.
+\code{OCPio} is slightly more
 flexible than \code{OCPcore} and appropriate for I/O devices that do
 not (or cannot) follow the semantics of \code{OCPcore}. Registering
 the master signals changes the protocol as follows:
@@ -2732,6 +2781,27 @@ the master signals changes the protocol as follows:
   derived directly from the pipeline's \code{OCPcore} port always
   accepts responses.
 \end{itemize}
+
+\begin{table}
+  \centering
+  \caption{\code{OCPio} signals}
+  \label{tab:ocpiosignals}
+  \begin{tabular}{ll}
+    \toprule
+    Signal & Description \\
+    \midrule
+    \code{MCmd} & Command \\
+    \code{MAddr} & Address, byte-based, lowest two bits always 0 \\
+    \code{MData} & Data for writes, 32 bits \\
+    \code{MByteEn} & Byte enables for sub-word accesses, 4 bits \\
+    \code{MRespAccept} & Enable handshaking with \code{SResp} \\
+    \cmidrule{1-2}
+    \code{SResp} & Response \\
+    \code{SData} & Data for reads, 32 bits \\
+    \code{SCmdAccept} & Flow control towards the command from the master \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
 \subsubsection{\code{OCPcache}}
 
@@ -2968,6 +3038,164 @@ immediately.
   \code{DVA}.
 \end{enumerate}
 
+\section{Example I/O Device}
+
+In this section we summarize the chapter by showing how to build a simple
+I/O device, a counter.
+Several examples of I/O devices can be found in \code{patmos/hardware/src/io}.
+Adding an I/O device to Patmos consists of 2--3 steps:
+
+\begin{itemize}
+\item Describing the I/O device in Chisel
+\item Adding the device and the address into the configuration file
+\item If the device contains pins to the external world, the pins need to be added to
+the top-level (VHDL) file and to the Quartus (.qsf) or Xilinx configuration files
+\end{itemize}
+
+
+An I/O device has to extend \code{CoreDevice} and needs to define a
+companion object that extends \code{DeviceObject}. The interface to the
+processor is usually \code{OCPcore} where handshaking for the data
+is available via \code{SResp}.
+In this example we will define a read only device that implements a simple
+counter. The complete code for this device can be found in
+\code{patmos/hardware/src/io/Counter.scala}.
+
+\begin{lstlisting}[float, caption={Companion object for the counter device\label{lst:ioex:obj}}]
+object Counter extends DeviceObject {
+
+  def init(params: Map[String, String]) = {}
+
+  def create(params: Map[String, String]): Counter = Module(new Counter())
+
+  trait Pins {}
+}
+\end{lstlisting}
+
+Each device needs to define a companion object that is used as a factory
+object to create devices and needs to overwrite two methods: \code{init()}
+and \code{create()} and needs to overwrite the trait \code{Pins}.
+Listing~\ref{lst:ioex:obj} shows the the companion object for our counter
+device. The method \code{init()} can be used to pass parameters from the
+configuration file (e.g., altde2-115.xml). As we do not use parameters in our
+simple example we just define an empty method. The method \code{create()}
+is the singleton method that shall return an instance of an I/O device.
+In our example we create one \code{Counter} object, wrap it into a \code{Module},
+as any Chisel component, and return it from \code{creat()}. The method
+\code{create()} itself can receive parameter, which we do not use in this example.
+
+\begin{lstlisting}[float, caption={Class for the counter device\label{lst:ioex:class}}]
+class Counter() extends CoreDevice() {
+
+  io.ocp.S.Data := UInt(42)
+  
+  val respReg = Reg(init = OcpResp.NULL)
+  
+  respReg := OcpResp.NULL
+  when(io.ocp.M.Cmd === OcpCmd.RD) {
+    respReg := OcpResp.DVA
+  }
+  
+  io.ocp.S.Resp := respReg
+}
+\end{lstlisting}
+
+Listing~\ref{lst:ioex:class} shows the first version of our I/O device.
+We simply return 42 on a read from the device. However, we also need to
+adhere to the OCP signaling. We need to response to a read command
+in the next clock cycle with a data valid signal (\code{DVA}). Otherwise we need to
+set the response to \code{NULL}.
+
+\begin{lstlisting}[float, caption={Configuring the processor to include our
+counter device\label{lst:ioex:xml}}]
+<IO DevTypeRef="Counter" offset="11"/>
+
+<Dev DevType="Counter" entity="Counter" iface="OcpCore"/>
+\end{lstlisting}
+
+Listing~\ref{lst:ioex:xml} shows the last step, configuring Patmos to use the
+counter. In our example we change the configuration file that is used for
+the default configuration: \code{patmos/hardware/config/altde2-115.xml}.
+The two lines from Listing~\ref{lst:ioex:xml} need to added into section \code{IOs}
+and \code{Devs}, respectively. Offset 11 is the next available I/O address and
+results in mapping our counter to I/O address \code{0xf0030000}
+(each I/O device has a 16 bit local address and 11 in decimal is `b' in hexadecimal).
+
+\begin{lstlisting}[float, caption={Testing the counter device\label{lst:ioex:c}}]
+#include <machine/patmos.h>
+#include <stdio.h>
+
+int main() {
+
+  volatile _IODEV int *io_ptr = (volatile _IODEV int *) 0xf0030000;
+  int val;
+
+  val = *io_ptr;
+  printf("%d\n", val);
+}
+
+\end{lstlisting}
+
+Listing~\ref{lst:ioex:c} shows a small test program to read our counter device
+and write the value to stdout. As our I/O device lives in the local memory
+area we need to tell the C compiler to the local load and store instructions
+to access the I/O device. This is performed by defining a special pointer
+with the macro \code{\_IODEV}, which we import by including \code{<machine/patmos.h>}.
+
+\begin{lstlisting}[float, caption={Chisel code for counting\label{lst:ioex:cnt}}]
+  val countReg = Reg(init = UInt(0, 32))
+  countReg := countReg + UInt(1)
+  io.ocp.S.Data := countReg
+\end{lstlisting}
+
+To implement a counter we need a register and some addition.
+Listing~\ref{lst:ioex:cnt} hows the Chisel code for this free running counter.
+We now have a device the ticks at the processor frequency and can be used
+to measure execution time. Listing~\ref{lst:ioex:measure} shows how to use
+our counter to measure the execution time of the print function with a simple
+string print out.
+
+\begin{lstlisting}[float, caption={Measure execution time\label{lst:ioex:measure}}]
+  val1 = *io_ptr;
+  printf("Hello");
+  val2 = *io_ptr;
+
+  printf("Execution time is %d\n", val2-val1);
+\end{lstlisting}
+
+\begin{lstlisting}[float, caption={A writable counter\label{lst:ioex:write}}]
+class Counter() extends CoreDevice() {
+
+  val countReg = Reg(init = UInt(0, 32))
+  countReg := countReg + UInt(1)
+  when (io.ocp.M.Cmd === OcpCmd.WR) {
+    countReg := io.ocp.M.Data 
+  }
+  
+  val respReg = Reg(init = OcpResp.NULL)
+  respReg := OcpResp.NULL
+  when(io.ocp.M.Cmd === OcpCmd.RD || io.ocp.M.Cmd === OcpCmd.WR) {
+    respReg := OcpResp.DVA
+  }
+  
+  io.ocp.S.Data := countReg  
+  io.ocp.S.Resp := respReg
+}
+\end{lstlisting}
+
+To complete the example we add a write to the device where we can set
+the value of the counter. Listing~\ref{lst:ioex:write} shows now the complete
+code of our counter where we can set the value. On a OCP write we take the
+data value in the same clock cycle as input to the counter register.
+As with the read operation, we acknowledge the write in the following clock
+cycle with a \code{DVA}.
+
+When the I/O device has more than one register (or some memory), the
+address signals from the OCP connection (\code{io.ocp.M.Addr}) are used
+for address decoding. See for an example the \code{CpuInfo} device.
+
+
+
 
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
 \chapter{Application Binary Interface}
@@ -3033,8 +3261,7 @@ For a dual issue pipeline we need 4 read ports and 2 write ports into the RF.
 We explored double clocking of a on-chip based RF in~\cite{patmos:ppes2011}.
 It is feasible, the resulting maximum frequency fits for the ALU path, but feels
 a little bit brittle. A RF from registers might give a more robust design for the
-two write ports. Furthermore, Chisel does not provide the possibility to use
-more than one clock.
+two write ports.
 
 The ideal solution would be to make it configurable if on-chip memory or
 LCs are used. The issue width should also be configurable.
@@ -3120,18 +3347,18 @@ all tools installed for download from: \url{http://patmos.compute.dtu.dk/}
 %\end{itemize}
 %
 
-\section{Setup On Ubuntu and Mac OS X}
+\section{Setup on Ubuntu and Mac OS X}
 
 In the following we present the Patmos build instructions including setup of
-tools in two different Ubuntu versions and for the Mac OS X.
+tools in Ubuntu and for the Mac OS X.
 
-\subsection{Setup On Ubuntu 14.04.3 LTS 64-Bit}
+\subsection{Setup on Ubuntu 16.04 LTS 64-Bit}
 
 In the following we present the setup of tools within a recent Ubuntu version.
 Here is the list of needed (or recommended) packages:
 
 \begin{verbatim}
-sudo apt-get install git openjdk-7-jdk gitk cmake make g++ texinfo flex bison \
+sudo apt-get install git default-jdk gitk cmake make g++ texinfo flex bison \
   subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby-full \
   liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala
 \end{verbatim}
@@ -3139,11 +3366,11 @@ sudo apt-get install git openjdk-7-jdk gitk cmake make g++ texinfo flex bison \
 Install \code{sbt} with:
 
 \begin{verbatim}
-wget http://dl.bintray.com/sbt/debian/sbt-0.13.2.deb
-sudo dpkg -i sbt-0.13.2.deb
+echo "deb https://dl.bintray.com/sbt/debian /" | sudo tee -a /etc/apt/sources.list.d/sbt.list
+sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 \
+  --recv 2EE0EA64E40A89B84B2DF73499E82A75642AC823
 sudo apt-get update
 sudo apt-get install sbt
-rm sbt-0.13.2.deb
 \end{verbatim}
 
 For the Quartus setup it is best to change the default shell to \code{/bin/bash}:
@@ -3153,6 +3380,13 @@ sudo rm /bin/sh
 sudo ln -s /bin/bash /bin/sh
 \end{verbatim}
 
+
+For building the Patmos documentation (e.g., the handbook) you need to install
+a full version of LaTeX (about 3~GB) with:
+
+\begin{verbatim}
+sudo apt-get install texlive-full doxygen
+\end{verbatim}
 
 %\subsection{Setup On Ubuntu 14.04 LTS 32-Bit}
 %
@@ -3220,6 +3454,12 @@ brew install python3
 pip3 install lxml
 \end{verbatim}
 
+For WCET analysis install
+
+\begin{verbatim}
+brew install lp_solve
+\end{verbatim}
+
 For wave viewing install GTKWave with
 
 \begin{verbatim}
@@ -3261,7 +3501,7 @@ git clone https://github.com/t-crest/patmos-misc.git misc
 
 
 For developers with push permission generate an ssh key and upload
-it at GitHub (see \url{https://help.github.com/articles/generating-ssh-keys}
+it at GitHub (see \url{https://help.github.com/articles/connecting-to-github-with-ssh/}
 for detailed instructions).
 The ssh based clone string for write access is then:
 
@@ -3298,8 +3538,7 @@ and distribution further mix up the files in non-standard ways.}
 not sure about this.}
 
 
-For correct correct signing of your changes set the username and
-email in git with:
+For correct signing of your changes set the username and email in git with:
 
 \begin{verbatim}
 git config --global user.name "Joe Someone"
@@ -3313,6 +3552,12 @@ Optionally, you may additionally add the \code{misc} checkout to your path, so t
 export PATH=$PATH:$HOME/t-crest/misc
 \end{verbatim}
 
+The Patmos documentation (handbook, C library, Argo NoC) can be built with:
+
+\begin{verbatim}
+cd patmos/doc
+make
+\end{verbatim}
 
 \section{Quartus on Linux}
 
@@ -3333,12 +3578,14 @@ bash setup.sh
 
 Then add the \code{bin} directory of Quartus to your \$PATH.
 %
-For access to the serial port and access rights for the USB Blaster following additional steps are needed:
+For access to the serial port the user needs access rights.
 
 \begin{verbatim}
 # Add user to dialout group for the serial port access
 sudo usermod -a -G dialout user
 \end{verbatim}
+
+Logout and login again to update the group settings.
 
 Getting the Altera USB Blaster working on Ubuntu is a little bit brittle.
 Here a collection of tips collected from different places that helped me to
@@ -3374,7 +3621,17 @@ and hope for an output similar to:
   020F70DD   EP3C120/EP4CE115
 \end{verbatim}
 
-Some more fixes...
+In some cases, killing the the jtagd process can make the connection work againg:
+
+\begin{verbatim}
+$ sudo killall -9 jtagd
+$ sudo killall -9 jtagd # Verify that is not running
+jtagd: no process found
+$ jtagconfig
+\end{verbatim}
+
+Some more fixes might be needed (not on a recent try with Ubuntu 14.04):
+
 \begin{verbatim}
 sudo ln -s /lib/x86_64-linux-gnu/libudev.so.1 /usr/lib/libudev.so.0
 jtagconfig -d
@@ -3907,19 +4164,94 @@ a clean checkout of T-CREST, including the benchmarks, and performing a build
 and tests: \code{regtest-init.sh} and \code{regtest.sh}. \code{regtest-init.sh} starts
 the build process with checking out \code{misc} and therefore needs to
 be copied out of the repository to a place for scripts. The regression test will
-send out result emails listed in \code{recipients.txt}.
+send out result emails to all listed in \code{recipients.txt}.
 
 \section{Worst-Case Execution Time Analysis}
 
-The aiT WCET analysis tool supports Patmos as target. The benchmark collection
-of T-CREST (in folder \code{bench}) includes targets for WCET analysis.
+Patmos is currently supported by two WCET analysis tools:
+the AbsInt tool aiT~\cite{aiT} (\code{a3patmos}) and platin also contains
+a WCET analysis backend~\cite{compiler:platin:kps15}.
+In the section we will give a minimal ``Hello World'' example for WCET analysis
+with platin. We use following simple C program, where it is not obvious if the
+addition or multiplication path is the WCET path.
 
-When the aiT version for Patmos (\code{a3patmos}) is in the path, the build of
-the benchmarks includes WCET analysis tasks, where appropriate.
+\begin{verbatim}
+#include <stdio.h>
 
-Details on WCET analysis with platin, including an elaborated example,
-can be found in Section~\ref{sec:toolchain:platin}.
-In \code{bench/build/Malardaln/src} start the tests including Platin WCET analysis with \code{ctest}.
+// foo is the analysis entry point that would be inlined with -O2
+int foo(int b, int val, int val2) __attribute__((noinline));
+int foo(int b, int val, int val2) {
+
+  int i;
+
+  if (b) {
+    for (i=0; i<51; ++i) {
+      val = val * val2;
+    }
+  } else {
+    for (i=0; i<73; ++i) {
+      val = val + val2;
+    }
+  }
+
+  return val;
+}
+
+// The compiler shall not compute the result
+volatile int seed = 3;
+
+int main(int argc, char** argv) {
+
+  int val = seed;
+  int val2 = seed+seed;
+  int b = seed/4;
+
+  int i = foo(b, val, val2);
+//  printf("%d\n", i);
+
+  return i;
+}
+\end{verbatim}
+
+
+
+To be able to analyze a program, the compiler needs to be instructed to
+ouput the program in .pml format during compilation:
+
+\begin{verbatim}
+    patmos-clang -O2 -mserialize=simple.pml simple.c
+\end{verbatim}
+
+The WCET analysis with platin is excuted as follows:
+
+\begin{verbatim}
+    platin wcet -i simple.pml -b a.out -e foo --report
+\end{verbatim}
+
+
+Those commands assume a standard configuration of Patmos that is
+the default single core configuration with the DE2-115 memory timing,
+which is for 4 32-bit bursts in 21
+clock cycles for a cache line read or write. The configuration of the different
+caches within Patmos is as the default is in the hardware configuration.
+
+This folder \code{patmos/wcet} contains this minimal example to explore
+WCET analysis with \code{platin} for Patmos.
+The two commands and further commands to explore the result are
+included in the \code{Makefile}.
+
+\todo{Is the default really correct? Where does it come from?}
+
+More details on WCET analysis with \code{platin} can be found in Section~\ref{sec:toolchain:platin}.
+This section also includes a more elaborated example in
+Subsection~\ref{sec:toolchain:platin:example}.
+
+%The benchmark collection of T-CREST (in folder \code{bench}) includes targets
+%for WCET analysis.
+%When the aiT version for Patmos (\code{a3patmos}) is in the path, the build of
+%the benchmarks includes WCET analysis tasks, where appropriate.
+%In \code{bench/build/Malardaln/src} start the tests including Platin WCET
+%analysis with \code{ctest}.
 
 
 \section{ModelSim License}

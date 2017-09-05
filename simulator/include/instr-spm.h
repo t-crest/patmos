@@ -33,7 +33,7 @@
 //
 // Instruction scratchpad interface.
 //
-// The I-SPM is implemented as a wrapper for a backing instruction cache. 
+// The I-SPM is implemented as a wrapper for a backing instruction cache.
 //
 
 #ifndef PATMOS_INSTR_SPM_H
@@ -44,14 +44,14 @@
 #include "simulation-core.h"
 
 namespace patmos
-{ 
+{
   class instr_spm_t : public instr_cache_t
   {
   private:
-    
+
     /// A map of function addresses to access counters per function.
     typedef std::map<word_t, uint64_t> method_stats_t;
-    
+
     /// The backing memory.
     memory_t *Memory;
 
@@ -59,13 +59,13 @@ namespace patmos
     instr_cache_t *Cache;
 
     /// The size of the I-SPM.
-    word_t Size;
-    
+    uword_t Size;
+
     /// Number of load requests for the SPM.
     uint64_t Num_loads;
-    
+
     method_stats_t Method_stats;
-    
+
   public:
     /// Construct a new instruction SPM instance.
     /// The memory passed to this SPM is not owned by this cache and must be
@@ -73,37 +73,37 @@ namespace patmos
     /// @param memory The memory that is accessed through the SPM.
     /// @param cache the cache to use for non-SPM accesses.
     /// @param size the size of the SPM. It will be mapped to [0..size).
-    instr_spm_t(memory_t &memory, instr_cache_t *icache, word_t size) 
+    instr_spm_t(memory_t &memory, instr_cache_t *icache, word_t size)
     : Memory(&memory), Cache(icache), Size(size),
       Num_loads(0)
     {
     }
-    
+
     virtual ~instr_spm_t() {
       if (Cache) delete Cache;
     }
 
-    virtual void initialize(simulator_t &s, uword_t address) { 
-      Cache->initialize(s, address); 
+    virtual void initialize(simulator_t &s, uword_t address) {
+      Cache->initialize(s, address);
     }
 
     virtual bool fetch(simulator_t &s, uword_t base, uword_t address, word_t iw[NUM_SLOTS]);
 
-    virtual bool load_method(simulator_t &s, word_t address, word_t offset);
+    virtual bool load_method(simulator_t &s, uword_t address, word_t offset);
 
-    virtual bool is_available(simulator_t &s, word_t address);
-    
+    virtual bool is_available(simulator_t &s, uword_t address);
+
     virtual void tick(simulator_t &s) { Cache->tick(s); }
 
-    virtual void print(const simulator_t &s, std::ostream &os) { 
+    virtual void print(const simulator_t &s, std::ostream &os) {
       Cache->print(s, os);
     }
 
     virtual void print_stats(const simulator_t &s, std::ostream &os,
                              const stats_options_t& options);
-    
+
     virtual void reset_stats();
-    
+
     virtual void flush_cache();
   };
 

@@ -38,7 +38,6 @@
 #include "streams.h"
 
 #include <boost/format.hpp>
-#include <boost/concept_check.hpp>
 
 #include <string>
 #include <fstream>
@@ -83,15 +82,15 @@ int main(int argc, char **argv)
       if (pos != std::string::npos) {
         line = line.substr(0, pos);
       }
-      
+
       // replace tabs with spaces to make error outputs match
       // TODO ugly, but sufficient for now, and I want to minimize boost deps
-      for (int i = 0; i < line.size(); i++) {
+      for (unsigned int i = 0; i < line.size(); i++) {
         if (line[i] != '\t') continue;
         line = line.replace(i, 1, 8, ' ');
         i += 7;
       }
-      
+
       // parse the assembly line
       if (!paasm.parse_line(line, iw))
       {

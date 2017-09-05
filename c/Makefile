@@ -8,9 +8,15 @@ LIBNOC=$(BUILDDIR)/libnoc.a
 LIBMP=$(BUILDDIR)/libmp.a
 LIBCORETHREAD=$(BUILDDIR)/libcorethread.a
 LIBETH=$(BUILDDIR)/libeth.a
+LIBAUDIO=$(BUILDDIR)/libaudio.a
 LIBELF=$(BUILDDIR)/libelf.a
+LIBSD=$(BUILDDIR)/libsd.a
 
-NOCINIT?=nocinit.c
+NOCINIT?=cmp/nocinit.c
+
+SHELL=/bin/bash
+#BOOTSPM data is by default in data SPM
+BOOTSPM_BASE?=0x00020000
 
 # Flags for compiling to boot ROM
 CFLAGS-BOOTABLE?=-target patmos-unknown-unknown-elf -Os \
@@ -19,11 +25,12 @@ CFLAGS-BOOTABLE?=-target patmos-unknown-unknown-elf -Os \
 	-mpatmos-disable-function-splitter \
 	-mpatmos-disable-vliw
 LDFLAGS-BOOTABLE?= \
-	-mpatmos-stack-base=0x00020800 -mpatmos-shadow-stack-base=0x00020700 \
+	-mpatmos-stack-base=$$(( $(BOOTSPM_BASE) + 0x800 )) \
+	-mpatmos-shadow-stack-base=$$(( $(BOOTSPM_BASE) + 0x700 )) \
 	-nodefaultlibs -nostdlib -nostartfiles \
 	-Xgold --section-start -Xgold .text=0x0 -e _start \
 	-Xgold --section-start -Xgold .rodata=0xf0008010 \
-	-Xgold --section-start -Xgold .data=0x00020000 \
+	-Xgold --section-start -Xgold .data=$(BOOTSPM_BASE) \
 	-Xllc -mpatmos-subfunction-align=0 \
 	-Xllc -disable-machine-licm -Xllc -disable-machine-cse
 
@@ -31,7 +38,8 @@ LDFLAGS-BOOTABLE?= \
 # Assuming 2 MB of main memory
 CFLAGS?=-target patmos-unknown-unknown-elf -O2 \
 	-I$(CURDIR) -I $(CURDIR)/libelf/ \
-	-mpatmos-disable-vliw
+	-mpatmos-disable-vliw \
+	$(DEFINES)
 LDFLAGS?= \
 	-mpatmos-method-cache-size=0x1000 \
 	-mpatmos-stack-base=0x200000 -mpatmos-shadow-stack-base=0x1f8000 \
@@ -55,25 +63,25 @@ LDFLAGS-VM?= \
 .PHONY: compile
 compile: $(BUILDDIR)/$(APP).elf
 
-VPATH = .:bootable:bootloader:cmp:dhry:include
+VPATH = .:bootable:bootloader:cmp:dhry:include:audio_apps
 
 $(BUILDDIR)/%.o: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS) -c -o $@ $(filter %.c,$^)
 
 # A target for regular applications
-$(BUILDDIR)/%.elf: %.c $(NOCINIT) $(LIBMP) $(LIBNOC) $(LIBCORETHREAD) $(LIBETH) $(LIBELF) Makefile
+$(BUILDDIR)/%.elf: %.c $(NOCINIT) $(LIBMP) $(LIBNOC) $(LIBCORETHREAD) $(LIBETH) $(LIBSD) $(LIBAUDIO) $(LIBELF) Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc -lcorethread -leth -lelf
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc -lcorethread -leth -lelf -lsd -lm -laudio
 
 $(BUILDDIR)/%.s: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS) -fpatmos-emit-asm -S -o $@ $(filter %.c,$^)
 
 # A target for bootable applications (e.g., the bootloader)
-$(BUILDDIR)/bootable-%.elf: %.c $(LIBETH) Makefile
+$(BUILDDIR)/bootable-%.elf: %.c $(LIBETH) $(LIBNOC) $(NOCINIT) Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
-	$(CC) $(CFLAGS-BOOTABLE) $(LDFLAGS-BOOTABLE) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -leth
+	$(CC) $(CFLAGS-BOOTABLE) $(LDFLAGS-BOOTABLE) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -leth -lnoc
 
 $(BUILDDIR)/bootable-%.s: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
@@ -82,12 +90,12 @@ $(BUILDDIR)/bootable-%.s: %.c Makefile
 # A target for applications that use virtual memory
 $(BUILDDIR)/vm-%.elf: %.c $(NOCINIT) $(LIBMP) $(LIBNOC) $(LIBCORETHREAD) $(LIBETH) $(LIBELF) Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
-	$(CC) $(CFLAGS-VM) $(LDFLAGS-VM) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc -lcorethread -leth -lelf
+	$(CC) $(CFLAGS-VM) $(LDFLAGS-VM) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc -lsd -lcorethread -leth -lelf
 
 # application-specific additional dependencies
 $(BUILDDIR)/bootable-bootloader.elf: download.c decompress.c ethmac.c boot.h bootable.h
-$(BUILDDIR)/bootable-cmpmaster.elf: download.c decompress.c ethmac.c boot.h cmpboot.h bootable.h
-$(BUILDDIR)/bootable-cmpslave.elf: boot.h cmpboot.h bootable.h
+$(BUILDDIR)/bootable-cmpmaster.elf: download.c decompress.c ethmac.c boot.h bootable.h
+$(BUILDDIR)/bootable-cmpslave.elf: boot.h bootable.h
 
 $(BUILDDIR)/bootable-mandelbrot.elf: bootable.h
 $(BUILDDIR)/mandelbrot.elf: bootable.h
@@ -108,6 +116,10 @@ $(BUILDDIR)/bootable-hello_sum_reduced.elf: bootable.h
 
 $(BUILDDIR)/bootable-mp_test.elf: bootable.h
 
+# touch the nocinit file
+$(NOCINIT):
+	touch $@
+
 # library for network-on-chip
 .PHONY: libnoc
 libnoc: $(LIBNOC)
@@ -118,14 +130,19 @@ $(LIBNOC): $(BUILDDIR)/libnoc/noc.o
 # library for message passing
 .PHONY: libmp
 libmp: libnoc $(LIBMP)
-$(BUILDDIR)/libmp/mp.o: libmp/mp.h libnoc/noc.h libnoc/coreset.h bootloader/cmpboot.h
-$(LIBMP): $(BUILDDIR)/libmp/mp.o
+$(BUILDDIR)/libmp/utils.o: libmp/mp.h libmp/mp_internal.h
+$(BUILDDIR)/libmp/mp.o: libmp/mp.h libmp/mp_internal.h libnoc/noc.h libnoc/coreset.h
+$(BUILDDIR)/libmp/queuing.o: libmp/mp.h libmp/mp_internal.h libnoc/noc.h
+$(BUILDDIR)/libmp/sampling.o: libmp/mp.h libmp/mp_internal.h libnoc/noc.h
+$(BUILDDIR)/libmp/lock.o: libmp/mp.h libmp/mp_internal.h libnoc/noc.h
+$(BUILDDIR)/libmp/collective.o: libmp/mp.h libmp/mp_internal.h libnoc/noc.h libnoc/coreset.h
+$(LIBMP): $(BUILDDIR)/libmp/utils.o $(BUILDDIR)/libmp/mp.o $(BUILDDIR)/libmp/queuing.o $(BUILDDIR)/libmp/sampling.o $(BUILDDIR)/libmp/lock.o
 	patmos-ar r $@ $^
 
 # library for corethreads
 .PHONY: libcorethread
-libcorethread: cmpboot.h $(LIBCORETHREAD)
-$(BUILDDIR)/libcorethread/corethread.o: libcorethread/corethread.h bootloader/cmpboot.h
+libcorethread: $(LIBCORETHREAD)
+$(BUILDDIR)/libcorethread/corethread.o: libcorethread/corethread.h
 $(LIBCORETHREAD): $(BUILDDIR)/libcorethread/corethread.o
 	patmos-ar r $@ $^
 
@@ -135,8 +152,22 @@ libeth: $(LIBETH)
 $(LIBETH): $(patsubst ethlib/%.c,$(BUILDDIR)/ethlib/%.o,$(wildcard ethlib/*.c))
 	patmos-ar r $@ $^
 
+#library for audio
+.PHONY: libaudio
+libaudio: $(LIBAUDIO)
+$(BUILDDIR)/libaudio/dsp_algorithms.o: libaudio/dsp_algorithms.h
+$(BUILDDIR)/libaudio/audio.o: libaudio/audio.h libaudio/audioinit.h libaudio/latencyinit.h
+$(LIBAUDIO): $(BUILDDIR)/libaudio/dsp_algorithms.o $(BUILDDIR)/libaudio/audio.o
+	patmos-ar r $@ $^
+
 # library for parsing ELF files
 .PHONY: libelf
 libelf: $(LIBELF)
 $(LIBELF): $(patsubst libelf/%.c,$(BUILDDIR)/libelf/%.o,$(wildcard libelf/*.c))
+	patmos-ar r $@ $^
+
+# library for using SD card
+.PHONY: libsd
+libsd: $(LIBSD)
+$(LIBSD): $(patsubst libsd/%.c,$(BUILDDIR)/libsd/%.o,$(wildcard libsd/*.c))
 	patmos-ar r $@ $^

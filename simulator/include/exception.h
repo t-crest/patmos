@@ -70,7 +70,7 @@ namespace patmos
 
       /// An illegal memory address has been accessed.
       ILLEGAL_ACCESS,
-      
+
       /// A stack operation exceeded the stack size.
       STACK_EXCEEDED,
 
@@ -97,7 +97,7 @@ namespace patmos
 
     /// The value of the cycle counter when the exception was raised.
     unsigned int Cycle;
-    
+
     /// An optional error message.
     std::string Message;
 
@@ -107,21 +107,21 @@ namespace patmos
     /// the address of an unmapped memory access, et cetera.
     simulation_exception_t(kind_t kind, uword_t info, uword_t pc = 0,
                            unsigned int cycle = 0) :
-        Kind(kind), Message(""), Info(info), PC(pc), Cycle(cycle)
+        Kind(kind), Info(info), PC(pc), Cycle(cycle), Message("")
     {}
-    
-    simulation_exception_t(kind_t kind, std::string msg, uword_t pc = 0, 
+
+    simulation_exception_t(kind_t kind, std::string msg, uword_t pc = 0,
                            unsigned int cycle = 0) :
-        Kind(kind), Message(msg), Info(0), PC(pc), Cycle(cycle)
+        Kind(kind), Info(0), PC(pc), Cycle(cycle), Message(msg)
     {}
 
   public:
-    void set_cycle(unsigned int cycle, uword_t pc) 
+    void set_cycle(unsigned int cycle, uword_t pc)
     {
       Cycle = cycle;
       PC = pc;
     }
-    
+
     /// Return the kind of the simulation exception.
     /// @return The kind of the simulation exception.
     kind_t get_kind() const
@@ -135,7 +135,7 @@ namespace patmos
     {
       return Info;
     }
-    
+
     std::string get_message() const
     {
       if (Message.empty()) {
@@ -146,7 +146,7 @@ namespace patmos
         return Message;
       }
     }
-    
+
     std::string to_string(symbol_map_t &sym) const {
       std::string kind_msg;
       switch (Kind) {
@@ -233,14 +233,14 @@ namespace patmos
     {
       throw simulation_exception_t(ILLEGAL_ACCESS, address);
     }
-    
+
     /// Throw an illegal access simulation exception.
     /// @param address The unmapped address.
     static void illegal_access(std::string msg) __attribute__ ((noreturn))
     {
       throw simulation_exception_t(ILLEGAL_ACCESS, msg);
     }
-    
+
     /// Throw a stack-cache-size-exceeded simulation exception.
     static void stack_exceeded(std::string msg)  __attribute__ ((noreturn))
     {
@@ -264,7 +264,7 @@ namespace patmos
     {
       throw simulation_exception_t(ILLEGAL_PC, msg);
     }
-    
+
     /// Throw a unaligned simulation exception.
     static void unaligned(uword_t address) __attribute__ ((noreturn))
     {

@@ -57,8 +57,8 @@ namespace patmos
     virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
                                 instruction_data_t &instr,
                                 reloc_info_t &reloc) const;
-                                               
-    virtual udword_t encode(std::string mnemonic, 
+
+    virtual udword_t encode(std::string mnemonic,
                           const instruction_data_t &instr) const;
   };
 
@@ -76,8 +76,8 @@ namespace patmos
     virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
                                 instruction_data_t &instr,
                                 reloc_info_t &reloc) const;
-                                               
-    virtual udword_t encode(std::string mnemonic, 
+
+    virtual udword_t encode(std::string mnemonic,
                           const instruction_data_t &instr) const;
   };
 
@@ -95,8 +95,8 @@ namespace patmos
     virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
                                 instruction_data_t &instr,
                                 reloc_info_t &reloc) const;
-                                               
-    virtual udword_t encode(std::string mnemonic, 
+
+    virtual udword_t encode(std::string mnemonic,
                           const instruction_data_t &instr) const;
   };
 
@@ -114,8 +114,8 @@ namespace patmos
     virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
                                 instruction_data_t &instr,
                                 reloc_info_t &reloc) const;
-                                               
-    virtual udword_t encode(std::string mnemonic, 
+
+    virtual udword_t encode(std::string mnemonic,
                           const instruction_data_t &instr) const;
   };
 
@@ -133,8 +133,8 @@ namespace patmos
     virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
                                 instruction_data_t &instr,
                                 reloc_info_t &reloc) const;
-                                               
-    virtual udword_t encode(std::string mnemonic, 
+
+    virtual udword_t encode(std::string mnemonic,
                           const instruction_data_t &instr) const;
   };
 
@@ -152,8 +152,8 @@ namespace patmos
     virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
                                 instruction_data_t &instr,
                                 reloc_info_t &reloc) const;
-                                               
-    virtual udword_t encode(std::string mnemonic, 
+
+    virtual udword_t encode(std::string mnemonic,
                           const instruction_data_t &instr) const;
   };
 
@@ -171,8 +171,8 @@ namespace patmos
     virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
                                 instruction_data_t &instr,
                                 reloc_info_t &reloc) const;
-                                               
-    virtual udword_t encode(std::string mnemonic, 
+
+    virtual udword_t encode(std::string mnemonic,
                           const instruction_data_t &instr) const;
   };
 
@@ -190,8 +190,8 @@ namespace patmos
     virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
                                 instruction_data_t &instr,
                                 reloc_info_t &reloc) const;
-                                               
-    virtual udword_t encode(std::string mnemonic, 
+
+    virtual udword_t encode(std::string mnemonic,
                           const instruction_data_t &instr) const;
   };
 
@@ -209,8 +209,8 @@ namespace patmos
     virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
                                 instruction_data_t &instr,
                                 reloc_info_t &reloc) const;
-                                               
-    virtual udword_t encode(std::string mnemonic, 
+
+    virtual udword_t encode(std::string mnemonic,
                           const instruction_data_t &instr) const;
   };
 
@@ -228,8 +228,8 @@ namespace patmos
     virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
                                 instruction_data_t &instr,
                                 reloc_info_t &reloc) const;
-                                               
-    virtual udword_t encode(std::string mnemonic, 
+
+    virtual udword_t encode(std::string mnemonic,
                           const instruction_data_t &instr) const;
   };
 
@@ -250,8 +250,8 @@ namespace patmos
     virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
                                 instruction_data_t &instr,
                                 reloc_info_t &reloc) const;
-                                               
-    virtual udword_t encode(std::string mnemonic, 
+
+    virtual udword_t encode(std::string mnemonic,
                           const instruction_data_t &instr) const;
   };
 
@@ -272,8 +272,8 @@ namespace patmos
     virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
                                 instruction_data_t &instr,
                                 reloc_info_t &reloc) const;
-                                               
-    virtual udword_t encode(std::string mnemonic, 
+
+    virtual udword_t encode(std::string mnemonic,
                           const instruction_data_t &instr) const;
   };
 
@@ -291,8 +291,8 @@ namespace patmos
     virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
                                 instruction_data_t &instr,
                                 reloc_info_t &reloc) const;
-                                               
-    virtual udword_t encode(std::string mnemonic, 
+
+    virtual udword_t encode(std::string mnemonic,
                           const instruction_data_t &instr) const;
   };
 
@@ -310,8 +310,8 @@ namespace patmos
     virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
                                 instruction_data_t &instr,
                                 reloc_info_t &reloc) const;
-                                               
-    virtual udword_t encode(std::string mnemonic, 
+
+    virtual udword_t encode(std::string mnemonic,
                           const instruction_data_t &instr) const;
   };
 
@@ -329,8 +329,8 @@ namespace patmos
     virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
                                 instruction_data_t &instr,
                                 reloc_info_t &reloc) const;
-                                               
-    virtual udword_t encode(std::string mnemonic, 
+
+    virtual udword_t encode(std::string mnemonic,
                           const instruction_data_t &instr) const;
   };
 
@@ -348,8 +348,8 @@ namespace patmos
     virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
                                 instruction_data_t &instr,
                                 reloc_info_t &reloc) const;
-                                               
-    virtual udword_t encode(std::string mnemonic, 
+
+    virtual udword_t encode(std::string mnemonic,
                           const instruction_data_t &instr) const;
   };
 
@@ -373,8 +373,8 @@ namespace patmos
     virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
                                 instruction_data_t &instr,
                                 reloc_info_t &reloc) const;
-                                               
-    virtual udword_t encode(std::string mnemonic, 
+
+    virtual udword_t encode(std::string mnemonic,
                           const instruction_data_t &instr) const;
   };
 
@@ -392,8 +392,8 @@ namespace patmos
     virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
                                 instruction_data_t &instr,
                                 reloc_info_t &reloc) const;
-                                               
-    virtual udword_t encode(std::string mnemonic, 
+
+    virtual udword_t encode(std::string mnemonic,
                           const instruction_data_t &instr) const;
   };
 

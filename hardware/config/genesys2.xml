@@ -1,0 +1,36 @@
+<patmos default="default.xml">
+  <description>Configuration for the Xilinx/Digilent Genesys2 board with off-chip DDR3 memory</description>
+
+  <frequency Hz="100000000" />
+  <pipeline dual="false" />
+
+  <!--Burst-lenght modified to 8-->
+  <bus burstLength="8" writeCombine="false" mmu="false" />
+
+  <ICache type="method" size="4k" assoc="16" repl="fifo" />
+  <DCache size="2k" assoc="1" repl="" writeThrough="true" />
+  <SCache size="2k" />
+
+  <ExtMem size="1G" DevTypeRef="MemBridge" />
+
+  <IOs>
+	<IO DevTypeRef="Uart" offset="8"/>
+	<IO DevTypeRef="Leds" offset="9"/>
+  </IOs>
+
+  <Devs>
+	<Dev DevType="Uart" entity="Uart" iface="OcpCore">
+	  <params>
+		<param name="baudRate" value="115200"/>
+  		<param name="fifoDepth" value="16"/>
+	  </params>
+	</Dev>
+	<Dev DevType="Leds" entity="Leds" iface="OcpCore">
+	  <params>
+		<param name="ledCount" value="8"/>
+	  </params>
+	</Dev>
+    <Dev DevType="MemBridge" entity="MemBridge" iface="OcpBurst">
+    </Dev>
+  </Devs>
+</patmos>

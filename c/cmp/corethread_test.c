@@ -23,8 +23,8 @@ const int NOC_MASTER = 0;
 #define MP_CHAN_2_NUM_BUF 2
 #define MP_CHAN_2_BUF_SIZE 40
 
-mpd_t chan1;
-mpd_t chan2;
+qpd_t chan1;
+qpd_t chan2;
 
 communicator_t comm;
 coreid_t cores[] = {0,2};
@@ -68,7 +68,7 @@ int main() {
 
   // Initialization of message passing buffers
   // mp_chan_init() return false if local and remote
-  // addresses are not aligned to double words
+  // addresses are not aligned to words
   if (!mp_chan_init(&chan1,
       get_cpuid(),
       worker_1,

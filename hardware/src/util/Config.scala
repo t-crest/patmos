@@ -42,7 +42,6 @@ import io.Device
 import scala.tools.nsc.interpreter.IMain
 import scala.tools.nsc.Settings
 import java.io.DataInputStream
-import ch.epfl.lamp.fjbg.{ FJBGContext, JClass }
 import java.io.File
 
 /**
@@ -356,14 +355,9 @@ object Config {
               _ || _.getMethods.map(_.getName).contains(m.getName))
 
             if (!isInherited) {
-              val fileName = name+"$Pins.class"
-              val classStream = new DataInputStream(clazz.getResourceAsStream(fileName))
-              val jClass = new FJBGContext().JClass(classStream)
-
               ChiselError.error("Pins trait for IO device "+name+
                                 " cannot declare non-inherited member "+m.getName+
-                                ", only member "+methName+" allowed"+
-                                " (file "+jClass.getSourceFileName+")")
+                                ", only member "+methName+" allowed")
             }
           }
         }
@@ -400,14 +394,9 @@ object Config {
             _ || _.getMethods.map(_.getName).contains(m.getName))
 
           if (!isInherited) {
-            val fileName = name+"$Intrs.class"
-            val classStream = new DataInputStream(clazz.getResourceAsStream(fileName))
-            val jClass = new FJBGContext().JClass(classStream)
-
             ChiselError.error("Intrs trait for IO device "+name+
                               " cannot declare non-inherited member "+m.getName+
-                              ", only member "+methName+" allowed"+
-                              " (file "+jClass.getSourceFileName+")", null)
+                              ", only member "+methName+" allowed")
           }
         }
       }

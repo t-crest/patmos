@@ -113,26 +113,26 @@ namespace patmos
       // TODO at least print a warning?
       return;
     }
-    
+
     cycles_map_t::iterator it = cycles_map.find(stack.back());
-    
+
     prof_funcinfo_t *callee;
-    
+
     if (it == cycles_map.end()) {
-      // No entry found, we return from a caller where we reset the stats in the 
+      // No entry found, we return from a caller where we reset the stats in the
       // meantime.
       prof_funcinfo_t new_callee = {0};
       new_callee.min = (uint64_t) -1U;
       new_callee.enter_cycle = reset_cycle;
       new_callee.depth = 1;
       cycles_map[stack.back()] = new_callee;
-      
-      // We just use the caller as the entry function for now, it will be 
+
+      // We just use the caller as the entry function for now, it will be
       // updated while we go up the call stack to the root.
       entry = stack.back();
-      
+
       callee = &cycles_map[stack.back()];
-    } 
+    }
     else {
       // update callee info (current function)
       callee = &it->second;
@@ -199,8 +199,8 @@ namespace patmos
     os << "\n";
     return os;
   }
-  
-  void profiling_t::reset_stats(uint64_t cycle) 
+
+  void profiling_t::reset_stats(uint64_t cycle)
   {
     reset_cycle = cycle;
     cycles_map.clear();
