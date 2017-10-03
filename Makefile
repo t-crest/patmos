@@ -224,6 +224,8 @@ clean: mostlyclean
 	-rm -rf $(INSTALLDIR)/bin
 	-rm -rf $(INSTALLDIR)/lib
 	-rm -rf $(JAVATOOLSBUILDDIR)/lib
+	-rm -rf $(HWBUILDDIR)
+	-rm -rf $(CURDIR)/hardware/emulator_config.h
 	for ext in $(CLEANEXTENSIONS); do \
 		find `ls` -name \*.$$ext -print -exec rm -r -f {} \; ; \
 	done
