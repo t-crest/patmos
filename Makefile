@@ -45,7 +45,7 @@ JAVATOOLSBUILDDIR?=$(CURDIR)/tools/java/build
 SCRIPTSBUILDDIR?=$(CURDIR)/tools/scripts/build
 HWBUILDDIR?=$(CURDIR)/hardware/build
 # Where to install tools
-INSTALLDIR?=$(CURDIR)/install
+INSTALLDIR?=$(CURDIR)/../local
 HWINSTALLDIR?=$(INSTALLDIR)
 
 all: tools emulator patmos
@@ -112,7 +112,7 @@ emulator:
 	-mkdir -p $(HWBUILDDIR)
 	$(MAKE) -C hardware BOOTBUILDROOT=$(CURDIR) BOOTBUILDDIR=$(BUILDDIR) BOOTAPP=$(BOOTAPP) BOOTBIN=$(BUILDDIR)/$(BOOTAPP).bin BOARD=$(BOARD) emulator
 	-mkdir -p $(HWINSTALLDIR)/bin
-	cp $(HWBUILDDIR)/emulator $(HWINSTALLDIR)/bin
+	cp $(HWBUILDDIR)/emulator $(HWINSTALLDIR)/bin/patemu
 
 # Assemble a program
 asm: asm-$(BOOTAPP)
@@ -222,8 +222,8 @@ mostlyclean:
 	-rm -rf hardware/target
 
 clean: mostlyclean
-	-rm -rf $(INSTALLDIR)/bin
-	-rm -rf $(INSTALLDIR)/lib
+#	-rm -rf $(INSTALLDIR)/bin
+#	-rm -rf $(INSTALLDIR)/lib
 	-rm -rf $(JAVATOOLSBUILDDIR)/lib
 	-rm -rf $(HWBUILDDIR)
 	-rm -rf $(CURDIR)/hardware/emulator_config.h
