@@ -3945,34 +3945,18 @@ A multicore Patmos with shared external memory and the network-on-chip Argo is c
 the Aegean framework. Aegean is a collection of Python scripts that read in XML based configuration
 description (e.g., topology, network connections, processor types,...). Aegean generates the Chisel based
 components (Partmos, memory arbitration tree, and memory controller), generates the VHDL top-level
-to connect them with the VHDL based NoC, synthesizes the hardware, compiles the application for the
-individual cores, configures the FPGA, and downloads the application.
+to connect them with the VHDL based NoC, synthesizes the hardware, may compile the application for the
+individual cores, configures the FPGA, and may download the application.
 
-In directory \code{aegean} run:
-
-\begin{verbatim}
-make platform AEGEAN_PLATFORM=mandelbrot_demo
-make synth config AEGEAN_PLATFORM=mandelbrot_demo
-\end{verbatim}
-
-to generate (and synthesize) the mandelbrot application on a 4 core
-version of Patmos for an Altera DE2-115 FPGA board. This application is compiled
-into the on-chip memories and therefore executing right after configuration of the
-FPGA. Have a terminal open and connected to the serial port (115200 baud, 1 stop bit,
-no handshake) during and after the FPGA configuration and you shall see the output of
-the mandelbrot calculation.
-
-However, the approach to have the application in on-chip memory works for tiny programs
-only. Furthermore, each software change needs a new synthesize run. A better approach is
-to build a platform that contains a bootloader (similar to the single core version) and some
-startup code to synchronize the program start with the other cores. This platform is the default
-configuration in Aegean and needs to be generated only once with:
+The default platform can be built from within Aegean with:
 
 \begin{verbatim}
 make platform
 make synth
 \end{verbatim}
 
+The default platform is a 4-core multicore for the DE2-115 FPGA board.
+To use the 9 core version set \code{AEGEAN\_PLATFORM} to \code{altde2-115-9core}.
 The FPGA is configured from within the \code{aegean} directory with:
 
 \begin{verbatim}
@@ -3993,6 +3977,32 @@ the FPGA from within the Aegean project for the multi-core version.
 
 \todo{We shall have here three simple hello world applications: (1) just plain shared memory 4 cores saying hello - DONE -,
 (2) a CMP program that uses shared memory, and (3) a simple NoC setup.}
+
+\subsubsection{On-chip Application}
+
+For small experiments it is possible to execute a multicore program out
+of the on-chip memories. The Mandelbrot demo is one example.
+
+In directory \code{aegean} run:
+
+\begin{verbatim}
+make platform AEGEAN_PLATFORM=mandelbrot_demo
+make synth config AEGEAN_PLATFORM=mandelbrot_demo
+\end{verbatim}
+
+to generate (and synthesize) the mandelbrot application on a 4 core
+version of Patmos for an Altera DE2-115 FPGA board. This application is compiled
+into the on-chip memories and therefore executing right after configuration of the
+FPGA. Have a terminal open and connected to the serial port (115200 baud, 1 stop bit,
+no handshake) during and after the FPGA configuration and you shall see the output of
+the mandelbrot calculation.
+
+However, the approach to have the application in on-chip memory works for tiny programs
+only. Furthermore, each software change needs a new synthesize run. A better approach is
+to build a platform that contains a bootloader (similar to the single core version) and some
+startup code to synchronize the program start with the other cores.
+
+
 
 
 %[2014-02-28 17:24:08 ] Stefan Hepp: #include <machine/patmos.h>
@@ -4403,9 +4413,9 @@ units are allowed: \texttt{k}, \texttt{m}, \texttt{g}, or \texttt{kb},
   \end{tabular}
 \end{table}
 
-\subsection{patmos-emulator}
+\subsection{Patmos Emulator}
 
-The tool \texttt{patmos-emulator} provides a C++-based simulator that
+The tool \texttt{patemu} provides a C++-based simulator that
 is derived from the actual hardware description. While it is slower
 and less flexible than \texttt{pasim}, its behavior is identical to
 the behavior of actual hardware. It is therefore useful for
@@ -4416,8 +4426,8 @@ Verilog/VHDL-based simulations.
 
 \paragraph{Usage} 
 
-The general usage is \texttt{patmos-emulator [<file>]}. When invoked
-without argument, \texttt{patmos-emulator} executes the code in the
+The general usage is \texttt{patemu [<file>]}. When invoked
+without argument, \texttt{patemu} executes the code in the
 boot ROM of the processor. When given an ELF file as argument, the
 emulator loads the file and executes it
 directly. Table~\ref{tab:emulopts} shows the command-line options for
@@ -4425,7 +4435,7 @@ the emulator.
 
 \begin{table}
   \centering
-  \caption{Options for \texttt{patmos-emulator}}
+  \caption{Options for \texttt{patemu}}
   \label{tab:emulopts}
   \begin{tabular}{>{\ttfamily}l<{}p{.66\textwidth}}
     \toprule
@@ -4498,7 +4508,7 @@ the serial port to be used for downloading. The argument
 The tool \texttt{patex} combines FPGA configuration and application
 download such that ELF files can be executed on the FPGA without
 manual intervention. It can therefore act as a drop-in replacement for
-\texttt{pasim} and \texttt{patmos-emulator}. As \texttt{patex}
+\texttt{pasim} and \texttt{patemu}. As \texttt{patex}
 executes the application on actual hardware, it is particularly useful
 for applications where simulation or emulation would be prohibitively
 slow.
