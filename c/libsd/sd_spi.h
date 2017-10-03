@@ -1,7 +1,7 @@
 /*
-   Copyright 2014 Technical University of Denmark, DTU Compute. 
+   Copyright 2017 Max Rishoej Pedersen
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -31,88 +31,60 @@
  */
 
 /*
- * A simple ISA simulator of Patmos. Constant definitions.
- * 
- * Author: Martin Schoeberl (martin@jopdesign.com)
- * 
- * 
+ * Driver for SD host controller using the SPI protocol.
+ *
+ * Authors: Max Rishoej (maxrishoej@gmail.com)
  */
 
-package patsim
+#ifndef SD_SPI_DRIVER_H_
+#define SD_SPI_DRIVER_H_
 
-/**
- * Opcodes are 5 bit, Arithmetic short immediate use 3 of the 5 bits for
- * for the function.
- */
-object Opcode {
-  val AluImm = 0x00
-  val Alu = 0x08
-  val AluLongImm = 0x1f
-  val Branch = 0x13
-  val BranchCf = 0x15
-}
-/**
- * The Opc field. Not sure if I like two opcode fields
- */
-object OpcodeExt {
-  val AluReg = 0x00
-  val AluMul = 0x02
-}
+#include <stdint.h>
 
-/**
- * Function for an ALU operation
- */
-object Function {
-  val ADD = 0x0
-  val SUB = 0x1
-  val XOR = 0x2
-  val SL = 0x3
-  val SR = 0x4
-  val SRA = 0x5
-  val OR = 0x6
-  val AND = 0x7
-  val NOR = 0xb
-  val SHADD = 0xc
-  val SHADD2 = 0xd
-}
-/**
- * These constants could be shared between the hardware
- * definition and the simulation.
- */
-object Constants {
+// Error codes
+typedef enum {
+  SD_SUCCESS,
+  SD_BADRES,
+  SD_CLK_DIVISOR, // Clock rate not an even divisor
+  SD_CLK_HIGH,    // Clock rate too high
+  SD_GOIDLE,      // Could not GO_IDLE
+  SD_TIMEOUT,
+  SD_SENDIFCOND_BADRES,
+  SD_SENDOPCOND_BADRES,
+  SD_SENDOPCOND_UNABLE,
+  SD_CRC_BADRES,
+  SD_BLKLEN_BADRES,
+  SD_BADCRC,
+  SD_WR,
+} SDErr;
 
+// Last response from SD Card
+// TODO: Fill in missing types
+typedef union {
+  uint8_t r1;
+  uint8_t r7[5];
+} SDResponse;
 
+// --- SPI related ---
+SDErr spi_set_clockrate(const uint32_t rate);
+uint8_t spi_send(const uint8_t dat);
+void spi_clear();
 
-  // only two bits for immediate
-//  val OPCODE_ALUI = 0x0
-//
-//  val OPCODE_ALU = 0x08
-  val OPCODE_SPC = 0x09
-  val OPCODE_LDT = 0x0a
-  val OPCODE_STT = 0x0b
-  val OPCODE_STC = 0x0c
+// --- SD related ---
+typedef struct {
+  uint32_t block_sz;
+} SDInfo;
 
-//  val OPCODE_ALUL = 0x1f
+SDErr sd_init();
+SDErr sd_read_single_block(uint32_t addr, uint8_t *buffer, uint32_t block_sz);
+SDErr sd_write_single_block(uint32_t addr, uint8_t *buffer, uint32_t block_sz);
+SDErr sd_info();
 
-  val OPCODE_CFL_LOW = 0x10
-  // opcode for control flow is 4 bits plus delayed bit
-  val CFLOP_CALL = 0x8
-  val CFLOP_BR = 0x9
-  val CFLOP_BRCF = 0xa
-  val CFLOP_TRAP = 0xb
-  val CFLOP_CFLR = 0xc
+uint8_t sd_cmd(uint8_t cmd, uint8_t arg0, uint8_t arg1,
+               uint8_t arg2, uint8_t arg3, uint8_t crc);
 
-  // additional field for ALU type instructions
-  val OPC_ALUR = 0x0
-  val OPC_ALUU = 0x1
-  val OPC_ALUM = 0x2
-  val OPC_ALUC = 0x3
-  val OPC_ALUP = 0x4
-  val OPC_ALUB = 0x5
-  val OPC_ALUCI = 0x6
+// Debug methods
+void sd_print_block(uint8_t *block, uint32_t block_sz);
+void sd_print_r1(uint8_t r);
 
-  // special register handling
-  val OPC_MTS = 0x2
-  val OPC_MFS = 0x3
-
-}
+#endif

@@ -88,7 +88,7 @@ class WriteNoBuffer() extends Module {
     when(cntReg === Bits(0)) {
       io.slave.M.Cmd := OcpCmd.WR
       io.slave.M.Addr := Cat(writeMasterReg.Addr(addrWidth-1, burstAddrBits+byteAddrBits),
-                             Fill(Bits(0), burstAddrBits+byteAddrBits))
+                             Fill(burstAddrBits+byteAddrBits, Bits(0)))
     }
     io.slave.M.DataValid := Bits(1)
     io.slave.M.Data := writeMasterReg.Data

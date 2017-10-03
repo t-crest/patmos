@@ -818,7 +818,7 @@ destination registers \texttt{sl} and \texttt{sh}.
 \paragraph{Note}
 
 Multiplications are pipelined, it is thus possible to issue one multiplication on
-every cycles. Multiplications can only be issued in the first slot.
+every clock cycle. Multiplications can only be issued in the first slot.
 
 \stefan{Not yet final. 64bit support and the special registers for multiply might
 vanish. Maybe merge mul and mulu into the ALU Func field somehow to kill off the ALUm format?
@@ -1626,6 +1626,12 @@ Following table lists all Patmos instructions with an example usage
   \caption{Patmos instructions with examples}
   \label{tab:instructions}
 \end{table}
+
+Can be found in \code{instructions.txt}:
+
+%\begin{verbatim}
+\input{instructions.txt}
+%\end{verbatim}
 
 
 

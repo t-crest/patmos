@@ -1,0 +1,594 @@
+# -------------------------------------------------------------------------- #
+#
+# Copyright (C) 1991-2011 Altera Corporation
+# Your use of Altera Corporation's design tools, logic functions
+# and other software and tools, and its AMPP partner logic
+# functions, and any output files from any of the foregoing
+# (including device programming or simulation files), and any
+# associated documentation or information are expressly subject
+# to the terms and conditions of the Altera Program License
+# Subscription Agreement, Altera MegaCore Function License
+# Agreement, or other applicable license agreement, including,
+# without limitation, that your use is for the sole purpose of
+# programming logic devices manufactured by Altera and sold by
+# Altera or its authorized distributors.  Please refer to the
+# applicable agreement for further details.
+#
+# -------------------------------------------------------------------------- #
+#
+# Quartus II
+# Version 11.0 Build 208 07/03/2011 Service Pack 1 SJ Web Edition
+# Date created = 11:11:57  June 19, 2012
+#
+# -------------------------------------------------------------------------- #
+#
+# Notes:
+#
+# 1) The default values for assignments are stored in the file:
+#		patmos_core_assignment_defaults.qdf
+#    If this file doesn't exist, see file:
+#		assignment_defaults.qdf
+#
+# 2) Altera recommends that you do not modify this file. This
+#    file is updated automatically by the Quartus II software
+#    and any changes you make may be lost or overwritten.
+#
+# -------------------------------------------------------------------------- #
+
+
+set_global_assignment -name FAMILY "Cyclone IV E"
+set_global_assignment -name DEVICE EP4CE115F29C7
+set_global_assignment -name TOP_LEVEL_ENTITY patmos_top
+set_global_assignment -name ORIGINAL_QUARTUS_VERSION "11.0 SP1"
+set_global_assignment -name PROJECT_CREATION_TIME_DATE "11:11:57  JUNE 19, 2012"
+set_global_assignment -name LAST_QUARTUS_VERSION 14.1.0
+
+
+set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
+set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
+set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 1
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
+set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+set_global_assignment -name USE_CONFIGURATION_DEVICE ON
+set_global_assignment -name RESERVE_ALL_UNUSED_PINS "AS INPUT TRI-STATED"
+set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "3.3-V LVCMOS"
+
+
+
+set_global_assignment -name RESERVE_ALL_UNUSED_PINS_NO_OUTPUT_GND "AS INPUT TRI-STATED"
+
+set_location_assignment PIN_Y2 -to clk
+set_location_assignment PIN_T8 -to oSRAM_A[19]
+set_location_assignment PIN_AB8 -to oSRAM_A[18]
+set_location_assignment PIN_AB9 -to oSRAM_A[17]
+set_location_assignment PIN_AC11 -to oSRAM_A[16]
+set_location_assignment PIN_AB11 -to oSRAM_A[15]
+set_location_assignment PIN_AA4 -to oSRAM_A[14]
+set_location_assignment PIN_AC3 -to oSRAM_A[13]
+set_location_assignment PIN_AB4 -to oSRAM_A[12]
+set_location_assignment PIN_AD3 -to oSRAM_A[11]
+set_location_assignment PIN_AF2 -to oSRAM_A[10]
+set_location_assignment PIN_T7 -to oSRAM_A[9]
+set_location_assignment PIN_AF5 -to oSRAM_A[8]
+set_location_assignment PIN_AC5 -to oSRAM_A[7]
+set_location_assignment PIN_AB5 -to oSRAM_A[6]
+set_location_assignment PIN_AE6 -to oSRAM_A[5]
+set_location_assignment PIN_AB6 -to oSRAM_A[4]
+set_location_assignment PIN_AC7 -to oSRAM_A[3]
+set_location_assignment PIN_AE7 -to oSRAM_A[2]
+set_location_assignment PIN_AD7 -to oSRAM_A[1]
+set_location_assignment PIN_AB7 -to oSRAM_A[0]
+set_location_assignment PIN_AD5 -to oSRAM_OE_N
+set_location_assignment PIN_AE8 -to oSRAM_WE_N
+set_location_assignment PIN_AF8 -to oSRAM_CE_N
+set_location_assignment PIN_AD4 -to oSRAM_LB_N
+set_location_assignment PIN_AC4 -to oSRAM_UB_N
+set_location_assignment PIN_AG3 -to SRAM_DQ[15]
+set_location_assignment PIN_AF3 -to SRAM_DQ[14]
+set_location_assignment PIN_AE4 -to SRAM_DQ[13]
+set_location_assignment PIN_AE3 -to SRAM_DQ[12]
+set_location_assignment PIN_AE1 -to SRAM_DQ[11]
+set_location_assignment PIN_AE2 -to SRAM_DQ[10]
+set_location_assignment PIN_AD2 -to SRAM_DQ[9]
+set_location_assignment PIN_AD1 -to SRAM_DQ[8]
+set_location_assignment PIN_AF7 -to SRAM_DQ[7]
+set_location_assignment PIN_AH6 -to SRAM_DQ[6]
+set_location_assignment PIN_AG6 -to SRAM_DQ[5]
+set_location_assignment PIN_AF6 -to SRAM_DQ[4]
+set_location_assignment PIN_AH4 -to SRAM_DQ[3]
+set_location_assignment PIN_AG4 -to SRAM_DQ[2]
+set_location_assignment PIN_AF4 -to SRAM_DQ[1]
+set_location_assignment PIN_AH3 -to SRAM_DQ[0]
+set_location_assignment PIN_G12 -to iUartPins_rxd
+set_location_assignment PIN_G9 -to oUartPins_txd
+set_location_assignment PIN_F17 -to oLedsPins_led[8]
+set_location_assignment PIN_G21 -to oLedsPins_led[7]
+set_location_assignment PIN_G22 -to oLedsPins_led[6]
+set_location_assignment PIN_G20 -to oLedsPins_led[5]
+set_location_assignment PIN_H21 -to oLedsPins_led[4]
+set_location_assignment PIN_E24 -to oLedsPins_led[3]
+set_location_assignment PIN_E25 -to oLedsPins_led[2]
+set_location_assignment PIN_E22 -to oLedsPins_led[1]
+set_location_assignment PIN_E21 -to oLedsPins_led[0]
+set_location_assignment PIN_R24 -to iKeysPins_key[3]
+set_location_assignment PIN_N21 -to iKeysPins_key[2]
+set_location_assignment PIN_M21 -to iKeysPins_key[1]
+set_location_assignment PIN_M23 -to iKeysPins_key[0]
+
+
+set_global_assignment -name SYNTH_TIMING_DRIVEN_SYNTHESIS ON
+set_global_assignment -name CYCLONEII_OPTIMIZATION_TECHNIQUE SPEED
+set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
+set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
+set_global_assignment -name DEVICE_FILTER_PACKAGE FBGA
+
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[4]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[5]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[6]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[7]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_WE_N
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[8]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[9]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[10]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[11]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[12]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[13]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[14]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[15]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[16]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[17]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[18]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[19]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_CE_N
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_LB_N
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_OE_N
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_UB_N
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_led[8]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_led[7]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_led[6]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_led[5]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_led[4]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_led[3]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_led[2]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_led[1]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_led[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oUartPins_txd
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[15]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[14]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[13]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[12]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[11]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[10]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[9]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[8]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[7]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[6]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[5]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[4]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to iUartPins_rxd
+set_instance_assignment -name IO_STANDARD "2.5 V" -to iKeysPins_key[3]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to iKeysPins_key[2]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to iKeysPins_key[1]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to iKeysPins_key[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to clk
+
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:comp|SRamCtrl:ramCtrl|addrReg"
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:comp|SRamCtrl:ramCtrl|doutReg"
+set_instance_assignment -name FAST_OUTPUT_ENABLE_REGISTER ON -to "Patmos:comp|SRamCtrl:ramCtrl|doutEnaReg"
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:comp|SRamCtrl:ramCtrl|noeReg"
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:comp|SRamCtrl:ramCtrl|nweReg"
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:comp|SRamCtrl:ramCtrl|nlbReg"
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:comp|SRamCtrl:ramCtrl|nubReg"
+set_global_assignment -name FITTER_EFFORT "STANDARD FIT"
+set_global_assignment -name OPTIMIZE_HOLD_TIMING "ALL PATHS"
+set_global_assignment -name OPTIMIZE_MULTI_CORNER_TIMING ON
+set_global_assignment -name PHYSICAL_SYNTHESIS_COMBO_LOGIC ON
+set_global_assignment -name SEED 6
+set_global_assignment -name VERILOG_MACRO "SYNTHESIS=<None>"
+
+set_global_assignment -name VHDL_FILE "../../vhdl/patmos_de2-115-sd.vhdl"
+set_global_assignment -name VHDL_FILE ../../vhdl/altera/cyc2_pll.vhd
+set_global_assignment -name VERILOG_FILE ../../build/Patmos.v
+set_location_assignment PIN_AE14 -to iSDHostCtrl_do
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to iSDHostCtrl_do
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to iSDHostCtrl_wp
+set_location_assignment PIN_AF14 -to iSDHostCtrl_wp
+set_location_assignment PIN_AE13 -to oSDHostCtrl_clk
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSDHostCtrl_clk
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSDHostCtrl_cs
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSDHostCtrl_di
+set_location_assignment PIN_AC14 -to oSDHostCtrl_cs
+set_location_assignment PIN_AD14 -to oSDHostCtrl_di
+set_global_assignment -name ENABLE_SIGNALTAP ON
+set_global_assignment -name USE_SIGNALTAP_FILE sd_signaltap.stp
+set_global_assignment -name SIGNALTAP_FILE sd_signaltap.stp
+set_global_assignment -name SLD_NODE_CREATOR_ID 110 -section_id default
+set_global_assignment -name SLD_NODE_ENTITY_NAME sld_signaltap -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[0] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufInReg[0]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[1] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufInReg[1]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[2] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufInReg[2]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[3] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufInReg[3]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[4] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufInReg[4]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[5] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufInReg[5]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[6] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufInReg[6]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[7] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufInReg[7]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[8] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufOutReg[0]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[9] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufOutReg[1]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[10] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufOutReg[2]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[11] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufOutReg[3]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[12] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufOutReg[4]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[13] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufOutReg[5]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[14] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufOutReg[6]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[15] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufOutReg[7]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[16] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufPntReg[0]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[17] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufPntReg[1]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[18] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufPntReg[2]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[19] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufPntReg[3]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[20] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkCntReg[0]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[21] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkCntReg[10]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[22] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkCntReg[11]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[23] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkCntReg[12]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[24] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkCntReg[13]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[25] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkCntReg[14]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[26] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkCntReg[15]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[27] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkCntReg[1]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[28] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkCntReg[2]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[29] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkCntReg[3]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[30] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkCntReg[4]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[31] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkCntReg[5]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[32] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkCntReg[6]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[33] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkCntReg[7]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[34] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkCntReg[8]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[35] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkCntReg[9]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[36] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkLimReg[0]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[37] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkLimReg[10]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[38] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkLimReg[11]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[39] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkLimReg[12]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[40] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkLimReg[13]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[41] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkLimReg[14]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[42] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkLimReg[15]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[43] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkLimReg[1]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[44] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkLimReg[2]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[45] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkLimReg[3]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[46] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkLimReg[4]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[47] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkLimReg[5]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[48] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkLimReg[6]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[49] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkLimReg[7]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[50] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkLimReg[8]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[51] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkLimReg[9]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[52] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkReg" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[53] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|csReg" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[54] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|enReg" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[55] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[0]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[56] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[10]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[57] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[11]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[58] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[12]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[59] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[13]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[60] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[14]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[61] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[15]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[62] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[16]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[63] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[17]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[64] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[18]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[65] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[19]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[66] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[1]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[67] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[20]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[68] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[21]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[69] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[22]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[70] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[23]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[71] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[24]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[72] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[25]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[73] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[26]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[74] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[27]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[75] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[28]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[76] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[29]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[77] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[2]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[78] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[30]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[79] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[31]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[80] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[3]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[81] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[4]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[82] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[5]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[83] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[6]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[84] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[7]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[85] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[8]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[86] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[9]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[87] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Cmd[0]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[88] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Cmd[1]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[89] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Cmd[2]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[90] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[0]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[91] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[10]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[92] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[11]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[93] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[12]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[94] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[13]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[95] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[14]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[96] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[15]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[97] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[16]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[98] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[17]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[99] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[18]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[100] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[19]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[101] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[1]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[102] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[20]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[103] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[21]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[104] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[22]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[105] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[23]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[106] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[24]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[107] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[25]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[108] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[26]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[109] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[27]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[110] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[28]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[111] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[29]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[112] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[2]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[113] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[30]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[114] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[31]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[115] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[3]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[116] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[4]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[117] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[5]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[118] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[6]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[119] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[7]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[120] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[8]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[121] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[9]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[122] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[0]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[123] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[10]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[124] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[11]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[125] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[12]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[126] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[13]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[127] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[14]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[128] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[15]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[129] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[16]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[130] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[17]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[131] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[18]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[132] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[19]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[133] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[1]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[134] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[20]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[135] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[21]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[136] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[22]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[137] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[23]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[138] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[24]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[139] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[25]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[140] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[26]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[141] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[27]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[142] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[28]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[143] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[29]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[144] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[2]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[145] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[30]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[146] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[31]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[147] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[3]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[148] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[4]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[149] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[5]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[150] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[6]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[151] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[7]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[152] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[8]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[153] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[9]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[154] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Resp[0]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[155] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Resp[1]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[156] -to iSDHostCtrl_do -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[157] -to iSDHostCtrl_wp -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[158] -to oSDHostCtrl_clk -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[159] -to oSDHostCtrl_cs -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_trigger_in[160] -to oSDHostCtrl_di -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[0] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufInReg[0]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[1] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufInReg[1]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[2] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufInReg[2]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[3] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufInReg[3]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[4] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufInReg[4]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[5] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufInReg[5]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[6] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufInReg[6]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[7] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufInReg[7]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[8] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufOutReg[0]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[9] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufOutReg[1]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[10] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufOutReg[2]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[11] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufOutReg[3]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[12] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufOutReg[4]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[13] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufOutReg[5]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[14] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufOutReg[6]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[15] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufOutReg[7]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[16] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufPntReg[0]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[17] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufPntReg[1]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[18] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufPntReg[2]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[19] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|bufPntReg[3]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[20] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkCntReg[0]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[21] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkCntReg[10]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[22] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkCntReg[11]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[23] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkCntReg[12]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[24] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkCntReg[13]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[25] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkCntReg[14]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[26] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkCntReg[15]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[27] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkCntReg[1]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[28] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkCntReg[2]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[29] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkCntReg[3]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[30] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkCntReg[4]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[31] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkCntReg[5]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[32] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkCntReg[6]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[33] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkCntReg[7]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[34] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkCntReg[8]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[35] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkCntReg[9]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[36] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkLimReg[0]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[37] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkLimReg[10]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[38] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkLimReg[11]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[39] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkLimReg[12]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[40] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkLimReg[13]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[41] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkLimReg[14]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[42] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkLimReg[15]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[43] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkLimReg[1]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[44] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkLimReg[2]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[45] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkLimReg[3]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[46] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkLimReg[4]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[47] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkLimReg[5]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[48] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkLimReg[6]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[49] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkLimReg[7]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[50] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkLimReg[8]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[51] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkLimReg[9]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[52] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|clkReg" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[53] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|csReg" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[54] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|enReg" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[55] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[0]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[56] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[10]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[57] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[11]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[58] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[12]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[59] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[13]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[60] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[14]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[61] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[15]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[62] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[16]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[63] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[17]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[64] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[18]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[65] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[19]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[66] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[1]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[67] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[20]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[68] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[21]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[69] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[22]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[70] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[23]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[71] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[24]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[72] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[25]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[73] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[26]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[74] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[27]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[75] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[28]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[76] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[29]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[77] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[2]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[78] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[30]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[79] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[31]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[80] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[3]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[81] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[4]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[82] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[5]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[83] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[6]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[84] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[7]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[85] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[8]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[86] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Addr[9]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[87] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Cmd[0]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[88] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Cmd[1]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[89] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Cmd[2]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[90] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[0]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[91] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[10]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[92] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[11]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[93] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[12]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[94] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[13]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[95] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[14]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[96] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[15]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[97] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[16]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[98] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[17]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[99] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[18]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[100] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[19]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[101] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[1]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[102] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[20]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[103] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[21]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[104] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[22]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[105] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[23]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[106] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[24]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[107] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[25]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[108] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[26]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[109] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[27]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[110] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[28]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[111] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[29]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[112] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[2]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[113] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[30]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[114] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[31]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[115] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[3]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[116] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[4]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[117] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[5]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[118] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[6]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[119] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[7]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[120] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[8]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[121] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_M_Data[9]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[122] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[0]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[123] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[10]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[124] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[11]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[125] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[12]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[126] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[13]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[127] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[14]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[128] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[15]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[129] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[16]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[130] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[17]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[131] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[18]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[132] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[19]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[133] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[1]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[134] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[20]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[135] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[21]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[136] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[22]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[137] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[23]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[138] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[24]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[139] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[25]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[140] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[26]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[141] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[27]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[142] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[28]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[143] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[29]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[144] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[2]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[145] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[30]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[146] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[31]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[147] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[3]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[148] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[4]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[149] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[5]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[150] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[6]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[151] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[7]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[152] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[8]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[153] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Data[9]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[154] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Resp[0]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[155] -to "Patmos:comp|PatmosCore:core|InOut:iocomp|SDHostCtrl:SDHostCtrl|io_ocp_S_Resp[1]" -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[156] -to iSDHostCtrl_do -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[157] -to iSDHostCtrl_wp -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[158] -to oSDHostCtrl_clk -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[159] -to oSDHostCtrl_cs -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[160] -to oSDHostCtrl_di -section_id default
+set_global_assignment -name SLD_NODE_PARAMETER_ASSIGNMENT "SLD_RAM_BLOCK_TYPE=AUTO" -section_id default
+set_global_assignment -name SLD_NODE_PARAMETER_ASSIGNMENT "SLD_DATA_BITS=161" -section_id default
+set_global_assignment -name SLD_NODE_PARAMETER_ASSIGNMENT "SLD_TRIGGER_BITS=161" -section_id default
+set_global_assignment -name SLD_NODE_PARAMETER_ASSIGNMENT "SLD_STORAGE_QUALIFIER_BITS=161" -section_id default
+set_global_assignment -name SLD_NODE_PARAMETER_ASSIGNMENT "SLD_NODE_INFO=805334528" -section_id default
+set_global_assignment -name SLD_NODE_PARAMETER_ASSIGNMENT "SLD_POWER_UP_TRIGGER=0" -section_id default
+set_global_assignment -name SLD_NODE_PARAMETER_ASSIGNMENT "SLD_STORAGE_QUALIFIER_INVERSION_MASK_LENGTH=0" -section_id default
+set_global_assignment -name SLD_NODE_PARAMETER_ASSIGNMENT "SLD_ATTRIBUTE_MEM_MODE=OFF" -section_id default
+set_global_assignment -name SLD_NODE_PARAMETER_ASSIGNMENT "SLD_STATE_FLOW_USE_GENERATED=0" -section_id default
+set_global_assignment -name SLD_NODE_PARAMETER_ASSIGNMENT "SLD_STATE_BITS=11" -section_id default
+set_global_assignment -name SLD_NODE_PARAMETER_ASSIGNMENT "SLD_BUFFER_FULL_STOP=1" -section_id default
+set_global_assignment -name SLD_NODE_PARAMETER_ASSIGNMENT "SLD_CURRENT_RESOURCE_WIDTH=1" -section_id default
+set_global_assignment -name SLD_NODE_PARAMETER_ASSIGNMENT "SLD_INCREMENTAL_ROUTING=1" -section_id default
+set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[1] -to default|vcc -section_id default
+set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[2] -to default|gnd -section_id default
+set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[4] -to default|vcc -section_id default
+set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[7] -to default|gnd -section_id default
+set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[19] -to default|vcc -section_id default
+set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[20] -to default|gnd -section_id default
+set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[22] -to default|vcc -section_id default
+set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[23] -to default|vcc -section_id default
+set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[24] -to default|vcc -section_id default
+set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[26] -to default|vcc -section_id default
+set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[28] -to default|vcc -section_id default
+set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[29] -to default|vcc -section_id default
+set_global_assignment -name SLD_NODE_PARAMETER_ASSIGNMENT "SLD_TRIGGER_LEVEL=1" -section_id default
+set_global_assignment -name SLD_NODE_PARAMETER_ASSIGNMENT "SLD_SAMPLE_DEPTH=16384" -section_id default
+set_global_assignment -name SLD_NODE_PARAMETER_ASSIGNMENT "SLD_TRIGGER_IN_ENABLED=0" -section_id default
+set_global_assignment -name SLD_NODE_PARAMETER_ASSIGNMENT "SLD_TRIGGER_LEVEL_PIPELINE=1" -section_id default
+set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[16] -to default|vcc -section_id default
+set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[17] -to default|gnd -section_id default
+set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[18] -to default|vcc -section_id default
+set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[21] -to default|gnd -section_id default
+set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[25] -to default|gnd -section_id default
+set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[27] -to default|gnd -section_id default
+set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[30] -to default|vcc -section_id default
+set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[31] -to default|vcc -section_id default
+set_global_assignment -name SLD_NODE_PARAMETER_ASSIGNMENT "SLD_ADVANCED_TRIGGER_ENTITY=basic,1," -section_id default
+set_global_assignment -name SLD_NODE_PARAMETER_ASSIGNMENT "SLD_ENABLE_ADVANCED_TRIGGER=0" -section_id default
+set_global_assignment -name SLD_NODE_PARAMETER_ASSIGNMENT "SLD_INVERSION_MASK=0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" -section_id default
+set_global_assignment -name SLD_NODE_PARAMETER_ASSIGNMENT "SLD_INVERSION_MASK_LENGTH=511" -section_id default
+set_global_assignment -name SLD_NODE_PARAMETER_ASSIGNMENT "SLD_SEGMENT_SIZE=16384" -section_id default
+set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[5] -to default|gnd -section_id default
+set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[8] -to default|gnd -section_id default
+set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[9] -to default|gnd -section_id default
+set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[11] -to default|vcc -section_id default
+set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[12] -to default|gnd -section_id default
+set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[13] -to default|gnd -section_id default
+set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[15] -to default|vcc -section_id default
+set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[14] -to default|gnd -section_id default
+set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_clk -to "Patmos:comp|clk" -section_id default
+set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[0] -to default|gnd -section_id default
+set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[3] -to default|vcc -section_id default
+set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[6] -to default|gnd -section_id default
+set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[10] -to default|vcc -section_id default
+set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
+set_global_assignment -name SLD_FILE db/sd_signaltap_auto_stripped.stp

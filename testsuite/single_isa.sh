@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Synopsis: ./single_chsl.sh APP
+# Synopsis: ./single_isa.sh APP
 #
 # Return Value:
 #   0 ... test ok

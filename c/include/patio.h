@@ -74,4 +74,9 @@
   } \
 } while(0)
 
+#define WRITECHAR(ch) do { \
+  while ((UART_STATUS & 0x01) == 0); \
+  UART_DATA = (ch);          \
+} while(0)
+
 #endif /* _PATIO_H_ */

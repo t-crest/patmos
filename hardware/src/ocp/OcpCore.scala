@@ -42,7 +42,7 @@ package ocp
 import Chisel._
 import Node._
 
-// Masters include a byte-enable sginal
+// Masters include a byte-enable signal
 class OcpCoreMasterSignals(addrWidth : Int, dataWidth : Int)
   extends OcpMasterSignals(addrWidth, dataWidth) {
   val ByteEn = Bits(width = dataWidth/8)

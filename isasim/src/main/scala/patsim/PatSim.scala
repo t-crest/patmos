@@ -51,9 +51,13 @@ import Function._
 
 class PatSim(instructions: Array[Int]) {
 
+  // Processor state:
   var pc = 1 // We start on second word as method length is at address 0
   var reg = new Array[Int](32)
   reg(0) = 0
+  var mulLow = 0
+  var mulHigh = 0
+  // End processor state
 
   var halt = false
 
@@ -69,6 +73,7 @@ class PatSim(instructions: Array[Int]) {
 
     if (dualIssue) {
       execute(instrA, 0)
+      // Issue with dual issue
       execute(instrB, 0)
     } else {
       execute(instrA, instrB)
@@ -84,6 +89,7 @@ class PatSim(instructions: Array[Int]) {
     val rs2 = (instr >> 7) & 0x1f
     val opc = (instr >> 4) & 0x07
     val imm22 = instr & 0x3ffff
+    // Decode AluImm, the only instruction using only two bits opcode
     val aluImm = (opcode >> 3) == 0
     val func = if (aluImm) {
       opcode & 0x7
@@ -138,22 +144,19 @@ class PatSim(instructions: Array[Int]) {
       opcode match {
         //      case AluImm => (alu(funct3, sraSub, rs1Val, imm), true, pcNext)
         case Alu => opc match {
+          
           case AluReg => (alu(func, op1, op2), true, false, pcNext)
+          // case AluMul => val mulRes = (Long) op1 * (Long) op2
+          
           case _ => throw new Exception("OpcodeExt " + opc + " not (yet) implemented")
         }
         case AluLongImm => (alu(func, op1, longImm), true, false, pcNext+1)
-        case Branch => throw new Exception("Branch")
-        case BranchCf => (0, false, false, imm22)
-        //      case Branch => (0, false, if (compare(funct3, rs1Val, rs2Val)) pc + imm else pcNext)
-        //      case Load => (load(funct3, rs1Val, imm), true, pcNext)
-        //      case Store =>
-        //        store(funct3, rs1Val, imm, rs2Val); (0, false, pcNext)
-        //      case Lui => (imm, true, pcNext)
-        //      case AuiPc => (pc + imm, true, pcNext)
-        //      case Jal => (pc + 4, true, pc + imm)
-        //      case JalR => (pc + 4, true, (rs1Val + imm) & 0xfffffffe)
-        //      case Fence => (0, false, pcNext)
-        //      case SCall => (scall(), true, pcNext)
+        
+        
+        case Branch     => throw new Exception("Branch")
+        case BranchCf   => (0, false, false, imm22) // Tested?
+        
+        
         case _ => throw new Exception("Opcode " + opcode + " not (yet) implemented")
       }
     }

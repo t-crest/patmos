@@ -10,6 +10,7 @@ LIBCORETHREAD=$(BUILDDIR)/libcorethread.a
 LIBETH=$(BUILDDIR)/libeth.a
 LIBAUDIO=$(BUILDDIR)/libaudio.a
 LIBELF=$(BUILDDIR)/libelf.a
+LIBSD=$(BUILDDIR)/libsd.a
 
 NOCINIT?=cmp/nocinit.c
 
@@ -69,9 +70,9 @@ $(BUILDDIR)/%.o: %.c Makefile
 	$(CC) $(CFLAGS) -c -o $@ $(filter %.c,$^)
 
 # A target for regular applications
-$(BUILDDIR)/%.elf: %.c $(NOCINIT) $(LIBMP) $(LIBNOC) $(LIBCORETHREAD) $(LIBETH) $(LIBAUDIO) $(LIBELF) Makefile
+$(BUILDDIR)/%.elf: %.c $(NOCINIT) $(LIBMP) $(LIBNOC) $(LIBCORETHREAD) $(LIBETH) $(LIBSD) $(LIBAUDIO) $(LIBELF) Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc -lcorethread -leth -lelf -lm -laudio
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc -lcorethread -leth -lelf -lsd -lm -laudio
 
 $(BUILDDIR)/%.s: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
@@ -89,7 +90,7 @@ $(BUILDDIR)/bootable-%.s: %.c Makefile
 # A target for applications that use virtual memory
 $(BUILDDIR)/vm-%.elf: %.c $(NOCINIT) $(LIBMP) $(LIBNOC) $(LIBCORETHREAD) $(LIBETH) $(LIBELF) Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
-	$(CC) $(CFLAGS-VM) $(LDFLAGS-VM) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc -lcorethread -leth -lelf
+	$(CC) $(CFLAGS-VM) $(LDFLAGS-VM) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc -lsd -lcorethread -leth -lelf
 
 # application-specific additional dependencies
 $(BUILDDIR)/bootable-bootloader.elf: download.c decompress.c ethmac.c boot.h bootable.h
@@ -163,4 +164,10 @@ $(LIBAUDIO): $(BUILDDIR)/libaudio/dsp_algorithms.o $(BUILDDIR)/libaudio/audio.o
 .PHONY: libelf
 libelf: $(LIBELF)
 $(LIBELF): $(patsubst libelf/%.c,$(BUILDDIR)/libelf/%.o,$(wildcard libelf/*.c))
+	patmos-ar r $@ $^
+
+# library for using SD card
+.PHONY: libsd
+libsd: $(LIBSD)
+$(LIBSD): $(patsubst libsd/%.c,$(BUILDDIR)/libsd/%.o,$(wildcard libsd/*.c))
 	patmos-ar r $@ $^

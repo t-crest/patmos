@@ -43,8 +43,8 @@ import Chisel._
 import Node._
 
 // Masters include a RespAccept signal
-class OcpIOMasterSignals(addrWidth : Int, dataWidth : Int)
-  extends OcpCoreMasterSignals(addrWidth, dataWidth) {
+class OcpIOMasterSignals(addrWidth: Int, dataWidth: Int)
+    extends OcpCoreMasterSignals(addrWidth, dataWidth) {
   val RespAccept = Bits(width = 1)
 
   // This does not really clone, but Data.clone doesn't either
@@ -55,8 +55,8 @@ class OcpIOMasterSignals(addrWidth : Int, dataWidth : Int)
 }
 
 // Slaves include a CmdAccept signal
-class OcpIOSlaveSignals(dataWidth : Int)
-  extends OcpSlaveSignals(dataWidth) {
+class OcpIOSlaveSignals(dataWidth: Int)
+    extends OcpSlaveSignals(dataWidth) {
   val CmdAccept = Bits(width = 1)
 
   // This does not really clone, but Data.clone doesn't either
@@ -67,21 +67,21 @@ class OcpIOSlaveSignals(dataWidth : Int)
 }
 
 // Master port
-class OcpIOMasterPort(addrWidth : Int, dataWidth : Int) extends Bundle() {
+class OcpIOMasterPort(addrWidth: Int, dataWidth: Int) extends Bundle() {
   // Clk is implicit in Chisel
   val M = new OcpIOMasterSignals(addrWidth, dataWidth).asOutput
   val S = new OcpIOSlaveSignals(dataWidth).asInput
 }
 
 // Slave port is reverse of master port
-class OcpIOSlavePort(addrWidth : Int, dataWidth : Int) extends Bundle() {
+class OcpIOSlavePort(addrWidth: Int, dataWidth: Int) extends Bundle() {
   // Clk is implicit in Chisel
   val M = new OcpIOMasterSignals(addrWidth, dataWidth).asInput
   val S = new OcpIOSlaveSignals(dataWidth).asOutput
 }
 
 // Bridge between ports that do/do not support CmdAccept
-class OcpIOBridge(master : OcpCoreMasterPort, slave : OcpIOSlavePort) {
+class OcpIOBridge(master: OcpCoreMasterPort, slave: OcpIOSlavePort) {
   // Register signals that come from master
   val masterReg = Reg(init = master.M)
   when(masterReg.Cmd === OcpCmd.IDLE || slave.S.CmdAccept === Bits(1)) {
@@ -95,8 +95,36 @@ class OcpIOBridge(master : OcpCoreMasterPort, slave : OcpIOSlavePort) {
   master.S <> slave.S
 }
 
+// Bridge between ports that do/do not support CmdAccept
+// An alternative version, being on the safer side for reset.
+// Inserts one cycle delay for the command register (could be improved)
+//   including the earlier reaction on CmdAccep
+//   adds than combinational paths
+class OcpIOBridgeAlt(master: OcpCoreMasterPort, slave: OcpIOSlavePort) {
+  
+  val masterReg = Reg(init = master.M) // What is the reset value of this bundle?
+  val busyReg = Reg(init = Bool(false))
+
+  when(!busyReg) {
+    masterReg := master.M
+  }
+  when(master.M.Cmd === OcpCmd.RD || master.M.Cmd === OcpCmd.WR) {
+    busyReg := Bool(true)
+  }
+  when(busyReg && slave.S.CmdAccept === Bits(1)) {
+    busyReg := Bool(false)
+    masterReg.Cmd := OcpCmd.IDLE
+  }
+
+  // Forward master signals to slave, always accept responses
+  slave.M := masterReg
+  slave.M.RespAccept := Bits("b1")
+
+  // Forward slave signals to master
+  master.S <> slave.S
+}
 // Provide a "bus" with a master port and a slave port to simplify plumbing
-class OcpIOBus(addrWidth : Int, dataWidth : Int) extends Module {
+class OcpIOBus(addrWidth: Int, dataWidth: Int) extends Module {
   val io = new Bundle {
     val slave = new OcpIOSlavePort(addrWidth, dataWidth)
     val master = new OcpIOMasterPort(addrWidth, dataWidth)

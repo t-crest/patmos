@@ -3,14 +3,14 @@
 # 
 
 	.word   128
-	addi	r1 = r0, 255  # first instruction not executed 0
-	addi	r1 = r0, 2 #1 r1 = 2
-	addi	r2 = r0, 3 #2 r2 = 3
-	add     r1  = r1, r2 #3 r1 = 5
-	addi    r2 = r0, 1 # r2 = 1
-	sub     r1 = r1, r2 # r1 = 4
-	sl	r3 = r1, r2 # r3 = 6
-	sr	r3 = r3, r2 #r3 = 3
+	addi	r1 = r0, 255
+	addi	r1 = r0, 2   # r1 = 2
+	addi	r2 = r0, 3   # r2 = 3
+	add     r1  = r1, r2 # r1 = 5
+	addi    r2 = r0, 1   # r2 = 1
+	sub     r1 = r1, r2  # r1 = 4
+	sl	r3 = r1, r2  # r3 = 6
+	sr	r3 = r3, r2  # r3 = 3
 	addi    r10 = r0 , 31
 	addi    r11 = r0, 1
 	sl      r11 = r11, r10
