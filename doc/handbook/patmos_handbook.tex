@@ -3841,7 +3841,8 @@ A list of the most important make targets:
 \item[synth] synthesize for an FPGA
 \item[config] configure the FPGA
 \item[download] download an elf file into the main memory via the Patmos bootloader
-\item[test] run all assembler tests 
+\item[test] run all assembler tests
+\item[app] compile an application that lives in \code{c/apps/name}
 \end{description}
 
 The name of an application that can execute from the on-chip ROM is set
@@ -3893,7 +3894,7 @@ When the FPGA configuration (the Patmos hardware) is stable and only
 the C application shall be recompiled and downloaded execute:
 
 \begin{verbatim}
-make BOOTAPP=bootable-bootloader APP=hello_puts comp config download
+make APP=hello_puts comp config download
 \end{verbatim}
 
 Here an example of the individual steps to build the blinking LED C
@@ -3919,10 +3920,43 @@ it on the emulator is as follows:
 \begin{verbatim}
 make emulator
 make comp APP=hello_puts
-install/bin/emulator tmp/hello_puts.elf
+patemu tmp/hello_puts.elf
 \end{verbatim}
 
 \martin{Where is the make target to run the emulator with an ELF file?}
+
+\paragraph{A More Complex Application}
+
+Small example code (single C file) is distributed in folder \code{c} and
+some subfolders (e.g., \code{bootable}, \code{bootloader}, \code{cmp},...)
+and compiled with a \code{make comp APP=program}.
+
+Larger applications, such as an operating system for Patmos such as
+RTEMS,\footnote{\code{https://github.com/t-crest/rtems}}
+live in their own repository.
+
+Medium sized example applications shall be placed into its own folder
+within \code{c/apps} with the folders named after the applications and
+containing its own \code{Makefile} to build the application.
+The compile process shall result in an \code{.elf} named after the
+application name.
+The application can include other C code from the source tree directly,
+e.g., to include library code. Therefore, we can avoid building too many
+tiny libraries.
+
+The main \code{Makefile} contains the target \code{app} to compile
+the target and copy the \code{.elf} file into the local build directory.
+Following example builds an application
+
+\begin{verbatim}
+make app APP=bench
+\end{verbatim}
+
+which can the be downloaded as usual to an FPGA
+
+\begin{verbatim}
+make config download APP=bench
+\end{verbatim}
 
 \subsection{Supported FPGA Boards}
 

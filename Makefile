@@ -146,6 +146,11 @@ comp-% $(BUILDDIR)/%.elf: .FORCE
 	-mkdir -p $(dir $@)
 	$(MAKE) -C c BUILDDIR=$(BUILDDIR) APP=$* compile
 
+# Compile an app that lives in the app folder
+app:
+	make -C c/apps/$(APP)
+	cp c/apps/$(APP)/$(APP).elf $(BUILDDIR)
+
 .PRECIOUS: $(BUILDDIR)/%.elf
 
 # High-level pasim simulation
