@@ -13,7 +13,7 @@
 #include "libnoc/noc.h"
 #include "libcorethread/corethread.h"
 
-// Blink the individual LED for different cores
+// Blink the individual LED of a core
 void blink(int period) {
 
   volatile _IODEV int *led_ptr = (volatile _IODEV int *) PATMOS_IO_LED;
@@ -39,15 +39,16 @@ void work(void* arg) {
 
 int main() {
 
-  printf("Hello NoC\n");
+  printf("Hello CMP\n");
   corethread_t worker_id = 1; // The core number
   int parameter = 1000;
-  corethread_create( &worker_id, &work, (void *) &parameter );  
+  corethread_create( &worker_id, &work, (void *) &parameter);  
 
   blink(2000);
+
+  // the folowing is not executed in this example
   int* res;
   corethread_join( worker_id, (void *) &res );
-
 
   return 0;
 }
