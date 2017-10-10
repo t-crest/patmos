@@ -4012,6 +4012,65 @@ the FPGA from within the Aegean project for the multi-core version.
 \todo{We shall have here three simple hello world applications: (1) just plain shared memory 4 cores saying hello - DONE -,
 (2) a CMP program that uses shared memory, and (3) a simple NoC setup.}
 
+Figure~\ref{fig:cmp:hello} shows the embedded \emph{Hello World} example
+executing code on two cores and each core blinking its own LED (Each core
+is connected to one of the LEDs).
+
+\begin{lstlisting}[float,caption={A multicore blinking LED\label{fig:cmp:hello}}]
+/*
+    This is multicore verson of an embedded Hello World program: a blinking LED.
+
+    Author: Martin Schoeberl
+    Copyright: DTU, BSD License
+*/
+
+#include <stdio.h>
+#include <machine/patmos.h>
+
+#include "libcorethread/corethread.h"
+
+// Blink the individual LED of a core
+void blink(int period) {
+
+  volatile _IODEV int *led_ptr = (volatile _IODEV int *) PATMOS_IO_LED;
+  volatile _IODEV int *us_ptr = (volatile _IODEV int *) (PATMOS_IO_TIMER+12);
+
+  int time = period*1000/2;
+  int next;
+
+  for (;;) {
+    next = *us_ptr + time;
+    while (*us_ptr-next < 0) *led_ptr = 1;
+    next = *us_ptr + time;
+    while (*us_ptr-next < 0) *led_ptr = 0;
+  }
+}
+
+// The main function for the other thread on the another core
+void work(void* arg) {
+  int val = *((int*)arg);
+
+  blink(val);
+}
+
+int main() {
+
+  printf("Hello CMP\n");
+  corethread_t worker_id = 1; // The core number
+  int parameter = 1000;
+  corethread_create( &worker_id, &work, (void *) &parameter);  
+
+  blink(2000);
+
+  // the folowing is not executed in this example
+  int* res;
+  corethread_join( worker_id, (void *) &res );
+
+  return 0;
+}
+\end{lstlisting}
+
+
 \subsubsection{On-chip Application}
 
 For small experiments it is possible to execute a multicore program out
