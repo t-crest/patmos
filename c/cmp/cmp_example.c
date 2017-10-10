@@ -6,11 +6,8 @@
 */
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <machine/patmos.h>
-#include <machine/spm.h>
 
-#include "libnoc/noc.h"
 #include "libcorethread/corethread.h"
 
 // Blink the individual LED of a core
