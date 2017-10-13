@@ -22,3 +22,9 @@ The benchmark application is build and downloaded from within t-crest/patmos:
 ```bash
 make app download APP=bench
 ```
+
+To measure the single core version, configure the FPGA from the t-crest/patmos
+folder:
+```bash
+make app config download APP=bench
+```
