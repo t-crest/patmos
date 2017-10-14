@@ -1,5 +1,6 @@
 /*
-    This is multicore verson of an embedded Hello World program: a blinking LED.
+    This is multicore verson of an embedded Hello World program:
+    two blinking LEDs executing on two cores.
 
     Author: Martin Schoeberl
     Copyright: DTU, BSD License
