@@ -11,36 +11,22 @@
 #include <machine/spm.h>
 
 #include "../../libcorethread/corethread.h"
+#include "../../libmp/mp.h"
 
-// Blink the individual LED of a core
-void blink(int period) {
+#define NUM_BUF 2
+#define BUF_SIZE 4
 
-  volatile _IODEV int *led_ptr = (volatile _IODEV int *) PATMOS_IO_LED;
-  volatile _IODEV int *us_ptr = (volatile _IODEV int *) (PATMOS_IO_TIMER+12);
+// Whatever this contant means, it is needed
+const int NOC_MASTER = 0;
 
-  int time = period*1000/2;
-  int next;
-
-  for (;;) {
-    next = *us_ptr + time;
-    while (*us_ptr-next < 0) *led_ptr = 1;
-    next = *us_ptr + time;
-    while (*us_ptr-next < 0) *led_ptr = 0;
-  }
-}
-
-// The main function for the other thread on the another core
-void work(void* arg) {
-  int val = *((int*)arg);
-
-  blink(val);
-}
-
+// Shared data in main memory for the return value
+volatile _UNCACHED static int field;
+volatile _UNCACHED static int end_time;
 
 #define CNT 512
 
-volatile _UNCACHED static int field;
 unsigned _SPM *data_spm = SPM_BASE;
+
 
 void do_delay_times() {
   // delay times
@@ -128,20 +114,63 @@ void bench_mem() {
   printf("Acc result %d\n", acc);
 }
 
-int main() {
+// The main function for the other thread on the another core
+void work(void* arg) {
 
-  bench_mem();
+  // Measure execution time with the clock cycle timer
+  volatile _IODEV int *timer_ptr = (volatile _IODEV int *) (PATMOS_IO_TIMER+4);
+
+  int val, data;
+
+  qpd_t *channel = mp_create_qport(1, SINK, BUF_SIZE, NUM_BUF);
+  mp_init_ports();
+  mp_recv(channel, 0);
+  val = *timer_ptr;
+  data = *(volatile int _SPM *) channel->read_buf;
+  mp_ack(channel, 0);
+
+  // Return a change value in the shared variable
+  end_time = val;
+  field = data + 1;
+}
+
+void bench_noc() {
+
+  // Pointer to the deadline device
+  volatile _IODEV int *dead_ptr = (volatile _IODEV int *) PATMOS_IO_DEADLINE;
+  // Measure execution time with the clock cycle timer
+  volatile _IODEV int *timer_ptr = (volatile _IODEV int *) (PATMOS_IO_TIMER+4);
+
 
   printf("Hello CMP\n");
   corethread_t worker_id = 1; // The core number
   int parameter = 1000;
-  corethread_create( &worker_id, &work, (void *) &parameter);  
+  corethread_create( &worker_id, &work, (void *) &parameter); 
 
-  blink(2000);
+  int start; 
 
-  // the folowing is not executed in this example
+  int data = 42;
+  // create a channel
+  qpd_t *channel = mp_create_qport(1, SOURCE, BUF_SIZE, NUM_BUF);
+  // init
+  mp_init_ports();
+  start = *timer_ptr;
+  // write data into the send buffer
+  *(volatile int _SPM *) channel->write_buf = data;
+  // send the buffer
+  mp_send(channel, 0);
+  printf("Data sent\n");
+  printf("Returned data is: %d\n", field);
+  printf("Took %d cycles\n", end_time - start);
+
   int* res;
   corethread_join( worker_id, (void *) &res );
+}
+
+int main() {
+
+  // bench_mem();
+  bench_noc();
 
   return 0;
 }
