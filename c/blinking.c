@@ -20,13 +20,13 @@ int main() {
 		*uart_ptr = '1';
 		for (i=2000; i!=0; --i)
 			for (j=2000; j!=0; --j)
-				*led_ptr = 1;
+				*led_ptr = 0xAA;
 
 
 		*uart_ptr = '0';
 		for (i=2000; i!=0; --i)
 			for (j=2000; j!=0; --j)
-				*led_ptr = 0;
+				*led_ptr = 0x55;
 
 	}
 }

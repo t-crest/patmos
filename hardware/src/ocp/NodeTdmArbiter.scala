@@ -81,9 +81,9 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
   val stateReg = Reg(init = sIdle)
 
   debug(cntReg)
-  debug(cpuSlot(0))
-  debug(cpuSlot(1))
-  debug(cpuSlot(2))
+  for(i <- (0 until cnt))
+    debug(cpuSlot(i))
+    
   debug(stateReg)
   debug(wrCntReg)
   debug(rdCntReg)
