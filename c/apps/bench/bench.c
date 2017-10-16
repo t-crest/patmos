@@ -14,7 +14,7 @@
 #include "../../libmp/mp.h"
 
 #define NUM_BUF 2
-#define BUF_SIZE 4
+#define BUF_SIZE 400
 
 // Whatever this contant means, it is needed
 const int NOC_MASTER = 0;
@@ -124,14 +124,16 @@ void work(void* arg) {
 
   qpd_t *channel = mp_create_qport(1, SINK, BUF_SIZE, NUM_BUF);
   mp_init_ports();
-  mp_recv(channel, 0);
-  val = *timer_ptr;
-  data = *(volatile int _SPM *) channel->read_buf;
-  mp_ack(channel, 0);
+  for (;;) {
+    mp_recv(channel, 0);
+    val = *timer_ptr;
+    data = *(volatile int _SPM *) channel->read_buf;
+    mp_ack(channel, 0);
 
-  // Return a change value in the shared variable
-  end_time = val;
-  field = data + 1;
+    // Return time stamp and the change value in the shared variable
+    end_time = val;
+    field = data + 1;
+  }
 }
 
 void bench_noc() {
@@ -142,12 +144,13 @@ void bench_noc() {
   volatile _IODEV int *timer_ptr = (volatile _IODEV int *) (PATMOS_IO_TIMER+4);
 
 
-  printf("Hello CMP\n");
+  printf("Hello NoC\n");
+  printf("We use %d bytes buffers\n", BUF_SIZE);
   corethread_t worker_id = 1; // The core number
   int parameter = 1000;
   corethread_create( &worker_id, &work, (void *) &parameter); 
 
-  int start; 
+  int start, val;
 
   int data = 42;
   // create a channel
@@ -157,19 +160,62 @@ void bench_noc() {
   start = *timer_ptr;
   // write data into the send buffer
   *(volatile int _SPM *) channel->write_buf = data;
+  start = *timer_ptr;
   // send the buffer
   mp_send(channel, 0);
   printf("Data sent\n");
   printf("Returned data is: %d\n", field);
-  printf("Took %d cycles\n", end_time - start);
+  printf("Took %d cycles\n", end_time - start - 1);
 
+  int min = 999999;
+  int max = 0;
+
+  printf("NoC in a loop:\n");
+  for (int i=0; i<CNT; ++i) {
+    start = *timer_ptr;
+    *(volatile int _SPM *) channel->write_buf = i;
+    start = *timer_ptr;
+    mp_send(channel, 0);
+    *dead_ptr = 10000; // some delay to see the result
+    val = *dead_ptr;
+    val = end_time - start - 1;
+//    printf("%d ", val);
+    if (min>val) min = val;
+    if (max<val) max = val;
+  }
+  printf("\n");
+  printf("Min: %d max: %d\n", min, max);
+
+  min = 999999;
+  max = 0;
+  do_delay_times();
+
+  printf("NoC in a loop with random delay:\n");
+  for (int i=0; i<CNT; ++i) {
+    start = *timer_ptr;
+    *(volatile int _SPM *) channel->write_buf = i;
+    *dead_ptr = data_spm[i];
+    val = *dead_ptr; // delay by a random value
+    start = *timer_ptr;
+    mp_send(channel, 0);
+    *dead_ptr = 3000; // some delay to see the result
+    val = *dead_ptr;
+    val = end_time - start;
+    // printf("%d ", val);
+    if (min>val) min = val;
+    if (max<val) max = val;
+  }
+  printf("\n");
+  printf("Min: %d max: %d\n", min, max);
+
+  // not really as the worker runs forever
   int* res;
   corethread_join( worker_id, (void *) &res );
 }
 
 int main() {
 
-  // bench_mem();
+  bench_mem();
   bench_noc();
 
   return 0;
