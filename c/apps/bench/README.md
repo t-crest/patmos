@@ -41,3 +41,4 @@ benchmark and configure the FPGA from the `t-crest/patmos` folder:
 ```bash
 make app config download APP=bench
 ```
+
