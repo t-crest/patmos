@@ -227,7 +227,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   // val core = Module(new PatmosCore(binFile))
 
 
-  val nrCores = 4
+  val nrCores = 1
   
   val memarbiter = Module(new ocp.TdmArbiterWrapper(nrCores, ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
   
