@@ -14,13 +14,13 @@
   <ExtMem size="2M" />
 
   <IOs>
-    <IO DevTypeRef="CpuInfo" offset="0"/>
+    <!--<IO DevTypeRef="CpuInfo" offset="0"/>-->
     <IO DevTypeRef="Timer" offset="2" intrs="0,1"/>
     <IO DevTypeRef="Deadline" offset="3"/>
   </IOs>
 
   <Devs>
-    <Dev DevType="CpuInfo" entity="CpuInfo" iface="OcpCore" />
+    <!--<Dev DevType="CpuInfo" entity="CpuInfo" iface="OcpCore" />-->
     <Dev DevType="Timer" entity="Timer" iface="OcpCore" />
     <Dev DevType="Deadline" entity="Deadline" iface="OcpCore"/>
   </Devs>

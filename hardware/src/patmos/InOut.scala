@@ -48,10 +48,12 @@ import Constants._
 import ocp._
 import util._
 import io.CoreDevice
+import io.CoreDeviceIO
+import io.CpuInfoCmp
 
 import java.lang.Integer
 
-class InOut() extends Module {
+class InOut(nr: Int, cnt: Int, cmpdevs: List[(CoreDeviceIO,Int,String)] = List.empty) extends Module {
   val io = Config.getInOutIO()
 
   // Compute selects
@@ -136,26 +138,45 @@ class InOut() extends Module {
   io.comSpm.M := io.memInOut.M
   io.comSpm.M.Cmd := Mux(selComSpm, io.memInOut.M.Cmd, OcpCmd.IDLE)
   val comSpmS = io.comSpm.S
+  
+  val connectDevice = (devio: CoreDeviceIO, off: Int, name: String) => 
+    {
+      if(!validDevices(off)) {
+        validDeviceVec(off) := Bool(true)
+        validDevices(off) = true;
+      } else {
+        ChiselError.error("Can't assign multiple devices to the same offset. " +
+                          "Device " + name + " conflicting on offset " +
+                          off.toString + ". ")
+      }
+      // connect ports
+      devio.ocp.M := io.memInOut.M
+      devio.ocp.M.Cmd := Mux(selDeviceVec(off), io.memInOut.M.Cmd, OcpCmd.IDLE)
+      devio.superMode <> io.superMode
+      devio.internalPort <> io.internalIO
+      deviceSVec(off) := devio.ocp.S
+    }
 
   // Creation of IO devices
-  for (devConf <- Config.getConfig.Devs) {
-    val dev = Config.createDevice(devConf).asInstanceOf[CoreDevice]
-    if(!validDevices(devConf.offset)) {
-      validDeviceVec(devConf.offset) := Bool(true)
-      validDevices(devConf.offset) = true;
-    } else {
-      ChiselError.error("Can't assign multiple devices to the same offset. " +
-                        "Device " + devConf.name + " conflicting on offset " +
-                        devConf.offset.toString + ". ")
-    }
-    // connect ports
-    dev.io.ocp.M := io.memInOut.M
-    dev.io.ocp.M.Cmd := Mux(selDeviceVec(devConf.offset), io.memInOut.M.Cmd, OcpCmd.IDLE)
-    dev.io.superMode <> io.superMode
-    dev.io.internalPort <> io.internalIO
-    deviceSVec(devConf.offset) := dev.io.ocp.S
-    Config.connectIOPins(devConf.name, io, dev.io)
-    Config.connectIntrPins(devConf, io, dev.io)
+  val conf = Config.getConfig
+
+  val cpuinfo = Module(new CpuInfoCmp(Config.datFile, nr, cnt))
+  connectDevice(cpuinfo.io, CPUINFO_OFFSET, "CpuInfoCmp")
+  
+  if(nr == 0)
+  {
+    for (devConf <- Config.getConfig.Devs) {
+      val dev = Config.createDevice(devConf).asInstanceOf[CoreDevice]
+      
+      connectDevice(dev.io,devConf.offset,devConf.name)
+      Config.connectIOPins(devConf.name, io, dev.io)
+      Config.connectIntrPins(devConf, io, dev.io)
+    }  
+  }
+  
+  
+  for (cmpdev <- cmpdevs) {
+    connectDevice(cmpdev._1,cmpdev._2, cmpdev._3)
   }
 
   // The exception and memory management units are special and outside this unit
