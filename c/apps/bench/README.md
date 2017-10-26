@@ -42,3 +42,15 @@ benchmark and configure the FPGA from the `t-crest/patmos` folder:
 make app config download APP=bench
 ```
 
+To ensure that you have the exact version of T-CREST that we have used in the
+evaluation section of the paper, use following `git` command to checkout that version:
+
+```bash
+git checkout `git rev-list -n 1 --before="2017-10-17" master`
+```
+
+This can be done in all T-CREST repositories. However, it is most important
+in `patmos` and `aegean`, as we plan to restructure the generation of the
+multicore version of Patmos/T-CREST in the near future where the above described
+steps to build a multicore may be different.
+

@@ -14,7 +14,7 @@
 #include "../../libmp/mp.h"
 
 #define NUM_BUF 2
-#define BUF_SIZE 4
+#define BUF_SIZE 400
 
 // Whatever this contant means, it is needed
 const int NOC_MASTER = 0;
@@ -144,7 +144,8 @@ void bench_noc() {
   volatile _IODEV int *timer_ptr = (volatile _IODEV int *) (PATMOS_IO_TIMER+4);
 
 
-  printf("Hello CMP\n");
+  printf("Hello NoC\n");
+  printf("We use %d bytes buffers\n", BUF_SIZE);
   corethread_t worker_id = 1; // The core number
   int parameter = 1000;
   corethread_create( &worker_id, &work, (void *) &parameter); 
@@ -175,7 +176,7 @@ void bench_noc() {
     *(volatile int _SPM *) channel->write_buf = i;
     start = *timer_ptr;
     mp_send(channel, 0);
-    *dead_ptr = 3000; // some delay to see the result
+    *dead_ptr = 10000; // some delay to see the result
     val = *dead_ptr;
     val = end_time - start - 1;
 //    printf("%d ", val);
@@ -214,7 +215,7 @@ void bench_noc() {
 
 int main() {
 
-  // bench_mem();
+  bench_mem();
   bench_noc();
 
   return 0;
