@@ -84,6 +84,8 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int, cmpdevs: List[(CoreDeviceIO
   val exc = Module(new Exceptions())
   val iocomp = Module(new InOut(nr,cnt,cmpdevs))
   val dcache = Module(new DataCache())
+  
+  
 
   //connect icache
   icache.io.feicache <> fetch.io.feicache
@@ -227,13 +229,13 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   // val core = Module(new PatmosCore(binFile))
 
 
-  val nrCores = 1
+  val nrCores = 2
   
   val memarbiter = Module(new ocp.TdmArbiterWrapper(nrCores, ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
   
-  
+  val ccrtlock = Module(new cmp.CRLUOCPWrapper(nrCores, 8));
 
-  val cores = (0 until nrCores).map(i => Module(new PatmosCore(binFile,i,nrCores)))
+  val cores = (0 until nrCores).map(i => Module(new PatmosCore(binFile,i,nrCores, List((ccrtlock.io.ocps(i), 7, "CCRTLock")))))
 
   val core = cores(0)
 
@@ -253,6 +255,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       spm.io.comConf(i) <> cores(i).io.comConf
       spm.io.comSpm(i) <> cores(i).io.comSpm
       memarbiter.io.master(i) <> cores(i).io.memPort
+      
     }
 //  }
   Config.connectAllIOPins(io, core.io)
