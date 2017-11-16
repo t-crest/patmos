@@ -119,27 +119,25 @@ class CRLU(coreCnt : Int,lckCnt : Int) extends Module {
 
 class CRLUOCPWrapper(coreCnt : Int,lckCnt : Int) extends Module {
   
-  override val io = new Bundle {
-    val ocps = Vec.fill(coreCnt){new CoreDeviceIO}
-  }
+  override val io = Vec.fill(coreCnt){new CoreDeviceIO}
   
-  val crlu = new CRLU(coreCnt,lckCnt)
+  val crlu = Module(new CRLU(coreCnt,lckCnt))
   
   // Mapping between internal io and OCP here
   
   for (i <- 0 until coreCnt) {
-    crlu.io(i).op := io.ocps(i).ocp.M.Data(0);
-    crlu.io(i).sel := io.ocps(i).ocp.M.Data >> 1;
+    crlu.io(i).op := io(i).ocp.M.Data(0);
+    crlu.io(i).sel := io(i).ocp.M.Data >> 1;
     crlu.io(i).en := Bool(false)
-    when(io.ocps(i).ocp.M.Cmd === OcpCmd.WR) {
+    when(io(i).ocp.M.Cmd === OcpCmd.WR) {
       crlu.io(i).en := Bool(true)
     }
     
-    io.ocps(i).ocp.S.Resp := OcpResp.NULL
-    when(crlu.io(i).blck =/= Bool(true)) {
-        io.ocps(i).ocp.S.Resp := OcpResp.DVA
+    io(i).ocp.S.Resp := OcpResp.DVA
+    when(crlu.io(i).blck === Bool(false)) {
+        io(i).ocp.S.Resp := OcpResp.NULL
     }
-    io.ocps(i).ocp.S.Data := UInt(0)
+    io(i).ocp.S.Data := UInt(0)
   }
 }
 

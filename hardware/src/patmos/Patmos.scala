@@ -233,9 +233,9 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   
   val memarbiter = Module(new ocp.TdmArbiterWrapper(nrCores, ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
   
-  val ccrtlock = Module(new cmp.CRLUOCPWrapper(nrCores, 8));
+  val ccrtlock = Module(new cmp.CRLUOCPWrapper(nrCores, 4));
 
-  val cores = (0 until nrCores).map(i => Module(new PatmosCore(binFile,i,nrCores, List((ccrtlock.io.ocps(i), 7, "CCRTLock")))))
+  val cores = (0 until nrCores).map(i => Module(new PatmosCore(binFile,i,nrCores)))
 
   val core = cores(0)
 
@@ -249,11 +249,11 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 //    io.comConf <> core.io.comConf
 //    io.comSpm <> core.io.comSpm
 //  } else {
-    val spm = Module(new cmp.SharedSPM(nrCores))
+    //val spm = Module(new cmp.SharedSPM(nrCores))
     for (i <- (0 until cores.length)) {
       println("Connecting core " + i)
-      spm.io.comConf(i) <> cores(i).io.comConf
-      spm.io.comSpm(i) <> cores(i).io.comSpm
+      ccrtlock.io(i).ocp <> cores(i).io.comSpm
+      //ccrtlock.io.comSpm(i) <> cores(i).io.comSpm
       memarbiter.io.master(i) <> cores(i).io.memPort
       
     }
