@@ -73,8 +73,6 @@ architecture rtl of patmos_top is
 			io_memBridgePins_S_CmdAccept  : in  std_logic;
 			io_memBridgePins_S_DataAccept : in  std_logic;
 
-			io_cpuInfoPins_id             : in  std_logic_vector(31 downto 0);
-			io_cpuInfoPins_cnt            : in  std_logic_vector(31 downto 0);
 			io_ledsPins_led               : out std_logic_vector(8 downto 0);
 			io_keysPins_key               : in  std_logic_vector(3 downto 0);
 			io_uartPins_tx                : out std_logic;
@@ -212,8 +210,6 @@ begin
 			io_memBridgePins_S_CmdAccept  => SCmdAccept_int, -- : in std_logic;
 			io_memBridgePins_S_DataAccept => SDataAccept_int, -- : in std_logic
 
-			io_cpuInfoPins_id             => X"00000000", --  : in  std_logic_vector(31 downto 0);
-			io_cpuInfoPins_cnt            => X"00000001", --  : in  std_logic_vector(31 downto 0);
 			io_ledsPins_led               => led, -- : out std_logic_vector(8 downto 0);
 			io_keysPins_key               => key, -- : in std_logic_vector(3 downto 0);
 			io_uartPins_tx                => txd, --  : out std_logic;
