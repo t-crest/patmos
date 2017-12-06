@@ -162,6 +162,7 @@ $(BOOTBIN): .FORCE
 MODULE=example.FsmMain
 MODULE=ocp.test.OcpTester
 MODULE=ocp.test.ArbiterTester
+MODULE=io.test.BranchPredictTester
 #MODULE=ocp.test.TdmArbiterWrapperTester
 #MODULE=ocp.test.TdmArbiterTester
 
