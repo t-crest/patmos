@@ -24,7 +24,7 @@ CXXFLAGS=-O1
 # Quick fix for Mac OS X
 # How are include paths handled these days in *nix? CMake?
 ifeq ($(TERM_PROGRAM),$(filter $(TERM_PROGRAM), Apple_Terminal iTerm.app))
-	INC_EXTRA=-I /opt/local/include -I /usr/local/include/libelf -I /opt/local/include/libelf -L/opt/local/lib
+	INC_EXTRA=-I /opt/local/include -I /usr/local/include/libelf -I /opt/local/include/libelf -L /opt/local/lib
 else
 	INC_EXTRA=
 endif
@@ -126,6 +126,9 @@ $(HWBUILDDIR)/Arbiter.v: $(SRC)
 $(HWBUILDDIR)/TdmArbiterWrapper.v: $(SRC)
 	$(SBT) "runMain $(TDMARBITERMAIN) $(ARBITER_CNT) $(ARBITER_ADDR_WIDTH) $(ARBITER_DATA_WIDTH) $(ARBITER_BURST_LENGTH) --targetDir $(HWBUILDDIR) --cse --backend v"
 
+$(HWBUILDDIR)/SSPMAegean.v: $(SRC)
+	$(SBT) "runMain $(MEMSSPM) $(CORE_CNT) --targetDir $(HWBUILDDIR) --cse --backend v"
+
 # run Verilog simulation
 vsim: verilog
 	echo '`timescale 1 ns / 100 ps' > $(HWBUILDDIR)/Patmos.v.tmp
@@ -172,3 +175,38 @@ modcomp:
 .FORCE:
 
 .PHONY: all emulator test view verilog vsim
+
+# SSPM make targets
+
+SSPM-test:
+	$(SBT) "runMain io.SSPMTester"
+
+SSPMAegean:
+	$(SBT) "runMain sspm.SSPMAegeanMain $(CORE_CNT) --targetDir $(HWGENDIR) --cse --backend v"
+
+SSPMAegean-test:
+	$(SBT) "runMain sspm.SSPMAegeanTester"
+
+SSPM-scheduler:
+	$(SBT) "runMain sspm.SchedulerMain"
+
+SSPM-scheduler-test:
+	$(SBT) "runMain sspm.SchedulerTester"
+
+SSPM-connector:
+	$(SBT) "runMain sspm.SSPMConnectorMain"
+
+SSPM-connector-test:
+	$(SBT) "runMain sspm.SSPMConnectorTester"
+
+SSPM-memmodule:
+	$(SBT) "runMain sspm.memModuleMain"
+
+SSPM-memmodule-test:
+	$(SBT) "runMain sspm.memModuleTester"
+
+SSPM-memspm:
+	$(SBT) "runMain sspm.memSPMMain"
+
+SSPM-memspm-test:
+	$(SBT) "runMain sspm.memSPMTester"
