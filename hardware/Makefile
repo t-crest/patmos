@@ -42,6 +42,7 @@ MEMCTRLMAIN16=io.SRamMain
 MEMCTRLMAINOC=io.OCRamMain
 ARBITERMAIN=ocp.ArbiterMain
 TDMARBITERMAIN=ocp.TdmArbiterWrapperMain
+MEMSSPM?=sspm.SSPMAegeanMain
 
 # config file for Patmos -- now just frequency
 #CONFIG=default
