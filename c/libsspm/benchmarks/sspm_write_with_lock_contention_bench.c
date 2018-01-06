@@ -18,7 +18,7 @@ const int TIMES = 1000;
 int cycles[TIMES];
 
 void slave(void* args){
-	volatile _SPM lock_t* l = (volatile _SPM lock_t*) (LOWEST_SPM_ADDRESS+4);
+	volatile _SPM lock_t* l = (volatile _SPM lock_t*) (LOWEST_SSPM_ADDRESS+4);
 
 	//We inline the lock, so that we maximize the amount of 
 	//tries the core can make
@@ -44,8 +44,8 @@ void slave(void* args){
 int main(){
 
 	int start, end;
-	volatile _SPM int* flag = (volatile _SPM int*) LOWEST_SPM_ADDRESS;
-	volatile _SPM lock_t* l = (volatile _SPM lock_t*) (LOWEST_SPM_ADDRESS+4);
+	volatile _SPM int* flag = (volatile _SPM int*) LOWEST_SSPM_ADDRESS;
+	volatile _SPM lock_t* l = (volatile _SPM lock_t*) (LOWEST_SSPM_ADDRESS+4);
 		
 	for(int i = 0; i<NOC_CORES; i++){
 		lock(l);

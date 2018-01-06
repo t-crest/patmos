@@ -25,7 +25,7 @@ typedef enum{
 } TRANSMISSION_STATE;
 
 void sender_slave(void* args){
-	volatile _SPM int* flag = (volatile _SPM int*) LOWEST_SPM_ADDRESS;
+	volatile _SPM int* flag = (volatile _SPM int*) LOWEST_SSPM_ADDRESS;
 
 	int send, ack_recv;
 
@@ -48,7 +48,7 @@ void sender_slave(void* args){
 
 void receiver_slave(void* args){
 	int cpuid = get_cpuid();
-	volatile _SPM int* flag = (volatile _SPM int*) LOWEST_SPM_ADDRESS;
+	volatile _SPM int* flag = (volatile _SPM int*) LOWEST_SSPM_ADDRESS;
 
 	int recv;
 	
@@ -68,9 +68,7 @@ void receiver_slave(void* args){
 
 
 int main(){
-	led_on();
-
-	volatile _SPM int* flag = (volatile _SPM int*) LOWEST_SPM_ADDRESS;
+	volatile _SPM int* flag = (volatile _SPM int*) LOWEST_SSPM_ADDRESS;
 	*flag = ACKNOWLEDGE;
 
 	int core1 = 1;

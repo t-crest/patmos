@@ -15,7 +15,7 @@ const int TIMES = 1000;
 volatile _UNCACHED int ready;
 
 void slave(void* args){
-	volatile _SPM lock_t* l = (volatile _SPM lock_t*) (LOWEST_SPM_ADDRESS+4);
+	volatile _SPM lock_t* l = (volatile _SPM lock_t*) (LOWEST_SSPM_ADDRESS+4);
 
 	//We inline the lock, so that we maximize the amount of 
 	//tries the core can make
@@ -42,9 +42,9 @@ int main(){
 	int start, end;
 	int syncAddr = SCHEDULE_SYNC;
 
-	volatile _SPM lock_t* l = (volatile _SPM lock_t*) LOWEST_SPM_ADDRESS;
+	volatile _SPM lock_t* l = (volatile _SPM lock_t*) LOWEST_SSPM_ADDRESS;
 	release(l);	
-	volatile _SPM lock_t* l2 = (volatile _SPM lock_t*) (LOWEST_SPM_ADDRESS+4);
+	volatile _SPM lock_t* l2 = (volatile _SPM lock_t*) (LOWEST_SSPM_ADDRESS+4);
 	release(l2);
 
 	for(int i = 0; i<NOC_CORES; i++){

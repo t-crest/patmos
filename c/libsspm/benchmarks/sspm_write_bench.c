@@ -6,7 +6,6 @@
 #include "libcorethread/corethread.c"
 #include "libmp/mp.h"
 #include "libmp/mp_internal.h"
-#include "libsspm/sspm_benchmark.h"
 #include "libsspm/sspm_properties.h"
 
 #define MP_CHAN_NUM_BUF 2
@@ -31,7 +30,7 @@ int main(){
 		asm volatile ("" : : : "memory");
 		
 		for(int k = 0; k<CHANNEL_BUFFER_CAPACITY; k++){
-			(( volatile int _SPM * ) LOWEST_SPM_ADDRESS)[k] = i;
+			(( volatile int _SPM * ) LOWEST_SSPM_ADDRESS)[k] = i;
 		}
 		asm volatile ("" : : : "memory");
 		end = get_cpu_cycles();
