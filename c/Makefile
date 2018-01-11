@@ -97,6 +97,7 @@ $(BUILDDIR)/vm-%.elf: %.c $(NOCINIT) $(LIBMP) $(LIBNOC) $(LIBCORETHREAD) $(LIBET
 $(BUILDDIR)/bootable-bootloader.elf: download.c decompress.c ethmac.c boot.h bootable.h
 $(BUILDDIR)/bootable-cmpmaster.elf: download.c decompress.c ethmac.c boot.h bootable.h
 $(BUILDDIR)/bootable-cmpslave.elf: boot.h bootable.h
+$(BUILDDIR)/bootable-cmpmasterslave.elf: download.c decompress.c ethmac.c boot.h bootable.h
 
 $(BUILDDIR)/bootable-mandelbrot.elf: bootable.h
 $(BUILDDIR)/mandelbrot.elf: bootable.h
