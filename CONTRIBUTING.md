@@ -1,5 +1,10 @@
-Patmos coding style
-===================
+# Contributing to Patmos and T-CREST
+
+Thank you for contributing to Patmos and T-CREST.
+
+## Patmos Coding Style
+
+Only ASCII characters in source code.
 
 Scala is very flexible relative to file names and directory structure.
 However, within the Patmos project we intend to adhere to the common
@@ -31,5 +36,3 @@ postfix Mem (e.g., tagMem).
 
 For more info on common Scala coding conventions see:
 http://docs.scala-lang.org/style/
-
-Only ASCII characters in source code.

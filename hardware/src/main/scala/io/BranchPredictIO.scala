@@ -31,7 +31,7 @@
  */
 
 /*
- * Experiments for a branch predictor.
+ * IO components for experiments with a branch predictor.
  *
  * Authors: Martin Schoeberl (martin@jopdesign.com)
  *
@@ -45,11 +45,11 @@ import patmos.Constants._
 
 import ocp._
 
-object BranchPredict extends DeviceObject {
+object BranchPredictIO extends DeviceObject {
 
   def init(params: Map[String, String]) = {}
 
-  def create(params: Map[String, String]): BranchPredict = Module(new BranchPredict())
+  def create(params: Map[String, String]): BranchPredictIO = Module(new BranchPredictIO())
 
   trait Pins {}
 }
@@ -58,7 +58,7 @@ object BranchPredict extends DeviceObject {
  * Now just a deadline copy.
  */
 
-class BranchPredict() extends CoreDevice() {
+class BranchPredictIO() extends CoreDevice() {
 
   val freeRunningReg = Reg(init = UInt(0, 32))
   val downCountReg = Reg(init = UInt(0, 32))

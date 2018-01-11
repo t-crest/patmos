@@ -3,6 +3,7 @@ config.mk*
 hardware/project
 hardware/target
 hardware/build
+hardware/generated
 tools/c/build
 tools/java/build
 tools/scripts/build

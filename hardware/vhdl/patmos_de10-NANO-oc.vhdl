@@ -1,12 +1,11 @@
 --
--- Copyright: 2013, Technical University of Denmark, DTU Compute
--- Author: Martin Schoeberl (martin@jopdesign.com)
---         Rasmus Bo Soerensen (rasmus@rbscloud.dk)
---         Wolfgang Puffitsch (rasmus@rbscloud.dk)
+-- Copyright: 2017, Technical University of Denmark, DTU Compute
+-- Author: Oktay Baris (okba@dtu.com)
+
 -- License: Simplified BSD License
 --
 
--- VHDL top level for Patmos in Chisel on Xilinx ml605 board with on-chip memory
+-- VHDL top level for Patmos in Chisel on Altera DE10-NANO board with on-chip memory
 --
 -- Includes some 'magic' VHDL code to generate a reset after FPGA configuration.
 --
@@ -18,7 +17,20 @@ use ieee.numeric_std.all;
 entity patmos_top is
     port(
         clk : in  std_logic;
---      oLedsPins_led : out std_logic_vector(8 downto 0);
+
+	oLedsPins_led : out std_logic_vector(7 downto 0);
+	iKeysPins_key : in std_logic_vector(1 downto 0);
+
+        --oADC_CONVST : out std_logic;
+        --oADC_SCK : out std_logic;
+	--oADC_SDI : out std_logic;
+	--iADC_SDO : in std_logic;
+
+        osDHostCtrlPins_sdClk  : out std_logic;
+        osDHostCtrlPins_sdCs : out std_logic;
+        isDHostCtrlPins_sdDatOut : in std_logic;
+        osDHostCtrlPins_sdDatIn : out std_logic;
+
         oUartPins_txd : out std_logic;
         iUartPins_rxd : in  std_logic
     );
@@ -46,7 +58,14 @@ architecture rtl of patmos_top is
             io_comSpm_S_Resp        : in std_logic_vector(1 downto 0);
             io_comSpm_S_Data        : in std_logic_vector(31 downto 0);
 
-            io_ledsPins_led : out std_logic_vector(8 downto 0);
+	    io_LedsPins_led : out std_logic_vector(7 downto 0);
+	    io_KeysPins_key : in  std_logic_vector(1 downto 0);
+
+       	    io_sDHostCtrlPins_sdClk  : out std_logic;
+            io_sDHostCtrlPins_sdCs : out std_logic;
+            io_sDHostCtrlPins_sdDatOut : in std_logic;
+            io_sDHostCtrlPins_sdDatIn : out std_logic;
+
             io_uartPins_tx  : out std_logic;
             io_uartPins_rx  : in  std_logic
 
@@ -73,8 +92,10 @@ begin
             divide_by   => pll_div
         )
         port map(
-            clk_in1 => clk,
-            clk_out1 => clk_int
+	    inclk0 => clk,
+	    c0 => clk_int
+            --clk_in1 => clk,
+            --clk_out1 => clk_int
         );
     -- we use a PLL
     -- clk_int <= clk;
@@ -100,7 +121,9 @@ begin
            (others => '0'), (others => '0'), '0',
            open, open, open, open,
            (others => '0'), (others => '0'),
-           open, -- oLedsPins_led,
+	   oLedsPins_led,
+	   iKeysPins_key,
+           osDHostCtrlPins_sdClk, osDHostCtrlPins_sdCs, isDHostCtrlPins_sdDatOut, osDHostCtrlPins_sdDatIn, 
            oUartPins_txd, iUartPins_rxd);
 
 end architecture rtl;

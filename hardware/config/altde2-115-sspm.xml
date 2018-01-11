@@ -1,0 +1,19 @@
+<patmos default="altde2-115.xml">
+  <description>configuration for DE2-115 board with SSPM</description>
+
+  <frequency Hz="80000000"/>
+
+  <ExtMem size="2M" DevTypeRef="Sram16" />
+
+  <IOs>
+    <IO DevTypeRef="SSPMDevice" offset="11"/>
+  </IOs>
+
+  <Devs>
+    <Dev DevType="SSPMDevice" entity="SSPM" iface="OcpCore">
+      <params>
+      <param name="nCores" value="2"/>
+      </params>
+    </Dev>
+  </Devs>
+</patmos>

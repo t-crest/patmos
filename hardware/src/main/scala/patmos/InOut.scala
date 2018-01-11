@@ -160,8 +160,11 @@ class InOut(nr: Int, cnt: Int, cmpdevs: List[(CoreDeviceIO,Int,String)] = List.e
   // Creation of IO devices
   val conf = Config.getConfig
 
-  val cpuinfo = Module(new CpuInfoCmp(Config.datFile, nr, cnt))
-  connectDevice(cpuinfo.io, CPUINFO_OFFSET, "CpuInfoCmp")
+  if(cnt != 0)
+  {
+    val cpuinfo = Module(new CpuInfoCmp(Config.datFile, nr, cnt))
+    connectDevice(cpuinfo.io, CPUINFO_OFFSET, "CpuInfoCmp")
+  }
   
   if(nr == 0)
   {

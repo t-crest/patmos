@@ -9,18 +9,13 @@ BOOTBIN?=$(BOOTBUILDDIR)/$(BOOTAPP).bin
 BOOTDAT?=$(BOOTBUILDDIR)/$(BOOTAPP).dat
 
 BOARD?=altde2-115
+#BOARD?=altde10-NANO-oc
 BOOTSPM_BASE?=0x00020000
 
 HWMODULEPREFIX?=
 
-# Building Patmos with Chisel without too much sbt/scala/... stuff
-#
-# sbt looks for default into a folder project/ for build.sdt and Build.scala
-# sbt creates per default a target folder
-#
-# Source directory is configured in build.sbt
-# Scala/Java build directory is the default one
-SBT=java -Xmx1024M -Xss8M -jar sbt/sbt-launch.jar
+#SBT=java -Xmx1024M -Xss8M -jar sbt/sbt-launch.jar
+SBT= sbt
 
 # C++ build flags
 CXX=g++
@@ -29,7 +24,7 @@ CXXFLAGS=-O1
 # Quick fix for Mac OS X
 # How are include paths handled these days in *nix? CMake?
 ifeq ($(TERM_PROGRAM),$(filter $(TERM_PROGRAM), Apple_Terminal iTerm.app))
-	INC_EXTRA=-I /opt/local/include -I /usr/local/include/libelf -I /opt/local/include/libelf -L/opt/local/lib
+	INC_EXTRA=-I /opt/local/include -I /usr/local/include/libelf -I /opt/local/include/libelf -L /opt/local/lib
 else
 	INC_EXTRA=
 endif
@@ -47,6 +42,7 @@ MEMCTRLMAIN16=io.SRamMain
 MEMCTRLMAINOC=io.OCRamMain
 ARBITERMAIN=ocp.ArbiterMain
 TDMARBITERMAIN=ocp.TdmArbiterWrapperMain
+MEMSSPM?=sspm.SSPMAegeanMain
 
 # config file for Patmos -- now just frequency
 #CONFIG=default
@@ -80,7 +76,7 @@ $(HWBUILDDIR)/Patmos.cpp $(HWBUILDDIR)/emulator_config.h: $(CGEN)
 	fi
 
 $(CGEN): $(BOOTBIN) $(BOOTDAT) $(SRC)
-	$(SBT) "run-main $(MAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --vcd --targetDir $(HWBUILDDIR) --cse --backend c"
+	$(SBT) "runMain $(MAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --vcd --targetDir $(HWBUILDDIR) --cse --backend c"
 	echo $(CONFIGFILE)+$(BOOTBIN)+$(BOOTDAT) > $(CGEN)
 
 # run emulator
@@ -104,7 +100,7 @@ $(HWBUILDDIR)/$(HWMODULEPREFIX)Patmos.v: $(VGEN)
 	fi
 
 $(VGEN): $(BOOTBIN) $(BOOTDAT) $(SRC)
-	$(SBT) "run-main $(MAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --targetDir $(HWBUILDDIR) --cse --backend v $(HWMODULEPREFIXOPT)"
+	$(SBT) "runMain $(MAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --targetDir $(HWBUILDDIR) --cse --backend v $(HWMODULEPREFIXOPT)"
 	echo $(CONFIGFILE)+$(BOOTBIN)+$(BOOTDAT)+$(HWMODULEPREFIX) > $(VGEN)
 
 $(HWBUILDDIR)/$(HWMODULEPREFIX)PatmosCore.v: $(VGENCORE)
@@ -113,23 +109,26 @@ $(HWBUILDDIR)/$(HWMODULEPREFIX)PatmosCore.v: $(VGENCORE)
 	fi
 
 $(VGENCORE): $(BOOTBIN) $(BOOTDAT) $(SRC)
-	$(SBT) "run-main $(COREMAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --targetDir $(HWBUILDDIR) --cse --backend v $(HWMODULEPREFIXOPT)"
+	$(SBT) "runMain $(COREMAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --targetDir $(HWBUILDDIR) --cse --backend v $(HWMODULEPREFIXOPT)"
 	echo $(CONFIGFILE)+$(BOOTBIN)+$(BOOTDAT)+$(HWMODULEPREFIX) > $(VGENCORE)
 
 $(HWBUILDDIR)/SSRam32Ctrl.v: $(SRC)
-	$(SBT) "run-main $(MEMCTRLMAIN32) $(MEMCTRL_ADDR_WIDTH) --targetDir $(HWBUILDDIR) --cse --backend v"
+	$(SBT) "runMain $(MEMCTRLMAIN32) $(MEMCTRL_ADDR_WIDTH) --targetDir $(HWBUILDDIR) --cse --backend v"
 
 $(HWBUILDDIR)/SRamCtrl.v: $(SRC)
-	$(SBT) "run-main $(MEMCTRLMAIN16) $(MEMCTRL_ADDR_WIDTH) --targetDir $(HWBUILDDIR) --cse --backend v"
+	$(SBT) "runMain $(MEMCTRLMAIN16) $(MEMCTRL_ADDR_WIDTH) --targetDir $(HWBUILDDIR) --cse --backend v"
 
 $(HWBUILDDIR)/OCRamCtrl.v: $(SRC)
-	$(SBT) "run-main $(MEMCTRLMAINOC) $(MEMCTRL_ADDR_WIDTH) --targetDir $(HWBUILDDIR) --cse --backend v"
+	$(SBT) "runMain $(MEMCTRLMAINOC) $(MEMCTRL_ADDR_WIDTH) --targetDir $(HWBUILDDIR) --cse --backend v"
 
 $(HWBUILDDIR)/Arbiter.v: $(SRC)
-	$(SBT) "run-main $(ARBITERMAIN) $(ARBITER_CNT) $(ARBITER_ADDR_WIDTH) $(ARBITER_DATA_WIDTH) $(ARBITER_BURST_LENGTH) --targetDir $(HWBUILDDIR) --cse --backend v"
+	$(SBT) "runMain $(ARBITERMAIN) $(ARBITER_CNT) $(ARBITER_ADDR_WIDTH) $(ARBITER_DATA_WIDTH) $(ARBITER_BURST_LENGTH) --targetDir $(HWBUILDDIR) --cse --backend v"
 
 $(HWBUILDDIR)/TdmArbiterWrapper.v: $(SRC)
-	$(SBT) "run-main $(TDMARBITERMAIN) $(ARBITER_CNT) $(ARBITER_ADDR_WIDTH) $(ARBITER_DATA_WIDTH) $(ARBITER_BURST_LENGTH) --targetDir $(HWBUILDDIR) --cse --backend v"
+	$(SBT) "runMain $(TDMARBITERMAIN) $(ARBITER_CNT) $(ARBITER_ADDR_WIDTH) $(ARBITER_DATA_WIDTH) $(ARBITER_BURST_LENGTH) --targetDir $(HWBUILDDIR) --cse --backend v"
+
+$(HWBUILDDIR)/SSPMAegean.v: $(SRC)
+	$(SBT) "runMain $(MEMSSPM) $(CORE_CNT) --targetDir $(HWBUILDDIR) --cse --backend v"
 
 # run Verilog simulation
 vsim: verilog
@@ -162,17 +161,53 @@ $(BOOTBIN): .FORCE
 MODULE=example.FsmMain
 MODULE=ocp.test.OcpTester
 MODULE=ocp.test.ArbiterTester
+MODULE=io.test.BranchPredictTester
 #MODULE=ocp.test.TdmArbiterWrapperTester
 #MODULE=ocp.test.TdmArbiterTester
 
 modtest:
 #	-rm -rf generated
-	$(SBT) "run-main $(MODULE) --cse --backend c --compile --vcd --test --genHarness --targetDir build"
+	$(SBT) "runMain $(MODULE) --cse --backend c --compile --vcd --test --genHarness --targetDir build"
 
 modcomp:
 #	-rm -rf generated
-	$(SBT) "run-main $(MODULE) --cse --backend v --compile --vcd --targetDir build"
+	$(SBT) "runMain $(MODULE) --cse --backend v --compile --vcd --targetDir build"
 
 .FORCE:
 
 .PHONY: all emulator test view verilog vsim
+
+# SSPM make targets
+
+SSPM-test:
+	$(SBT) "runMain io.SSPMTester"
+
+SSPMAegean:
+	$(SBT) "runMain sspm.SSPMAegeanMain $(CORE_CNT) --targetDir $(HWGENDIR) --cse --backend v"
+
+SSPMAegean-test:
+	$(SBT) "runMain sspm.SSPMAegeanTester"
+
+SSPM-scheduler:
+	$(SBT) "runMain sspm.SchedulerMain"
+
+SSPM-scheduler-test:
+	$(SBT) "runMain sspm.SchedulerTester"
+
+SSPM-connector:
+	$(SBT) "runMain sspm.SSPMConnectorMain"
+
+SSPM-connector-test:
+	$(SBT) "runMain sspm.SSPMConnectorTester"
+
+SSPM-memmodule:
+	$(SBT) "runMain sspm.memModuleMain"
+
+SSPM-memmodule-test:
+	$(SBT) "runMain sspm.memModuleTester"
+
+SSPM-memspm:
+	$(SBT) "runMain sspm.memSPMMain"
+
+SSPM-memspm-test:
+	$(SBT) "runMain sspm.memSPMTester"

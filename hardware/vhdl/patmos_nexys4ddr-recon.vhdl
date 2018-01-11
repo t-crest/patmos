@@ -84,8 +84,6 @@ architecture rtl of patmos_top is
 			io_memBridgePins_S_CmdAccept  : in  std_logic;
 			io_memBridgePins_S_DataAccept : in  std_logic;
 
-			io_cpuInfoPins_id             : in  std_logic_vector(31 downto 0);
-			io_cpuInfoPins_cnt            : in  std_logic_vector(31 downto 0);
 			io_uartPins_tx                : out std_logic;
 			io_uartPins_rx                : in  std_logic;
 
@@ -536,8 +534,6 @@ begin
 			io_memBridgePins_S_CmdAccept  => SCmdAccept_bridge,
 			io_memBridgePins_S_DataAccept => SDataAccept_bridge,
 
-			io_cpuInfoPins_id             => X"00000000",
-			io_cpuInfoPins_cnt            => X"00000000",
 			
 			-- TXD, RXD naming uses terminal-centric naming convention
 			io_uartPins_tx                => uart_rxd,
