@@ -252,7 +252,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     //val spm = Module(new cmp.SharedSPM(nrCores))
     for (i <- (0 until cores.length)) {
       println("Connecting core " + i)
-      ccrtlock.io(i).ocp <> cores(i).io.comSpm
+      //ccrtlock.io(i).ocp <> cores(i).io.comSpm
       //ccrtlock.io.comSpm(i) <> cores(i).io.comSpm
       memarbiter.io.master(i) <> cores(i).io.memPort
       
