@@ -40,7 +40,6 @@
 
 #include "boot.h"
 #include <machine/boot.h>
-#include "include/patio.h"
 
 #include "include/bootable.h"
 
@@ -56,12 +55,7 @@ int main(void)
 
   // wait a little bit in case of the TU/e memory controller not being ready
   int val = TIMER_US_LOW+DELAY;
-#ifdef DEBUG // Interleaving the writing of "BOOT" with the waiting.
-             // This should make the timing behaviour for DEBUG and 
-             // not DEBUG more alike 
-  if(get_cpuid() == 0)
-    WRITE("BOOT\n", 5);
-#endif
+
   while (TIMER_US_LOW-val < 0)
     ;
 
@@ -81,19 +75,8 @@ int main(void)
       boot_info->master.status = STATUS_BOOT;
     }
 
-#ifdef DEBUG
-    WRITE("DOWN\n", 5);
-#endif
-
     // download application
     boot_info->master.entrypoint = download();
-
-#ifdef DEBUG
-    // force some valid address for debugging
-    if (boot_info->master.entrypoint == NULL) {
-      boot_info->master.entrypoint = 0x20084;
-    }
-#endif
   }
   else {
     boot_info->slave[get_cpuid()].status = STATUS_NULL;
@@ -122,19 +105,6 @@ int main(void)
 
   if(get_cpuid() == 0) {
 
-#ifdef DEBUG
-    WRITE("START ", 6);
-    WRITE(XDIGIT(((int)boot_info->master.entrypoint >> 28) & 0xf));
-    WRITE(XDIGIT(((int)boot_info->master.entrypoint >> 24) & 0xf));
-    WRITE(XDIGIT(((int)boot_info->master.entrypoint >> 20) & 0xf));
-    WRITE(XDIGIT(((int)boot_info->master.entrypoint >> 16) & 0xf));
-    WRITE(XDIGIT(((int)boot_info->master.entrypoint >> 12) & 0xf));
-    WRITE(XDIGIT(((int)boot_info->master.entrypoint >>  8) & 0xf));
-    WRITE(XDIGIT(((int)boot_info->master.entrypoint >>  4) & 0xf));
-    WRITE(XDIGIT(((int)boot_info->master.entrypoint >>  0) & 0xf));
-    WRITE('\n');
-#endif
-
     // notify slaves that they can call _start()
     boot_info->master.status = STATUS_INIT;
 
@@ -152,10 +122,8 @@ int main(void)
 
   // call the application's _start()
   int retval = -1;
-boot_info->slave[get_cpuid()].return_val = 0xAB;
+;
   if (boot_info->master.entrypoint != NULL) {
-
-   boot_info->slave[get_cpuid()].return_val = 0xCD;
 
     // enable global mode
     global_mode();
@@ -175,36 +143,18 @@ boot_info->slave[get_cpuid()].return_val = 0xAB;
 
     // enable local mode again
     local_mode();
+
     boot_info->slave[get_cpuid()].return_val = retval;
   }
 
   if(get_cpuid() == 0) {
 
-
-#ifdef DEBUG
-    WRITE("RETURN\n", 7);
-#endif
     // wait for slaves to finish
     for (unsigned i = 1; i < get_cpucnt(); i++) {
       if (boot_info->slave[i].status != STATUS_NULL) {
-#ifdef HEAVY_DEBUG
-        WRITE("CORE_RETURN\n", 12);
-#endif
         while(boot_info->slave[i].status != STATUS_RETURN){
           /* spin */
         }
-	WRITECHAR(XDIGIT((boot_info->slave[i].return_val >> 28) & 0xf));
-    	WRITECHAR(XDIGIT((boot_info->slave[i].return_val >> 24) & 0xf));
-    	WRITECHAR(XDIGIT((boot_info->slave[i].return_val >> 20) & 0xf));
-    	WRITECHAR(XDIGIT((boot_info->slave[i].return_val >> 16) & 0xf));
-    	WRITECHAR(XDIGIT((boot_info->slave[i].return_val >> 12) & 0xf));
-    	WRITECHAR(XDIGIT((boot_info->slave[i].return_val >>  8) & 0xf));
-    	WRITECHAR(XDIGIT((boot_info->slave[i].return_val >>  4) & 0xf));
-    	WRITECHAR(XDIGIT((boot_info->slave[i].return_val >>  0) & 0xf));
-      } else {
-#ifdef HEAVY_DEBUG
-        WRITE("CORE_NULL\n", 10);
-#endif
       }
     }
 
@@ -221,12 +171,7 @@ boot_info->slave[get_cpuid()].return_val = 0xAB;
         /* spin */
       }
     }
-
-#ifdef DEBUG
-    WRITE("EXIT\n", 5);
-#endif
   }
-  
   else {
     
     // wait until master application has returned

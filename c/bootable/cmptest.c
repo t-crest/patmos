@@ -3,20 +3,21 @@
 #include <string.h>
 #include <machine/patmos.h>
 #include <machine/spm.h>
+#include "libcorethread/corethread.h"
 
 
-static volatile _UNCACHED char data[20] = "AAAAAAAAAAAAAAAAAAAA";
+volatile _UNCACHED char * data = (_UNCACHED char *)0x00000080;
 
-int main() {
-
-  const char *msg = "Hello, World!\n";
+int _main()
+{
+   const char *msg = "Hello, World!\n";
   unsigned i, k;
 
   volatile _SPM int *led_ptr = (volatile _SPM int *) 0xF0090000;
   volatile _SPM int *uart_ptr = (volatile _SPM int *) 0xF0080004;
 
   
-  for(;;)
+  for(int j = 0; j < 5; j++)
   {
     data[get_cpuid()] = get_cpuid() + 48;
     if(get_cpuid() == 0) {
@@ -34,6 +35,28 @@ int main() {
       }
       *uart_ptr = '\n';
     }
-    return 10;
   }
+  return 0;
 }
+
+void func_worker_1(void* arg) {
+  int worker_1_param = *((int*)arg);
+  int ret = _main();
+  corethread_exit(&ret);
+  return;
+}
+
+int main() {
+
+  for(int j = 1; j < get_cpucnt(); j++)
+  {
+    corethread_t worker_1 = 1;
+    int worker_1_param = 1;
+    corethread_create(&worker_1,&func_worker_1,&worker_1_param);
+  }
+  return _main();
+}
+
+
+
+

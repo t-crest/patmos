@@ -43,23 +43,52 @@
 
 #ifdef BOOTROM
 
+#include "include/patio.h"
+
 #define CACHECTRL *((volatile _IODEV int *)0xF0010014)
 #define local_mode()  do { if (CACHECTRL >= 0) { CACHECTRL = 0x80000000; } \
     asm volatile("nop; nop;"); } while(0)
 #define global_mode() do { if (CACHECTRL < 0)  { CACHECTRL = 0x80000000; } \
     asm volatile("nop; nop;"); } while(0)
 
+
 extern int _stack_cache_base, _shadow_stack_base;
 int main(void);
 void _start(void) __attribute__((naked,used));
 
 void _start(void) {
+
+
+  // retrieve the id of the current core
+  const int id = get_cpuid();
+
+  // ---------------------------------------------------------------------------
+  // setup stack frame and stack cache.
+
+
+  // compute effective stack addresses (needed for CMPs)
+  const int _stack_size =
+    (unsigned)&_stack_cache_base - (unsigned)&_shadow_stack_base;
+
+  // make sure to have a positive stack size
+  // workaround for -O0: avoid branch, perform abs(stack_size) via bit twiddling
+  int const mask = _stack_size >> (sizeof(int) * 8 - 1);
+  const int stack_size = (_stack_size + mask) ^ mask;
+
+  const unsigned shadow_stack_base =
+    (unsigned)&_shadow_stack_base - 2*stack_size*id;
+  const unsigned stack_cache_base =
+    (unsigned)&_stack_cache_base - 2*stack_size*id;
+
+
+
+  // ---------------------------------------------------------------------------
   // setup stack frame and stack cache.
   asm volatile ("mov $r31 = %0;" // initialize shadow stack pointer"
                 "mts $ss  = %1;" // initialize the stack cache's spill pointer"
                 "mts $st  = %1;" // initialize the stack cache's top pointer"
-                : : "r" (&_shadow_stack_base),
-                  "r" (&_stack_cache_base));
+                 : : "r" (shadow_stack_base), "r" (stack_cache_base));
+
 
   // enable local mode
   local_mode();
