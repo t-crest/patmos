@@ -175,7 +175,7 @@ class InOut(nr: Int, cnt: Int, cmpdevs: List[(CoreDeviceIO,Int,String)] = List.e
     }
   }
   
-  // Does not work
+//  Does not work
 //  for (cmpdev <- cmpdevs) {
 //    connectDevice(cmpdev._1,cmpdev._2, cmpdev._3)
 //  }
