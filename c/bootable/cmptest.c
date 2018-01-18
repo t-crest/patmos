@@ -6,11 +6,11 @@
 #include "libcorethread/corethread.h"
 
 
-volatile _UNCACHED char * data = (_UNCACHED char *)0x00000080;
+_UNCACHED char data[20] = "AAAAAAAAAAAAAAAAAAAA";
 
 int _main()
 {
-   const char *msg = "Hello, World!\n";
+  const char *msg = "Hello, World!\n";
   unsigned i, k;
 
   volatile _SPM int *led_ptr = (volatile _SPM int *) 0xF0090000;
