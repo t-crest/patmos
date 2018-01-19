@@ -165,22 +165,20 @@ class InOut(nr: Int, cnt: Int, cmpdevs: List[(CoreDeviceIO,Int,String)] = List.e
     val cpuinfo = Module(new CpuInfoCmp(Config.datFile, nr, cnt))
     connectDevice(cpuinfo.io, CPUINFO_OFFSET, "CpuInfoCmp")
   }
-  
-  if(nr == 0)
-  {
-    for (devConf <- Config.getConfig.Devs) {
-      val dev = Config.createDevice(devConf).asInstanceOf[CoreDevice]
-      
+
+  for (devConf <- Config.getConfig.Devs) {
+    val dev = Config.createDevice(devConf).asInstanceOf[CoreDevice]
+    if(nr == 0 || dev.io.getClass().getInterfaces().forall(e => e.getSimpleName() != "Pins" || !e.getMethods().nonEmpty)) {
       connectDevice(dev.io,devConf.offset,devConf.name)
       Config.connectIOPins(devConf.name, io, dev.io)
       Config.connectIntrPins(devConf, io, dev.io)
-    }  
+    }
   }
   
-  
-  for (cmpdev <- cmpdevs) {
-    connectDevice(cmpdev._1,cmpdev._2, cmpdev._3)
-  }
+//  Does not work
+//  for (cmpdev <- cmpdevs) {
+//    connectDevice(cmpdev._1,cmpdev._2, cmpdev._3)
+//  }
 
   // The exception and memory management units are special and outside this unit
   io.excInOut.M := io.memInOut.M
