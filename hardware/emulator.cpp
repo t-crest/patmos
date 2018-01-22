@@ -498,6 +498,11 @@ static void init_icache(Patmos_t *c, val_t entry) {
       //init for method cache
       c->Patmos_PatmosCore_fetch__pcReg = -1;
       c->Patmos_PatmosCore_icache_repl__hitReg = 0;
+      // add multicore support, at the moment only for the method cache and not the ISPM
+      #if CORE_COUNT>1
+        c->Patmos_PatmosCore_1_fetch__pcReg = -1;
+        c->Patmos_PatmosCore_1_icache_repl__hitReg = 0;
+      #endif
       #endif /* ICACHE_METHOD */
       #ifdef ICACHE_LINE
       //init for icache
@@ -507,6 +512,12 @@ static void init_icache(Patmos_t *c, val_t entry) {
       c->Patmos_PatmosCore_fetch__relocReg = (entry >> 2) - 1;
       c->Patmos_PatmosCore_fetch__selCache = 1;
       c->Patmos_PatmosCore_icache_repl__selCacheReg = 1;
+      #if CORE_COUNT>1
+        c->Patmos_PatmosCore_1_fetch__relBaseReg = 0;
+        c->Patmos_PatmosCore_1_fetch__relocReg = (entry >> 2) - 1;
+        c->Patmos_PatmosCore_1_fetch__selCache = 1;
+        c->Patmos_PatmosCore_1_icache_repl__selCacheReg = 1;
+      #endif
     } else {
       // pcReg for ispm starts at entry point - ispm base
       c->Patmos_PatmosCore_fetch__pcReg = ((entry - 0x10000) >> 2) - 1;
@@ -516,8 +527,14 @@ static void init_icache(Patmos_t *c, val_t entry) {
       c->Patmos_PatmosCore_icache_repl__selSpmReg = 1;
     }
     c->Patmos_PatmosCore_icache_repl__callRetBaseReg = (entry >> 2);
+    #if CORE_COUNT>1
+      c->Patmos_PatmosCore_1_icache_repl__callRetBaseReg = (entry >> 2);
+    #endif
     #ifdef ICACHE_METHOD
     c->Patmos_PatmosCore_icache_ctrl__callRetBaseReg = (entry >> 2);
+    #if CORE_COUNT>1
+      c->Patmos_PatmosCore_1_icache_ctrl__callRetBaseReg = (entry >> 2);
+    #endif
     #endif /* ICACHE_METHOD */
     #ifdef ICACHE_LINE
     c->Patmos_PatmosCore_fetch__relBaseReg = (entry >> 2);

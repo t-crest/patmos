@@ -252,6 +252,7 @@ object Config {
       // Emit defines for emulator
       if (Driver.backend.isInstanceOf[CppBackend]) {
         val emuConfig = Driver.createOutputFile("emulator_config.h")
+        emuConfig.write("#define CORE_COUNT "+coreCount+"\n")
         emuConfig.write("#define ICACHE_"+ICache.typ.toUpperCase+"\n")
         for (d <- Devs) { emuConfig.write("#define IO_"+d.name.toUpperCase+"\n") }
         emuConfig.write("#define EXTMEM_"+ExtMem.ram.name.toUpperCase+"\n")
