@@ -55,6 +55,7 @@ abstract class Config {
   val description: String
   val frequency: Int
   val pipeCount: Int
+  val coreCount: Int
   val burstLength: Int
   val writeCombine: Boolean
   val mmu: Boolean
@@ -187,6 +188,9 @@ object Config {
                                 hasParent, defaultConf.pipeCount > 1)
       val pipeCount = if (dual) 2 else 1
 
+      val coreCount = getIntAttr(node, "cores", "@count",
+                                 hasParent, defaultConf.coreCount)
+
       val burstLength  = getIntAttr(node, "bus", "@burstLength",
                                     hasParent, defaultConf.burstLength)
       val writeCombine = getBooleanAttr(node, "bus", "@writeCombine",
@@ -295,6 +299,7 @@ object Config {
     val description = "dummy"
     val frequency = 0
     val pipeCount = 0
+    val coreCount = 0
     val burstLength = 0
     val writeCombine = false
     val mmu = false

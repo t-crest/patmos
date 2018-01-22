@@ -1,5 +1,5 @@
 /*
-    This is amulticore test program that can be compiled as bootable
+    This is a multicore test program that can be compiled as bootable
     into the ROM.
 
     Author: Martin Schoeberl

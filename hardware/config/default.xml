@@ -3,6 +3,7 @@
 
   <frequency Hz="1000000"/>
   <pipeline dual="true" />
+  <cores count="1" />
   <bus burstLength="4" writeCombine="false" mmu="false" />
 
   <ICache type="method" size="8k" assoc="16" repl="fifo" />
