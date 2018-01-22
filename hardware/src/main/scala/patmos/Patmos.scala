@@ -235,8 +235,6 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
   val cores = (0 until nrCores).map(i => Module(new PatmosCore(binFile,i,nrCores)))
 
-  val core = cores(0)
-
   // Forward ports to/from core
 
   // These are the NoC interfaces and can be reused for other experiments.
@@ -255,7 +253,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       memarbiter.io.master(i) <> cores(i).io.memPort
     }
 //  }
-  Config.connectAllIOPins(io, core.io)
+  Config.connectAllIOPins(io, cores(0).io)
 
   // Connect memory controller
   
@@ -279,10 +277,10 @@ class PatmosTest(pat: Patmos) extends Tester(pat) {
   for (i <- 0 until 100) {
     step(1) // false as third argument disables printout
     // The PC printout is a little off on a branch
-    val pc = peek(pat.core.memory.io.memwb.pc) - 2
+    val pc = peek(pat.cores(0).memory.io.memwb.pc) - 2
     print(pc + " - ")
     for (j <- 0 until 32)
-      print(peek(pat.core.decode.rf.rf(UInt(j))) + " ")
+      print(peek(pat.cores(0).decode.rf.rf(UInt(j))) + " ")
     println()
   }
 }

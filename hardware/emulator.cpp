@@ -198,9 +198,9 @@ static void emu_uart(Patmos_t *c, int uart_in, int uart_out) {
   static unsigned baud_counter = 0;
 
   // Pass on data from UART
-  if (c->Patmos_core_iocomp_Uart__io_ocp_M_Cmd.to_ulong() == 0x1
-      && (c->Patmos_core_iocomp_Uart__io_ocp_M_Addr.to_ulong() & 0xff) == 0x04) {
-    unsigned char d = c->Patmos_core_iocomp_Uart__io_ocp_M_Data.to_ulong();
+  if (c->Patmos_PatmosCore_iocomp_Uart__io_ocp_M_Cmd.to_ulong() == 0x1
+      && (c->Patmos_PatmosCore_iocomp_Uart__io_ocp_M_Addr.to_ulong() & 0xff) == 0x04) {
+    unsigned char d = c->Patmos_PatmosCore_iocomp_Uart__io_ocp_M_Data.to_ulong();
     int w = write(uart_out, &d, 1);
     if (w != 1) {
       cerr << program_name << ": error: Cannot write UART output" << endl;
@@ -208,7 +208,7 @@ static void emu_uart(Patmos_t *c, int uart_in, int uart_out) {
   }
 
   // Pass on data to UART
-  bool baud_tick = c->Patmos_core_iocomp_Uart__tx_baud_tick.to_bool();
+  bool baud_tick = c->Patmos_PatmosCore_iocomp_Uart__tx_baud_tick.to_bool();
   if (baud_tick) {
     baud_counter = (baud_counter + 1) % 10;
   }
@@ -223,10 +223,10 @@ static void emu_uart(Patmos_t *c, int uart_in, int uart_out) {
         if (r != 1) {
           cerr << program_name << ": error: Cannot read UART input" << endl;
         } else {
-          c->Patmos_core_iocomp_Uart__rx_state = 0x3; // rx_stop_bit
-          c->Patmos_core_iocomp_Uart__rx_baud_tick = 1;
-          c->Patmos_core_iocomp_Uart__rxd_reg2 = 1;
-          c->Patmos_core_iocomp_Uart__rx_buff = d;
+          c->Patmos_PatmosCore_iocomp_Uart__rx_state = 0x3; // rx_stop_bit
+          c->Patmos_PatmosCore_iocomp_Uart__rx_baud_tick = 1;
+          c->Patmos_PatmosCore_iocomp_Uart__rxd_reg2 = 1;
+          c->Patmos_PatmosCore_iocomp_Uart__rx_buff = d;
         }
       }
     }
@@ -311,10 +311,10 @@ static void emu_ethmac(Patmos_t *c, int ethmac_tap) {
 
   static uint8_t buffer [0xefff];
 
-  uint32_t cmd  = c->Patmos_core_iocomp_EthMac_bb__MCmd.to_ulong();
-  uint32_t addr = c->Patmos_core_iocomp_EthMac_bb__MAddr.to_ulong() & 0xffff;
-  uint32_t data = c->Patmos_core_iocomp_EthMac_bb__MData.to_ulong();
-  c->Patmos_core_iocomp_EthMac_bb__respReg = 0;
+  uint32_t cmd  = c->Patmos_PatmosCore_iocomp_EthMac_bb__MCmd.to_ulong();
+  uint32_t addr = c->Patmos_PatmosCore_iocomp_EthMac_bb__MAddr.to_ulong() & 0xffff;
+  uint32_t data = c->Patmos_PatmosCore_iocomp_EthMac_bb__MData.to_ulong();
+  c->Patmos_PatmosCore_iocomp_EthMac_bb__respReg = 0;
 
   if (cmd == 0x1) {
     if (addr < 0xf000) {
@@ -334,7 +334,7 @@ static void emu_ethmac(Patmos_t *c, int ethmac_tap) {
       case 0xf604: rx_addr = data; break;
       }
     }
-    c->Patmos_core_iocomp_EthMac_bb__respReg = 0x1;
+    c->Patmos_PatmosCore_iocomp_EthMac_bb__respReg = 0x1;
   } else if (cmd == 0x2) {
     if (addr < 0xf000) {
       data = ((buffer[addr] << 24) | (buffer[addr+1] << 16) |
@@ -344,8 +344,8 @@ static void emu_ethmac(Patmos_t *c, int ethmac_tap) {
       case 0xf004: data = (rx_ready << 2) | (tx_ready << 0); break;
       }
     }
-    c->Patmos_core_iocomp_EthMac_bb__dataReg = data;
-    c->Patmos_core_iocomp_EthMac_bb__respReg = 0x1;
+    c->Patmos_PatmosCore_iocomp_EthMac_bb__dataReg = data;
+    c->Patmos_PatmosCore_iocomp_EthMac_bb__respReg = 0x1;
   }
 
   if (tx && !tx_ready) {
@@ -456,15 +456,15 @@ static val_t readelf(istream &is, Patmos_t *c)
              ((val_t)elfbuf[phdr.p_offset + k + 2] << 8) |
              ((val_t)elfbuf[phdr.p_offset + k + 3] << 0));
           val_t addr = ((phdr.p_paddr + k) - (0x1 << OCMEM_ADDR_BITS)) >> 3;
-          unsigned size = (sizeof(c->Patmos_core_fetch_MemBlock__mem.contents) /
-                           sizeof(c->Patmos_core_fetch_MemBlock__mem.contents[0]));
+          unsigned size = (sizeof(c->Patmos_PatmosCore_fetch_MemBlock__mem.contents) /
+                           sizeof(c->Patmos_PatmosCore_fetch_MemBlock__mem.contents[0]));
           assert(addr < size && "Instructions mapped to ISPM exceed size");
 
           // Write to even or odd block
           if (((phdr.p_paddr + k) & 0x4) == 0) {
-            c->Patmos_core_fetch_MemBlock__mem.put(addr, word);
+            c->Patmos_PatmosCore_fetch_MemBlock__mem.put(addr, word);
           } else {
-            c->Patmos_core_fetch_MemBlock_1__mem.put(addr, word);
+            c->Patmos_PatmosCore_fetch_MemBlock_1__mem.put(addr, word);
           }
         }
 
@@ -496,31 +496,31 @@ static void init_icache(Patmos_t *c, val_t entry) {
     if (entry >= 0x20000) {
       #ifdef ICACHE_METHOD
       //init for method cache
-      c->Patmos_core_fetch__pcReg = -1;
-      c->Patmos_core_icache_repl__hitReg = 0;
+      c->Patmos_PatmosCore_fetch__pcReg = -1;
+      c->Patmos_PatmosCore_icache_repl__hitReg = 0;
       #endif /* ICACHE_METHOD */
       #ifdef ICACHE_LINE
       //init for icache
-      c->Patmos_core_fetch__pcReg = (entry >> 2) - 1;
+      c->Patmos_PatmosCore_fetch__pcReg = (entry >> 2) - 1;
       #endif /* ICACHE_LINE */
-      c->Patmos_core_fetch__relBaseReg = 0;
-      c->Patmos_core_fetch__relocReg = (entry >> 2) - 1;
-      c->Patmos_core_fetch__selCache = 1;
-      c->Patmos_core_icache_repl__selCacheReg = 1;
+      c->Patmos_PatmosCore_fetch__relBaseReg = 0;
+      c->Patmos_PatmosCore_fetch__relocReg = (entry >> 2) - 1;
+      c->Patmos_PatmosCore_fetch__selCache = 1;
+      c->Patmos_PatmosCore_icache_repl__selCacheReg = 1;
     } else {
       // pcReg for ispm starts at entry point - ispm base
-      c->Patmos_core_fetch__pcReg = ((entry - 0x10000) >> 2) - 1;
-      c->Patmos_core_fetch__relBaseReg = (entry - 0x10000) >> 2;
-      c->Patmos_core_fetch__relocReg = 0x10000 >> 2;
-      c->Patmos_core_fetch__selSpm = 1;
-      c->Patmos_core_icache_repl__selSpmReg = 1;
+      c->Patmos_PatmosCore_fetch__pcReg = ((entry - 0x10000) >> 2) - 1;
+      c->Patmos_PatmosCore_fetch__relBaseReg = (entry - 0x10000) >> 2;
+      c->Patmos_PatmosCore_fetch__relocReg = 0x10000 >> 2;
+      c->Patmos_PatmosCore_fetch__selSpm = 1;
+      c->Patmos_PatmosCore_icache_repl__selSpmReg = 1;
     }
-    c->Patmos_core_icache_repl__callRetBaseReg = (entry >> 2);
+    c->Patmos_PatmosCore_icache_repl__callRetBaseReg = (entry >> 2);
     #ifdef ICACHE_METHOD
-    c->Patmos_core_icache_ctrl__callRetBaseReg = (entry >> 2);
+    c->Patmos_PatmosCore_icache_ctrl__callRetBaseReg = (entry >> 2);
     #endif /* ICACHE_METHOD */
     #ifdef ICACHE_LINE
-    c->Patmos_core_fetch__relBaseReg = (entry >> 2);
+    c->Patmos_PatmosCore_fetch__relBaseReg = (entry >> 2);
     #endif /* ICACHE_LINE */
   }
 }
@@ -536,38 +536,38 @@ static void stat_icache(Patmos_t *c, bool halt) {
   exec_cycles++;
   #ifdef ICACHE_METHOD
   //count everytime a new method is written to the cache
-  if (c->Patmos_core_icache_ctrl__io_ctrlrepl_wTag.to_bool()) {
+  if (c->Patmos_PatmosCore_icache_ctrl__io_ctrlrepl_wTag.to_bool()) {
     cache_miss++;
-    if (c->Patmos_core_icache_ctrl__io_ctrlrepl_wData.to_ulong() > max_function_size) {
-      max_function_size = c->Patmos_core_icache_ctrl__io_ctrlrepl_wData.to_ulong();
+    if (c->Patmos_PatmosCore_icache_ctrl__io_ctrlrepl_wData.to_ulong() > max_function_size) {
+      max_function_size = c->Patmos_PatmosCore_icache_ctrl__io_ctrlrepl_wData.to_ulong();
     }
   }
   //everytime a method is called from the cache, todo: find a better way to measure hits
-  if (c->Patmos_core_fetch__io_memfe_doCallRet.to_bool() &&
-      c->Patmos_core_icache_repl__io_replctrl_hit.to_bool() &&
-      c->Patmos_core_icache_ctrl__stateReg.to_ulong() == 0 &&
-      c->Patmos_core_icache__io_ena_in.to_bool() &&
-      !c->Patmos_core_icache_ctrl__io_ctrlrepl_instrStall.to_bool()) {
+  if (c->Patmos_PatmosCore_fetch__io_memfe_doCallRet.to_bool() &&
+      c->Patmos_PatmosCore_icache_repl__io_replctrl_hit.to_bool() &&
+      c->Patmos_PatmosCore_icache_ctrl__stateReg.to_ulong() == 0 &&
+      c->Patmos_PatmosCore_icache__io_ena_in.to_bool() &&
+      !c->Patmos_PatmosCore_icache_ctrl__io_ctrlrepl_instrStall.to_bool()) {
     cache_hits++;
   }
   #endif /* ICACHE_METHOD */
   #ifdef ICACHE_LINE
   //add stats for instruction cache measurements
-  if (c->Patmos_core_icache_ctrl__io_ctrlrepl_wTag.to_bool()) {
+  if (c->Patmos_PatmosCore_icache_ctrl__io_ctrlrepl_wTag.to_bool()) {
     cache_miss++;
   }
-  if (c->Patmos_core_fetch__io_ena.to_bool()) {
-    if (c->Patmos_core_icache_repl__hitEven.to_bool()) {
+  if (c->Patmos_PatmosCore_fetch__io_ena.to_bool()) {
+    if (c->Patmos_PatmosCore_icache_repl__hitEven.to_bool()) {
       cache_hits++;
     }
-    if (c->Patmos_core_icache_repl__hitOdd.to_bool()) {
+    if (c->Patmos_PatmosCore_icache_repl__hitOdd.to_bool()) {
       cache_hits++;
     }
   }
   #endif /* ICACHE_LINE */
 
   //pipeline stalls caused by the instruction cache
-  if (!c->Patmos_core_icache__io_ena_out.to_bool()) {
+  if (!c->Patmos_PatmosCore_icache__io_ena_out.to_bool()) {
     cache_stall_cycles++;
   }
   //program terminats, write to output
@@ -585,24 +585,24 @@ static void stat_icache(Patmos_t *c, bool halt) {
 
 static void print_sc_state(Patmos_t *c) {
   // fill
-  if ((c->Patmos_core_dcache_sc__stateReg.to_ulong() == 1) ||
-      (c->Patmos_core_dcache_sc__stateReg.to_ulong() == 2)) {
-    if (c->Patmos_core_dcache_sc__mb_wrEna.to_bool()) {
+  if ((c->Patmos_PatmosCore_dcache_sc__stateReg.to_ulong() == 1) ||
+      (c->Patmos_PatmosCore_dcache_sc__stateReg.to_ulong() == 2)) {
+    if (c->Patmos_PatmosCore_dcache_sc__mb_wrEna.to_bool()) {
       for (unsigned int i = 0; i < 4; i++) {
-        std::cerr << "f:" << (c->Patmos_core_dcache_sc__transferAddrReg.to_ulong() + i - 4)
-                  << " > " << (((c->Patmos_core_dcache_sc__mb_wrData.to_ulong() << (i*8)) >> 24) & 0xFF)
+        std::cerr << "f:" << (c->Patmos_PatmosCore_dcache_sc__transferAddrReg.to_ulong() + i - 4)
+                  << " > " << (((c->Patmos_PatmosCore_dcache_sc__mb_wrData.to_ulong() << (i*8)) >> 24) & 0xFF)
                   << "\n";
       }
     }
   }
   // spill
-  else if ((c->Patmos_core_dcache_sc__stateReg.to_ulong() == 3) ||
-           (c->Patmos_core_dcache_sc__stateReg.to_ulong() == 4)) {
-    if (c->Patmos_core_dcache_sc__io_toMemory_M_DataValid.to_bool() &&
-        c->Patmos_core_dcache_sc__io_toMemory_M_DataByteEn.to_ulong()) {
+  else if ((c->Patmos_PatmosCore_dcache_sc__stateReg.to_ulong() == 3) ||
+           (c->Patmos_PatmosCore_dcache_sc__stateReg.to_ulong() == 4)) {
+    if (c->Patmos_PatmosCore_dcache_sc__io_toMemory_M_DataValid.to_bool() &&
+        c->Patmos_PatmosCore_dcache_sc__io_toMemory_M_DataByteEn.to_ulong()) {
       for (unsigned int i = 0; i < 4; i++) {
-        std::cerr << "s:" << (c->Patmos_core_dcache_sc__transferAddrReg.to_ulong() + i - 4)
-                  << " < " << (((c->Patmos_core_dcache_sc__mb_rdData.to_ulong() << (i*8)) >> 24) & 0xFF)
+        std::cerr << "s:" << (c->Patmos_PatmosCore_dcache_sc__transferAddrReg.to_ulong() + i - 4)
+                  << " < " << (((c->Patmos_PatmosCore_dcache_sc__mb_rdData.to_ulong() << (i*8)) >> 24) & 0xFF)
                   << "\n";
       }
     }
@@ -611,11 +611,11 @@ static void print_sc_state(Patmos_t *c) {
 
 static void print_state(Patmos_t *c) {
   static unsigned int baseReg = 0;
-  *out << ((baseReg + c->Patmos_core_fetch__pcReg.to_ulong()) * 4 - c->Patmos_core_fetch__relBaseReg.to_ulong() * 4) << " - ";
-  baseReg = c->Patmos_core_icache_repl__callRetBaseReg.to_ulong();
+  *out << ((baseReg + c->Patmos_PatmosCore_fetch__pcReg.to_ulong()) * 4 - c->Patmos_PatmosCore_fetch__relBaseReg.to_ulong() * 4) << " - ";
+  baseReg = c->Patmos_PatmosCore_icache_repl__callRetBaseReg.to_ulong();
 
   for (unsigned i = 0; i < 32; i++) {
-    *out << c->Patmos_core_decode_rf__rf.get(i).to_ulong() << " ";
+    *out << c->Patmos_PatmosCore_decode_rf__rf.get(i).to_ulong() << " ";
   }
 
   *out << endl;
@@ -805,7 +805,7 @@ int main (int argc, char* argv[]) {
     emu_ethmac(c, ethmac_tap);
     #endif /* IO_ETHMAC */
 
-    if (!quiet && c->Patmos_core__enableReg.to_bool()) {
+    if (!quiet && c->Patmos_PatmosCore__enableReg.to_bool()) {
       print_state(c);
     }
     if (sc_trace) {
@@ -816,9 +816,9 @@ int main (int argc, char* argv[]) {
     if (halt) {
       break;
     }
-    if ((c->Patmos_core_memory__memReg_mem_brcf.to_bool()
-         || c->Patmos_core_memory__memReg_mem_ret.to_bool())
-        && c->Patmos_core_icache_repl__callRetBaseReg.to_ulong() == 0) {
+    if ((c->Patmos_PatmosCore_memory__memReg_mem_brcf.to_bool()
+         || c->Patmos_PatmosCore_memory__memReg_mem_ret.to_bool())
+        && c->Patmos_PatmosCore_icache_repl__callRetBaseReg.to_ulong() == 0) {
       halt = true;
     }
 
@@ -834,5 +834,5 @@ int main (int argc, char* argv[]) {
   }
 
   // Pass on return value from processor
-  return c->Patmos_core_decode_rf__rf.get(1).to_ulong();
+  return c->Patmos_PatmosCore_decode_rf__rf.get(1).to_ulong();
 }
