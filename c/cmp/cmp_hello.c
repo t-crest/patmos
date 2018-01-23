@@ -12,9 +12,9 @@
 
 volatile _UNCACHED char data[MAX];
 
-// The main function for the other thread on the another core
-void work(void* arg) {
-  int val = *((int*)arg);
+// The main function for the other threads on the another cores
+void work(void *arg) {
+  int val = *((int *)arg);
 
   int id = get_cpuid();
   data[id] = id+'0';
@@ -32,19 +32,24 @@ int main() {
   for (i=0; i<MAX; ++i) data[i] = '#';
 
   for (i=1; i<cnt; ++i) {
+    // Is this ok to have a local variable and then pass a pointer to the
+    // thread creating function?
     corethread_t worker_id = i; // The core number
-    int parameter = 1000;
-    corethread_create( &worker_id, &work, (void *) &parameter);  
+    int parameter = 1; // dummy
+    // Why is the core number passed by reference?
+    corethread_create(&worker_id, &work, (void *) &parameter);  
   }
 
   data[id] = id+'0';
 
-  // Only core 0 is connected to the serial port
-  if (id == 0) {
-    for (i=0; i<MAX; ++i) {
-      while ((UART_STATUS & 0x01) == 0);
-      UART_DATA = data[i];
-    }
+  for (i=0; i<MAX; ++i) UART_DATA = '.';
+
+
+  // This is a "normal" multicore example where main is executed only
+  // on core 0
+  for (i=0; i<MAX; ++i) {
+    while ((UART_STATUS & 0x01) == 0);
+    UART_DATA = data[i];
   }
 
   for(;;);
