@@ -245,11 +245,12 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 //    io.comConf <> core.io.comConf
 //    io.comSpm <> core.io.comSpm
 //  } else {
-    val spm = Module(new cmp.SharedSPM(nrCores))
+    val crlu = Module(new cmp.CRLUOCPWrapper(() => new cmp.CRLU_PE(nrCores, 8)))
+    //val spm = Module(new cmp.SharedSPM(nrCores))
     for (i <- (0 until cores.length)) {
       println("Connecting core " + i)
-      spm.io.comConf(i) <> cores(i).io.comConf
-      spm.io.comSpm(i) <> cores(i).io.comSpm
+      //crlu.io(i) <> cores(i).io.comConf
+      crlu.io(i) <> cores(i).io.comSpm
       memarbiter.io.master(i) <> cores(i).io.memPort
     }
 //  }
