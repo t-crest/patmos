@@ -103,7 +103,7 @@ object Utility {
     printf("\nPatmos configuration \"%s\"\n", util.Config.getConfig.description)
     printf("\tFrequency: %d MHz\n", CLOCK_FREQ/1000000)
     printf("\tPipelines: %d\n", PIPE_COUNT)
-    printf("\tCores: %d\n", CORE_COUNT)
+    printf("\tCores: %d\n", Config.getConfig.coreCount)
     if (ICACHE_TYPE == ICACHE_TYPE_METHOD) {
       printf("\tMethod cache: %s, %d methods\n", sizeToStr(ICACHE_SIZE), ICACHE_ASSOC)
     } else {

@@ -50,7 +50,6 @@ object Constants {
   val CLOCK_FREQ = util.Config.getConfig.frequency
 
   val PIPE_COUNT = util.Config.getConfig.pipeCount
-  val CORE_COUNT = util.Config.getConfig.coreCount
 
   val ISPM_SIZE = util.Config.getConfig.ISPM.size
   val DSPM_SIZE = util.Config.getConfig.DSPM.size
