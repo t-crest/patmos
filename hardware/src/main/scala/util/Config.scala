@@ -56,6 +56,7 @@ abstract class Config {
   val frequency: Int
   val pipeCount: Int
   val coreCount: Int
+  val cmpDevice: Int // temporary id for different papers
   val burstLength: Int
   val writeCombine: Boolean
   val mmu: Boolean
@@ -191,7 +192,10 @@ object Config {
       val coreCount = getIntAttr(node, "cores", "@count",
                                  hasParent, defaultConf.coreCount)
 
-      val burstLength  = getIntAttr(node, "bus", "@burstLength",
+      val cmpDevice = getIntAttr(node, "cmp", "@device",
+                                 hasParent, 0)
+
+                                 val burstLength  = getIntAttr(node, "bus", "@burstLength",
                                     hasParent, defaultConf.burstLength)
       val writeCombine = getBooleanAttr(node, "bus", "@writeCombine",
                                         hasParent, defaultConf.writeCombine)
@@ -295,12 +299,14 @@ object Config {
   }
 
 
-  // Baseline config with invalid values
+  // Baseline configuration with invalid values
+  // MS: why do we need this?
   val nullConfig = new Config {
     val description = "dummy"
     val frequency = 0
     val pipeCount = 0
     val coreCount = 0
+    val cmpDevice = 0
     val burstLength = 0
     val writeCombine = false
     val mmu = false
