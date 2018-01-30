@@ -1,40 +1,4 @@
 /*
-   Copyright (c) 2014 Technical University of Denmark, DTU Compute
-
-   All rights reserved.
-
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted (subject to the limitations in the
-   disclaimer below) provided that the following conditions are met:
-
-   * Redistributions of source code must retain the above copyright
-     notice, this list of conditions and the following disclaimer.
-
-   * Redistributions in binary form must reproduce the above copyright
-     notice, this list of conditions and the following disclaimer in the
-     documentation and/or other materials provided with the distribution.
-
-	NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
-	GRANTED BY THIS LICENSE.  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
-	HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
-	WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-	MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-	DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-	LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-	CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-	SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
-	BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-	WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-	OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-	IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-	The views and conclusions contained in the software and documentation
-	are those of the authors and should not be interpreted as representing
-	official policies, either expressed or implied, of the copyright holder.
-
-*/
-
-/*
  * Speed Locking Unit
  * 
  * This component manages the synchronization locks for the processor cores. 
@@ -150,50 +114,8 @@ class CRLUOCPWrapper(crlugen: () => CRLU) extends Module {
     when(reqReg(i) === Bool(true) && crlu.io(i).blck === Bool(false)) {
       io(i).S.Resp := OcpResp.DVA
     }
-
-    //io(i).S.Resp := Mux(Reg(next = io(i).M.Cmd) =/= OcpCmd.IDLE, OcpResp.DVA, OcpResp.NULL)
-
-
       
     io(i).S.Data := UInt(0)
-  }
-}
-
-class CRLU_PETest(c: CRLU_PE) extends Tester(c) {
-  val lck = 0
-  
-  for(i <- 0 until c.CoreCount) {
-    poke(c.io(i).en, 1)
-    poke(c.io(i).op, 1)
-    poke(c.io(i).sel, lck)
-  }
-  
-  step(1)
-  var cnt = 0
-  while(cnt < 20) {
-    for(i <- 0 until c.CoreCount) 
-      peek(c.io(i).blck)
-    
-    peek(c.queueReg(lck))
-    peek(c.curReg(lck))
-    
-    poke(c.io(cnt%c.CoreCount).en, 1)
-    poke(c.io(cnt%c.CoreCount).op, 0)
-    
-    step(1)
-    
-    for(i <- 0 until c.CoreCount) 
-      peek(c.io(i).blck)
-    
-    peek(c.queueReg(lck))
-    peek(c.curReg(lck))
-    
-    poke(c.io(cnt%c.CoreCount).en, 1)
-    poke(c.io(cnt%c.CoreCount).op, 1)
-    
-    step(1)
-    
-    cnt += 1
   }
 }
 
@@ -239,12 +161,10 @@ class CRLUTest(c: CRLUOCPWrapper) extends Tester(c) {
 
 object CRLU {
   def main(args: Array[String]): Unit = {
-    //chiselMainTest(Array[String]("--backend", "c", "--test", "--genHarness", "--compile"), () => Module(new SLU(8,8))){c => new SLUTests(c)}
+
     val crluargs = args.takeRight(2)
     val corecnt = crluargs.head.toInt;
     val lckcnt = crluargs.last.toInt;
-    //chiselMainTest(args.dropRight(2), () => Module(new CRLU(corecnt,lckcnt))) { f => new CRLUTest(f) }
     chiselMainTest(args.dropRight(2), () => Module(new CRLUOCPWrapper(() => new CRLU_PE(corecnt,lckcnt)))) { f => new CRLUTest(f) }
-    //chiselMainTest(args.dropRight(2), () => Module(new CRLU_PE(corecnt,lckcnt))) { f => new CRLU_PETest(f) }
   }
 }

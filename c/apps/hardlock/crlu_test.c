@@ -2,6 +2,7 @@
 #include <machine/patmos.h>
 #include <machine/spm.h>
 #include "libcorethread/corethread.h"
+#include "crlu.h"
 
 
 _UNCACHED char data[20] = "AAAAAAAAAAAAAAAAAAAA";
@@ -14,11 +15,13 @@ int _main()
 
   volatile _SPM int *led_ptr = (volatile _SPM int *) 0xF0090000;
   volatile _SPM int *uart_ptr = (volatile _SPM int *) 0xF0080004;
-  volatile _SPM int *crlu_ptr = (volatile _SPM int *) 0xE8000000;
 
   for(int k = 0; k < 4; k++)
   {
-    *crlu_ptr = 1;
+    lock(0);
+    for (int j = 0; j < 100000; j++) {
+      asm volatile("");
+    }
     data[cnt++] = get_cpuid() + 48;
     if(get_cpuid() == 0) {
       for (int i = 0; i < strlen(msg); i++) {
@@ -35,7 +38,7 @@ int _main()
       }
       *uart_ptr = '\n';
     }
-    *crlu_ptr = 0;
+    unlock(0);
   }
   return 0;
 }

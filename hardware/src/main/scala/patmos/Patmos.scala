@@ -223,10 +223,11 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
   val io = Config.getPatmosIO()
 
-  // Instantiate core
-  // val core = Module(new PatmosCore(binFile))
+  // Instantiate cores
 
   val nrCores = Config.getConfig.coreCount
+
+  println("Config core count: " + nrCores)
 
   val memarbiter = Module(new ocp.TdmArbiterWrapper(nrCores, ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
 
