@@ -23,6 +23,8 @@ entity patmos_top is
         iKeysPins_key : in    std_logic_vector(3 downto 0);
         oUartPins_txd : out   std_logic;
         iUartPins_rxd : in    std_logic;
+        oUart2Pins_txd : out   std_logic;
+        iUart2Pins_rxd : in    std_logic;
         oSRAM_A       : out   std_logic_vector(19 downto 0);
         SRAM_DQ       : inout std_logic_vector(15 downto 0);
         oSRAM_CE_N    : out   std_logic;
@@ -106,7 +108,9 @@ architecture rtl of patmos_top is
             io_sramCtrlPins_ramOut_noe            : out std_logic;
             io_sramCtrlPins_ramOut_nwe            : out std_logic;
             io_sramCtrlPins_ramOut_nlb            : out std_logic;
-            io_sramCtrlPins_ramOut_nub            : out std_logic
+            io_sramCtrlPins_ramOut_nub            : out std_logic;
+            io_uart2Pins_tx                        : out std_logic;
+            io_uart2Pins_rx                        : in  std_logic
             );
     end component;
 
@@ -200,6 +204,10 @@ begin
                            md_pad_o_int,
                            md_padoe_o_int,
                            oSRAM_A, 
-                           sram_out_dout_ena, SRAM_DQ, sram_out_dout, oSRAM_CE_N, oSRAM_OE_N, oSRAM_WE_N, oSRAM_LB_N, oSRAM_UB_N);
+                           sram_out_dout_ena, SRAM_DQ, sram_out_dout, oSRAM_CE_N, oSRAM_OE_N, oSRAM_WE_N, oSRAM_LB_N, oSRAM_UB_N,
+                           oUart2Pins_txd, 
+                           iUart2Pins_rxd
+
+);
 
 end architecture rtl;

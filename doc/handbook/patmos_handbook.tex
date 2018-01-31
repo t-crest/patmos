@@ -2147,6 +2147,9 @@ Address & I/O Device & read & write \\
 \code{0xf00d0000} & EthMac & & \\
 \dots             & EthMac & \multicolumn{2}{c}{EthMac device (see Section~\ref{sec:ethmac})} \\
 \code{0xf00dffff} & EthMac & & \\
+\cmidrule{1-4}
+\code{0xf00e0000} & UART2 (TTL) & status & control \\
+\code{0xf00e0004} & UART2 (TTL) & receive buffer & transmit buffer \\
 \bottomrule
 \end{tabular}
 \caption{I/O devices and registers}

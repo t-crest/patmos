@@ -134,6 +134,8 @@ set_location_assignment PIN_A19 -to ENET0_TX_DATA[2]
 set_location_assignment PIN_B19 -to ENET0_TX_DATA[3]
 set_location_assignment PIN_A18 -to ENET0_TX_EN
 set_location_assignment PIN_B18 -to ENET0_TX_ER
+set_location_assignment PIN_AH23 -to iUart2Pins_rxd
+set_location_assignment PIN_AG26 -to oUart2Pins_txd
 
 
 set_global_assignment -name SYNTH_TIMING_DRIVEN_SYNTHESIS ON
@@ -171,7 +173,7 @@ set_global_assignment -name VERILOG_FILE ../../ethmac/ethmac/eth_macstatus.v
 set_global_assignment -name VERILOG_FILE ../../ethmac/ethmac/eth_top.v
 set_global_assignment -name VHDL_FILE ../../ethmac/eth_controller_top.vhdl
 set_global_assignment -name VERILOG_FILE ../../build/Patmos.v
-set_global_assignment -name VHDL_FILE "../../vhdl/patmos_de2-115-ethmac.vhdl"
+set_global_assignment -name VHDL_FILE "../../vhdl/patmos_de2-all.vhdl"
 
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[0]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[1]
@@ -208,6 +210,9 @@ set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_led[2]
 set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_led[1]
 set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_led[0]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oUartPins_txd
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to iUartPins_rxd
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oUart2Pins_txd
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to iUart2Pins_rxd
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[15]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[14]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[13]
@@ -224,7 +229,6 @@ set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[3]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[2]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[1]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[0]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to iUartPins_rxd
 set_instance_assignment -name IO_STANDARD "2.5 V" -to iKeysPins_key[3]
 set_instance_assignment -name IO_STANDARD "2.5 V" -to iKeysPins_key[2]
 set_instance_assignment -name IO_STANDARD "2.5 V" -to iKeysPins_key[1]
