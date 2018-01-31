@@ -4034,7 +4034,8 @@ is connected to one of the LEDs).
 
 \begin{lstlisting}[float,caption={A multicore blinking LED\label{fig:cmp:hello}}]
 /*
-    This is multicore verson of an embedded Hello World program: a blinking LED.
+    This is multicore version of an embedded Hello World program:
+    two blinking LEDs executing on two cores.
 
     Author: Martin Schoeberl
     Copyright: DTU, BSD License
@@ -4072,15 +4073,15 @@ void work(void* arg) {
 int main() {
 
   printf("Hello CMP\n");
-  corethread_t worker_id = 1; // The core number
-  int parameter = 1000;
-  corethread_create( &worker_id, &work, (void *) &parameter);  
+  corethread_t core_id = 1; // The core number
+  static int parameter = 1000;
+  corethread_create( &core_id, &work, (void *) &parameter);  
 
   blink(2000);
 
   // the folowing is not executed in this example
   int* res;
-  corethread_join( worker_id, (void *) &res );
+  corethread_join( core_id, (void *) &res );
 
   return 0;
 }
@@ -4118,6 +4119,7 @@ volatile _UNCACHED static int field;
 
 // The main function for the other thread on core 1
 void work(void* arg) {
+
   // create a channel
   qpd_t *channel = mp_create_qport(1, SINK, BUF_SIZE, NUM_BUF);
   // init
@@ -4126,6 +4128,7 @@ void work(void* arg) {
   mp_recv(channel, 0);
   int data = *(volatile int _SPM *) channel->read_buf;
   mp_ack(channel, 0);
+
   // Return a change value in the shared variable
   field = data + 1;
 }
@@ -4134,8 +4137,7 @@ int main() {
 
   printf("Hello Argo NoC\n");
   corethread_t worker_id = 1; // The core number
-  int parameter = 1000;
-  corethread_create( &worker_id, &work, (void *) &parameter);
+  corethread_create( &worker_id, &work, NULL);
 
   int data = 42;
   // create a channel
@@ -4148,10 +4150,8 @@ int main() {
   mp_send(channel, 0);
   printf("Data sent\n");
   printf("Returned data is: %d\n", field);
-
   int* res;
   corethread_join( worker_id, (void *) &res );
-
   return 0;
 }
 \end{lstlisting}

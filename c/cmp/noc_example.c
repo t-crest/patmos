@@ -42,8 +42,7 @@ int main() {
 
   printf("Hello Argo NoC\n");
   corethread_t worker_id = 1; // The core number
-  int parameter = 1000;
-  corethread_create( &worker_id, &work, (void *) &parameter);
+  corethread_create( &worker_id, &work, NULL);
 
   int data = 42;
   // create a channel

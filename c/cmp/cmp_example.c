@@ -1,5 +1,5 @@
 /*
-    This is multicore verson of an embedded Hello World program:
+    This is multicore version of an embedded Hello World program:
     two blinking LEDs executing on two cores.
 
     Author: Martin Schoeberl
@@ -38,15 +38,15 @@ void work(void* arg) {
 int main() {
 
   printf("Hello CMP\n");
-  corethread_t worker_id = 1; // The core number
-  int parameter = 1000;
-  corethread_create( &worker_id, &work, (void *) &parameter);  
+  corethread_t core_id = 1; // The core number
+  static int parameter = 1000;
+  corethread_create( &core_id, &work, (void *) &parameter);  
 
   blink(2000);
 
   // the folowing is not executed in this example
   int* res;
-  corethread_join( worker_id, (void *) &res );
+  corethread_join( core_id, (void *) &res );
 
   return 0;
 }

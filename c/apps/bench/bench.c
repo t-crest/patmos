@@ -146,9 +146,8 @@ void bench_noc() {
 
   printf("Hello NoC\n");
   printf("We use %d bytes buffers\n", BUF_SIZE);
-  corethread_t worker_id = 1; // The core number
-  int parameter = 1000;
-  corethread_create( &worker_id, &work, (void *) &parameter); 
+  corethread_t core_id = 1; // The core number
+  corethread_create( &core_id, &work, NULL); 
 
   int start, val;
 
@@ -210,7 +209,7 @@ void bench_noc() {
 
   // not really as the worker runs forever
   int* res;
-  corethread_join( worker_id, (void *) &res );
+  corethread_join( core_id, (void *) &res );
 }
 
 int main() {
