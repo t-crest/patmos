@@ -31,43 +31,70 @@
  */
 
 /*
- * Boot loader (for uniprocessor).
+ * Combined master and slave boot loader.
  * 
- * Authors: Tórur Biskopstø Strøm (torur.strom@gmail.com)
- *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
+ * Author: Wolfgang Puffitsch (wpuffitsch@gmail.com)
+ *         Torur Biskopsto Strom (torur.strom@gmail.com)
  *
  */
 
 #include "boot.h"
+#include <machine/boot.h>
 #include "include/patio.h"
-
 #include "include/bootable.h"
 
-// #define DEBUG
+#define DELAY 1000*1
 
-// a variable to remember the (shadow) stack pointer
-static volatile unsigned int r31;
+//#define DEBUG
+//#define HEAVY_DEBUG
 
-int main(void) __attribute__((noreturn));
+//#define data ((_UNCACHED int *)0x00000080)
 
-int main(void) {
+int main(void)
+{
 
-  // save (shadow) stack pointer
-  asm volatile ("mov %0 = $r31;" : "=r" (r31));
+  // wait a little bit in case of the TU/e memory controller not being ready
+  int val = TIMER_US_LOW+DELAY;
 
-#ifdef DEBUG
-  WRITE("DOWN\n", 5);
-#endif
+  while (TIMER_US_LOW-val < 0)
+    ;
 
-  // download application
-  volatile int (*entrypoint)() = download();
-#ifdef DEBUG
-  // force some valid address for debugging
-  if (entrypoint == NULL) {
-    entrypoint = 0x20004;
+  // overwrite potential leftovers from previous runs
+  boot_info->master.status = STATUS_NULL;
+  boot_info->master.entrypoint = NULL;
+  if(get_cpuid() == 0) {
+    for (unsigned i = 0; i < get_cpucnt(); i++) {
+      boot_info->slave[i].status = STATUS_NULL;
+      boot_info->slave[i].return_val = -1;
+      boot_info->slave[i].param = NULL;
+      boot_info->slave[i].funcpoint = NULL;
+    }
+
+    // give the slaves some time to boot
+    for (unsigned i = 0; i < 0x10; i++) {
+      boot_info->master.status = STATUS_BOOT;
+    }
+
+    // download application
+    boot_info->master.entrypoint = download();
   }
-#endif
+  else {
+    boot_info->slave[get_cpuid()].status = STATUS_NULL;
+    boot_info->slave[get_cpuid()].return_val = -1;
+    boot_info->slave[get_cpuid()].param = NULL;
+    boot_info->slave[get_cpuid()].funcpoint = NULL;
 
+    do {
+      // make sure the own status is visible
+      boot_info->slave[get_cpuid()].status = STATUS_BOOT;
+      // until master has booted
+    } while (boot_info->master.status != STATUS_BOOT);
+
+    // wait until master has downloaded
+    while (boot_info->master.status != STATUS_INIT) {
+    /* spin */
+    }
+  }
   // initialize the content of the I-SPM from the main memory
   // copy words not bytes
   for (int i = 0; i < get_ispm_size()/4; ++i) {
@@ -75,30 +102,33 @@ int main(void) {
     *(SPM+(1<<16)/4+i) = *(MEM+(1<<16)/4+i);
   }
 
-  static unsigned char msg[10];
 
-#ifdef DEBUG
-  WRITE("START ", 6);
-    
-  msg[0] = XDIGIT(((int)entrypoint >> 28) & 0xf);
-  msg[1] = XDIGIT(((int)entrypoint >> 24) & 0xf);
-  msg[2] = XDIGIT(((int)entrypoint >> 20) & 0xf);
-  msg[3] = XDIGIT(((int)entrypoint >> 16) & 0xf);
-  msg[4] = XDIGIT(((int)entrypoint >> 12) & 0xf);
-  msg[5] = XDIGIT(((int)entrypoint >>  8) & 0xf);
-  msg[6] = XDIGIT(((int)entrypoint >>  4) & 0xf);
-  msg[7] = XDIGIT(((int)entrypoint >>  0) & 0xf);
-  msg[8] = '\n';
-  WRITE(msg, 9);
-#endif
+  if(get_cpuid() == 0) {
+
+    // notify slaves that they can call _start()
+    boot_info->master.status = STATUS_INIT;
+
+    // wait for slaves to start
+    for (unsigned i = 1; i < get_cpucnt(); i++) {
+      while(boot_info->slave[i].status != STATUS_INIT){
+        /* spin */
+      }
+    }
+  }
+  else {
+    // acknowledge reception of start status
+    boot_info->slave[get_cpuid()].status = STATUS_INIT;
+  }
 
   // call the application's _start()
   int retval = -1;
-  if (entrypoint != 0) {
+;
+  if (boot_info->master.entrypoint != NULL) {
+
     // enable global mode
     global_mode();
 
-    retval = (*entrypoint)();
+    retval = (*boot_info->master.entrypoint)();
 
     // Return may be "unclean" and leave registers clobbered.
     asm volatile ("" : :
@@ -113,31 +143,51 @@ int main(void) {
 
     // enable local mode again
     local_mode();
+
+    boot_info->slave[get_cpuid()].return_val = retval;
   }
 
-  // restore (shadow) stack pointer
-  asm volatile ("mov $r31 = %0;" : : "r" (r31));
+  if(get_cpuid() == 0) {
 
-#ifdef DEBUG
-  WRITE("EXIT\n", 5);
-#endif
+    // wait for slaves to finish
+    for (unsigned i = 1; i < get_cpucnt(); i++) {
+      if (boot_info->slave[i].status != STATUS_NULL) {
+        while(boot_info->slave[i].status != STATUS_RETURN){
+          /* spin */
+        }
+      }
+    }
 
-  // Print exit magic and return code
-#ifdef ETHMAC
-  msg[0] = '\0';
-  msg[1] = 'x';
-  msg[2] = retval & 0xff;
-  udp_send(TX_ADDR, ARP_ADDR, host_ip, TARGET_PORT, HOST_PORT, msg, 3, 10000);
-#else
-  uart_write('\0');
-  uart_write('x');
-  uart_write(retval & 0xff);
-#endif
+    // Print exit magic and return code
+    WRITECHAR('\0');
+    WRITECHAR('x');
+    WRITECHAR(retval & 0xff);
+    // notify slaves that they can loop back
+    boot_info->master.status = STATUS_RETURN;
 
+    // Wait for slaves to finish
+    for (unsigned i = 1; i < get_cpucnt(); i++) {
+      while(boot_info->slave[i].status == STATUS_RETURN){
+        /* spin */
+      }
+    }
+  }
+  else {
+    
+    // wait until master application has returned
+    do {
+      // notify master that application has returned
+      boot_info->slave[get_cpuid()].status = STATUS_RETURN;
+    } while (boot_info->master.status != STATUS_RETURN); 
+    
+    boot_info->slave[get_cpuid()].status = STATUS_NULL;
+  }
+  
+  
   // clear caches and loop back
   inval_dcache();
   inval_mcache();
   _start();
 
-  for(;;);
+  return 0;
 }
