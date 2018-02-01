@@ -40,7 +40,7 @@
 
 #include "boot.h"
 #include <machine/boot.h>
-
+#include "include/patio.h"
 #include "include/bootable.h"
 
 #define DELAY 1000*1
