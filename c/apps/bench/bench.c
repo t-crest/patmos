@@ -146,8 +146,8 @@ void bench_noc() {
 
   printf("Hello NoC\n");
   printf("We use %d bytes buffers\n", BUF_SIZE);
-  corethread_t core_id = 1; // The core number
-  corethread_create( &core_id, &work, NULL); 
+  int core_id = 1; // The core number
+  corethread_create(core_id, &work, NULL); 
 
   int start, val;
 

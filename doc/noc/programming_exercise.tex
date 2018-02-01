@@ -273,18 +273,18 @@ When an application starts executing on the platform, \code{main()} is executed 
 From the \code{main()} function the programmer can start the execution of a function on the slave cores using the functions in the \code{libcorethread} library.
 The functions of the \code{libcorethread} library are:
 \begin{description}
-\item[\code{int corethread\_create( corethread\_t *thread, void(*start\_routine)(void *), void *arg ) )}]
+\item[\code{int corethread\_create( int core\_id, void(*start\_routine)(void *), void *arg ) )}]
 
-The create function will start the execution of the \code{start\_routine} function on the core specified by \code{thread}, an argument can be given to the started function via the \code{arg} pointer. The start function should only be called by the master core during the initialization phase of the application.
+The create function will start the execution of the \code{start\_routine} function on the core specified by \code{core\_id}, an argument can be given to the started function via the \code{arg} pointer. The start function should only be called by the master core during the initialization phase of the application.
 
 \item[\code{void corethread\_exit( void * retval )}]
 
 The exit function can be called in the \code{start\_routine} functions if they need to return a value to the master core.
 The exit function should be called as the last thing before the return statement.
 
-\item[\code{int corethread\_join( corethread\_t thread, void ** retval )}]
+\item[\code{int corethread\_join( int core\_id, void ** retval )}]
 
-The join function will join the program flow of the master core with the program flow of the core specified by \code{thread}, the join function should only be called from the master core. The join function will point the \code{retval} pointer to the return value allocated by the thread on the slave core. Be aware, the return value should not be allocated on the stack of the slave core!
+The join function will join the program flow of the master core with the program flow of the core specified by \code{core\_id}, the join function should only be called from the master core. The join function will point the \code{retval} pointer to the return value allocated by the thread on the slave core. Be aware, the return value should not be allocated on the stack of the slave core!
 
 \end{description}
 
@@ -502,9 +502,9 @@ void loop(void* arg) {
 }
 
 int main() {
-  corethread_t worker_id = 1; // The core ID
+  int worker_id = 1; // The core ID
   int parameter = 42;
-  corethread_create( &worker_id, &loop, (void*) &parameter );  
+  corethread_create( worker_id, &loop, (void*) &parameter );  
 
   int* res;
   corethread_join( worker_id, &res ); // No return value is returned

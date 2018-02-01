@@ -276,10 +276,10 @@ int main() {
 
     printf("starting thread and NoC channels...\n");
     //set thread function and start thread
-    corethread_t threads[AUDIO_CORES-1];
+    int threads[AUDIO_CORES-1];
     for(int i=0; i<(AUDIO_CORES-1); i++) {
         threads[i] = (corethread_t) (i+1);
-        if (corethread_create(&threads[i], &threadFunc, (void*) threadFunc_args) != 0) {
+        if (corethread_create(threads[i], &threadFunc, (void*) threadFunc_args) != 0) {
             printf("ERROR: Thread %d was not creaded correctly\n", i+1);
             exit = 1;
         }

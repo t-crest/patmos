@@ -80,7 +80,7 @@ int main() {
     printf("spm_alloc_array[0]=0x%x\n", (unsigned int)mp_alloc(0));
 
     //create corethread type var
-    corethread_t threadOne = (corethread_t) 1;
+    int threadOne = 1;
     //arguments to thread 1 function
     int exit = 0;
     int stateVar1 = -1;
@@ -92,7 +92,7 @@ int main() {
 
     printf("starting thread...\n");
     //set thread function and start thread
-    corethread_create(&threadOne, &thread1_delay, (void*) thread1_args);
+    corethread_create(threadOne, &thread1_delay, (void*) thread1_args);
 
     // MP: create message passing ports
     qpd_t * chan1 = mp_create_qport(MP_CHAN_1_ID, SOURCE,

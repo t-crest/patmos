@@ -32,14 +32,9 @@ int main() {
   for (i=0; i<MAX; ++i) data[i] = '#';
 
   for (i=1; i<cnt; ++i) {
-    // Is this ok to have a local variable and then pass a pointer to the
-    // thread creating function? Yes, as it is only used as index in the
-    // create function.
-    corethread_t worker_id = i; // The core number
+    int core_id = i; // The core number
     int parameter = 1; // dummy
-    // Why is the core number passed by reference?
-    // No reason, should be an int passed by value.
-    corethread_create(&worker_id, &work, (void *) &parameter);  
+    corethread_create(core_id, &work, (void *) &parameter);  
   }
 
   data[id] = id+'0';

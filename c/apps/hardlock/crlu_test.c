@@ -52,7 +52,7 @@ void worker_func(void* arg) {
 
 int main() {
 
-  corethread_t threads[20];
+  id threads[20];
   int len = sizeof threads / sizeof *threads;
   if(get_cpucnt() < len)
     len = get_cpucnt();
@@ -61,7 +61,7 @@ int main() {
   {
     threads[i] = i;
     int worker_param = 1;
-    corethread_create(&threads[i],&worker_func,&worker_param);
+    corethread_create(threads[i],&worker_func,&worker_param);
   }
 
   int ret = _main();

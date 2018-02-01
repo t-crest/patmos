@@ -300,8 +300,8 @@ int main() {
   printf("Creating corethreads...");
   for(int i = 0; i < get_cpucnt(); i++) {
     if (i != NOC_MASTER) {
-      corethread_t ct = (corethread_t) i;
-      if(corethread_create(&ct,&slave_tester,(void*)param) != 0){
+      int ct = i;
+      if(corethread_create(ct,&slave_tester,(void*)param) != 0){
         printf("Corethread %d not created\n",i);
       }
     }
@@ -315,7 +315,7 @@ int main() {
   int* ret;
   for (int i = 0; i < get_cpucnt(); ++i) {
     if (i != NOC_MASTER) {
-      corethread_join((corethread_t)i,(void**)&ret);
+      corethread_join(i,(void**)&ret);
     }
   }
   printf("Joined with other cores\n");

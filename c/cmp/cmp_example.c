@@ -38,9 +38,9 @@ void work(void* arg) {
 int main() {
 
   printf("Hello CMP\n");
-  corethread_t core_id = 1; // The core number
+  int core_id = 1; // The core number
   static int parameter = 1000;
-  corethread_create( &core_id, &work, (void *) &parameter);  
+  corethread_create(core_id, &work, (void *) &parameter);  
 
   blink(2000);
 

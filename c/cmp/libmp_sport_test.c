@@ -94,9 +94,9 @@ void func_worker_1(void* arg) {
 
 int main() {
   
-  corethread_t worker_1 = SLAVE_CORE; // For now the core ID
+  int worker_1 = SLAVE_CORE; // For now the core ID
      
-  corethread_create(&worker_1,&func_worker_1,(void*)&worker_1);
+  corethread_create(worker_1,&func_worker_1,(void*)&worker_1);
   puts("Corethread created");
 
   unsigned short int local_phase = 0;

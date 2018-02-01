@@ -416,12 +416,12 @@ int main() {
   #endif
 
   print_version();
-  corethread_t worker_1 = SLAVE_CORE; // For now the core ID
+  int worker_1 = SLAVE_CORE; // For now the core ID
   unsigned short int tt_slot = TT_SCHED_LENGHT;
   unsigned long long int tt_time = get_cpu_usecs() + 2000; // Get time now plus some time for initialization
   conf_param.tt_time = tt_time;
      
-  corethread_create(&worker_1,&func_worker_1,(void*)&conf_param);
+  corethread_create(worker_1,&func_worker_1,(void*)&conf_param);
   puts("Corethread created");
 
   unsigned short int local_phase = 0;

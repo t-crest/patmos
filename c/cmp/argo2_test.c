@@ -86,7 +86,7 @@ void m_collect_platform_info()
 {
 	int slave_param = 0;
 	int *retval;
-	corethread_t ct;
+	int ct;
 	for (int i = 0; i < NOC_CORES; i++)
 	{
 		if (i == NOC_MASTER)
@@ -95,8 +95,8 @@ void m_collect_platform_info()
 		}
 		else
 		{
-			ct = (corethread_t) i;
-			if (corethread_create(&ct, &s_find_spm_size, (void *)&slave_param))
+			ct = (int) i;
+			if (corethread_create(ct, &s_find_spm_size, (void *)&slave_param))
 			{
 				// printf("Corethread not created.\n");
 			}
@@ -688,7 +688,7 @@ void m_bandwidth_correctness_test()
 	m_clear_bandwidth_results();
 	int slave_param = 0;		// not used now
 	int *retval;
-	corethread_t ct;
+	int ct;
 	for (int i = 0; i < NOC_CORES; i++)
 	{
 		if (i == NOC_MASTER)
@@ -701,9 +701,9 @@ void m_bandwidth_correctness_test()
 		else
 		{
 			// ////printf("Bandwidth test: core %d is testing.\n", i);
-			ct = (corethread_t) i;
+			ct = (int) i;
 			if (corethread_create
-				(&ct, &s_generate_bandwidth_results, (void *)&slave_param))
+				(ct, &s_generate_bandwidth_results, (void *)&slave_param))
 			{
 				// printf("Corethread not created.\n");
 			}
@@ -734,9 +734,9 @@ void m_bandwidth_correctness_test()
 				}
 				else
 				{
-					ct = (corethread_t) (s);
+					ct = (int) (s);
 					if (corethread_create
-						(&ct, &s_send_random_array, ((void *)&slave_param)))
+						(ct, &s_send_random_array, ((void *)&slave_param)))
 					{
 						// printf("Corethread send not created.\n");
 					}
@@ -761,9 +761,9 @@ void m_bandwidth_correctness_test()
 				}
 				else
 				{
-					ct = (corethread_t) (d);
+					ct = (int) (d);
 					if (corethread_create
-						(&ct, &s_check_correctness, ((void *)&slave_param)))
+						(ct, &s_check_correctness, ((void *)&slave_param)))
 					{
 						// printf("Corethread receiver not created.\n");
 					}
@@ -1074,7 +1074,7 @@ void m_test_remote_irq()
 	m_clear_bandwidth_results();
 	int slave_param = 0;
 	int *retval;
-	corethread_t ct;
+	int ct;
 	for (int i = 0; i < NOC_CORES; i++)
 	{
 		if (i == NOC_MASTER)
@@ -1086,9 +1086,9 @@ void m_test_remote_irq()
 		else
 		{
 			// printf("Bandwidth test: core %d is testing.\n", i);
-			ct = (corethread_t) i;
+			ct = (int) i;
 			if (corethread_create
-				(&ct, &s_generate_bandwidth_results, (void *)&slave_param))
+				(ct, &s_generate_bandwidth_results, (void *)&slave_param))
 			{
 				// printf("Corethread not created.\n");
 			}
@@ -1114,9 +1114,9 @@ void m_test_remote_irq()
 				}
 				else
 				{
-					ct = (corethread_t) (s);
+					ct = (int) (s);
 					if (corethread_create
-						(&ct, &s_send_irq, ((void *)&slave_param)))
+						(ct, &s_send_irq, ((void *)&slave_param)))
 					{
 						// printf("Corethread send not created.\n");
 					}
@@ -1140,9 +1140,9 @@ void m_test_remote_irq()
 				}
 				else
 				{
-					ct = (corethread_t) (d);
+					ct = (int) (d);
 					if (corethread_create
-						(&ct, &s_receive_irq, ((void *)&slave_param)))
+						(ct, &s_receive_irq, ((void *)&slave_param)))
 					{
 						// printf("Corethread receiver not created.\n");
 					}

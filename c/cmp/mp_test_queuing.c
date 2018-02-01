@@ -83,10 +83,10 @@ void func_worker_1(void* arg) {
 int main() {
 
   puts("Master");
-  corethread_t worker_1 = 2; // For now the core ID
+  int worker_1 = 2; // For now the core ID
   int worker_1_param = 1;
 
-  corethread_create(&worker_1,&func_worker_1,(void*)&worker_1_param);
+  corethread_create(worker_1,&func_worker_1,(void*)&worker_1_param);
 
   char send_data[] = "Hello World!, Sending messages is cool!";
   char recv_data[40];

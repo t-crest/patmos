@@ -4035,7 +4035,7 @@ Figure~\ref{fig:cmp:hello} shows the embedded \emph{Hello World} example
 executing code on two cores and each core blinking its own LED (Each core
 is connected to one of the LEDs).
 
-\begin{lstlisting}[float,caption={A multicore blinking LED\label{fig:cmp:hello}}]
+\begin{lstlisting}[float,caption={A multicore blinking LED (\code{c/cmp/cmp\_example.c}) \label{fig:cmp:hello}}]
 /*
     This is multicore version of an embedded Hello World program:
     two blinking LEDs executing on two cores.
@@ -4076,9 +4076,9 @@ void work(void* arg) {
 int main() {
 
   printf("Hello CMP\n");
-  corethread_t core_id = 1; // The core number
+  int core_id = 1; // The core number
   static int parameter = 1000;
-  corethread_create( &core_id, &work, (void *) &parameter);  
+  corethread_create(core_id, &work, (void *) &parameter);  
 
   blink(2000);
 
@@ -4139,8 +4139,8 @@ void work(void* arg) {
 int main() {
 
   printf("Hello Argo NoC\n");
-  corethread_t worker_id = 1; // The core number
-  corethread_create( &worker_id, &work, NULL);
+  int core_id = 1; // The core number
+  corethread_create(core_id, &work, NULL);
 
   int data = 42;
   // create a channel
@@ -4154,7 +4154,7 @@ int main() {
   printf("Data sent\n");
   printf("Returned data is: %d\n", field);
   int* res;
-  corethread_join( worker_id, (void *) &res );
+  corethread_join(core_id, (void *) &res );
   return 0;
 }
 \end{lstlisting}

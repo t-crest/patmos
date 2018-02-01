@@ -52,7 +52,7 @@ int main() {
     printf("Core amount is %d\n", get_cpucnt());
 
     //create corethread type var
-    corethread_t threadOne = (corethread_t) 1;
+    int threadOne = 1;
     //arguments to thread 1 function
     short left, right, syncToken, exit = 0;
     volatile _UNCACHED short *leftP      = (volatile _UNCACHED short *) &left;
@@ -66,7 +66,7 @@ int main() {
     thread1_args[3] = exitP;
     printf("starting thread...\n");
     //set thread function
-    corethread_create(&threadOne, &thread1_delay, (void*) thread1_args);
+    corethread_create(threadOne, &thread1_delay, (void*) thread1_args);
     //start thread on slave core 1
 
     //AudioFX struct: contains no effect

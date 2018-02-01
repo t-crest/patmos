@@ -71,9 +71,6 @@ extern const int NOC_MASTER;
 // of the corethreads
 ////////////////////////////////////////////////////////////////////////////
 
-/// \brief An type to describe a corethread.
-typedef size_t corethread_t;
-
 
 ////////////////////////////////////////////////////////////////////////////
 // Functions for initializing the corethreads
@@ -108,8 +105,7 @@ typedef size_t corethread_t;
 /// \retval EINVAL The attribute value is invalid 
 /// \retval EPERM The caller does not have appropriate permissions the set
 /// the required scheduling parameters or scheduling policy
-int corethread_create(corethread_t *thread, void (*start_routine)(void*),
-                                                                    void *arg);
+int corethread_create(int core_id, void (*start_routine)(void*), void *arg);
 
 /// \brief The last function to be called by a terminating thread
 /// 
@@ -129,7 +125,7 @@ void corethread_exit(void *retval);
 /// \retval ESRCH  No corethread exist with the specified corethread ID.
 /// \retval EDEADLK A deadlock was detected or the specified corethread is
 /// the calling thread
-int corethread_join(corethread_t thread, void **retval);
+int corethread_join(int core_id, void **retval);
 
 #endif /* _CORETHREAD_H_ */
 

@@ -64,10 +64,10 @@ void func_worker_1(void* arg) {
 int main() {
 
   puts("Master");
-  corethread_t worker_1 = 1; // For now the core ID
+  int worker_1 = 1; // For now the core ID
   int worker_1_param = 1;
 
-  corethread_create(&worker_1,&func_worker_1,(void*)&worker_1_param);
+  corethread_create(worker_1,&func_worker_1,(void*)&worker_1_param);
 
   // Create the queuing ports
   spd_t * chan = mp_create_sport(MP_CHAN_1_ID, SINK, MP_CHAN_1_MSG_SIZE);

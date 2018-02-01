@@ -48,10 +48,10 @@ int main(){
   wait(10000);
 
   int slave_param = 0;
-  corethread_t slave1 = 1;
-  corethread_t slave2 = 2;
-  corethread_create(&slave1,&slave1_func,(void*)&slave_param);
-  corethread_create(&slave2,&slave2_func,(void*)&slave_param);
+  int slave1 = 1;
+  int slave2 = 2;
+  corethread_create(slave1,&slave1_func,(void*)&slave_param);
+  corethread_create(slave2,&slave2_func,(void*)&slave_param);
   ENQUEUE_MSG("Crap");
   MOVE_TO_SHMEM;
 

@@ -18,7 +18,6 @@
 
 // Whatever this contant means, it is needed
 const int NOC_MASTER = 0;
-
 // Shared data in main memory for the return value
 volatile _UNCACHED static int field;
 
@@ -41,8 +40,8 @@ void work(void* arg) {
 int main() {
 
   printf("Hello Argo NoC\n");
-  corethread_t worker_id = 1; // The core number
-  corethread_create( &worker_id, &work, NULL);
+  int core_id = 1; // The core number
+  corethread_create(core_id, &work, NULL);
 
   int data = 42;
   // create a channel
@@ -55,9 +54,7 @@ int main() {
   mp_send(channel, 0);
   printf("Data sent\n");
   printf("Returned data is: %d\n", field);
-
   int* res;
-  corethread_join( worker_id, (void *) &res );
-
+  corethread_join(core_id, (void *) &res );
   return 0;
 }

@@ -23,9 +23,9 @@ int main(int argc, char **argv)
 
   for(int i = 0; i < get_cpucnt(); i++) {
     if (i != get_cpuid()) {
-      corethread_t ct = (corethread_t)i;
+      int ct = i;
       //printf("Corethread %d ",i);
-      if(corethread_create(&ct,&alloc_test,(void*)slave_param) != 0){
+      if(corethread_create(ct,&alloc_test,(void*)slave_param) != 0){
         //printf("not ");
         printf("Corethread %d not created\n",i);
       }
@@ -40,7 +40,7 @@ int main(int argc, char **argv)
   int* ret;
   for (int i = 0; i < get_cpucnt(); ++i) {
     if (i != get_cpuid()) {
-      corethread_join((corethread_t)i,(void**)&ret);
+      corethread_join(i,(void**)&ret);
       //printf("Slave %d joined\n",i);
     }
   }

@@ -80,13 +80,13 @@ void corethread_worker(void) {
 // Functions for creating and destroying corethreads
 ////////////////////////////////////////////////////////////////////////////
 
-int corethread_create(corethread_t *thread, void (*start_routine)(void*),
+int corethread_create(int core_id, void (*start_routine)(void*),
                                                                     void *arg) {
-  if(boot_info->slave[*thread].status != STATUS_INITDONE &&
-                                boot_info->slave[*thread].funcpoint == NULL ) {
-    boot_info->slave[*thread].param = arg;
-    boot_info->slave[*thread].funcpoint = (funcpoint_t) start_routine;
-    while(boot_info->slave[*thread].status != STATUS_INITDONE) {
+  if(boot_info->slave[core_id].status != STATUS_INITDONE &&
+                                boot_info->slave[core_id].funcpoint == NULL ) {
+    boot_info->slave[core_id].param = arg;
+    boot_info->slave[core_id].funcpoint = (funcpoint_t) start_routine;
+    while(boot_info->slave[core_id].status != STATUS_INITDONE) {
       // Wait for corethread to respond
     }
     return 0;
@@ -103,15 +103,15 @@ void corethread_exit(void *retval) {
   return;
 }
 
-int corethread_join(corethread_t thread, void **retval) {
+int corethread_join(int core_id, void **retval) {
   unsigned long long time;
-  while(boot_info->slave[thread].status != STATUS_RETURN) {
+  while(boot_info->slave[core_id].status != STATUS_RETURN) {
     time = get_cpu_usecs();
     while(get_cpu_usecs() < time+10) {
       // Wait for 10 microseconds before checking again
     }
   }
-  *retval = (void *) boot_info->slave[thread].return_val;
-  boot_info->slave[thread].funcpoint = NULL;
+  *retval = (void *) boot_info->slave[core_id].return_val;
+  boot_info->slave[core_id].funcpoint = NULL;
   return 0;
 }

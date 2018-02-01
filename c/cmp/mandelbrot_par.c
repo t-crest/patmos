@@ -239,8 +239,8 @@ int main(int argc, char **argv) {
 
   for(int i = 0; i < CORES; i++) {
     if (i != NOC_MASTER) {
-      corethread_t ct = i;
-      if(corethread_create(&ct,&slave,(void*)slave_param) != 0){
+      int ct = i;
+      if(corethread_create(ct,&slave,(void*)slave_param) != 0){
       }
     }
   }
@@ -250,7 +250,7 @@ int main(int argc, char **argv) {
   int* ret;
   for (int i = 0; i < CORES; ++i) {
     if (i != NOC_MASTER) {
-      corethread_join((corethread_t)i,(void**)&ret);
+      corethread_join(i,(void**)&ret);
     }
   }
 
