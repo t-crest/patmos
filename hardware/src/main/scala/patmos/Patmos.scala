@@ -248,10 +248,9 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   //  } else {
 
   if (cmpDevice == 0) {
-    val crlu = Module(new cmp.CRLUOCPWrapper(() => new cmp.CRLU_PE(nrCores, 8)))
+    val hardlock = Module(new cmp.HardlockOCPWrapper(() => new cmp.Hardlock(nrCores, 8)))
     for (i <- (0 until cores.length)) {
-      //crlu.io(i) <> cores(i).io.comConf
-      crlu.io(i) <> cores(i).io.comSpm
+      hardlock.io(i) <> cores(i).io.comSpm
     }
   } else if (cmpDevice == 1) {
     val spm = Module(new cmp.SharedSPM(nrCores))

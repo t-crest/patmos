@@ -17,19 +17,19 @@ import patmos.Constants._
 import ocp._
 import io.CoreDeviceIO
 
-class CRLUIO(lckCnt : Int) extends Bundle {
+class HardlockIO(lckCnt : Int) extends Bundle {
   val sel = UInt(INPUT, log2Up(lckCnt))
   val op = Bool(INPUT)
   val en = Bool(INPUT)
   val blck = Bool(OUTPUT)
 }
 
-abstract class CRLU(coreCnt : Int,lckCnt : Int) extends Module {
+abstract class AbstractHardlock(coreCnt : Int,lckCnt : Int) extends Module {
 
   val CoreCount = coreCnt
   val LockCount = lckCnt
   
-  override val io = Vec.fill(coreCnt){new CRLUIO(lckCnt)}
+  override val io = Vec.fill(coreCnt){new HardlockIO(lckCnt)}
   
   
   val queueReg = Vec.fill(lckCnt){Reg(init = Bits(0,coreCnt))}
@@ -54,7 +54,7 @@ abstract class CRLU(coreCnt : Int,lckCnt : Int) extends Module {
   }
 }
 
-class CRLU_PE(coreCnt : Int,lckCnt : Int) extends CRLU(coreCnt, lckCnt) {  
+class Hardlock(coreCnt : Int,lckCnt : Int) extends AbstractHardlock(coreCnt, lckCnt) {  
   // Circular priority encoder
   val hi = Vec.fill(lckCnt){Bits(width = coreCnt)}
   val lo = Vec.fill(lckCnt){Bits(width = coreCnt)}
@@ -76,7 +76,7 @@ class CRLU_PE(coreCnt : Int,lckCnt : Int) extends CRLU(coreCnt, lckCnt) {
   }
 }
 
-class CRLU_CNT(coreCnt : Int,lckCnt : Int) extends CRLU(coreCnt, lckCnt) {
+class IncrementorHardlock(coreCnt : Int,lckCnt : Int) extends AbstractHardlock(coreCnt, lckCnt) {
   // Counter
   for (i <- 0 until lckCnt) {    
     when(!queueReg(i)(curReg(i))) {
@@ -85,33 +85,33 @@ class CRLU_CNT(coreCnt : Int,lckCnt : Int) extends CRLU(coreCnt, lckCnt) {
   }  
 }
 
-class CRLUOCPWrapper(crlugen: () => CRLU) extends Module {
+class HardlockOCPWrapper(hardlockgen: () => AbstractHardlock) extends Module {
   
-  val crlu = Module(crlugen())
+  val hardlock = Module(hardlockgen())
   
-  override val io = Vec.fill(crlu.CoreCount){new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)}
+  override val io = Vec.fill(hardlock.CoreCount){new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)}
   
   // Mapping between internal io and OCP here
   
-  val reqReg = Reg(init = Bits(0,crlu.CoreCount))
+  val reqReg = Reg(init = Bits(0,hardlock.CoreCount))
 
-  for (i <- 0 until crlu.CoreCount) {
-    crlu.io(i).op := io(i).M.Data(0);
-    crlu.io(i).sel := io(i).M.Data >> 1;
-    crlu.io(i).en := Bool(false)
+  for (i <- 0 until hardlock.CoreCount) {
+    hardlock.io(i).op := io(i).M.Data(0);
+    hardlock.io(i).sel := io(i).M.Data >> 1;
+    hardlock.io(i).en := Bool(false)
     when(io(i).M.Cmd === OcpCmd.WR) {
-      crlu.io(i).en := Bool(true)
+      hardlock.io(i).en := Bool(true)
     }
 
     when(io(i).M.Cmd =/= OcpCmd.IDLE) {
       reqReg(i) := Bool(true)
     }
-    .elsewhen(reqReg(i) === Bool(true) && crlu.io(i).blck === Bool(false)) {
+    .elsewhen(reqReg(i) === Bool(true) && hardlock.io(i).blck === Bool(false)) {
       reqReg(i) := Bool(false)
     }
     
     io(i).S.Resp := OcpResp.NULL
-    when(reqReg(i) === Bool(true) && crlu.io(i).blck === Bool(false)) {
+    when(reqReg(i) === Bool(true) && hardlock.io(i).blck === Bool(false)) {
       io(i).S.Resp := OcpResp.DVA
     }
       
@@ -119,33 +119,33 @@ class CRLUOCPWrapper(crlugen: () => CRLU) extends Module {
   }
 }
 
-class CRLUTest(c: CRLUOCPWrapper) extends Tester(c) {
-  for(i <- 0 until c.crlu.CoreCount) {
+class HardlockTest(c: HardlockOCPWrapper) extends Tester(c) {
+  for(i <- 0 until c.hardlock.CoreCount) {
     poke(c.io(i).M.Cmd, 1)
     poke(c.io(i).M.Data,1)
   }
   step(1)
-  for(i <- 0 until c.crlu.CoreCount) {
+  for(i <- 0 until c.hardlock.CoreCount) {
     poke(c.io(i).M.Cmd, 0)
     poke(c.io(i).M.Data,0)
   }
   var cnt = 0
   while(cnt < 100) {
-    val id = cnt % c.crlu.CoreCount
-    for(i <- 0 until c.crlu.CoreCount)
+    val id = cnt % c.hardlock.CoreCount
+    for(i <- 0 until c.hardlock.CoreCount)
       peek(c.io(i).S.Resp)
-    peek(c.crlu.queueReg(0))
-    peek(c.crlu.curReg(0))
+    peek(c.hardlock.queueReg(0))
+    peek(c.hardlock.curReg(0))
     
     poke(c.io(id).M.Cmd, 1)
     poke(c.io(id).M.Data,0)
     
     step(1)
     
-    for(i <- 0 until c.crlu.CoreCount)
+    for(i <- 0 until c.hardlock.CoreCount)
       peek(c.io(i).S.Resp)
-    peek(c.crlu.queueReg(0))
-    peek(c.crlu.curReg(0))
+    peek(c.hardlock.queueReg(0))
+    peek(c.hardlock.curReg(0))
     
     poke(c.io(id).M.Cmd, 0)
     poke(c.io(id).M.Data,0)
@@ -159,12 +159,12 @@ class CRLUTest(c: CRLUOCPWrapper) extends Tester(c) {
   }
 }
 
-object CRLU {
+object Hardlock {
   def main(args: Array[String]): Unit = {
 
-    val crluargs = args.takeRight(2)
-    val corecnt = crluargs.head.toInt;
-    val lckcnt = crluargs.last.toInt;
-    chiselMainTest(args.dropRight(2), () => Module(new CRLUOCPWrapper(() => new CRLU_PE(corecnt,lckcnt)))) { f => new CRLUTest(f) }
+    val hardlockargs = args.takeRight(2)
+    val corecnt = hardlockargs.head.toInt;
+    val lckcnt = hardlockargs.last.toInt;
+    chiselMainTest(args.dropRight(2), () => Module(new HardlockOCPWrapper(() => new Hardlock(corecnt,lckcnt)))) { f => new HardlockTest(f) }
   }
 }
