@@ -50,7 +50,7 @@ import ocp._
 /**
  * A top level of SSPMAegean
  */
-class SSPMAegean(val nCores: Int) extends Module {
+class SSPMAegean(val nCores: Int, val extendedSlotSize: Int) extends Module {
 
   //override val io = new CoreDeviceIO()
 
@@ -94,7 +94,7 @@ class SSPMAegean(val nCores: Int) extends Module {
     currentCore := nextCore
 
     when(connectors(currentCore).connectorSignals.syncReq === Bits(1)) {
-      syncCounter := UInt(4)
+      syncCounter := UInt(extendedSlotSize - 1)
       nextCore := nextCore
       currentCore := currentCore
       state := s_sync
@@ -127,8 +127,9 @@ object SSPMAegeanMain {
 
     val chiselArgs = args.slice(0, args.length)
     val nCores = args(0)
+    val extendedSlotSize = args(1)
 
-    chiselMain(chiselArgs, () => Module(new SSPMAegean(nCores.toInt)))
+    chiselMain(chiselArgs, () => Module(new SSPMAegean(nCores.toInt, extendedSlotSize.toInt)))
   }
 }
 
@@ -514,7 +515,7 @@ object SSPMAegeanTester {
     println("Testing the SSPMAegean")
     chiselMainTest(Array("--genHarness", "--test", "--backend", "c",
       "--compile", "--targetDir", "generated", "--vcd"),
-      () => Module(new SSPMAegean(4))) {
+      () => Module(new SSPMAegean(4, 5))) {
         f => new SSPMAegeanTester(f, 4)
       }
   }

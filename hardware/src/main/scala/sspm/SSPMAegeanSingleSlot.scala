@@ -20,7 +20,7 @@ import ocp._
 /**
  * A top level of SSPMAegeanSingleSlot
  */
-class SSPMAegeanSingleSlot(val nCores: Int) extends Module {
+class SSPMAegeanSingleSlot(val nCores: Int, val extendedSlotSize: Int) extends Module {
 
   //override val io = new CoreDeviceIO()
 
@@ -69,7 +69,7 @@ class SSPMAegeanSingleSlot(val nCores: Int) extends Module {
 
     when(connectors(currentCore).connectorSignals.syncReq === Bits(1)) {
       when(!syncUsed) {
-        syncCounter := UInt(4)
+        syncCounter := UInt(extendedSlotSize - 1)
         nextCore := nextCore
         currentCore := currentCore
         state := s_sync
@@ -112,8 +112,11 @@ object SSPMAegeanSingleSlotMain {
 
     val chiselArgs = args.slice(0, args.length)
     val nCores = args(0)
+    val extendedSlotSize = args(1)
 
-    chiselMain(chiselArgs, () => Module(new SSPMAegeanSingleSlot(nCores.toInt)))
+    chiselMain(chiselArgs, () => Module(new SSPMAegeanSingleSlot(
+        nCores.toInt,
+        extendedSlotSize.toInt)))
   }
 }
 
@@ -540,7 +543,7 @@ object SSPMAegeanSingleSlotTester {
     println("Testing the SSPMAegeanSingleSlot")
     chiselMainTest(Array("--genHarness", "--test", "--backend", "c",
       "--compile", "--targetDir", "generated", "--vcd"),
-      () => Module(new SSPMAegeanSingleSlot(4))) {
+      () => Module(new SSPMAegeanSingleSlot(4, 5))) {
         f => new SSPMAegeanSingleSlotTester(f, 4)
       }
   }

@@ -13,6 +13,7 @@
     <Dev DevType="SSPMDevice" entity="SSPM" iface="OcpCore">
       <params>
       <param name="nCores" value="2"/>
+      <param name="extendedSlotSize" value="5"/>
       </params>
     </Dev>
 	  <Dev DevType="Sram16" entity="SRamCtrl" iface="OcpBurst">
