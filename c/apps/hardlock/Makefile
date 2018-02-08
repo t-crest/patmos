@@ -8,8 +8,9 @@ LDFLAGS?= \
 	-Xgold --defsym -Xgold __heap_end=0x1f0000 \
 	-Xgold -T -Xgold ../../../hardware/spm_ram.t
 
-
 MAIN=hardlock_nocontention_test
+#MAIN=hardlock_contention_test
+#MAIN=sspm_contention_test
 
 all:
-	patmos-clang $(CFLAGS) $(LDFLAGS) $(MAIN).c -I../.. ../../libcorethread/*.c -o $(APP).elf
+	patmos-clang $(CFLAGS) $(LDFLAGS) $(MAIN).c -I../.. ../../libcorethread/*.c -I../.. ../../libsspm/*.c -o $(APP).elf

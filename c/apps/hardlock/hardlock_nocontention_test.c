@@ -10,8 +10,7 @@
 #define TIMER_US_LOW *((volatile _IODEV int *) (PATMOS_IO_TIMER + 0xc))
 
 
-_UNCACHED char data[MAX_CNT] = "AAAAAAAAAAAAAAAAAAAA";
-_UNCACHED volatile int cnt;
+_UNCACHED char data[MAX_CNT];
 _UNCACHED int acquisitions_avg[MAX_CNT];
 _UNCACHED int acquisitions_max[MAX_CNT];
 _UNCACHED int acquisitions_min[MAX_CNT];
