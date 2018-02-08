@@ -12,8 +12,17 @@
   <Devs>
     <Dev DevType="SSPMDevice" entity="SSPM" iface="OcpCore">
       <params>
-      <param name="nCores" value="2"/>
+      <param name="nCores" value="2" />
+      <param name="extendedSlotSize" value="5" />
+      <param name="singleExtendedSlot" value="false" />
       </params>
     </Dev>
+	  <Dev DevType="Sram16" entity="SRamCtrl" iface="OcpBurst">
+	      <params>
+		  <param name="ocpAddrWidth" value="21" />
+		  <param name="sramAddrWidth" value="20" />
+		  <param name="sramDataWidth" value="16" />
+	      </params>
+	  </Dev>
   </Devs>
 </patmos>
