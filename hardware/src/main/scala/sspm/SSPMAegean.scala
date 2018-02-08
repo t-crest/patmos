@@ -1,19 +1,14 @@
 /*
    Copyright 2017 Technical University of Denmark, DTU Compute.
    All rights reserved.
-
    This file is part of the time-predictable VLIW processor Patmos.
-
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are met:
-
       1. Redistributions of source code must retain the above copyright notice,
          this list of conditions and the following disclaimer.
-
       2. Redistributions in binary form must reproduce the above copyright
          notice, this list of conditions and the following disclaimer in the
          documentation and/or other materials provided with the distribution.
-
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
    OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
    OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
@@ -24,7 +19,6 @@
    ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
    THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
    The views and conclusions contained in the software and documentation are
    those of the authors and should not be interpreted as representing official
    policies, either expressed or implied, of the copyright holder.
@@ -35,7 +29,7 @@
  * Author: Henrik Enggaard Hansen (henrik.enggaard@gmail.com)
  *         Andreas Toftegaard Kristensen (s144026@student.dtu.dk)
  *
- * The core for a shared scratchpad memory
+ * The core for a shared scratchpad memory.
  */
 
 package sspm
@@ -47,10 +41,14 @@ import patmos.Constants._
 
 import ocp._
 
+import scala.util.Try
+
 /**
  * A top level of SSPMAegean
  */
-class SSPMAegean(val nCores: Int, val extendedSlotSize: Int) extends Module {
+class SSPMAegean(val nCores: Int,
+                           val extendedSlotSize: Int,
+                           val singleExtendedSlot: Boolean) extends Module {
 
   //override val io = new CoreDeviceIO()
 
@@ -72,7 +70,7 @@ class SSPMAegean(val nCores: Int, val extendedSlotSize: Int) extends Module {
       connectors(j).connectorSignals.S.Data := mem.io.S.Data
 
     // Enable connectors based upon one-hot coding of scheduler
-    connectors(j).connectorSignals.enable := decoder(j)
+    connectors(j).connectorSignals.enable := Bits(0)
   }
 
   mem.io.M.Data := connectors(currentCore).connectorSignals.M.Data
@@ -88,26 +86,52 @@ class SSPMAegean(val nCores: Int, val extendedSlotSize: Int) extends Module {
   val syncCounter = Reg(init = UInt(0))
   syncCounter := syncCounter
 
+  val syncUsed = Reg(init = Bool(false))
+  val syncCore = Reg(init = UInt(0))
+
   when(state === s_idle) {
     state := s_idle
     nextCore := nextCore + UInt(1)
     currentCore := nextCore
+    connectors(currentCore).connectorSignals.enable := Bits(1)
 
     when(connectors(currentCore).connectorSignals.syncReq === Bits(1)) {
-      syncCounter := UInt(extendedSlotSize - 1)
-      nextCore := nextCore
-      currentCore := currentCore
-      state := s_sync
+      if(singleExtendedSlot) {
+        when(!syncUsed) {
+          syncCounter := UInt(extendedSlotSize - 1)
+          nextCore := nextCore
+          currentCore := currentCore
+          state := s_sync
+        }.otherwise {
+          connectors(currentCore).connectorSignals.enable := Bits(0)
+        }
+      } else {
+        syncCounter := UInt(extendedSlotSize - 1)
+        nextCore := nextCore
+        currentCore := currentCore
+        state := s_sync
+      }
     }
 
     when(nextCore > UInt(nCores - 1)) {
       nextCore := UInt(0)
+    }
+
+    if(singleExtendedSlot) {
+      when(currentCore === syncCore) {
+        syncUsed := Bool(false)
+      }
     }
   }
 
   when(state === s_sync) {
 
     syncCounter := syncCounter - UInt(1)
+    if(singleExtendedSlot) {
+      syncUsed := Bool(true)
+      syncCore := currentCore
+    }
+    connectors(currentCore).connectorSignals.enable := Bits(1)
 
     state := s_sync
 
@@ -128,8 +152,12 @@ object SSPMAegeanMain {
     val chiselArgs = args.slice(0, args.length)
     val nCores = args(0)
     val extendedSlotSize = args(1)
+    val singleExtendedSlot = args(2)
 
-    chiselMain(chiselArgs, () => Module(new SSPMAegean(nCores.toInt, extendedSlotSize.toInt)))
+    chiselMain(chiselArgs, () => Module(new SSPMAegean(
+        nCores.toInt,
+        extendedSlotSize.toInt,
+        Try(singleExtendedSlot.toBoolean).getOrElse(false))))
   }
 }
 
@@ -471,6 +499,13 @@ class SSPMAegeanTester(dut: SSPMAegean, size: Int) extends Tester(dut) {
 
   step(1)
 
+  while(peek(dut.currentCore) != 0) {
+    step(1)
+    expect(dut.io(0).S.Resp, OcpResp.NULL.litValue())
+  }
+
+  while(peek(dut.io(0).S.Resp) == 0) { step(1) }
+
   expect(dut.io(0).S.Resp, OcpResp.DVA.litValue())
 
   // Request synchronization during another reserved period
@@ -479,6 +514,8 @@ class SSPMAegeanTester(dut: SSPMAegean, size: Int) extends Tester(dut) {
   while(peek(dut.currentCore) == 0) {
     step(1)
   }
+
+  step(1)
 
   sync(0)
   sync(1)
@@ -502,12 +539,44 @@ class SSPMAegeanTester(dut: SSPMAegean, size: Int) extends Tester(dut) {
     step(1)
   }
 
-  val curCore = peek(dut.currentCore)
+  var curCore = peek(dut.currentCore)
   while(peek(dut.currentCore) == curCore) {
     step(1)
   }
 
   step(1)
+
+  {
+    for(i <- 0 until size){
+      sync(i)
+    }
+    step(1)
+    for(i <- 0 until size){
+      idle(i)
+    }
+
+    var outstanding = Array.fill(size) { false }
+    while(!outstanding.forall((T) => T)) {
+      for(i <- 0 until size){
+        if(!outstanding(i) && peek(dut.io(i).S.Resp).toInt == OcpResp.DVA.litValue()) {
+          outstanding(i) = true
+          wr(4, i, Bits("b1111").litValue(), i)
+        }
+      }
+
+      step(1)
+      for(i <- 0 until size){
+        idle(i)
+      }
+    }
+
+    val curCore = peek(dut.currentCore)
+    while(peek(dut.currentCore) == curCore) {
+      step(1)
+    }
+
+    step(1)
+  }
 }
 
 object SSPMAegeanTester {
@@ -515,8 +584,9 @@ object SSPMAegeanTester {
     println("Testing the SSPMAegean")
     chiselMainTest(Array("--genHarness", "--test", "--backend", "c",
       "--compile", "--targetDir", "generated", "--vcd"),
-      () => Module(new SSPMAegean(4, 5))) {
+      () => Module(new SSPMAegean(4, 5, true))) {
         f => new SSPMAegeanTester(f, 4)
       }
   }
 }
+

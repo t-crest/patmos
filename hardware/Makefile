@@ -187,7 +187,7 @@ SSPM-test:
 	$(SBT) "runMain io.SSPMTester"
 
 SSPMAegean:
-	$(SBT) "runMain sspm.SSPMAegeanMain $(CORE_CNT) $(EXT_SLOT_SIZE) --targetDir $(HWGENDIR) --cse --backend v"
+	$(SBT) "runMain sspm.SSPMAegeanMain $(CORE_CNT) $(EXT_SLOT_SIZE) false --targetDir $(HWGENDIR) --cse --backend v"
 
 SSPMAegean-test:
 	$(SBT) "runMain sspm.SSPMAegeanTester"

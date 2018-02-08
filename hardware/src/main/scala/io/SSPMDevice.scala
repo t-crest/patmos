@@ -59,13 +59,15 @@ import sspm._
 object SSPM extends DeviceObject {
   var nCores = 1
   var extendedSlotSize = 5
+  var singleExtendedSlot = false
 
   def init(params: Map[String, String]) = {
     nCores = getPosIntParam(params, "nCores")
     extendedSlotSize = getPosIntParam(params, "extendedSlotSize")
+    singleExtendedSlot = getBoolParam(params, "singleExtendedSlot")
   }
 
-  def create(params: Map[String, String]): SSPM = Module(new SSPM(nCores, extendedSlotSize))
+  def create(params: Map[String, String]): SSPM = Module(new SSPM(nCores, extendedSlotSize, singleExtendedSlot))
 
   trait Pins {}
 }
@@ -73,12 +75,12 @@ object SSPM extends DeviceObject {
 /**
  * A top level of SSPM
  */
-class SSPM(val nCores: Int, val extendedSlotSize: Int) extends CoreDevice {
+class SSPM(val nCores: Int, val extendedSlotSize: Int, val singleExtendedSlot: Boolean) extends CoreDevice {
 
   override val io = new CoreDeviceIO()
 
   // Connect one OCP interface from SSPM Aegean to the Patmos OCP
-  Module(new SSPMAegean(nCores, extendedSlotSize)).io(0) <> io.ocp
+  Module(new SSPMAegean(nCores, extendedSlotSize, singleExtendedSlot)).io(0) <> io.ocp
 }
 
 /**
@@ -160,7 +162,7 @@ object SSPMTester {
     println("Testing the SSPM")
     chiselMainTest(Array("--genHarness", "--test", "--backend", "c",
       "--compile", "--targetDir", "generated"),
-      () => Module(new SSPM(3, 5))) {
+      () => Module(new SSPM(3, 5, false))) {
         f => new SSPMTester(f)
       }
   }
