@@ -64,6 +64,10 @@ CGEN=$(HWBUILDDIR)/.cgen
 VGEN=$(HWBUILDDIR)/.vgen
 VGENCORE=$(HWBUILDDIR)/.vgencore
 
+# Ensure configuration for SSPM is defined
+CORE_CNT?=4
+EXT_SLOT_SIZE?=5
+
 # build the C++ version
 emulator: $(HWBUILDDIR)/emulator
 
@@ -183,7 +187,7 @@ SSPM-test:
 	$(SBT) "runMain io.SSPMTester"
 
 SSPMAegean:
-	$(SBT) "runMain sspm.SSPMAegeanMain $(CORE_CNT) --targetDir $(HWGENDIR) --cse --backend v"
+	$(SBT) "runMain sspm.SSPMAegeanMain $(CORE_CNT) $(EXT_SLOT_SIZE) false --targetDir $(HWGENDIR) --cse --backend v"
 
 SSPMAegean-test:
 	$(SBT) "runMain sspm.SSPMAegeanTester"

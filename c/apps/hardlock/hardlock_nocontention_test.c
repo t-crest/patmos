@@ -10,8 +10,7 @@
 #define TIMER_US_LOW *((volatile _IODEV int *) (PATMOS_IO_TIMER + 0xc))
 
 
-_UNCACHED char data[MAX_CNT] = "AAAAAAAAAAAAAAAAAAAA";
-_UNCACHED volatile int cnt;
+_UNCACHED char data[MAX_CNT];
 _UNCACHED int acquisitions_avg[MAX_CNT];
 _UNCACHED int acquisitions_max[MAX_CNT];
 _UNCACHED int acquisitions_min[MAX_CNT];
@@ -28,15 +27,19 @@ int _main()
   int cnt = get_cpucnt();
   const int shift = 10;
   const int iter = 1 << shift;
+  const int MIN_START = 10000;
   int acquire = 0;
+  int acquire_avg = 0;
   int acquire_max = 0;
-  int acquire_min = 0;
+  int acquire_min = MIN_START;
+  int release_avg = 0;
   int release = 0;
   int release_max = 0;
-  int release_min = 0;
+  int release_min = MIN_START;
   int acquirel = 0;
+  int acquirel_avg = 0;
   int acquirel_max = 0;
-  int acquirel_min = 0;
+  int acquirel_min = MIN_START;
   
   int stop1;
   int stop2;
@@ -44,14 +47,30 @@ int _main()
 
   for(int i = 0; i < iter; i++)
   {
-    
+
     stop1 = TIMER_CLK_LOW;
     lock(id);
     stop2 = TIMER_CLK_LOW;
     unlock(id);
     stop3 = TIMER_CLK_LOW;
-    acquire += stop2 - stop1;
-    release += stop3 - stop2;
+    // The release first to prevent reordering the last time read
+    release = stop3 - stop2;
+    release_avg += release;
+
+    if(release > release_max)
+      release_max = release;
+    else if(release < release_min)
+      release_min = release;
+
+    acquire = stop2 - stop1;
+    acquire_avg += acquire;
+    
+    if(acquire > acquire_max)
+      acquire_max = acquire;
+    else if(acquire < acquire_min)
+      acquire_min = acquire;
+    
+    
   }
 
   for(int i = 0; i < iter; i++)
@@ -61,16 +80,22 @@ int _main()
     lock(id);
     unlock(id);
     stop2 = TIMER_CLK_LOW;
-    acquirel += stop2 - stop1;
+
+    acquirel = stop2 - stop1;
+    acquirel_avg += acquirel;
+    if(acquirel > acquirel_max)
+      acquirel_max = acquirel;
+    else if(acquirel < acquirel_min)
+      acquirel_min = acquirel;
   }
 
-  acquisitions_avg[id] = acquire >> shift;
+  acquisitions_avg[id] = acquire_avg >> shift;
   acquisitions_max[id] = acquire_max;
   acquisitions_min[id] = acquire_min;
-  releases_avg[id] = release >> shift;
+  releases_avg[id] = release_avg >> shift;
   releases_max[id] = release_max;
   releases_min[id] = release_min;
-  acquirels_avg[id] = acquirel >> shift;
+  acquirels_avg[id] = acquirel_avg >> shift;
   acquirels_max[id] = acquirel_max;
   acquirels_min[id] = acquirel_min;
   data[id] = 'F';
@@ -138,6 +163,8 @@ int main() {
   int len = sizeof threads / sizeof *threads;
   if(get_cpucnt() < len)
     len = get_cpucnt();
+
+  printf("Starting cores\n");
 
   for(int i = 1; i < len; i++)
   {

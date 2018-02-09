@@ -2,8 +2,8 @@
 #define _CRLU_H_
 
 #include <machine/patmos.h>
-#define CRLU_BASE *((volatile _SPM int *) 0xE8000000)
-#define lock(lockid) CRLU_BASE = (lockid << 1) + 1;
-#define unlock(lockid) CRLU_BASE = (lockid << 1) + 0;
+#define HARDLOCK_BASE *((volatile _SPM int *) 0xE8000000)
+#define lock(lockid) HARDLOCK_BASE = (lockid << 1) + 1
+#define unlock(lockid) HARDLOCK_BASE = (lockid << 1) + 0
 
 #endif
