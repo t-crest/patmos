@@ -54,7 +54,7 @@ int _main()
     unlock(id);
     stop3 = TIMER_CLK_LOW;
     // The release first to prevent reordering the last time read
-    release = stop3 - stop2;
+    release = (stop3 - stop2) - 1;
     release_avg += release;
 
     if(release > release_max)
@@ -62,7 +62,7 @@ int _main()
     else if(release < release_min)
       release_min = release;
 
-    acquire = stop2 - stop1;
+    acquire = (stop2 - stop1) - 1;
     acquire_avg += acquire;
     
     if(acquire > acquire_max)
@@ -81,7 +81,7 @@ int _main()
     unlock(id);
     stop2 = TIMER_CLK_LOW;
 
-    acquirel = stop2 - stop1;
+    acquirel = (stop2 - stop1) - 1;
     acquirel_avg += acquirel;
     if(acquirel > acquirel_max)
       acquirel_max = acquirel;
