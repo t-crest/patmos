@@ -3,20 +3,20 @@
 #include <stdlib.h>
 #include <machine/patmos.h>
 #include <machine/rtc.h>
-#include "libcorethread/corethread.c"
-#include "libmp/mp.h"
-#include "libmp/mp_internal.h"
-#include "libsspm/sspm_properties.h"
-#include "libsspm/atomic.h"
-
-const int NOC_MASTER = 0;
+#include "../../libcorethread/corethread.h"
+#include "../../libmp/mp.h"
+#include "../../libmp/mp_internal.h"
+#include "sspm_properties.h"
+#include "atomic.h"
+#include "led.h"
 
 const int TIMES = 1000;
 volatile _UNCACHED int ready;
 
 void slave(void* args){
+	led_on();
 	volatile _SPM lock_t* l = (volatile _SPM lock_t*) (LOWEST_SSPM_ADDRESS+4);
-
+	
 	//We inline the lock, so that we maximize the amount of 
 	//tries the core can make
 	int syncAddr = SCHEDULE_SYNC;
@@ -35,10 +35,11 @@ void slave(void* args){
 	);
 
 	release(l);	
-
+	led_off();
 }
 
 int main(){
+	led_on();
 	int start, end;
 	int syncAddr = SCHEDULE_SYNC;
 
@@ -50,7 +51,7 @@ int main(){
 	for(int i = 0; i<NOC_CORES; i++){
 		lock(l2);
 		for(int c = 1; c <=i;c++){
-			corethread_create(&c, &slave, NULL);
+			corethread_create(c, &slave, NULL);
 		}		
 
 		printf("Traffic cores: %d\n", i);
@@ -89,7 +90,7 @@ int main(){
 		}
 		printf("Cycles: %d\n", end-start);
 	}
-	
+	led_off();
 	return 0;
 }
 

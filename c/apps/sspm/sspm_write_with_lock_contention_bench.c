@@ -3,11 +3,12 @@
 #include <stdlib.h>
 #include <machine/patmos.h>
 #include <machine/rtc.h>
-#include "libcorethread/corethread.c"
-#include "libmp/mp.h"
-#include "libmp/mp_internal.h"
-#include "libsspm/sspm_properties.h"
-#include "libsspm/atomic.h"
+#include "../../libcorethread/corethread.h"
+#include "../../libmp/mp.h"
+#include "../../libmp/mp_internal.h"
+#include "sspm_properties.h"
+#include "atomic.h"
+#include "led.h"
 
 #define MP_CHAN_NUM_BUF 2
 #define MP_CHAN_BUF_SIZE 40
@@ -18,8 +19,9 @@ const int TIMES = 1000;
 int cycles[TIMES];
 
 void slave(void* args){
+	led_on();
 	volatile _SPM lock_t* l = (volatile _SPM lock_t*) (LOWEST_SSPM_ADDRESS+4);
-
+	
 	//We inline the lock, so that we maximize the amount of 
 	//tries the core can make
 	int syncAddr = SCHEDULE_SYNC;
@@ -38,11 +40,11 @@ void slave(void* args){
 	);
 
 	release(l);	
-
+	led_off();
 }
 
 int main(){
-
+	led_on();
 	int start, end;
 	volatile _SPM int* flag = (volatile _SPM int*) LOWEST_SSPM_ADDRESS;
 	volatile _SPM lock_t* l = (volatile _SPM lock_t*) (LOWEST_SSPM_ADDRESS+4);
@@ -50,7 +52,7 @@ int main(){
 	for(int i = 0; i<NOC_CORES; i++){
 		lock(l);
 		for(int c = 1; c <= i; c++){
-			corethread_create(&c, &slave, NULL);
+			corethread_create(c, &slave, NULL);
 		}
 		
 		asm volatile ("" : : : "memory");
@@ -74,7 +76,7 @@ int main(){
 		printf("Traffic cores: %d\n", i);
 		printf("%d\n", end-start);
 	}
-	
+	led_off();
 	return 0;
 }
 
