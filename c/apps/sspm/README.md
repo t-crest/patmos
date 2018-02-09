@@ -1,13 +1,20 @@
 # Benchmarking T-CREST
 
-This application is used for the evaluation section of following submitted paper:
+These applications are used for the evaluation section of following submitted paper:
 
-xxx
+A Shared Scratchpad Memory with Synchronization Support
 
 For the general build instructions of T-CREST please look into the
 [Main README](../../../README.md).
 
-The C program for the evaluation can be found in [abc.c](abc.c).
+The C program for the evaluations can be found in:
+
+* noc_write_bench.c: Benchmarks how many cycles writing to the Argo NOC takes.
+* noc_roundtrip_bench.c: Benchmakrs how many cycles a roundtrip of a message takes using the Argo NOC.
+* sspm_write_bench.c: Benchmarks how many cycles writing to the SSPM takes.
+* sspm_roundtrip_bench.c: Benchmarks how many cycles a roundtrip of massage takes using the SSPM.
+* sspm_locking_bench.c: Benchmarks how many cycles it takes to get a lock while other cores are also trying to get a lock. I.e. synchronization under synchronization traffik.
+* sspm_write_with_lock_contention_bench.c: Benchmarks how many cycles it takes to write to the SSPM while other cores are trying to get a lock. I.e. write under synchronization traffik.
 
 For the multicore configuration the build and compile process is split
 into two sub-projects in folders `t-crest/aegean` and `t-crest/patmos`.
@@ -32,13 +39,7 @@ make config
 
 The benchmark application is build and downloaded from within `t-crest/patmos`:
 ```bash
-make app download APP=sspm SSPM_MAIN=example
-```
-
-To measure the single core version, disable any NoC related code in the
-benchmark and configure the FPGA from the `t-crest/patmos` folder:
-```bash
-make app config download APP=sspmA SSPM_MAIN=example
+make app APP=sspm MAIN=example download
 ```
 
 To ensure that you have the exact version of T-CREST that we have used in the

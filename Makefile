@@ -150,8 +150,11 @@ comp-% $(BUILDDIR)/%.elf: .FORCE
 
 # Compile an app that lives in the app folder
 app:
-	make -C c/apps/$(APP)
-	cp c/apps/$(APP)/$(APP).elf $(BUILDDIR)
+	rm -f $(BUILDDIR)/apps/$(APP).elf
+	rm -f $(BUILDDIR)/$(APP).elf
+	mkdir -p $(BUILDDIR)/apps
+	$(MAKE) -C c BUILDDIR=$(BUILDDIR) APP=$(APP) MAIN=$(MAIN) compile-app
+	cp $(BUILDDIR)/apps/$(APP).elf $(BUILDDIR)
 
 .PRECIOUS: $(BUILDDIR)/%.elf
 
