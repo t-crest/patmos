@@ -149,10 +149,11 @@ object SSPMAegeanMain {
   def main(args: Array[String]): Unit = {
     println("Generating the SSPMAegean hardware")
 
-    val chiselArgs = args.slice(0, args.length)
+    val chiselArgs = args.slice(1, args.length)
     val nCores = args(0)
-    val extendedSlotSize = args(1)
-    val singleExtendedSlot = args(2)
+    val extendedSlotSize = 5 // args(1)
+    val singleExtendedSlot = "true" // args(2)
+    chiselArgs.foreach(println)
 
     chiselMain(chiselArgs, () => Module(new SSPMAegean(
         nCores.toInt,
