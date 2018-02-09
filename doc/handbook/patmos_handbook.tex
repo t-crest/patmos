@@ -3946,11 +3946,11 @@ patemu tmp/hello_puts.elf
 
 \paragraph{A More Complex Application}
 
-Small example code (single C file) is distributed in folder \code{c} and
+Small code examples (single C files) are distributed in folder \code{c} and
 some subfolders (e.g., \code{bootable}, \code{bootloader}, \code{cmp},...)
 and compiled with a \code{make comp APP=program}.
 
-Larger applications, such as an operating system for Patmos such as
+Larger applications, such as an operating system for Patmos as
 RTEMS,\footnote{\code{https://github.com/t-crest/rtems}}
 live in their own repository.
 
@@ -3965,17 +3965,16 @@ tiny libraries.
 
 The main \code{Makefile} contains the target \code{app} to compile
 the target and copy the \code{.elf} file into the local build directory.
-Following example builds an application
+Here is a trivial app example consisting of two source files to do the
+``Hello World'' example, including compilation, configuration, and download
+to Patmos:
 
 \begin{verbatim}
-make app APP=bench
+make app config download APP=hello
 \end{verbatim}
 
-which can the be downloaded as usual to an FPGA
-
-\begin{verbatim}
-make config download APP=bench
-\end{verbatim}
+A more interesting multicore example, which also uses \code{libcorethread} code
+without building a library, can be found in \code{c/apps/bench}.
 
 \subsection{Supported FPGA Boards}
 
