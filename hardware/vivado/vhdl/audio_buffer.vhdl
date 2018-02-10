@@ -34,7 +34,9 @@ entity audio_buffer is
 		MData    : in  std_logic_vector((OCP_DATA_WIDTH - 1) downto 0);
 		MByteEn  : in  std_logic_vector(3 downto 0);
 		SResp    : out std_logic_vector(1 downto 0);
-		SData    : out std_logic_vector((OCP_DATA_WIDTH - 1) downto 0)
+		SData    : out std_logic_vector((OCP_DATA_WIDTH - 1) downto 0);
+		
+		gpio     : out  std_logic_vector(31 downto 0)
 	);
 end audio_buffer;
 
@@ -74,6 +76,8 @@ architecture rtl of audio_buffer is
 
 	signal SResp_next : std_logic_vector(1 downto 0);
 	signal SData_next : std_logic_vector((OCP_DATA_WIDTH - 1) downto 0);
+	
+	signal gpio_wr_en   : std_logic;
 
 begin
 
@@ -86,6 +90,7 @@ begin
 	-- 0004 R => ADC read
 	-- 0008 R => DAC full
 	-- 000C W => DAC write
+	-- 0010 W => gpio
 
 	dac_data_in <= MData(BUFFER_DATA_WIDTH - 1 downto 0);
 
@@ -96,6 +101,7 @@ begin
 		SData_next <= (others => '0');
 		adc_rd_en  <= '0';
 		dac_wr_en  <= '0';
+		gpio_wr_en <= '0';
 
 		case MCmd is
 			-------- write
@@ -103,6 +109,8 @@ begin
 				case MAddr is
 					when x"000C" =>
 						dac_wr_en <= '1';
+					when x"0010" =>
+                        gpio_wr_en <= '1';
 					when others =>
 				end case;
 				SResp_next <= "01";
@@ -134,9 +142,13 @@ begin
 			if reset = '1' then
 				SResp <= (others => '0');
 				SData <= (others => '0');
+				gpio  <= (others => '0');
 			else
 				SResp <= SResp_next;
 				SData <= SData_next;
+				if gpio_wr_en = '1' then
+				    gpio <= MData(31 downto 0);
+				end if;
 			end if;
 		end if;
 	end process;

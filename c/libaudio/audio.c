@@ -33,6 +33,11 @@ int i2c_read(unsigned char chipaddress, unsigned short int subaddress){
   }
 }
 
+void setGPIO(int data) {
+  *AUDIO_GPIO = (volatile _SPM int) data;
+  return;
+}
+
 int ADAU1761_init(int configuration){
   int ans = 0;
 

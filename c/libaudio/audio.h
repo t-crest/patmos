@@ -42,6 +42,8 @@
 #define ADC_ADDR      (volatile _SPM int *) 0xF00B0004
 #define ADCBUFEM_ADDR  (volatile _SPM int *) 0xF00B0000
 
+#define AUDIO_GPIO  (volatile _SPM int *) 0xF00B0010
+
 //Leds
 volatile _SPM int *ledReg = LED_ADDR;
 //Keys

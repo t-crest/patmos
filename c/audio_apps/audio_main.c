@@ -460,6 +460,7 @@ int main() {
                 }
 #ifdef NOC_RECONFIG
                 //reconfiguration function
+                printf("Reconfiguring the NoC.\n");
                 noc_sched_set(*cmode_spm);
 #endif
 
