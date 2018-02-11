@@ -47,7 +47,7 @@
   	<Dev DevType="Uart2" entity="Uart2" iface="OcpCore">
   	  <params>
   		<param name="baudRate" value="115200"/>
-  		<param name="fifoDepth" value="16"/>
+  		<param name="fifoDepth" value="512"/>
   	  </params>
   	</Dev>
 
