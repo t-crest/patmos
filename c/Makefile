@@ -11,7 +11,6 @@ LIBETH=$(BUILDDIR)/libeth.a
 LIBAUDIO=$(BUILDDIR)/libaudio.a
 LIBELF=$(BUILDDIR)/libelf.a
 LIBSD=$(BUILDDIR)/libsd.a
-LIBSSPM=$(BUILDDIR)/libsspm.a
 
 NOCINIT?=cmp/nocinit.c
 
@@ -71,9 +70,9 @@ $(BUILDDIR)/%.o: %.c Makefile
 	$(CC) $(CFLAGS) -c -o $@ $(filter %.c,$^)
 
 # A target for regular applications
-$(BUILDDIR)/%.elf: %.c $(NOCINIT) $(LIBMP) $(LIBNOC) $(LIBCORETHREAD) $(LIBETH) $(LIBSD) $(LIBAUDIO) $(LIBELF) $(LIBSSPM) Makefile
+$(BUILDDIR)/%.elf: %.c $(NOCINIT) $(LIBMP) $(LIBNOC) $(LIBCORETHREAD) $(LIBETH) $(LIBSD) $(LIBAUDIO) $(LIBELF) Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc -lcorethread -leth -lelf -lsd -lm -laudio -lsspm
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc -lcorethread -leth -lelf -lsd -lm -laudio
 
 $(BUILDDIR)/%.s: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
@@ -169,11 +168,4 @@ $(LIBELF): $(patsubst libelf/%.c,$(BUILDDIR)/libelf/%.o,$(wildcard libelf/*.c))
 .PHONY: libsd
 libsd: $(LIBSD)
 $(LIBSD): $(patsubst libsd/%.c,$(BUILDDIR)/libsd/%.o,$(wildcard libsd/*.c))
-	patmos-ar r $@ $^
-
-# library for the Shared Scratchpad memory
-.PHONY: libsspm
-libsspm: $(LIBSSPM)
-$(BUILDDIR)/libsspm/atomic.o: libsspm/atomic.h libsspm/sspm_properties.h
-$(LIBSSPM): $(BUILDDIR)/libsspm/atomic.o 
 	patmos-ar r $@ $^
