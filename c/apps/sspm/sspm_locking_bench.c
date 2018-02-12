@@ -3,11 +3,11 @@
 #include <stdlib.h>
 #include <machine/patmos.h>
 #include <machine/rtc.h>
-#include "libcorethread/corethread.c"
-#include "libmp/mp.h"
-#include "libmp/mp_internal.h"
-#include "libsspm/sspm_properties.h"
-#include "libsspm/atomic.h"
+#include "../../libcorethread/corethread.h"
+#include "../../libmp/mp.h"
+#include "../../libmp/mp_internal.h"
+#include "sspm_properties.h"
+#include "atomic.h"
 
 const int NOC_MASTER = 0;
 
@@ -50,7 +50,7 @@ int main(){
 	for(int i = 0; i<NOC_CORES; i++){
 		lock(l2);
 		for(int c = 1; c <=i;c++){
-			corethread_create(&c, &slave, NULL);
+			corethread_create(c, &slave, NULL);
 		}		
 
 		printf("Traffic cores: %d\n", i);
