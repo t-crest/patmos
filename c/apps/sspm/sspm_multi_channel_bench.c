@@ -1,52 +1,63 @@
+#include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <machine/patmos.h>
 #include <machine/rtc.h>
 #include "../../libcorethread/corethread.h"
 #include "../../libmp/mp.h"
+#include "sspm_properties.h"
 #include "led.h"
 
-#define MP_CHAN_NUM_BUF 1
 #define CHANNEL_BUFFER_CAPACITY (56)
 
 const int NOC_MASTER = 0;
-
 const int TIMES = 1000;
+
+typedef enum{
+	TRANSMIT,
+	ACKNOWLEDGE
+} TRANSMISSION_STATE;
 
 void slave(void* args){
 	led_on();
 	int cpuid = get_cpuid();
 	int local_buffer[CHANNEL_BUFFER_CAPACITY];
-	qpd_t * chan =mp_create_qport(cpuid, SINK, CHANNEL_BUFFER_CAPACITY*sizeof(int),MP_CHAN_NUM_BUF);
-	mp_init_ports();
 	
+	volatile _SPM int* flag = (volatile _SPM int*) (LOWEST_SSPM_ADDRESS + ((cpuid-1) * ((CHANNEL_BUFFER_CAPACITY+1)*sizeof(int))));
+	volatile _SPM int* chan = &(flag[1]);
+
 	for(int i = 0; i<(TIMES*(get_cpucnt()-cpuid)); i++){
-		mp_recv(chan,0);
+		// wait to receive something
+		while(*flag != TRANSMIT){}
 		// Load the received values into memory
 		for(int k = 0; k<CHANNEL_BUFFER_CAPACITY; k++){
-			local_buffer[k] = ((volatile int _SPM *)(chan->read_buf))[k];
+			local_buffer[k] = chan[k];
 		}
-		mp_ack(chan,0);
+		*flag = ACKNOWLEDGE;
 	}
 
 	led_off();
 }
 
+
+
 int main(){
 	led_on();
 	
-	qpd_t* chan[get_cpucnt()];
-	
+	volatile _SPM int* flag[get_cpucnt()];
+	volatile _SPM int* chan[get_cpucnt()];
+
+	// Calculate channel addresses
+	for(int c = 1; c<get_cpucnt(); c++){
+		flag[c] = (volatile _SPM int*) (LOWEST_SSPM_ADDRESS + ((c-1) * ((CHANNEL_BUFFER_CAPACITY+1)*sizeof(int))));
+		chan[c] = &(flag[c][1]);
+	}
+
 	// Start receivers
 	for(int c = 1; c<get_cpucnt(); c++){
 		corethread_create(c, &slave, NULL);
 	}
 
-	// Initialize channels
-	for(int c = 1; c<get_cpucnt(); c++){
-		chan[c] = mp_create_qport(c, SOURCE, CHANNEL_BUFFER_CAPACITY*sizeof(int),MP_CHAN_NUM_BUF);
-	}
-	mp_init_ports();
-	
 	// Run bench
 	for(int cores_to_send_to = 1; cores_to_send_to<get_cpucnt(); cores_to_send_to++){
 		asm volatile ("" : : : "memory");
@@ -55,14 +66,14 @@ int main(){
 		for(int i = 0; i<TIMES; i++){
 			for(int c = 1; c<=cores_to_send_to; c++){
 				// Wait for the receiver to acknowledge	the previous message		
-				while(*(chan[c]->send_recv_count) != ((TIMES*(cores_to_send_to-c))+i)){}
+				while(*flag[c] != ACKNOWLEDGE){}
 			
 				// Put values to send
 				for(int k = 0; k<CHANNEL_BUFFER_CAPACITY; k++){
-					((volatile int _SPM *)(chan[c]->write_buf))[k] = i;
+					*chan[c] = i;
 				}
 
-				mp_send(chan[c],0);
+				*flag[c] = TRANSMIT;
 			}
 		}
 		asm volatile ("" : : : "memory");
@@ -84,63 +95,3 @@ int main(){
 	led_off();
 	return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

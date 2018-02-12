@@ -5,7 +5,6 @@
 #include <machine/rtc.h>
 #include "../../libcorethread/corethread.h"
 #include "../../libmp/mp.h"
-#include "../../libmp/mp_internal.h"
 #include "sspm_properties.h"
 #include "led.h"
 
