@@ -7,6 +7,7 @@
 #include "../../libmp/mp.h"
 #include "../../libmp/mp_internal.h"
 #include "sspm_properties.h"
+#include "led.h"
 
 #define MP_CHAN_NUM_BUF 2
 #define MP_CHAN_BUF_SIZE 40
@@ -25,6 +26,7 @@ typedef enum{
 } TRANSMISSION_STATE;
 
 void sender_slave(void* args){
+	led_on();
 	volatile _SPM int* flag = (volatile _SPM int*) LOWEST_SSPM_ADDRESS;
 
 	int send, ack_recv;
@@ -44,9 +46,11 @@ void sender_slave(void* args){
 		send_clock[k] = send;
 		ack_recv_clock[k] = ack_recv;
 	}
+	led_off();
 }
 
 void receiver_slave(void* args){
+	led_on();
 	int cpuid = get_cpuid();
 	volatile _SPM int* flag = (volatile _SPM int*) LOWEST_SSPM_ADDRESS;
 
@@ -64,10 +68,12 @@ void receiver_slave(void* args){
 		recv_clock[k] = recv;
 		asm volatile ("" : : : "memory");
 	}
+	led_off();
 }
 
 
 int main(){
+	led_on();
 	volatile _SPM int* flag = (volatile _SPM int*) LOWEST_SSPM_ADDRESS;
 	*flag = ACKNOWLEDGE;
 
@@ -89,7 +95,7 @@ int main(){
 	for(int i = 0; i < TIMES_TO_SEND; i++){
 		printf("%d\n", (ack_recv_clock[i] - recv_clock[i]));
 	}
-
+	led_off();
 	return 0;
 }
 

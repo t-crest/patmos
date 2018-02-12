@@ -8,6 +8,7 @@
 #include "../../libmp/mp_internal.h"
 #include "sspm_properties.h"
 #include "atomic.h"
+#include "led.h"
 
 const int NOC_MASTER = 0;
 
@@ -15,6 +16,7 @@ const int TIMES = 1000;
 volatile _UNCACHED int ready;
 
 void slave(void* args){
+	led_on();
 	volatile _SPM lock_t* l = (volatile _SPM lock_t*) (LOWEST_SSPM_ADDRESS+4);
 
 	//We inline the lock, so that we maximize the amount of 
@@ -35,10 +37,11 @@ void slave(void* args){
 	);
 
 	release(l);	
-
+	led_off();
 }
 
 int main(){
+	led_on();
 	int start, end;
 	int syncAddr = SCHEDULE_SYNC;
 
@@ -89,7 +92,7 @@ int main(){
 		}
 		printf("Cycles: %d\n", end-start);
 	}
-	
+	led_off();
 	return 0;
 }
 

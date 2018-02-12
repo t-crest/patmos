@@ -7,6 +7,7 @@
 #include "../../libmp/mp.h"
 #include "../../libmp/mp_internal.h"
 #include "sspm_properties.h"
+#include "led.h"
 
 #define MP_CHAN_NUM_BUF 2
 #define MP_CHAN_BUF_SIZE 40
@@ -19,7 +20,7 @@ int start_clock[TIMES_TO_WRITE];
 int end_clock[TIMES_TO_WRITE];
 
 int main(){
-
+	led_on();
 	int cpuid = get_cpuid();
 	
 	int start, end;
@@ -43,6 +44,7 @@ int main(){
 	for(int i = 0; i<TIMES_TO_WRITE; i++){
 		printf("%d\n", end_clock[i]-start_clock[i]);
 	}
+	led_off();
 	return 0;
 }
 
