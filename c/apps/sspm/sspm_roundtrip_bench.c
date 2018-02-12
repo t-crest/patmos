@@ -3,27 +3,29 @@
 #include <stdlib.h>
 #include <machine/patmos.h>
 #include <machine/rtc.h>
-#include "libcorethread/corethread.c"
-#include "libmp/mp.h"
-#include "libmp/mp_internal.h"
+#include "../../libcorethread/corethread.h"
+#include "../../libmp/mp.h"
+#include "../../libmp/mp_internal.h"
+#include "sspm_properties.h"
 
 #define MP_CHAN_NUM_BUF 2
 #define MP_CHAN_BUF_SIZE 40
-#define CHANNEL_BUFFER_CAPACITY (256)
 
 const int NOC_MASTER = 0;
 
+const int CHANNEL_BUFFER_CAPACITY = 64;
 const int TIMES_TO_SEND = 1000;
 volatile _UNCACHED int send_clock[TIMES_TO_SEND];
 volatile _UNCACHED int recv_clock[TIMES_TO_SEND];
 volatile _UNCACHED int ack_recv_clock[TIMES_TO_SEND];
 
+typedef enum{
+	TRANSMIT,
+	ACKNOWLEDGE
+} TRANSMISSION_STATE;
 
 void sender_slave(void* args){
-	int cpuid = get_cpuid();
-	qpd_t * chan = mp_create_qport(1, SOURCE, CHANNEL_BUFFER_CAPACITY*sizeof(int),MP_CHAN_NUM_BUF);
-
-	mp_init_ports();
+	volatile _SPM int* flag = (volatile _SPM int*) LOWEST_SSPM_ADDRESS;
 
 	int send, ack_recv;
 
@@ -32,9 +34,8 @@ void sender_slave(void* args){
 		send = get_cpu_cycles();
 		asm volatile ("" : : : "memory");
 
-		mp_send(chan,0);
-		
-		while(*(chan->send_recv_count) != (k+1)){}
+		*flag = TRANSMIT;
+		while(*flag != ACKNOWLEDGE){}
 		
 		asm volatile ("" : : : "memory");
 		ack_recv = get_cpu_cycles();
@@ -47,20 +48,17 @@ void sender_slave(void* args){
 
 void receiver_slave(void* args){
 	int cpuid = get_cpuid();
-	qpd_t * chan = mp_create_qport(1, SINK, CHANNEL_BUFFER_CAPACITY*sizeof(int), MP_CHAN_NUM_BUF);
-	
-	mp_init_ports();
+	volatile _SPM int* flag = (volatile _SPM int*) LOWEST_SSPM_ADDRESS;
 
 	int recv;
 	
 	for(int k = 0; k<TIMES_TO_SEND; k++){
-		mp_recv(chan,0);
-		
+		while(*flag != TRANSMIT){}
 		asm volatile ("" : : : "memory");
 		recv = get_cpu_cycles();
 		asm volatile ("" : : : "memory");
 
-		mp_ack(chan,0);
+		*flag = ACKNOWLEDGE;
 
 		asm volatile ("" : : : "memory");
 		recv_clock[k] = recv;
@@ -70,15 +68,15 @@ void receiver_slave(void* args){
 
 
 int main(){
+	volatile _SPM int* flag = (volatile _SPM int*) LOWEST_SSPM_ADDRESS;
+	*flag = ACKNOWLEDGE;
 
-	int core1 = 1;
-	int core2 = 2;
-	corethread_create(&core1, &sender_slave, NULL);
-	corethread_create(&core2, &receiver_slave, NULL);
+	corethread_create(1, &sender_slave, NULL);
+	corethread_create(2, &receiver_slave, NULL);
 
 	int res;
-	corethread_join(core1, (void **) &res);
-	corethread_join(core2, (void **) &res);
+	corethread_join(1, (void **) &res);
+	corethread_join(2, (void **) &res);
 	
 	printf("Burst: %d\n", CHANNEL_BUFFER_CAPACITY);
 

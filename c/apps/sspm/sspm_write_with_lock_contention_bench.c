@@ -3,11 +3,11 @@
 #include <stdlib.h>
 #include <machine/patmos.h>
 #include <machine/rtc.h>
-#include "libcorethread/corethread.c"
-#include "libmp/mp.h"
-#include "libmp/mp_internal.h"
-#include "libsspm/sspm_properties.h"
-#include "libsspm/atomic.h"
+#include "../../libcorethread/corethread.h"
+#include "../../libmp/mp.h"
+#include "../../libmp/mp_internal.h"
+#include "sspm_properties.h"
+#include "atomic.h"
 
 #define MP_CHAN_NUM_BUF 2
 #define MP_CHAN_BUF_SIZE 40
@@ -50,7 +50,7 @@ int main(){
 	for(int i = 0; i<NOC_CORES; i++){
 		lock(l);
 		for(int c = 1; c <= i; c++){
-			corethread_create(&c, &slave, NULL);
+			corethread_create(c, &slave, NULL);
 		}
 		
 		asm volatile ("" : : : "memory");
