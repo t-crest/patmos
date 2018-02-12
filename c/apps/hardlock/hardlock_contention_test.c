@@ -42,7 +42,6 @@ int _main()
       int fldid = _cnt%i;
       int lckid = fldid%LCK_CNT;
 
-      // Field specific lock
       lock(lckid);
       data[fldid]++;
       for(int j = 0; j < WAIT; j++)
