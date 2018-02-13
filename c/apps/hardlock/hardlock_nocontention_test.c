@@ -47,7 +47,6 @@ int _main()
 
   for(int i = 0; i < iter; i++)
   {
-
     stop1 = TIMER_CLK_LOW;
     lock(id);
     stop2 = TIMER_CLK_LOW;
@@ -69,13 +68,10 @@ int _main()
       acquire_max = acquire;
     else if(acquire < acquire_min)
       acquire_min = acquire;
-    
-    
   }
 
   for(int i = 0; i < iter; i++)
   {
-    
     stop1 = TIMER_CLK_LOW;
     lock(id);
     unlock(id);

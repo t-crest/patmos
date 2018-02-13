@@ -1,6 +1,6 @@
 #include "setup.h"
-#include "../../libsspm/atomic.h"
-#include "../../libsspm/sspm_properties.h"
+#include "../sspm/atomic.h"
+#include "../sspm/sspm_properties.h"
 
 _UNCACHED int data[LCK_CNT];
 _UNCACHED int cnt1 = MAX_CNT;
@@ -46,7 +46,6 @@ int _main()
       int fldid = _cnt%i;
       int lckid = fldid%LCK_CNT;
 
-      // Field specific lock
       lock(locks[lckid]);
       data[fldid]++;
       for(int j = 0; j < WAIT; j++)
