@@ -5,11 +5,8 @@
 #include <machine/rtc.h>
 #include "../../libcorethread/corethread.h"
 #include "../../libmp/mp.h"
-// MS: why is an internal include file needed here?
-#include "../../libmp/mp_internal.h"
 
 #define MP_CHAN_NUM_BUF 2
-#define MP_CHAN_BUF_SIZE 40
 #define CHANNEL_BUFFER_CAPACITY (256)
 
 const int NOC_MASTER = 0;

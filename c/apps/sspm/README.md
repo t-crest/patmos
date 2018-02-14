@@ -35,20 +35,22 @@ make config
 
 The benchmark application is build and downloaded from within `t-crest/patmos`:
 ```bash
-make app download APP=sspm SSPM_MAIN=sspm_write_bench
+make app download APP=sspm MAIN=sspm_write_bench
 ```
 
 The source code for all benchmarks can be found in `c/apps/sspm`.
-The main file is selected with the variable `SSPM_MAIN`.
+The main file is selected with the variable `MAIN`.
 Following targets are available:
 
 ```bash
 noc_roundtrip_bench.c
 noc_write_bench.c
+noc_multi_channel_bench.c
 sspm_locking_bench.c
 sspm_roundtrip_bench.c
 sspm_write_bench.c
 sspm_write_with_lock_contention_bench.c
+sspm_multi_channel_bench.c
 ```
 
 To ensure that you have the exact version of T-CREST that we have used in the
