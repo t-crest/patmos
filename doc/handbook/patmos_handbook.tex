@@ -162,8 +162,6 @@
 
 This handbook shall evolve to the documentation of the Patmos processor and the
 Patmos compiler. In the mean time it is intended to collect design notes and discussions.
-Especially ISA design notes now.
-
 The latest version of this handbook is contained as LaTeX source in the Patmos repository in directory
 \code{patmos/doc/handbook} and can be built with \code{make}.
 
@@ -213,6 +211,280 @@ did what we did
 \end{itemize}
 
 }
+
+
+\section{Getting Started with Patmos}
+
+
+These exercises are intended to make you familiar with the Patmos processor
+and the T-CREST tool chain. The main documentation for the exercise if the
+Patmos Reference Handbook, which is online available at \url{http://patmos.compute.dtu.dk/}
+(and as source in t-crest/patmos/doc/handbook).
+
+\section{Introduction}
+
+This manual assumes that you have the virtual machine (VM) image with the T-CREST tools
+installed and already compiled. The T-CREST project is hosted at
+GitHub\footnote{\url{https://github.com/t-crest}} within several git repositories. You find those
+repositories local in your VM under directory \code{t-crest}.
+
+The Patmos processor source lives in directory \code{patmos}, the directory where you will
+do most examples.
+
+The build instructions and most exercises for this lab are described in Chapter 6 in the
+Patmos handbook. As the full tool chain is already setup in your VM, you can skip Section 6.1.
+
+\section{Hello World}
+
+We start with the standard Hello World:
+
+\begin{verbatim}
+main() {
+    printf("Hello Patmos!\n");
+}
+\end{verbatim}
+
+With the Patmos compiler installed and in the PATH it can be compiled to a Patmos executable
+and run with the simulator as follows:
+
+\begin{verbatim}
+patmos-clang hello.c
+pasim a.out
+\end{verbatim}
+
+However, this innocent examples is quiet challenging for an embedded system:
+It needs a C compiler, an implementation of the standard C library, printf
+itself is a challenging function, the generated ELF file needs to be understood
+by a tool and the individual sections downloaded, and finally a terminal (often
+a serial line) needs to be available on the target, and your test PC needs to
+have a serial line as well and a terminal program needs to run.
+
+Therefore, we might start with a minimal assembler program and execute
+that in the simulator and emulator.
+
+If you have not yet downloaded the handbook you can also build it
+on your VM:
+
+\begin{verbatim}
+cd t-crest/patmos/doc/handbook
+make
+\end{verbatim}
+
+\section{Assembler Programming}
+
+All compilation and generation is based on \code{Makefile}s.
+
+
+
+To prepare that all assembler tools are compiled and installed execute
+\begin{verbatim}
+make tools
+\end{verbatim}
+in the \code{patmos} folder.
+
+The assembler programs are located in subfolder \code{asm}. Take a look
+into \code{basic.s} and try to understand what this small program does.
+Assemble the example with:
+\begin{verbatim}
+make asm BOOTAPP=basic
+\end{verbatim}
+You should now find a \code{basic.bin} in the \code{tmp} folder. This file
+is just a plain binary file containing the instructions for Patmos. You can
+display binary files with the Unix command \code{od} (e.g., with 
+\code{od -t x1 tmp/basic.bin}). The first 32-bit word
+in the binary file is the length of the function, that number that was defined
+in the assembler file with \code{.word   40;}. The next word should be the first
+instruction. Look into the Patmos handbook and check if the encoding of the
+first instruction is correct.
+
+Now execute this `progam' on the simulator \code{pasim}. As there is nothing
+written to stdout, the simulator will not output much. Explore the options (with \code{-h})
+to enable dumping of register contents. The simulator can also print statistics
+of instruction usage and caches. The assembler and the software simulator can
+be executed with one step with the help of the \code{Makefile}:
+
+\begin{verbatim}
+make swsim BOOTAPP=basic
+\end{verbatim}
+
+The software simulator \code{pasim} is a C based simulator of the Patmos
+processor.
+
+
+Patmos itself is written in \code{Chisel} a high level language for hardware
+design. Chisel is a language embedded in Scala. Therefore, you have the
+full power of Scala available. The Chisel code can generate \code{Verilog}
+code for the hardware synthesis and a C++ based emulator to simulate
+the hardware. The benefit of this Chisel based emulator is that it is exactly
+the same function as the hardware.
+
+The emulator (the Chisel based simulator) can execute the same program
+with following command:
+
+\begin{verbatim}
+make hwsim BOOTAPP=basic
+\end{verbatim}
+
+This command assembles the application, executes the Chisel based hardware
+construction during which the program is used to initialize the on-chip ROM,
+generates a C++ based emulator, compiles that emulator, and executes it.
+The emulator shows the register content after each instruction.
+
+Those two Patmos simulations, the software simulator and the Chisel based emulator,
+are used for a co-simulation based test. In this co-simulation all available assembler
+programs are executed in both simulations and the register out put is compared.
+
+You can watch the hardware details by dumping the wave form during the
+execution of the emulator. To enable waveform dumping you need to add
+the \code{-v} option for the call of the emulator in \code{hardware/Makefile}:
+\begin{verbatim}
+test: emulator
+        $(HWBUILDDIR)/emulator -v -r -i -l 1000000 -O /dev/null; exit 0
+\end{verbatim}
+
+Now rerun your example (with \code{make hwsim}) and change into the
+\code{hardware} folder. There you start the waveform viewer with:
+
+
+\begin{verbatim}
+make view
+\end{verbatim}
+
+To watch signals they need to be dropped into the wave window. For example
+the program counter (\code{io\_fedec\_pc} from the \code{fetch} component)
+and some registers (\code{rf\_1} and \code{rf\_2} from the register file
+in component \code{decode/rf}). You should be able to see the same register
+changes as before, but now with an exact timing, i.e., with the delay between
+instruction fetch till register write in the last pipeline stage.
+
+\subsection*{Optional: Tinker with the Patmos Hardware}
+
+You can find the hardware description of Patmos in \code{hardware/src/patmos}.
+Each of the 5 pipeline stages is in its own Chisel class (and file). For example,
+change some instructions in the \code{Execute} stage by manipulating
+\code{Execute.scala}. You could change the addition to a subtract operation
+and test it with the \code{basic.s} program, or your own assembler test program.
+
+Don't forget to undo your changes for the next exercises. The Patmos repository
+is a \code{git} repository. Therefore, undo is easily done with:
+
+\begin{verbatim}
+git checkout Execute.scala
+\end{verbatim}
+
+
+\section{I/O Programming}
+
+\subsection{Hello World in Assembler}
+
+To communicate with the external world, Patmos contains a UART
+(or serial line) as a minimal I/O interface. In the real hardware that UART
+is then connected to the PC for text output and for program download as well.
+In the simulator the UART output is just echoed to stdout of the host.
+
+The I/O devices are memory mapped, which means they can be accessed with
+load and store instructions. However, Patmos has typed load and store instructions.
+Therefore, I/O devices are also mapped into a type. In our case I/O devices are
+mapped into the local memory areas. Therefore, use \code{swl} as instruction, like:
+
+\begin{verbatim}
+swl	[r7+0] = r9;
+\end{verbatim}
+
+This above instruction writes the content of register \code{r9} into a data location
+at address of register \code{r7}. Find the address of the UART device in the handbook
+and write a single character (e.g., `*') to it. The UART is described in the Memory and
+I/O Subsystem chapter. You can find a short I/O example in \code{asm/hello.s}.
+
+\subsubsection*{Optional: The Real Hello World}
+
+Transmission of characters takes some time and the processor needs to wait till the
+next character can be sent. Waiting can be done with a busy loop polling the status register of the
+UART (the Transmit ready bit).
+
+
+\subsection{Embedded Hello World in C}
+
+Embedded systems are often built bare-bone, that means without an operating system
+and maybe even without a standard library. In this example you shall write a the Hello World
+example without using \code{printf}. That means you access the UART with load and store
+instructions, like you did in the assembler example. Remember, the I/O devices are mapped
+into local memory space. The Patmos compiler needs to be informed that we do want to
+access local memory. This is performed with the help of a little macro:
+
+\begin{verbatim}
+#include <machine/spm.h>
+
+int main() {
+
+        volatile _SPM int *uart_status = (volatile _SPM int *) 0xF0080000;
+        volatile _SPM int *uart_data = (volatile _SPM int *) 0xF0080004;
+\end{verbatim}
+
+\paragraph{Emulator and elf File}
+
+The emulator can read a standard ELF file. Therefore, we use the prebuilt
+emulator of Patmos and compile only C programs.
+A barebone C program (e.g., \code{myhello.c} placed in folder \code{c})
+for the emulator (and the hardware) is compiled with:
+
+\begin{verbatim}
+make comp APP=myhello
+\end{verbatim}
+
+We execute this .elf program with the emulator:
+
+\begin{verbatim}
+patemu tmp/myhello.elf
+\end{verbatim}
+
+or with \code{pasim}.
+
+Now start similar to the assembler based Hello World and write a short program
+to write a single character to the UART.
+
+As a next step write out a longer
+string of characters. However, transmission of characters takes some time
+and the processor needs to wait till the
+next character can be sent. Waiting can be done with a busy loop polling the status register of the
+UART (the Transmit ready bit).
+
+\subsection{Periodic Tasks}
+
+Real-time tasks are usually periodic tasks. Therefore, we will program a small example
+that uses the Patmos time to execute periodic tasks. First we start
+with polling of the timer/counter to generate periodic event. Write out a character about
+every second. For this polling use the timer counter and wait until some time elapsed. As we run
+in a simulation, time elapses way slower. Therefore, start with short waiting times and increase
+with error and retry.
+
+With this example you can explore the simulation time difference between the SW
+simulator \code{pasim} and the hardware generated emulator. Which one is faster?
+And by how much?
+
+\subsubsection*{Optional: Periodic Task as Interrupt Handler}
+
+Polling consumes computing resources and is only a solution for single tasks.
+Better is to use a time interrupt and an interrupt handler for the periodic task.
+Reprogram the above example as a timer interrupt handler. You can find an
+example for interrupt handlers in \code{c/intrs.c}.
+
+Having the timer interrupt under control is almost half of a scheduler for a
+real-time operating system!
+
+
+\section{Further Steps}
+
+After this exercise you master the T-CREST tool flow for the Patmos processor.
+Next step is to get an FPGA board, such as the Altera DE2-115, and see the processor
+executing in real hardware. From this on you can proceed to extend the processor with
+your own ideas, explore the multicore version of Patmos with the real-time network
+on chip Argo, write your own operating systems, do WCET analysis with \code{aiT}
+and/or \code{platin}, ...
+
+Contributions are always welcome and easy to do with a GitHub pull request.
+You can ask questions to the Patmos community via the Patmos mailing list.
+See: \url{http://patmos.compute.dtu.dk/}.
 
 %\chapter{Related Work}
 %\label{sec:related}
