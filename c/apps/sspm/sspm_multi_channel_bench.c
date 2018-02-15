@@ -9,7 +9,7 @@
 #include "led.h"
 
 #define CHANNEL_BUFFER_CAPACITY (256) 	// Number of words in one message burst
-#define ACTIVE_CORES (1 + 8)			// Number of cores to send to +1 (for the sender)
+#define ACTIVE_CORES (1 + 4)			// Number of cores to send to +1 (for the sender)
 #define TIMES (1000)					// The number of messages to send to each core
 
 const int NOC_MASTER = 0;
