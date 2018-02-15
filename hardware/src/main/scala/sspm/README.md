@@ -32,7 +32,7 @@ When instantiating the SSPM through the Scala built system, the following callin
 Reading the code
 -------------------------
 
-The hardware description is mostly located in `https://github.com/henrikh/patmos/tree/master/hardware/src/main/scala/sspm`.
+The hardware description is mostly located in `https://github.com/t-crest/patmos/tree/master/hardware/src/main/scala/sspm`.
 
  - `SSPMAegean.scala` is the arbiter and core of the implementation
  - `SSPMConnector.scala` is the core interface
