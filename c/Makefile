@@ -95,25 +95,6 @@ $(BUILDDIR)/vm-%.elf: %.c $(NOCINIT) $(LIBMP) $(LIBNOC) $(LIBCORETHREAD) $(LIBET
 # application-specific additional dependencies
 $(BUILDDIR)/bootable-bootloader.elf: download.c decompress.c ethmac.c boot.h bootable.h
 
-$(BUILDDIR)/bootable-mandelbrot.elf: bootable.h
-$(BUILDDIR)/mandelbrot.elf: bootable.h
-
-$(BUILDDIR)/bootable-mandelbrot_par.elf: bootable.h
-$(BUILDDIR)/mandelbrot_par.elf: bootable.h
-
-$(BUILDDIR)/bootable-cmp_hello.elf: bootable.h
-$(BUILDDIR)/cmp_hello.elf: bootable.h
-
-$(BUILDDIR)/bootable-noctest.elf: bootable.h
-$(BUILDDIR)/noctest.elf: bootable.h
-
-$(BUILDDIR)/bootable-extdev_test.elf: bootable.h
-$(BUILDDIR)/extdev_test.elf: bootable.h
-
-$(BUILDDIR)/bootable-hello_sum_reduced.elf: bootable.h
-
-$(BUILDDIR)/bootable-mp_test.elf: bootable.h
-
 # touch the nocinit file
 $(NOCINIT):
 	touch $@
