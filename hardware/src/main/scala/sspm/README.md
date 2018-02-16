@@ -7,19 +7,32 @@ Consequently this project is only useful when used on a multiprocessor platform,
 Setup
 --------
 
- 1. Setup the T-CREST platform according to [the Patmos Handbook] chapter 6 "Build instructions", but with minor modifications
-    1. In the 'aegean' project, checkout the 'sspm' branch of `https://github.com/A-T-Kristensen/aegean/tree/SSPM`
-    2. In the 'patmos' project, checkout the 'SSPM-device' branch of `https://github.com/henrikh/patmos/tree/SSPM-device`
+ 1. Setup the T-CREST platform according to [the Patmos Handbook] chapter 6 "Build instructions"
 
 It is now possible to build, synthesize and configure the entire project and use the shared scratchpad memory.
 
-An alternative arbiter for the shared scratchpad is also available in the branch 'singleSyncSlot' of `https://github.com/henrikh/patmos/tree/SSPM-device`.
-This arbiter gives, in general terms, better read/write performance at the cost of potentially longer delays associated with locking.
+When using the emulator, use the board configuration file `altde2-115-sspm.xml`.
+
+### Configuration
+
+A number of settings are availble on the SSPM:
+
+ - Extended slot size: Change how many cycles are allocated for extended slots
+ - Single extended slot mode: Limit extended slots to only occur once per round In general terms, this gives better read/write performance at the cost of potentially longer delays associated with locking.
+
+When using the SSPM as a device on the emulator the above is set in the configuration file as:
+
+    <param name="extendedSlotSize" value="5" />
+    <param name="singleExtendedSlot" value="false" />
+
+When instantiating the SSPM through the Scala built system, the following calling convention is used:
+
+    $(SBT) "runMain sspm.SSPMAegeanMain $(CORE_CNT) $(EXT_SLOT_SIZE) $(SINGLE_EXT_SLOT)"
 
 Reading the code
 -------------------------
 
-The hardware description is mostly located in `https://github.com/henrikh/patmos/tree/SSPM-device/hardware/src/sspm`.
+The hardware description is mostly located in `https://github.com/t-crest/patmos/tree/master/hardware/src/main/scala/sspm`.
 
  - `SSPMAegean.scala` is the arbiter and core of the implementation
  - `SSPMConnector.scala` is the core interface
