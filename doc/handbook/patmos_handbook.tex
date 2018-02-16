@@ -325,9 +325,6 @@ make test
 
 \subsection{A C Based Blinking LED}
 
-\todo{This example is currently broken. Torur shall check what is the issue.
-So, don't try this.}
-
 As a first real example we build the embedded version of Hello World, the
 blinking LED, from a C program. You can find the C source in \code{c/blinking.c}.
 
@@ -365,6 +362,7 @@ the compiler is instructed to emit the correct load and store instructions.
     Copyright: DTU, BSD License
 */
 
+#include "include/bootable.h"
 #include <machine/spm.h>
 
 int main() {

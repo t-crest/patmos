@@ -8,6 +8,7 @@
     Copyright: DTU, BSD License
 */
 
+#include "include/bootable.h"
 #include <machine/spm.h>
 
 int main() {
