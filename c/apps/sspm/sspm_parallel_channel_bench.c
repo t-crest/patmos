@@ -4,6 +4,7 @@
 #include "../../libcorethread/corethread.h"
 #include "../../libmp/mp.h"
 #include "led.h"
+#include "sspm_properties.h"
 
 #define MP_CHAN_NUM_BUF 1
 #define CHANNEL_BUFFER_CAPACITY (256) 	// Number of words in one message burst
@@ -14,21 +15,28 @@ const int NOC_MASTER = 0;
 volatile _UNCACHED int ready = 0;
 volatile _UNCACHED int done[MAX_PARALLEL_CHANNELS];
 
+typedef enum{
+	TRANSMIT,
+	ACKNOWLEDGE
+} TRANSMISSION_STATE;
+
 void slave_receiver(void* args){
 	led_on();
 	int cpuid = get_cpuid();
 	int channelNr = (cpuid-2)/2;
 	int local_buffer[CHANNEL_BUFFER_CAPACITY];
-	qpd_t * chan = mp_create_qport(channelNr, SINK, CHANNEL_BUFFER_CAPACITY*sizeof(int),MP_CHAN_NUM_BUF);
-	mp_init_ports();
-	
+	volatile _SPM int* flag = (volatile _SPM int*) 
+				(LOWEST_SSPM_ADDRESS + (channelNr * ((CHANNEL_BUFFER_CAPACITY+1)*sizeof(int))));
+	volatile _SPM int* chan = &(flag[1]);	
+
 	for(int i = 0; i<TIMES; i++){
-		mp_recv(chan,0);
+		// wait to receive something
+		while(*flag != TRANSMIT){}
 		// Load the received values into memory
 		for(int k = 0; k<CHANNEL_BUFFER_CAPACITY; k++){
-			local_buffer[k] = ((volatile int _SPM *)(chan->read_buf))[k];
+			local_buffer[k] = chan[k];
 		}
-		mp_ack(chan,0);
+		*flag = ACKNOWLEDGE;
 	}
 
 	led_off();
@@ -38,8 +46,10 @@ void slave_sender(void* args){
 	led_on();
 	int cpuid = get_cpuid();
 	int channelNr = (cpuid-1)/2;
-	qpd_t * chan = mp_create_qport(channelNr, SOURCE, CHANNEL_BUFFER_CAPACITY*sizeof(int),MP_CHAN_NUM_BUF);
-	mp_init_ports();
+	volatile _SPM int* flag = (volatile _SPM int*) 
+				(LOWEST_SSPM_ADDRESS + (channelNr * ((CHANNEL_BUFFER_CAPACITY+1)*sizeof(int))));
+	*flag = ACKNOWLEDGE;	
+	volatile _SPM int* chan = &(flag[1]);	
 	
 	done[channelNr] = 0;
 
@@ -48,19 +58,14 @@ void slave_sender(void* args){
 	
 	for(int i = 0; i<TIMES; i++){
 		// Put values to send
-		for(int k = 0; k<CHANNEL_BUFFER_CAPACITY; k++){
-			((volatile int _SPM *)(chan->write_buf))[k] = i;
-		}
-		
-		mp_send(chan,0);
+			for(int k = 0; k<CHANNEL_BUFFER_CAPACITY; k++){
+				chan[k] = i;
+			}
 
-		int next_ack = chan->send_count;
-				
-		// Wait for the receiver to acknowledge	the message
-		unsigned int next_ack_actual = *(chan->send_recv_count);	
-		while(next_ack_actual != next_ack){
-			next_ack_actual = *(chan->send_recv_count);
-		}
+			*flag = TRANSMIT;
+		
+		// Wait for the receiver to acknowledge	the previous message		
+		while(*flag != ACKNOWLEDGE){}
 	}
 	
 	done[channelNr] = 1;
