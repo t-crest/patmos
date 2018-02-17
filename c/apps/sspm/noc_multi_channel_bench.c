@@ -6,7 +6,7 @@
 #include "led.h"
 
 #define MP_CHAN_NUM_BUF 1
-#define CHANNEL_BUFFER_CAPACITY (100) 	// Number of words in one message burst
+#define CHANNEL_BUFFER_CAPACITY (256) 	// Number of words in one message burst
 #define ACTIVE_CORES (1 + 4)			// Number of cores to send to +1 (for the sender)
 #define TIMES (1000)					// The number of messages to send to each core
 
@@ -56,7 +56,7 @@ int main(){
 		asm volatile ("" : : : "memory");
 		for(int i = 0; i<TIMES; i++){
 			for(int c = 1; c<=cores_to_send_to; c++){
-				int next_ack = ((TIMES*(cores_to_send_to-c))+i);
+				int next_ack = chan[c]->send_count;
 				
 				// Wait for the receiver to acknowledge	the previous message
 				unsigned int next_ack_actual = *(chan[c]->send_recv_count);	
