@@ -6,7 +6,7 @@
 #define LOWEST_SSPM_ADDRESS (0xF00B0000)
 
 // Total bytes in the shared memory
-#define TOTAL_SHARED_MEMORY (1024) 
+#define TOTAL_SHARED_MEMORY (16384) 
 
 #endif
 
