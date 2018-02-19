@@ -46,15 +46,20 @@ The main file is selected with the variable `MAIN`.
 Following targets are available:
 
 ```bash
+noc_multi_channel_bench.c
+noc_parallel_channel_bench.c
 noc_roundtrip_bench.c
 noc_write_bench.c
-noc_multi_channel_bench.c
 sspm_locking_bench.c
+sspm_multi_channel_bench.c
+sspm_parallel_channel_bench.c
 sspm_roundtrip_bench.c
 sspm_write_bench.c
 sspm_write_with_lock_contention_bench.c
-sspm_multi_channel_bench.c
 ```
+
+Note that for the parallel benchmarks from one sender to multiple receiver,
+the Argo NoC scratchpad memory size of core 0 needs to be increased.
 
 ### Benchmark Description
 
