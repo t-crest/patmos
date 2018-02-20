@@ -316,12 +316,45 @@ The test can be started with:
 make test
 \end{verbatim}
 
-
-\todo{ModelSim simulation}
-
 \subsection{We Can Blink in Assembler}
 
-\todo{write}
+Assembler programming is just used for small tests. And on Patmos assembler
+programs end up in the boot ROM, which means that a new processor needs
+to be generated and synthesized as shown below:
+
+\begin{verbatim}
+make asm BOOTAPP=hello gen synth config
+\end{verbatim}
+
+This make command assembles a blinking LED example written in Patmos
+assembler. You can find the assembler source in Listing~\ref{fig:blinkasm}
+and in \code{asm/hello.s}.
+
+\begin{lstlisting}[float,caption={A blinking LED\label{fig:blinkasm}}]
+#
+# The embedded version of Hello World: a blinking LED
+#
+# Expected Result: LED blinks
+#
+
+	.word   56
+
+        add     r7  = r0, 0xF0090000
+	addi	r8 = r0, 1
+
+loop:	xor	r9 = r9, r8  # toggle value
+	swl	[r7+0] = r9  # set the LED
+
+	addi	r1 = r0, 1024		
+	sli	r1 = r1, 10
+
+wloop:	subi	r1 = r1, 1
+	cmpneq	p1 = r1, r0
+(p1)	br	wloop
+        addi    r0  = r0 , 0
+        addi    r0  = r0 , 0
+	br	loop
+\end{lstlisting}
 
 \subsection{A C Based Blinking LED}
 
