@@ -6,7 +6,9 @@ addSbtPlugin("com.github.scct" %% "sbt-scct" % "0.2")
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-language:reflectiveCalls")
 
-libraryDependencies <+= scalaVersion("org.scala-lang" % "scala-compiler" % _)
+// libraryDependencies <+= scalaVersion("org.scala-lang" % "scala-compiler" % _)
+
+libraryDependencies += scalaVersion("org.scala-lang" % "scala-compiler" % _).value
 
 scalaSource in Compile <<= baseDirectory(_ / "src")
 
