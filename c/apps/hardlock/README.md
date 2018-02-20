@@ -1,57 +1,68 @@
-# Hardware Locking
+# Hardlock Tests
 
-This application is used for the evaluation section of following submitted paper:
+These applications are used for the evaluation section of the following submitted paper:
 
-Torur and Martin, xxxx, submitted to ISORC 2018.
+Tórur and Martin, Hardlock: a Concurrent Real-Time Multicore
+Locking Unit, submitted to ISORC 2018.
 
-For the general build instructions of T-CREST please look into the
-[Main README](../../../README.md).
+If the T-CREST platform is not built, please first follow the general build 
+instructions of T-CREST in [Main README](../../../README.md).
 
-The C program for the evaluation can be found in [abc.c](abc.c).
-
-For the multicore configuration the build and compile process is split
-into two sub-projects in folders `t-crest/aegean` and `t-crest/patmos`.
-In `aegean` the multicore hardware is built and the FPGA configured with it.
-In `patmos` the C program is compiled and downloaded.
-Best open two terminal windows, each for one project.
-
-To build the 9-core version for the DE2-115 FPGA board first create a
-`config.mk` in `t-crest/aegean` and put following line into it
+Before running tests, add the following lines after `<frequency Hz="80000000"/>` in 
+[altde2-115-cmp.xml](../../../hardware/config/altde2-115.xml):
 ```
-AEGEAN_PLATFORM?=altde2-115-9core
+<cores count="8" />
+<pipeline dual="false" />
 ```
-to select the 9-core platform then execute
+
+If you wish to run a test with a lower core count, simply update the line. 
+
+The C programs for the Hardlock tests are found at 
+[hardlock_nocontention_test.c](hardlock_nocontention_test.c),
+[hardlock_contention_test.c](hardlock_contention_test.c),
+and
+[sspm_contention_test.c](sspm_nocontention_test.c)
+
+To run the tests on a DE2-115 board, first connect it, 
+and then from `t-crest/patmos` run 
 ```bash
-make platform synth
+make comp gen synth
 ```
-
-After building the multicore, the FPGA can be configured with:
+This creates Patmos. To configure the FPGA with Patmos, run:
 ```bash
 make config
 ```
-
-The benchmark application is build and downloaded from within `t-crest/patmos`:
+Afterwards run:
 ```bash
-make app download APP=hardlock
+make download app APP=hardlock MAIN=hardlock_nocontention_test
 ```
+This compiles and downloads the program that tests the Hardlock without contention. 
+Change `MAIN` to the appropriate test.
 
-To measure the single core version, disable any NoC related code in the
-benchmark and configure the FPGA from the `t-crest/patmos` folder:
+If you wish to run [sspm_contention_test.c](sspm_nocontention_test.c)
+it is necessary to run it on Aegean. From `t-crest/aegean` run:
 ```bash
-make app config download APP=hardlock
+make platform synth
+```
+This creates Aegean. To configure the FPGA with Aegean, run: 
+```bash
+make config
+```
+Finally, to download the application, go to `t-crest/patmos` and run: 
+```bash
+make download app APP=hardlock MAIN=sspm_contention_test
 ```
 
 To ensure that you have the exact version of T-CREST that we have used in the
-evaluation section of the paper, use following `git` command to checkout that version:
+evaluation section of the paper, use the following `git` command to checkout that version:
 
 ```bash
-git checkout `git rev-list -n 1 --before="2018-mm-dd" master`
+git checkout `git rev-list -n 1 --before="2018-03-01" master`
 ```
 
 This can be done in all T-CREST repositories. However, it is most important
 in `patmos`.
 
-We plan to restructure the generation of the
-multicore version of Patmos/T-CREST in the near future where the above described
-steps to build a multicore may be different. TBD
+We plan to restructure the generation of Aegean in the near future 
+where the above described steps to build a multicore may be different.
 
