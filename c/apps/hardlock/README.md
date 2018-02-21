@@ -57,7 +57,7 @@ To ensure that you have the exact version of T-CREST that we have used in the
 evaluation section of the paper, use the following `git` command to checkout that version:
 
 ```bash
-git checkout `git rev-list -n 1 --before="2018-03-01" master`
+git checkout `git rev-list -n 1 --before="2018-02-14" master`
 ```
 
 This can be done in all T-CREST repositories. However, it is most important
