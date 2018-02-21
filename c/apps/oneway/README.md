@@ -11,7 +11,7 @@ We use the T-CREST multicore to evaluate the one-way shared memory.
 General build instructions of T-CREST in [Main README](../../../README.md).
 
 Before building the Patmos processor,  tests, add the following lines after `<frequency Hz="80000000"/>` in 
-[altde2-115-cmp.xml](../../../hardware/config/altde2-115.xml):
+[altde2-115.xml](../../../hardware/config/altde2-115.xml):
 ```
 <cores count="4" />
 <cmp device="2" />

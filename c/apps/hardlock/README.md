@@ -9,7 +9,7 @@ If the T-CREST platform is not built, please first follow the general build
 instructions of T-CREST in [Main README](../../../README.md).
 
 Before running tests, add the following lines after `<frequency Hz="80000000"/>` in 
-[altde2-115-cmp.xml](../../../hardware/config/altde2-115.xml):
+[altde2-115.xml](../../../hardware/config/altde2-115.xml):
 ```
 <cores count="8" />
 <pipeline dual="false" />
