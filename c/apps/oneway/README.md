@@ -1,4 +1,4 @@
-# One-Way Whared Memory
+# One-Way Shared Memory
 
 These applications are used for the evaluation section of the following submitted paper:
 
