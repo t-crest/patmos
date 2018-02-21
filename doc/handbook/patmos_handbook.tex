@@ -742,6 +742,24 @@ int main() {
 }
 \end{lstlisting}
 
+\subsubsection{Shared Memory}
+
+The external shared memory is not held cache coherent with the core local data cache.
+There are two options how to exchange data between cores in shared memory:
+
+(1) use uncached access to access fields as follows:
+
+\begin{verbatim}
+volatile _UNCACHED static int field;
+\end{verbatim}
+
+or (2) invalidate the data cache. The data cache is per default configured as write-through.
+That means the main memory contains the latest change on a write. Therefore, to get those
+latest change into a core that wants to read those values the cache can be invalidated.
+
+\todo{Check if and how synchronization is implemented in the library.}
+
+
 \subsubsection{On-chip Application}
 
 For small experiments it is possible to execute a multicore program out
