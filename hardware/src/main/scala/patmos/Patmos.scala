@@ -259,7 +259,10 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       spm.io.comSpm(i) <> cores(i).io.comSpm
     }
   } else if (cmpDevice == 2) {
-    // connect onewaymem
+    val oneway = Module(new cmp.OneWayOCPWrapper(nrCores))
+    for (i <- (0 until nrCores)) {
+      oneway.io(i) <> cores(i).io.comSpm
+    }
   }
   for (i <- (0 until cores.length)) {
     println("Connecting core " + i)

@@ -14,6 +14,7 @@ Before building the Patmos processor,  tests, add the following lines after `<fr
 [altde2-115-cmp.xml](../../../hardware/config/altde2-115.xml):
 ```
 <cores count="4" />
+<cmp device="2" />
 <pipeline dual="false" />
 ```
 
