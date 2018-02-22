@@ -46,13 +46,17 @@ class OneWayOCPWrapper(nrCores: Int) extends Module {
     when(io(i).M.Cmd === OcpCmd.RD || io(i).M.Cmd === OcpCmd.WR) {
       respReg := OcpResp.DVA
     }
-    
-    onewaymem.io.memPorts(i).rdAddr := io(i).M.Addr
-    onewaymem.io.memPorts(i).wrAddr := io(i).M.Addr
+
+    val resp = Mux(io(i).M.Cmd === OcpCmd.RD || io(i).M.Cmd === OcpCmd.WR,
+      OcpResp.DVA, OcpResp.NULL)
+
+    // addresses are in words
+    onewaymem.io.memPorts(i).rdAddr := io(i).M.Addr >> 2
+    onewaymem.io.memPorts(i).wrAddr := io(i).M.Addr >> 2
     onewaymem.io.memPorts(i).wrData := io(i).M.Data
     onewaymem.io.memPorts(i).wrEna := io(i).M.Cmd === OcpCmd.WR
-    io(i).S.Data := onewaymem.io.memPorts(i).rdData
-    
+    io(i).S.Data := Reg(next = onewaymem.io.memPorts(i).rdData)
+    // io(i).S.Resp := Reg(init = OcpResp.NULL, next = resp)
     io(i).S.Resp := respReg
   }
 }
