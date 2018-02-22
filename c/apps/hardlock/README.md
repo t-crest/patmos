@@ -14,8 +14,12 @@ Before running tests, add the following lines after `<frequency Hz="80000000"/>`
 <cores count="8" />
 <pipeline dual="false" />
 ```
-
-If you wish to run a test with a lower core count, simply update the line. 
+If you wish to run a test with a lower core count, simply update the line.
+Note, that your JVM might run out of heap space when creating 8 Patmos
+cores. To increase the heap space, run the following in your shell:
+```
+export _JAVA_OPTIONS=-Xmx4096m
+```
 
 The C programs for the Hardlock tests are found at 
 [hardlock_nocontention_test.c](hardlock_nocontention_test.c),
