@@ -80,7 +80,7 @@ $(HWBUILDDIR)/Patmos.cpp $(HWBUILDDIR)/emulator_config.h: $(CGEN)
 	fi
 
 $(CGEN): $(BOOTBIN) $(BOOTDAT) $(SRC)
-	$(SBT) "run-main $(MAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --vcd --targetDir $(HWBUILDDIR) --cse --backend c"
+	$(SBT) "runMain $(MAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --vcd --targetDir $(HWBUILDDIR) --cse --backend c"
 	echo $(CONFIGFILE)+$(BOOTBIN)+$(BOOTDAT) > $(CGEN)
 
 # run emulator
@@ -104,7 +104,7 @@ $(HWBUILDDIR)/$(HWMODULEPREFIX)Patmos.v: $(VGEN)
 	fi
 
 $(VGEN): $(BOOTBIN) $(BOOTDAT) $(SRC)
-	$(SBT) "run-main $(MAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --targetDir $(HWBUILDDIR) --cse --backend v $(HWMODULEPREFIXOPT)"
+	$(SBT) "runMain $(MAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --targetDir $(HWBUILDDIR) --cse --backend v $(HWMODULEPREFIXOPT)"
 	echo $(CONFIGFILE)+$(BOOTBIN)+$(BOOTDAT)+$(HWMODULEPREFIX) > $(VGEN)
 
 $(HWBUILDDIR)/$(HWMODULEPREFIX)PatmosCore.v: $(VGENCORE)
@@ -113,23 +113,23 @@ $(HWBUILDDIR)/$(HWMODULEPREFIX)PatmosCore.v: $(VGENCORE)
 	fi
 
 $(VGENCORE): $(BOOTBIN) $(BOOTDAT) $(SRC)
-	$(SBT) "run-main $(COREMAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --targetDir $(HWBUILDDIR) --cse --backend v $(HWMODULEPREFIXOPT)"
+	$(SBT) "runMain $(COREMAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --targetDir $(HWBUILDDIR) --cse --backend v $(HWMODULEPREFIXOPT)"
 	echo $(CONFIGFILE)+$(BOOTBIN)+$(BOOTDAT)+$(HWMODULEPREFIX) > $(VGENCORE)
 
 $(HWBUILDDIR)/SSRam32Ctrl.v: $(SRC)
-	$(SBT) "run-main $(MEMCTRLMAIN32) $(MEMCTRL_ADDR_WIDTH) --targetDir $(HWBUILDDIR) --cse --backend v"
+	$(SBT) "runMain $(MEMCTRLMAIN32) $(MEMCTRL_ADDR_WIDTH) --targetDir $(HWBUILDDIR) --cse --backend v"
 
 $(HWBUILDDIR)/SRamCtrl.v: $(SRC)
-	$(SBT) "run-main $(MEMCTRLMAIN16) $(MEMCTRL_ADDR_WIDTH) --targetDir $(HWBUILDDIR) --cse --backend v"
+	$(SBT) "runMain $(MEMCTRLMAIN16) $(MEMCTRL_ADDR_WIDTH) --targetDir $(HWBUILDDIR) --cse --backend v"
 
 $(HWBUILDDIR)/OCRamCtrl.v: $(SRC)
-	$(SBT) "run-main $(MEMCTRLMAINOC) $(MEMCTRL_ADDR_WIDTH) --targetDir $(HWBUILDDIR) --cse --backend v"
+	$(SBT) "runMain $(MEMCTRLMAINOC) $(MEMCTRL_ADDR_WIDTH) --targetDir $(HWBUILDDIR) --cse --backend v"
 
 $(HWBUILDDIR)/Arbiter.v: $(SRC)
-	$(SBT) "run-main $(ARBITERMAIN) $(ARBITER_CNT) $(ARBITER_ADDR_WIDTH) $(ARBITER_DATA_WIDTH) $(ARBITER_BURST_LENGTH) --targetDir $(HWBUILDDIR) --cse --backend v"
+	$(SBT) "runMain $(ARBITERMAIN) $(ARBITER_CNT) $(ARBITER_ADDR_WIDTH) $(ARBITER_DATA_WIDTH) $(ARBITER_BURST_LENGTH) --targetDir $(HWBUILDDIR) --cse --backend v"
 
 $(HWBUILDDIR)/TdmArbiterWrapper.v: $(SRC)
-	$(SBT) "run-main $(TDMARBITERMAIN) $(ARBITER_CNT) $(ARBITER_ADDR_WIDTH) $(ARBITER_DATA_WIDTH) $(ARBITER_BURST_LENGTH) --targetDir $(HWBUILDDIR) --cse --backend v"
+	$(SBT) "runMain $(TDMARBITERMAIN) $(ARBITER_CNT) $(ARBITER_ADDR_WIDTH) $(ARBITER_DATA_WIDTH) $(ARBITER_BURST_LENGTH) --targetDir $(HWBUILDDIR) --cse --backend v"
 
 # run Verilog simulation
 vsim: verilog
@@ -167,11 +167,11 @@ MODULE=ocp.test.ArbiterTester
 
 modtest:
 #	-rm -rf generated
-	$(SBT) "run-main $(MODULE) --cse --backend c --compile --vcd --test --genHarness --targetDir build"
+	$(SBT) "runMain $(MODULE) --cse --backend c --compile --vcd --test --genHarness --targetDir build"
 
 modcomp:
 #	-rm -rf generated
-	$(SBT) "run-main $(MODULE) --cse --backend v --compile --vcd --targetDir build"
+	$(SBT) "runMain $(MODULE) --cse --backend v --compile --vcd --targetDir build"
 
 .FORCE:
 
