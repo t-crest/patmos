@@ -17,13 +17,7 @@ class Network(n: Int) extends Module {
     val local = Vec(new Channel(), n * n)
   }
 
-  val table = n match {
-    case 2 => ScheduleTable.FourNodes
-    case 3 => ScheduleTable.NineNodes
-    case 4 => ScheduleTable.SixTeenNodes
-    case _ => throw new Error("Currently only 2x2, 3x3, and 4x4 NoCs supported")
-  }
-  val schedule = Schedule.getSchedule(table)
+  val schedule = Schedule.getSchedule(n)._1
 
   val net = new Array[Router](n * n)
   for (i <- 0 until n * n) {

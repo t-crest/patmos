@@ -41,12 +41,12 @@ class RouterPorts extends Bundle {
 class Router(schedule: Array[Array[Int]]) extends Module {
   val io = new RouterPorts
 
-  val regCounter = RegInit(init = UInt(0, 8))
+  val regCounter = RegInit(UInt(0, log2Up(schedule.length)))
   val end = regCounter === UInt(schedule.length - 1)
-
   regCounter := Mux(end, UInt(0), regCounter + UInt(1))
+  
 
-  // Convert schedule table to a Chisel types table
+  // Convert schedule table to a Chisel type table
   val sched = Vec(schedule.length, Vec(Const.NR_OF_PORTS, UInt(width = 3)))
   for (i <- 0 until schedule.length) {
     for (j <- 0 until Const.NR_OF_PORTS) {
@@ -54,13 +54,14 @@ class Router(schedule: Array[Array[Int]]) extends Module {
     }
   }
 
-  val currentSched = sched(regCounter)
+  // TDM schedule starts one cycles later for read data delay
+  val regDelay = RegNext(regCounter, init=UInt(0))
+  val currentSched = sched(regDelay)
 
-  // This Mux is a little bit wasteful, as it allows from all
-  // ports to all ports. A 4:1 instead of the 5:1 is way cheaper in an 4-bit LUT FPGA.
-  // But synthesize removes the unused input.
-  for (i <- 0 until Const.NR_OF_PORTS) {
-    io.ports(i).out := Reg(next = io.ports(currentSched(i)).in)
+  // We assume that on reset the valid signal is false.
+  // Better have it reset. 
+  for (j <- 0 until Const.NR_OF_PORTS) {
+    io.ports(j).out := RegNext(io.ports(currentSched(j)).in)
   }
 }
 

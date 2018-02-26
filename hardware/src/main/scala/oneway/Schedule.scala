@@ -21,7 +21,14 @@ import scala.util.Random
 
 object Schedule {
 
-  def getSchedule(s: String) = {
+  def getSchedule(n: Int) = {
+
+    val s = n match {
+      case 2 => ScheduleTable.FourNodes
+      case 3 => ScheduleTable.NineNodes
+      case 4 => ScheduleTable.SixTeenNodes
+      case _ => throw new Error("Currently only 2x2, 3x3, and 4x4 NoCs supported, you requested: "+n+"x"+n)
+    }
 
     def port(c: Char) = {
       c match {
@@ -48,6 +55,7 @@ object Schedule {
     val split = s.split('|')
     val len = split.reduceLeft((a, b) => if (a.length > b.length) a else b).length
     val schedule = new Array[Array[Int]](len)
+    val valid = new Array[Boolean](len)
     for (i <- 0 until len) {
       schedule(i) = new Array[Int](NR_OF_PORTS)
     }
@@ -60,10 +68,14 @@ object Schedule {
           from = nextFrom(to)
         }
       }
-      printf(from.toString)
     }
-    println("Schedule is "+schedule.length+" clock cycles")
-    schedule
+    var line = 0
+    for (i <- 0 until len - 1) {
+      valid(i) = split(line)(i) != ' '
+      if (valid(i)) line += 1
+    }
+    println("Schedule is " + schedule.length + " clock cycles")
+    (schedule, valid)
   }
 
   /* A 2x2 schedule is as follows:
@@ -78,8 +90,9 @@ ne
       Array(LOCAL, 0, 0, 0, WEST), // P2: local to north, P1: from west to local
       Array(0, LOCAL, 0, 0, SOUTH), // P3: local to east, P2: south to local
       Array(0, 0, 0, 0, WEST)) // P3: from west to local
-    // The last drain from west to local increases the schedule length by 1, but could be overlapped.
-    // Which means having it in the first slot, as there is no exit in the first slot
+    // The last drain from west to local increases the schedule length by 1,
+    // but could be overlapped.
+    // Which means having it in the first slot, as there is no exit in the first slot.
   }
 
   def genRandomSchedule(slen: Int) = {
@@ -93,9 +106,9 @@ ne
     }
     schedule
   }
-  
+
   def main(args: Array[String]): Unit = {
-    print(getSchedule(ScheduleTable.FourNodes))
+    print(getSchedule(2))
   }
 
 }
