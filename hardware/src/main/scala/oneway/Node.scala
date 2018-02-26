@@ -27,12 +27,13 @@ class Node(n: Int, size: Int) extends Module {
   regTdmCounter := Mux(end, UInt(0), regTdmCounter + UInt(1))
 
   val nrChannels = n * n - 1
+  val blockAddrWidth = log2Down(size/nrChannels)
+  println(blockAddrWidth.toShort)
+  println("Memory block size: " + scala.math.pow(2, blockAddrWidth).toInt)
 
   // Send data to the NoC
   val regTxAddrUpper = Reg(init = UInt(0, log2Up(scheduleLength)))
-  // For quicker testing use only 4 words per connection
-  // TODO: get this constant from somewhere
-  val regTxAddrLower = Reg(init = UInt(0, 2))
+  val regTxAddrLower = Reg(init = UInt(0, blockAddrWidth))
 
   val valid = validTab(regTdmCounter)
   debug(valid)
@@ -57,9 +58,7 @@ class Node(n: Int, size: Int) extends Module {
 
   // Receive data from the NoC  
   val regRxAddrUpper = Reg(init = UInt(0, log2Up(scheduleLength)))
-  // For quicker testing use only 4 words per connection
-  // TODO: get this constant from somewhere
-  val regRxAddrLower = Reg(init = UInt(0, 2))
+  val regRxAddrLower = Reg(init = UInt(0, blockAddrWidth))
 
   val validRx = io.local.in.valid
   debug(validRx)
