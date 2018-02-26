@@ -68,18 +68,8 @@ int main() {
     result[i] = *(mem_ptr++);
     // print_hex(*(mem_ptr++));
   }
-// return 0;
   for (int i=0; i<CNT*WORDS; ++i) {
     printf("%04x\n", result[i]);
   }
-  for (int i=0; i<CNT*WORDS; ++i) {
-    result[i] = *(mem_ptr++);
-    // print_hex(*(mem_ptr++));
-  }
-// return 0;
-  for (int i=0; i<CNT*WORDS; ++i) {
-    printf("%04x\n", result[i]);
-  }
-
   return 0;
 }
