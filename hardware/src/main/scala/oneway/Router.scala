@@ -35,7 +35,7 @@ class Channel extends Bundle {
 }
 
 class RouterPorts extends Bundle {
-  val ports = Vec(new Channel(), Const.NR_OF_PORTS)
+  val ports = Vec(Const.NR_OF_PORTS, new Channel())
 }
 
 class Router(schedule: Array[Array[Int]]) extends Module {

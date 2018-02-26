@@ -15,11 +15,11 @@ import Const._
 class OneWayMem(n: Int, memSize: Int) extends Module {
   val io = new Bundle {
     // val dout = UInt(width = 32).asOutput
-    val memPorts = Vec(new DualPort(memSize), n * n)
+    val memPorts = Vec(n * n, new DualPort(memSize))
   }
 
   // Dummy output keep hardware generated
-  val dout = Reg(next = Vec(UInt(width = 32), n * n))
+  val dout = Reg(next = Vec(n * n, UInt(width = 32)))
 
   val net = Module(new Network(n))
 

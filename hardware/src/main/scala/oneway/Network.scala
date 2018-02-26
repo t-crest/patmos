@@ -14,7 +14,7 @@ import Const._
  */
 class Network(n: Int) extends Module {
   val io = new Bundle {
-    val local = Vec(new Channel(), n * n)
+    val local = Vec(n * n, new Channel())
   }
 
   val schedule = Schedule.getSchedule(n)._1
