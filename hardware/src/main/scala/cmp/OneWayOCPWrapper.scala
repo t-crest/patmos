@@ -3,7 +3,7 @@
  * Author: Martin Schoeberl (martin@jopdesign.com)
  * License: Simplified BSD License
  * 
- * OCP wrapper
+ * OCP wrapper for the one-way shared memory
  */
 package cmp
 
@@ -16,16 +16,6 @@ import ocp._
 import io.CoreDeviceIO
 import oneway._
 
-class XXXIO(lckCnt: Int) extends Bundle {
-  val sel = UInt(INPUT, log2Up(lckCnt))
-  val op = Bool(INPUT)
-  val en = Bool(INPUT)
-  val blck = Bool(OUTPUT)
-}
-
-// Maybe I should also use this functional approach, but not for a quick test now
-// class OneWayOCPWrapper(hardlockgen: () => AbstractHardlock) extends Module {
-
 class OneWayOCPWrapper(nrCores: Int) extends Module {
 
   val dim = math.sqrt(nrCores).toInt
@@ -36,16 +26,10 @@ class OneWayOCPWrapper(nrCores: Int) extends Module {
 
   println("OneWayMem")
 
-  val io = Vec.fill(nrCores) { new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH) }
+  val io = Vec(nrCores, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))
 
-  // Mapping between OneWay memories and OCP
-
+  // Connection between OneWay memories and OCPcore ports
   for (i <- 0 until nrCores) {
-    val respReg = Reg(init = OcpResp.NULL)
-    respReg := OcpResp.NULL
-    when(io(i).M.Cmd === OcpCmd.RD || io(i).M.Cmd === OcpCmd.WR) {
-      respReg := OcpResp.DVA
-    }
 
     val resp = Mux(io(i).M.Cmd === OcpCmd.RD || io(i).M.Cmd === OcpCmd.WR,
       OcpResp.DVA, OcpResp.NULL)
@@ -56,7 +40,6 @@ class OneWayOCPWrapper(nrCores: Int) extends Module {
     onewaymem.io.memPorts(i).wrData := io(i).M.Data
     onewaymem.io.memPorts(i).wrEna := io(i).M.Cmd === OcpCmd.WR
     io(i).S.Data := Reg(next = onewaymem.io.memPorts(i).rdData)
-    // io(i).S.Resp := Reg(init = OcpResp.NULL, next = resp)
-    io(i).S.Resp := respReg
+    io(i).S.Resp := Reg(init = OcpResp.NULL, next = resp)
   }
 }
