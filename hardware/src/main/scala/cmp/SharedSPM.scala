@@ -27,14 +27,59 @@ import patmos._
 import patmos.Constants._
 import ocp._
 
+class NodeSPM(n: Int) extends Module {
+  
+  val io = new Bundle() {
+    val fromCore = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
+    val toMem = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
+  }
+  
+  // dummy connection, need a counter to count TDM slots,
+  // register the request, and gating the master signal,
+  // getting the reply back (data and DVA) to the core.
+  io.toMem <> io.fromCore
+  // just core 0 allowed now
+  if (n != 0) {
+    io.toMem.M.Addr := UInt(0)
+    io.toMem.M.Data := UInt(0)
+    io.toMem.M.Cmd := UInt(0)
+  }
+  
+}
+
 class SharedSPM(nrCores: Int) extends Module {
 
   val io = Vec(nrCores, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))
 
-  // Just use our spm, or define one it here?
   val spm = Module(new Spm(1024))
   
-  io(0) <> spm.io
+  val nd = new Array[NodeSPM](nrCores)
+  val masters = new Array[OcpCoreMasterPort](nrCores)
+  for (i <- 0 until nrCores) {
+    nd(i) = Module(new NodeSPM(i))
+    masters(i) = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
+    nd(i).io.fromCore.M := io(i).M
+    io(i).S := nd(i).io.fromCore.S
+    masters(i) <> nd(i).io.toMem
+  }
+  
+  def orMaster(x: OcpCoreMasterPort, y: OcpCoreMasterPort) = {
+    val ret = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
+    ret.M.Addr := x.M.Addr | y.M.Addr
+    ret.M.Cmd := x.M.Cmd | y.M.Cmd
+    ret.M.ByteEn := x.M.ByteEn | y.M.ByteEn
+    ret
+  }
+
+  // this or thing does not work. what is the issue?
+  // Maybe check the Verilog files
+  // spm.io.M := masters.reduceLeft((x, y) => orMaster(x, y))
+  // For a try simply do the no-functional or reduction
+  spm.io.M := masters(0).M
+  for (i <- 0 until nrCores) {
+    masters(i).S := spm.io.S
+  }
+  
   
   // TODO: a simple arbiter - see class Arbiter
 
