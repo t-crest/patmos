@@ -20,12 +20,13 @@ class OneWayOCPWrapper(nrCores: Int) extends Module {
 
   val dim = math.sqrt(nrCores).toInt
   if (dim * dim != nrCores) throw new Error("Number of cores must be quadratic")
-  // 256 words per core, is 4 KB for a 2x2
-  // should compute the power of 2
-  val size = 256 * 4
-  val onewaymem = Module(new oneway.OneWayMem(dim, size))
+  
+  // 256 words per channel (cores - 1), is 4 KB for a 2x2
+  // Must be a power of 2
+  val size = scala.math.pow(2, log2Up(256 * (nrCores - 1))).toInt
+  println("OneWayMem memory size: " + size * 4 + " Bytes")
 
-  println("OneWayMem")
+  val onewaymem = Module(new oneway.OneWayMem(dim, size))
 
   val io = Vec(nrCores, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))
 
