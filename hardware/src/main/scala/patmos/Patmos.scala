@@ -237,16 +237,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
   val cmpDevice = Config.getConfig.cmpDevice
   println("Config cmp: " + cmpDevice)
-
-  // These are the NoC interfaces and can be reused for other experiments.
-  // Their names should be more general.
-  //  if (nrCores == 1) {
-  //    // probably no one is using this, but have it connected...
-  //    // maybe drop this and have also a single core connected to the spm
-  //    io.comConf <> core.io.comConf
-  //    io.comSpm <> core.io.comSpm
-  //  } else {
-
+  // This is a hack and workaround for CMP experiments
   if (cmpDevice == 0) {
     val hardlock = Module(new cmp.HardlockOCPWrapper(() => new cmp.Hardlock(nrCores, 8)))
     for (i <- (0 until cores.length)) {
@@ -255,8 +246,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   } else if (cmpDevice == 1) {
     val spm = Module(new cmp.SharedSPM(nrCores))
     for (i <- (0 until cores.length)) {
-      spm.io.comConf(i) <> cores(i).io.comConf
-      spm.io.comSpm(i) <> cores(i).io.comSpm
+      spm.io(i) <> cores(i).io.comSpm
     }
   } else if (cmpDevice == 2) {
     val oneway = Module(new cmp.OneWayOCPWrapper(nrCores))
