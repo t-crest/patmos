@@ -20,8 +20,9 @@ class OneWayOCPWrapper(nrCores: Int) extends Module {
 
   val dim = math.sqrt(nrCores).toInt
   if (dim * dim != nrCores) throw new Error("Number of cores must be quadratic")
-  // just start with four words
-  val size = 4 * nrCores
+  // 256 words per core, is 4 KB for a 2x2
+  // should compute the power of 2
+  val size = 256 * 4
   val onewaymem = Module(new oneway.OneWayMem(dim, size))
 
   println("OneWayMem")
@@ -39,7 +40,8 @@ class OneWayOCPWrapper(nrCores: Int) extends Module {
     onewaymem.io.memPorts(i).wrAddr := io(i).M.Addr >> 2
     onewaymem.io.memPorts(i).wrData := io(i).M.Data
     onewaymem.io.memPorts(i).wrEna := io(i).M.Cmd === OcpCmd.WR
-    io(i).S.Data := Reg(next = onewaymem.io.memPorts(i).rdData)
+    // Memory has one cycle latency (read address is in register)
+    io(i).S.Data := onewaymem.io.memPorts(i).rdData
     io(i).S.Resp := Reg(init = OcpResp.NULL, next = resp)
   }
 }
