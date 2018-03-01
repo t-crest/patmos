@@ -8,31 +8,40 @@ package cmp
 
 import Chisel._
 
+import patmos.Constants._
+import ocp._
+
 class SharedSPMTester(dut: SharedSPM) extends Tester(dut) {
 
-  println("Tester")
-//  def read(n: Int) = {
-//    for (i <- 0 until 4*4) {
-//      poke(dut.io.memPorts(n).rdAddr, i)
-//      step(3)
-//      peek(dut.io.memPorts(n).rdData)
-//    }
-//  }
-//
-//  for (i <- 0 until 32) {
-//    for (j <- 0 until 4) {
-//      poke(dut.io.memPorts(j).wrAddr, i)
-//      poke(dut.io.memPorts(j).wrData, 0x100 * (j + 1) + i)
-//      poke(dut.io.memPorts(j).wrEna, 1)
-//    }
-//    step(1)
-//  }
-//  for (j <- 0 until 4) {
-//    poke(dut.io.memPorts(j).wrEna, 0)
-//  }
-//  // read(0)
-//  step(300)
-//  read(0)
+  println("Shared SPM Tester")
+
+  def read(n: Int, addr: Int) = {
+    poke(dut.io(n).M.Addr, addr << 2)
+    poke(dut.io(n).M.Cmd, 2) // OcpCmd.RD
+    // TODO wait on DVA
+    step(1)
+    dut.io(n).S.Data
+  }
+
+  def write(n: Int, addr: Int, data: Int) = {
+    poke(dut.io(n).M.Addr, addr << 2)
+    poke(dut.io(n).M.Data, data)
+    poke(dut.io(n).M.Cmd, 1) // OcpCmd.WR
+    poke(dut.io(n).M.ByteEn, 0x0f)
+    // TODO wait on DVA
+    step(1)
+  }
+  poke(dut.io(0).M.Cmd, 0)
+  step(1)
+
+  for (i <- 0 until 32) {
+    write(0, i, i * 0x100)
+  }
+  poke(dut.io(0).M.Cmd, 0) // OcpCmd.IDLE
+  step(1)
+  for (i <- 0 until 32) {
+    expect(read(0, i), i * 0x100)
+  }
 }
 
 object SharedSPMTester {
