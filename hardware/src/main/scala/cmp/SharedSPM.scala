@@ -54,11 +54,10 @@ class SharedSPM(nrCores: Int) extends Module {
   val spm = Module(new Spm(1024))
 
   val nd = new Array[NodeSPM](nrCores)
-  //   val masters = new Array[OcpCoreMasterPort](nrCores)
-  val masters = Vec(nrCores, new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH))
+  val masters = new Array[OcpCoreMasterPort](nrCores)
   for (i <- 0 until nrCores) {
     nd(i) = Module(new NodeSPM(i, nrCores))
-    // masters(i) = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
+    masters(i) = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
     nd(i).io.fromCore.M := io(i).M
     io(i).S := nd(i).io.fromCore.S
     masters(i) <> nd(i).io.toMem
@@ -76,64 +75,14 @@ class SharedSPM(nrCores: Int) extends Module {
   // this or thing does not work. what is the issue?
   // spm.io.M <> masters.reduceLeft((x, y) => orMaster(x, y))
 
-  // Torur's proposal for or reduction:
-  val x = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
-  x.M.Addr := UInt(0)
-  x.M.Cmd := UInt(0)
-  x.M.Data := UInt(0)
-  x.M.ByteEn := UInt(0)
+  spm.io.M.Addr := masters.map(_.M.Addr).reduce(_ | _)
+  spm.io.M.Data := masters.map(_.M.Data).reduce(_ | _)
+  spm.io.M.Cmd := masters.map(_.M.Cmd).reduce(_ | _)
+  spm.io.M.ByteEn := masters.map(_.M.ByteEn).reduce(_ | _)
 
-  for (j <- 0 until ADDR_WIDTH) {
-    x.M.Addr(j) := orR(Vec(masters.map(c => (c.M.Addr(j)))).toBits)
-  }
-  for (j <- 0 until DATA_WIDTH) {
-    x.M.Data(j) := orR(Vec(masters.map(c => (c.M.Data(j)))).toBits)
-  }
-  for (j <- 0 until 4) {
-
-    x.M.ByteEn(j) := orR(Vec(masters.map(c => (c.M.ByteEn(j)))).toBits)
-  }
-  for (j <- 0 until 3) {
-    x.M.Cmd(j) := orR(Vec(masters.map(c => (c.M.Cmd(j)))).toBits)
-  }
-  spm.io.M := x.M
-
-  // For a try simply do the no-functional or reduction
-  // spm.io.M := masters(0).M
+  // For a simple try just return the slave signals (not correct)
   for (i <- 0 until nrCores) {
     masters(i).S := spm.io.S
   }
-
-  // TODO: a simple arbiter - see class Arbiter
-
-  //  spm.io.M.Addr := 
-  //  spm.io.M.Cmd := Bits(1)
-  //  val xxx = spm.io.S.Data
-  //  val yyy = spm.io.S.Resp
-
-  //  for (i <- 1 to cnt - 1) {
-  //    io.comConf(i).S.Data := UInt(i + 'A')
-  //    // Is it legal OCP to have the response flags hard wired?
-  //    // Probably yes.
-  //    io.comConf(i).S.CmdAccept := Bits(1)
-  //    io.comConf(i).S.Resp := Mux(io.comConf(i).M.Cmd =/= OcpCmd.IDLE,
-  //      OcpResp.DVA, OcpResp.NULL)
-  //  }
-
-  // Connection between OneWay memories and OCPcore ports
-  //  for (i <- 0 until nrCores) {
-  //
-  //    val resp = Mux(io(i).M.Cmd === OcpCmd.RD || io(i).M.Cmd === OcpCmd.WR,
-  //      OcpResp.DVA, OcpResp.NULL)
-  //
-  //    // addresses are in words
-  //    onewaymem.io.memPorts(i).rdAddr := io(i).M.Addr >> 2
-  //    onewaymem.io.memPorts(i).wrAddr := io(i).M.Addr >> 2
-  //    onewaymem.io.memPorts(i).wrData := io(i).M.Data
-  //    onewaymem.io.memPorts(i).wrEna := io(i).M.Cmd === OcpCmd.WR
-  //    // Memory has one cycle latency (read address is in register)
-  //    io(i).S.Data := onewaymem.io.memPorts(i).rdData
-  //    io(i).S.Resp := Reg(init = OcpResp.NULL, next = resp)
-  //  }
 }
 
