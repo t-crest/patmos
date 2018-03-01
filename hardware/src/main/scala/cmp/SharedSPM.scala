@@ -1,5 +1,5 @@
 /*
- * Shared SPM. Later with ownership.
+ * A shared scratchpad memory.
  *
  * Author: Martin Schoeberl (martin@jopdesign.com)
  *
@@ -27,24 +27,71 @@ import patmos._
 import patmos.Constants._
 import ocp._
 
-class NodeSPM(n: Int, cnt: Int) extends Module {
+/*
+ * 
+ * Local control:
+
+   * Three state FSM: idle, read, write
+   * loose one cycle by registering the command and switching state
+   * local counter tells when slot is there, drives the and gate
+   * DVA generated from FSM, not from memory, draw a quick timing diagram
+     * read data comes form memory one cycle after slot, dva is simply a register delay
+     * write dva also delayed to be back in idle for pipelined operation, check this out with Patmos or a test case
+   * memory DVA is ignored as we know the timing, just check it in the waveform that it is ok
+   * maybe test also byte and word access, should work as in any other spm
+ */
+class NodeSPM(id: Int, nrCores: Int) extends Module {
 
   val io = new Bundle() {
     val fromCore = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
     val toMem = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
   }
 
-  // dummy connection, need a counter to count TDM slots,
-  // register the request, and gating the master signal,
-  // getting the reply back (data and DVA) to the core.
-  io.toMem <> io.fromCore
-  // just core 0 allowed now
-  if (n != 0) {
+  val idle :: rd :: wr :: Nil = Enum(UInt(), 3)
+  val state = RegInit(idle)
+  val cnt = RegInit(UInt(0, log2Up(nrCores)))
+
+  // TODO: how to reset with a harmless IDLE command?
+  val masterReg = Reg(io.fromCore.M)
+
+  cnt := Mux(cnt === UInt(nrCores - 1), UInt(0), cnt + UInt(1))
+
+  val enable = Bool()
+  enable := cnt === UInt(id)
+  
+  // this is not super nice to define the type this way
+  val dvaRepl = UInt(width = 2)
+  dvaRepl := OcpResp.NULL
+
+  when(state === idle) {
+    when(io.fromCore.M.Cmd === OcpCmd.WR) {
+      state := wr
+      masterReg := io.fromCore.M
+    }.elsewhen(io.fromCore.M.Cmd === OcpCmd.RD) {
+      state := rd
+      masterReg := io.fromCore.M
+    }
+  }.elsewhen(state === rd) {
+    when(enable) {
+      masterReg.Cmd := OcpCmd.IDLE
+      dvaRepl := OcpResp.DVA
+    }
+  }.elsewhen(state === wr) {
+      masterReg.Cmd := OcpCmd.IDLE
+      dvaRepl := OcpResp.DVA
+  }
+  
+  io.fromCore.S.Resp := RegNext(dvaRepl)
+
+  when(enable) {
+    io.toMem.M := masterReg
+  }.otherwise {
+    // a simple way to assign all 0?
     io.toMem.M.Addr := UInt(0)
     io.toMem.M.Data := UInt(0)
     io.toMem.M.Cmd := UInt(0)
+    io.toMem.M.ByteEn := UInt(0)
   }
-
 }
 
 class SharedSPM(nrCores: Int) extends Module {
@@ -80,9 +127,10 @@ class SharedSPM(nrCores: Int) extends Module {
   spm.io.M.Cmd := masters.map(_.M.Cmd).reduce(_ | _)
   spm.io.M.ByteEn := masters.map(_.M.ByteEn).reduce(_ | _)
 
-  // For a simple try just return the slave signals (not correct)
+  // Data comes from the SPM, response from the node FSM
   for (i <- 0 until nrCores) {
-    masters(i).S := spm.io.S
+    masters(i).S.Data := spm.io.S.Data
+    masters(i).S.Resp := nd(i).io.fromCore.S.Resp
   }
 }
 
