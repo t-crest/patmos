@@ -244,7 +244,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       hardlock.io(i) <> cores(i).io.comSpm
     }
   } else if (cmpDevice == 1) {
-    val spm = Module(new cmp.SharedSPM(nrCores))
+    val spm = Module(new cmp.SharedSPM(nrCores, 1024))
     for (i <- (0 until cores.length)) {
       spm.io(i) <> cores(i).io.comSpm
     }
