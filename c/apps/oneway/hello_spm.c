@@ -15,12 +15,23 @@
 #define CNT 4
 #define SHARED_SPM *((volatile _SPM int *) 0xE8000000)
 
-// Shared data in main memory for the return value
-volatile _UNCACHED static int field;
-volatile _UNCACHED static int end_time;
+// Shared data in main memory for the result
+volatile _UNCACHED static int ok;
 
 // The main function for the other threads on the another cores
 void work(void* arg) {
+
+  volatile _SPM int *sspm = (volatile _SPM int *) (0xE8000000);
+
+  int id = get_cpuid();
+  for (int i=0; i<32; ++i) {
+    sspm[32*id + i] = id*0x100 + i;
+  }
+  int val;
+  for (int i=0; i<32; ++i) {
+    val = sspm[32*id + i];
+    if (id*0x100 + i != val) ok = 0;
+  }
 
 }
 
@@ -30,18 +41,33 @@ int main() {
   volatile _IODEV int *timer_ptr = (volatile _IODEV int *) (PATMOS_IO_TIMER+4);
   volatile _SPM int *sspm = (volatile _SPM int *) (0xE8000000);
 
-/*
+  ok = 1;
+
   for (int i=1; i<get_cpucnt(); ++i) {
     corethread_create(i, &work, NULL); 
   }
-*/
 
-  printf("Number of cores: %d\n", get_cpucnt());
-  for (int i=0; i<CNT; ++i) {
-    sspm[i] = 0x100 * i;
+  // back to back write
+  sspm[0] = 0x123;
+  sspm[1] = 0x456;
+  int x = sspm[0];
+  int y = sspm[1];
+  if (x!=0x123 || y!=0x456) ok = 0;
+  int id = get_cpuid();
+  for (int i=0; i<32; ++i) {
+    sspm[i] = id*0x100 + i;
   }
-  for (int i=0; i<CNT; ++i) {
-    printf("%08x\n", sspm[i]);
+  int val;
+  for (int i=0; i<32; ++i) {
+    val = sspm[i];
+    if (id*0x100 + i != val) ok = 0;
   }
+
+  if (ok) {
+    printf("Test ok\n");
+  } else {
+    printf("Test failed\n");
+  }
+
   return 0;
 }
