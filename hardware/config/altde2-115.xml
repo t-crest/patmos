@@ -2,9 +2,6 @@
   <description>default configuration for DE2-115 board</description>
 
   <frequency Hz="80000000"/>
-<cores count="4" />
-<cmp device="2" />
-<pipeline dual="false" />
 
   <ExtMem size="2M" DevTypeRef="Sram16" />
 
