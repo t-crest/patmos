@@ -1,5 +1,5 @@
 /*
-    Small test program for the shared SPM
+    Small test program for a single shared SPM with ownership.
 
     Author: Martin Schoeberl
 */
@@ -12,11 +12,9 @@
 
 #include "../../libcorethread/corethread.h"
 
-#define CNT 4
-#define SHARED_SPM *((volatile _SPM int *) 0xE8000000)
-
 // Shared data in main memory for the result
 volatile _UNCACHED static int ok;
+volatile _UNCACHED static int owner;
 
 // The main function for the other threads on the another cores
 void work(void* arg) {
@@ -24,13 +22,21 @@ void work(void* arg) {
   volatile _SPM int *sspm = (volatile _SPM int *) (0xE8000000);
 
   int id = get_cpuid();
-  for (int i=0; i<32; ++i) {
-    sspm[32*id + i] = id*0x100 + i;
+  while (id != owner)
+    ;
+  for (int i=0; i<4; ++i) {
+    sspm[4*id + i] = id*0x100 + i;
   }
   int val;
-  for (int i=0; i<32; ++i) {
-    val = sspm[32*id + i];
+  for (int i=0; i<4; ++i) {
+    val = sspm[4*id + i];
     if (id*0x100 + i != val) ok = 0;
+  }
+
+  if (id < get_cpucnt() - 1) {
+    ++owner;
+  } else {
+    owner = 0;
   }
 
 }
@@ -42,26 +48,27 @@ int main() {
   volatile _SPM int *sspm = (volatile _SPM int *) (0xE8000000);
 
   ok = 1;
+  owner = 0; // start with myself
 
   for (int i=1; i<get_cpucnt(); ++i) {
     corethread_create(i, &work, NULL); 
   }
-
-  // back to back write - not really, needs some change
-  sspm[0] = 0x123;
-  sspm[1] = 0x456;
-  int x = sspm[0];
-  int y = sspm[1];
-  if (x!=0x123 || y!=0x456) ok = 0;
+  // get first core working
+  owner = 1;
+  printf("Wait for finish\n");
+  while(owner != 0)
+    ;
   int id = get_cpuid();
-  for (int i=0; i<32; ++i) {
-    sspm[i] = id*0x100 + i;
+  for (int i=0; i<4; ++i) {
+    sspm[4*id + i] = id*0x100 + i;
   }
   int val;
-  for (int i=0; i<32; ++i) {
-    val = sspm[i];
+  for (int i=0; i<4; ++i) {
+    val = sspm[4*id + i];
     if (id*0x100 + i != val) ok = 0;
   }
+  // check one core's write data
+  if (sspm[4] != 0x100) ok = 0;
 
   if (ok) {
     printf("Test ok\n");
