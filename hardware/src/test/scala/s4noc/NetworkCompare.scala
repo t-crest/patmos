@@ -17,7 +17,7 @@ import Const._
  */
 class NetworkOfFour() extends Module {
   val io = new Bundle {
-    val local = Vec(new Channel(), 4)
+    val local = Vec(4, new Channel())
   }
 
   val schedule = Schedule.getSchedule(2)
@@ -51,8 +51,8 @@ class NetworkOfFour() extends Module {
 
 class TwoNetworks() extends Module {
   val io = new Bundle {
-    val toNocA = Vec(new Channel(), 4)
-    val toNocB = Vec(new Channel(), 4)
+    val toNocA = Vec(4, new Channel())
+    val toNocB = Vec(4, new Channel())
   }
 
   val na = Module(new NetworkOfFour())
