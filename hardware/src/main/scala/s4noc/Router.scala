@@ -7,9 +7,10 @@
  * 
  */
 
-package oneway
+package s4noc
 
 import Chisel._
+
 
 /**
  * Channel directions
@@ -22,7 +23,6 @@ object Const {
   val LOCAL = 4
   val NR_OF_PORTS = 5
 }
-import Const._
 
 class SingleChannel extends Bundle {
   val data = UInt(width = 32)

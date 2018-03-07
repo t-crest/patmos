@@ -14,10 +14,11 @@
  * https://github.com/t-crest/s4noc/tree/master/noc/vhdl/generated
  */
 
-package oneway
+package s4noc
 
 import Const._
 import scala.util.Random
+
 
 object Schedule {
 

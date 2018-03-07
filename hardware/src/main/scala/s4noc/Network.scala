@@ -4,7 +4,7 @@
  * License: Simplified BSD License
  */
 
-package oneway
+package s4noc
 
 import Chisel._
 import Const._

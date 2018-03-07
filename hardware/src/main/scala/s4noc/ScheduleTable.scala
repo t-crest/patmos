@@ -14,7 +14,7 @@
  * https://github.com/t-crest/s4noc/tree/master/noc/vhdl/generated
  */
 
-package oneway
+package s4noc
 
 import scala.io.Source
 

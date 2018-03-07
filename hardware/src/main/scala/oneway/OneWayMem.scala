@@ -7,7 +7,7 @@
 package oneway
 
 import Chisel._
-import Const._
+import s4noc._
 
 /**
  * Create and connect a n x n NoC.

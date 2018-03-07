@@ -7,6 +7,7 @@
 package oneway
 
 import Chisel._
+import s4noc._
 
 /**
  * One NoC node, just containing some dummy computation to keep
