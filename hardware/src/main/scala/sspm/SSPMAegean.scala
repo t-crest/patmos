@@ -55,7 +55,7 @@ class SSPMAegean(val nCores: Int,
   val io = Vec.fill(nCores) { new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH) }
 
   // Generate modules
-  val mem = Module(new memSPM(1024))
+  val mem = Module(new memSPM(16384))
   val connectors = Vec.fill(nCores) { Module(new SSPMConnector()).io }
 
   val firstCore = 0
@@ -151,7 +151,8 @@ object SSPMAegeanMain {
 
     val chiselArgs = args.slice(1, args.length)
     val nCores = args(0)
-    val extendedSlotSize = 5 // args(1)
+    // Slot size is one more, as counter goes to 0
+    val extendedSlotSize = 6-1 // args(1)
     val singleExtendedSlot = "true" // args(2)
     chiselArgs.foreach(println)
 

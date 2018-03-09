@@ -232,7 +232,7 @@ patmos-clang hello.c
 pasim a.out
 \end{verbatim}
 
-However, this innocent examples is quiet challenging for an embedded system:
+However, this innocent examples is quite challenging for an embedded system:
 It needs a C compiler, an implementation of the standard C library, printf
 itself is a challenging function, the generated ELF file needs to be understood
 by a tool and the individual sections downloaded, and finally a terminal (often
@@ -316,17 +316,47 @@ The test can be started with:
 make test
 \end{verbatim}
 
-
-\todo{ModelSim simulation}
-
 \subsection{We Can Blink in Assembler}
 
-\todo{write}
+Assembler programming is just used for small tests. And on Patmos assembler
+programs end up in the boot ROM, which means that a new processor needs
+to be generated and synthesized as shown below:
+
+\begin{verbatim}
+make asm BOOTAPP=hello gen synth config
+\end{verbatim}
+
+This make command assembles a blinking LED example written in Patmos
+assembler. You can find the assembler source in Listing~\ref{fig:blinkasm}
+and in \code{asm/hello.s}.
+
+\begin{lstlisting}[float,caption={A blinking LED\label{fig:blinkasm}}]
+#
+# The embedded version of Hello World: a blinking LED
+#
+# Expected Result: LED blinks
+#
+
+	.word   56
+
+        add     r7  = r0, 0xF0090000
+	addi	r8 = r0, 1
+
+loop:	xor	r9 = r9, r8  # toggle value
+	swl	[r7+0] = r9  # set the LED
+
+	addi	r1 = r0, 1024		
+	sli	r1 = r1, 10
+
+wloop:	subi	r1 = r1, 1
+	cmpneq	p1 = r1, r0
+(p1)	br	wloop
+        addi    r0  = r0 , 0
+        addi    r0  = r0 , 0
+	br	loop
+\end{lstlisting}
 
 \subsection{A C Based Blinking LED}
-
-\todo{This example is currently broken. Torur shall check what is the issue.
-So, don't try this.}
 
 As a first real example we build the embedded version of Hello World, the
 blinking LED, from a C program. You can find the C source in \code{c/blinking.c}.
@@ -365,6 +395,7 @@ the compiler is instructed to emit the correct load and store instructions.
     Copyright: DTU, BSD License
 */
 
+#include "include/bootable.h"
 #include <machine/spm.h>
 
 int main() {
@@ -497,7 +528,7 @@ patemu tmp/hello_puts.elf
 
 \martin{Where is the make target to run the emulator with an ELF file?}
 
-\paragraph{A More Complex Application}
+\subsection{A More Complex Application and the Apps Folder}
 
 Small code examples (single C files) are distributed in folder \code{c} and
 some subfolders (e.g., \code{bootable}, \code{bootloader}, \code{cmp},...)
@@ -711,6 +742,24 @@ int main() {
 }
 \end{lstlisting}
 
+\subsubsection{Shared Memory}
+
+The external shared memory is not held cache coherent with the core local data cache.
+There are two options how to exchange data between cores in shared memory:
+
+(1) use uncached access to access fields as follows:
+
+\begin{verbatim}
+volatile _UNCACHED static int field;
+\end{verbatim}
+
+or (2) invalidate the data cache. The data cache is per default configured as write-through.
+That means the main memory contains the latest change on a write. Therefore, to get those
+latest change into a core that wants to read those values the cache can be invalidated.
+
+\todo{Check if and how synchronization is implemented in the library.}
+
+
 \subsubsection{On-chip Application}
 
 For small experiments it is possible to execute a multicore program out
@@ -832,9 +881,7 @@ Subsection~\ref{sec:toolchain:platin:example}.
 \section{Getting Started with Patmos}
 
 These exercises are intended to make you familiar with the Patmos processor
-and the T-CREST tool chain. The main documentation for the exercise is the
-Patmos Reference Handbook.
-
+and the T-CREST tool chain.
 This exercise assumes that you have the virtual machine (VM) image with the T-CREST tools
 installed and already compiled. The T-CREST project is hosted at
 GitHub\footnote{\url{https://github.com/t-crest}} within several git repositories. You find those

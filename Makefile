@@ -224,7 +224,7 @@ fpgaexec: $(BUILDDIR)/$(APP).elf
 CLEANEXTENSIONS=rbf rpt sof pin summary ttf qdf dat wlf done qws
 
 mostlyclean:
-	-rm -rf $(SIMBUILDDIR) $(CTOOLSBUILDDIR) $(BUILDDIR) $(HWBUILDDIR)
+	-rm -rf $(CTOOLSBUILDDIR) $(BUILDDIR) $(HWBUILDDIR)
 	-rm -rf $(JAVATOOLSBUILDDIR)/classes
 	-rm -rf hardware/target
 
@@ -241,6 +241,9 @@ clean: mostlyclean
 	-find `ls` -name db -print -exec rm -r -f {} \;
 	-find `ls` -name incremental_db -print -exec rm -r -f {} \;
 	-find `ls` -name patmos_description.txt -print -exec rm -r -f {} \;
+
+veryclean: clean
+	-rm -rf $(SIMBUILDDIR)
 
 # Dummy target to force the execution of recipies for things that are not really phony
 .FORCE:

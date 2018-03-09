@@ -41,6 +41,8 @@
 #ifndef _BOOTABLE_H_
 #define _BOOTABLE_H_
 
+#include "include/patio.h"
+
 #ifdef BOOTROM
 
 #define CACHECTRL *((volatile _IODEV int *)0xF0010014)
