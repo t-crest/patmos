@@ -220,3 +220,7 @@ SSPM-memspm-test:
 # ONEWAY make targets
 oneway_test:
 	$(SBT) "test:runMain oneway.OneWayMemTester"
+
+Network-test: 
+	$(SBT) "test:runMain s4noc.NetworkTester"
+
