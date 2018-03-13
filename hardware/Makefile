@@ -215,3 +215,8 @@ SSPM-memspm:
 
 SSPM-memspm-test:
 	$(SBT) "runMain sspm.memSPMTester"
+
+
+# ONEWAY make targets
+oneway_test:
+	$(SBT) "test:runMain oneway.OneWayMemTester"
