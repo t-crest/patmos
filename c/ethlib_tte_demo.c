@@ -311,6 +311,7 @@ void demo_mode(){
 
 	printf("\nDemo (rx, tx, LED, calculator)\n");
 	tte_initialize(0xC3500); //0xC3500 = 10ms in clock cycles // 0x4C4B400 = 1s in clock cycles
+	tte_prepare_test_data(tx_addr);
 	arp_table_init();
 	for (int i =0; i<n; i++){
 		//printf("\n------------------------------------------------------------------------------\n");	
@@ -330,13 +331,13 @@ void demo_mode(){
 				}
 			}
 		} else if (is_tte(rx_addr)){
-			printf("TTE VERSION!\n");
+			/*printf("TTE VERSION!\n");
 			printf("CT_marker: 0x%04X\n",mem_iord(rx_addr));
-			print_eth_packets();
+			print_eth_packets();*/
 		}
 		else{
 			//printf("NOT THE TTE VERSION!\n");
-			print_eth_packets();
+			//print_eth_packets();
 		}
 	}
 	for (int i =0; i<n; i++){
@@ -347,6 +348,7 @@ void demo_mode(){
 
 void spam_demo(){
   tte_initialize(0xC3500);
+  tte_prepare_test_data(tx_addr);
   while(1!=0){
     tte_send_test_data(tx_addr);
     printf(".");
