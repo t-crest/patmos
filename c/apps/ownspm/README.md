@@ -2,7 +2,7 @@
 
 These applications are used for the evaluation section of the following submitted paper:
 
-Scratchpad Memories with Ownership
+Scratchpad Memories with Ownership, submitted to CASES
 
 
 We use the T-CREST multicore to evaluate the shared memory with ownership.
@@ -73,6 +73,11 @@ make app download APP=ownspm
 
 This compiles and downloads a simple test for the one-way shared memory.
 Change `MAIN` to the appropriate test.
+
+`hello_spm.c` does simple checks on a shared SPM
+`timing.c` measures access times (with shifts with the deadline device)
+`single_owner.c` does a multicore test on a single SPM with ownership
+`test_owner.c` does a multicore test with two SPMs with ownership
 
 ## The Version of the Submitted Paper
 

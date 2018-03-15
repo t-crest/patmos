@@ -237,7 +237,6 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     }
   }
   for (i <- (0 until cores.length)) {
-    println("Connecting core " + i)
     memarbiter.io.master(i) <> cores(i).io.memPort
   }
 
