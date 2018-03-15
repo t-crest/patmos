@@ -2,7 +2,7 @@
 
 These applications are used for the evaluation section of the following submitted paper:
 
-Scratchpad Memories with Ownership, submitted to CASES
+Scratchpad Memories with Ownership, *to be submitted to CASES 2018*
 
 
 We use the T-CREST multicore to evaluate the shared memory with ownership.
@@ -17,7 +17,11 @@ Before building the Patmos processor (hardware or emulator) add the following li
 ```
 
 where the cmp device is either `1` for the TDM arbitrated shared SPM or
-`5` for the SPMs with ownership.
+`5` for the SPMs with ownership. The number of SPMs with ownership
+is currently configured to be the same as the number of processor cores.
+This can be changed in `Patmos.scala`.
+The individual SPMs are displaced every 64 KB, starting at the usual
+address that is used for all CMP device tests (`0xE8000000`).
 
 The C programs for the tests are found here, e.g., for the shared SPM: 
 [hello_spm.c](hello_spm.c)
@@ -35,7 +39,7 @@ hardware on an FPGA board.
 
 ## Emulator Based Testing
 
-To compile the emulator with the selected hardware configuration run:
+To compile the emulator with the selected hardware configuration run
 
 ```bash
 make emulator
@@ -43,12 +47,11 @@ make emulator
 
 Compile the application with
 
-Afterwards run:
 ```bash
 make app APP=ownspm 
 ```
 
-If you want to use a different test program add the `MAIN` variable, such as:
+If you want to use a different test program add the `MAIN` variable, such as
 
 ```bash
 make app APP=ownspm MAIN=single_owner 
@@ -68,7 +71,7 @@ and then from `t-crest/patmos` run
 ```bash
 make gen synth
 ```
-This creates Patmos. To configure the FPGA with Patmos, run:
+This creates Patmos. To configure the FPGA with Patmos run
 ```bash
 make config
 ```
