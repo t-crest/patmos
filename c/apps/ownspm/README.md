@@ -23,6 +23,12 @@ The C programs for the tests are found here, e.g., for the shared SPM:
 [hello_spm.c](hello_spm.c)
 
 For other test programs set the variable `MAIN` at your compile make call.
+Following test prorams are available:
+
+ * `hello_spm.c` does simple checks on a shared SPM
+ * `timing.c` measures access times (using the deadline device with random delays)
+ * `single_owner.c` does a multicore test on a single SPM with ownership
+ * `test_owner.c` does a multicore test with two SPMs with ownership
 
 The experiments can be execute on the Patmos emulator of with the real
 hardware on an FPGA board.
@@ -74,10 +80,6 @@ make app download APP=ownspm
 This compiles and downloads a simple test for the one-way shared memory.
 Change `MAIN` to the appropriate test.
 
-`hello_spm.c` does simple checks on a shared SPM
-`timing.c` measures access times (with shifts with the deadline device)
-`single_owner.c` does a multicore test on a single SPM with ownership
-`test_owner.c` does a multicore test with two SPMs with ownership
 
 ## The Version of the Submitted Paper
 
