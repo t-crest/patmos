@@ -222,6 +222,14 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       oneway.io(i) <> cores(i).io.comSpm
     }
     // 3 and 4 are reserved for Oktay and Lefteris  
+  } else if (cmpDevice == 3) {
+    // connect SPM with ownership
+    val tdm = Module(new cmp.TDM(nrCores))
+    //val spm = Module(new patmos.Spm(1024))
+    //tdm.io.master <> spm.io
+    for (i <- (0 until cores.length)) {
+     tdm.io.slave(i) <> cores(i).io.comSpm
+    }
   } else if (cmpDevice == 5) {
     val ownspm = Module(new cmp.OwnSPM(nrCores, 1, 1024))
     for (i <- (0 until cores.length)) {
@@ -229,6 +237,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     }
   }
   for (i <- (0 until cores.length)) {
+    println("Connecting core " + i)
     memarbiter.io.master(i) <> cores(i).io.memPort
   }
 
