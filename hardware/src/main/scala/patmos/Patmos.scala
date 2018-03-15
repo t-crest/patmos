@@ -223,7 +223,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     }
     // 3 and 4 are reserved for Oktay and Lefteris  
   } else if (cmpDevice == 5) {
-    val ownspm = Module(new cmp.OwnSPM(nrCores, 1, 1024))
+    val ownspm = Module(new cmp.OwnSPM(nrCores, nrCores, 1024))
     for (i <- (0 until cores.length)) {
       ownspm.io(i) <> cores(i).io.comSpm
     }
