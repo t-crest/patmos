@@ -311,7 +311,8 @@ void demo_mode(){
 
 	printf("\nDemo (rx, tx, LED, calculator)\n");
 	tte_initialize(0xC3500); //0xC3500 = 10ms in clock cycles // 0x4C4B400 = 1s in clock cycles
-	tte_prepare_test_data(tx_addr);
+	tte_prepare_test_data(0x800,0xaa);
+	tte_prepare_test_data(0xdea,0xbb);
 	arp_table_init();
 	for (int i =0; i<n; i++){
 		//printf("\n------------------------------------------------------------------------------\n");	
@@ -343,12 +344,13 @@ void demo_mode(){
 	for (int i =0; i<n; i++){
 		printf("%llu %llu %llu %d %llu\n",r_pit[i],p_pit[i],s_pit[i],int_pd[i],trans_clk[i]);
 	}
+	tte_stop_sending();
 	return;
 }
 
 void spam_demo(){
   tte_initialize(0xC3500);
-  tte_prepare_test_data(tx_addr);
+  tte_prepare_test_data(tx_addr,0xaa);
   while(1!=0){
     tte_send_test_data(tx_addr);
     printf(".");

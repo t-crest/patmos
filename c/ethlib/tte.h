@@ -23,6 +23,8 @@ void tte_initialize(unsigned int int_period);
 
 unsigned long long transClk_to_clk (unsigned long long transClk);
 
-void tte_prepare_test_data(unsigned int tx_addr);
+void tte_prepare_test_data(unsigned int tx_addr, unsigned char data);
 
 void tte_send_test_data(unsigned int tx_addr);
+
+void tte_stop_sending();
