@@ -1,5 +1,5 @@
 /*
- * Copyright: 2015, Technical University of Denmark, DTU Compute
+ * Copyright: 2018, Technical University of Denmark, DTU Compute
  * Author: Oktay Baris
  * License: Simplified BSD License
  */
@@ -46,7 +46,6 @@ class spmBlock(MemSize : Int) extends Module {
 
 }
 
-
 class TDM(cnt:Int) extends Module {
   val io = new Bundle {
 	val slave = Vec.fill(cnt) { new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH) } /*core=master for OCP*/
@@ -56,22 +55,15 @@ class TDM(cnt:Int) extends Module {
   // Counter Register
   val slotLen = 1 // 1 cc
   val period = cnt * slotLen
-  val cntReg = Reg(init = UInt(0, log2Up(slotLen)))
-  cntReg := Mux(cntReg === UInt(slotLen-1), UInt(0), cntReg + UInt(1))
+  val scheduleReg = Reg(init = UInt(0, log2Up(period)))
+
+  scheduleReg := Mux(scheduleReg === UInt(period - 1), UInt(0), scheduleReg + UInt(1))
 
 
-  val scheduleReg = Reg(init = UInt(0, log2Up(cnt)))
-  scheduleReg := Mux(cntReg === UInt(slotLen-1), scheduleReg + UInt(1), scheduleReg)
-
-//shared SPM
-
-//val spm = Module(new Spm(1024))
- //io.master <> spm.io //OcpCoreMasterPort <> OcpCoreSlavePort
+  //val scheduleReg = Reg(init = UInt(0, log2Up(cnt)))
+  //scheduleReg := Mux(cntReg === UInt(slotLen-1), scheduleReg + UInt(1), scheduleReg)
 
 val spmBlock = Module(new spmBlock(1024))
-//val spmBlock = Vec.fill(cnt) {Module(new spmBlock(1024))} // Pool of SPMs
-//io.master <> spmBlock.io.slave
-
 
 // Registers (buffering input)
   val CoreReg_Cmd = Vec.fill(cnt) { Reg(UInt(3)) }
@@ -129,9 +121,8 @@ for (i <- 0 to cnt-1) {
                     CoreReg_Addr(i) := io.slave(i).M.Addr
                 }
 
-           when(spmBlock.io.rdData =/= UInt(0)){
-                CoreReg_rdData(i) := spmBlock.io.rdData
-           }
+           
+          CoreReg_rdData(i) := spmBlock.io.rdData
 
           //Connecting the read data to all requesters
           io.slave(i).S.Data := CoreReg_rdData(i)
