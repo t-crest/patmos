@@ -1,5 +1,5 @@
 /*
-    Small test program for a single shared SPM with ownership.
+    Small test program for shared SPMs with ownership.
 
     Author: Martin Schoeberl
 */
@@ -16,6 +16,12 @@
 volatile _UNCACHED static int ok;
 volatile _UNCACHED static int owner;
 
+// SPMs are placed every 64 KB (address bits n downto 16 are decoded)
+// array counts in 32-bit integers
+#define NEXT 0x10000/4
+
+#define CNT 4
+
 // The main function for the other threads on the another cores
 void work(void* arg) {
 
@@ -24,13 +30,16 @@ void work(void* arg) {
   int id = get_cpuid();
   while (id != owner)
     ;
-  for (int i=0; i<4; ++i) {
-    sspm[4*id + i] = id*0x100 + i;
+  for (int i=0; i<CNT; ++i) {
+    sspm[CNT*id + i] = id*0x100 + i;
+    sspm[CNT*id + i + NEXT] = id*0x1000 + i;
   }
   int val;
-  for (int i=0; i<4; ++i) {
-    val = sspm[4*id + i];
+  for (int i=0; i<CNT; ++i) {
+    val = sspm[CNT*id + i];
     if (id*0x100 + i != val) ok = 0;
+    val = sspm[CNT*id + i + NEXT];
+    if (id*0x1000 + i != val) ok = 0;
   }
 
   if (id < get_cpucnt() - 1) {
@@ -53,20 +62,24 @@ int main() {
   }
   // get first core working
   owner = 1;
-  printf("Wait for finish\n");
+  printf("Test owner: wait\n");
   while(owner != 0)
     ;
   int id = get_cpuid();
-  for (int i=0; i<4; ++i) {
-    sspm[4*id + i] = id*0x100 + i;
+  for (int i=0; i<CNT; ++i) {
+    sspm[CNT*id + i] = id*0x100 + i;
+    sspm[CNT*id + i + NEXT] = id*0x1000 + i;
   }
   int val;
-  for (int i=0; i<4; ++i) {
-    val = sspm[4*id + i];
+  for (int i=0; i<CNT; ++i) {
+    val = sspm[CNT*id + i];
     if (id*0x100 + i != val) ok = 0;
+    val = sspm[CNT*id + i + NEXT];
+    if (id*0x1000 + i != val) ok = 0;
   }
   // check one core's write data
   if (sspm[4] != 0x100) ok = 0;
+  if (sspm[4+NEXT] != 0x1000) ok = 0;
 
   if (ok) {
     printf("Test ok\n");

@@ -228,13 +228,12 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
      tdm.io.slave(i) <> cores(i).io.comSpm
     }
   } else if (cmpDevice == 5) {
-    val ownspm = Module(new cmp.OwnSPM(nrCores, 1, 1024))
+    val ownspm = Module(new cmp.OwnSPM(nrCores, nrCores, 1024))
     for (i <- (0 until cores.length)) {
       ownspm.io(i) <> cores(i).io.comSpm
     }
   }
   for (i <- (0 until cores.length)) {
-    println("Connecting core " + i)
     memarbiter.io.master(i) <> cores(i).io.memPort
   }
 
