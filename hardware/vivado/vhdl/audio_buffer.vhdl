@@ -78,6 +78,9 @@ architecture rtl of audio_buffer is
 	signal SData_next : std_logic_vector((OCP_DATA_WIDTH - 1) downto 0);
 	
 	signal gpio_wr_en   : std_logic;
+	
+	--signal sample_count : unsigned(23 downto 0);
+	
 
 begin
 
@@ -91,6 +94,7 @@ begin
 	-- 0008 R => DAC full
 	-- 000C W => DAC write
 	-- 0010 W => gpio
+	-- 0014 R => sample count
 
 	dac_data_in <= MData(BUFFER_DATA_WIDTH - 1 downto 0);
 

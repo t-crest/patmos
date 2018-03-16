@@ -39,11 +39,18 @@ CFLAGS?=-target patmos-unknown-unknown-elf -O2 \
 	-I$(CURDIR) -I $(CURDIR)/libelf/ \
 	-mpatmos-disable-vliw \
 	$(DEFINES)
+#LDFLAGS?= \
+#	-mpatmos-method-cache-size=0x1000 \
+#	-mpatmos-stack-base=0x200000 -mpatmos-shadow-stack-base=0x1f8000 \
+#	-Xgold --defsym -Xgold __heap_end=0x1f0000 \
+#	-Xgold -T -Xgold $(BUILDDIR)/../hardware/spm_ram.t
+
 LDFLAGS?= \
 	-mpatmos-method-cache-size=0x1000 \
-	-mpatmos-stack-base=0x200000 -mpatmos-shadow-stack-base=0x1f8000 \
-	-Xgold --defsym -Xgold __heap_end=0x1f0000 \
+	-mpatmos-stack-base=0x2000000 -mpatmos-shadow-stack-base=0x1f80000 \
+	-Xgold --defsym -Xgold __heap_end=0x1f00000 \
 	-Xgold -T -Xgold $(BUILDDIR)/../hardware/spm_ram.t
+
 
 # Flags for compiling applications that use virtual memory
 # Assuming 2 MB of main memory
