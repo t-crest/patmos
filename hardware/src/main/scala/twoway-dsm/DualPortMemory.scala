@@ -4,7 +4,7 @@
  * License: Simplified BSD License
  */
 
-package oneway
+package twoway
 
 import Chisel._
 

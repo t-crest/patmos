@@ -4,7 +4,7 @@
  * License: Simplified BSD License
  */
 
-package s4noc
+package s4noc_twoway
 
 import Chisel._
 import Const._
@@ -12,12 +12,16 @@ import Const._
 /**
  * Create and connect a n x n NoC.
  */
-class Network(n: Int) extends Module {
+class Network(n: Int, inverted : Bool) extends Module {
   val io = new Bundle {
     val local = Vec(n * n, new Channel())
   }
 
-  val schedule = Schedule.getSchedule(n)._1
+  if(inverted) {
+    val schedule = Schedule.getSchedule(n,true)._1
+  } else {
+    val schedule = Schedule.getSchedule(n,false)._1
+  }
 
   val net = new Array[Router](n * n)
   for (i <- 0 until n * n) {

@@ -14,7 +14,7 @@
  * https://github.com/t-crest/s4noc/tree/master/noc/vhdl/generated
  */
 
-package s4noc
+package s4noc_twoway
 
 import Const._
 import scala.util.Random
@@ -22,7 +22,7 @@ import scala.util.Random
 
 object Schedule {
 
-  def getSchedule(n: Int) = {
+  def getSchedule(n: Int, inverted : Bool) = {
 
     val s = n match {
       case 2 => ScheduleTable.FourNodes

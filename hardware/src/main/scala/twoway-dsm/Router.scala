@@ -7,7 +7,7 @@
  * 
  */
 
-package s4noc
+package s4noc_twoway
 
 import Chisel._
 

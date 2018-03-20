@@ -14,7 +14,7 @@
  * https://github.com/t-crest/s4noc/tree/master/noc/vhdl/generated
  */
 
-package s4noc
+package s4noc_twoway
 
 import scala.io.Source
 
