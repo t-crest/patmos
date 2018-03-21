@@ -44,10 +44,13 @@ object SPMPool {
 
   def roundRobinArbiterO(reqs: Bits, continue: Bool = Bool(false)) = {
 
-    val width = log2Up(reqs.getWidth())
-    val curReg = Reg(UInt(width = width))
+    val reqscat = Cat(reqs, reqs)
+    val reqwindows = Vec((0 until reqs.getWidth()).map(i => reqscat(i+reqs.getWidth(),1+i)))
+
+    val curReg = Reg(UInt(width = log2Up(reqs.getWidth())))
+    val nxt = PriorityEncoder(reqwindows(curReg))-UInt(3)+curReg
     when(!reqs(curReg) || continue) {
-      curReg := PriorityEncoder(Cat(reqs, reqs)(curReg+width.U,curReg))
+      curReg := nxt
     }
 
     curReg
@@ -121,7 +124,7 @@ object SPMPool {
       widthcnt := widthcnt + UInt(1)
     }
 
-    val cur = SPMPool.roundRobinArbiter(io.sched, widthcnt === UInt(slotwidth-1))
+    val cur = SPMPool.roundRobinArbiterO(io.sched, widthcnt === UInt(slotwidth-1))
 
     spm.io.addr := io.cores(cur).addr
     spm.io.datain := io.cores(cur).datain
