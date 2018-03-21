@@ -232,7 +232,13 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     for (i <- (0 until cores.length)) {
       ownspm.io(i) <> cores(i).io.comSpm
     }
+  } else if (cmpDevice == 6) {
+    val spmpool = Module(new cmp.SPMPoolOCPWrapper(nrCores, 8, 1024, 32))
+    for (i <- (0 until cores.length)) {
+      spmpool.io(i) <> cores(i).io.comSpm
+    }
   }
+
   for (i <- (0 until cores.length)) {
     memarbiter.io.master(i) <> cores(i).io.memPort
   }
