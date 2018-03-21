@@ -223,9 +223,9 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     }
     // 3 and 4 are reserved for Oktay and Lefteris  
   } else if (cmpDevice == 3) {
-    val tdm = Module(new cmp.TDM(nrCores))
+    val tdmArbiter = Module(new cmp.TdmArbiter(nrCores))
     for (i <- (0 until cores.length)) {
-     tdm.io.slave(i) <> cores(i).io.comSpm
+     tdmArbiter.io.slave(i) <> cores(i).io.comSpm
     }
   } else if (cmpDevice == 5) {
     val ownspm = Module(new cmp.OwnSPM(nrCores, nrCores, 1024))
