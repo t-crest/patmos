@@ -79,6 +79,7 @@ object SPMPool {
   }
 
   class IOTDMSPMElement(addrwidth:Int, datawidth:Int) extends IOSPMBase(addrwidth,datawidth) with IReady {
+    val rd = Bool(INPUT)
     override def clone = new IOTDMSPMElement(addrwidth,datawidth).asInstanceOf[this.type]
   }
 
@@ -109,22 +110,15 @@ object SPMPool {
     when(io.wr) {
       mem(io.addr) := io.datain
     }
-    io.dataout := mem(Reg(next =io.addr))
+    io.dataout := mem(Reg(next = io.addr))
   }
 
-  class TDMSPM(corecnt:Int, spmsize:Int, spmwidth:Int, slotwidth:Int = 1) extends Module {
+  class TDMSPM(corecnt:Int, spmsize:Int, spmwidth:Int) extends Module {
 
     val spm = Module(new SPM(spmsize,spmwidth))
     override val io = new IOTDMSPM(corecnt,spm.io.addr.getWidth,spm.io.datain.getWidth)
 
-    val widthcnt = Reg(init = UInt(0, log2Up(slotwidth)))
-    when(widthcnt === UInt(slotwidth-1)) {
-      widthcnt := UInt(0)
-    }.otherwise {
-      widthcnt := widthcnt + UInt(1)
-    }
-
-    val cur = SPMPool.roundRobinArbiterO(io.sched, widthcnt === UInt(slotwidth-1))
+    val cur = SPMPool.roundRobinArbiterO(io.sched, Bool(true))
 
     spm.io.addr := io.cores(cur).addr
     spm.io.datain := io.cores(cur).datain
@@ -132,14 +126,14 @@ object SPMPool {
     io.dataout := spm.io.dataout
     for(i <- 0 until corecnt)
     {
-      io.cores(i).rdy := Reg(next = cur === UInt(i))
+      io.cores(i).rdy := Reg(next = (cur === i.U) && (io.cores(i).rd || io.cores(i).wr))
     }
   }
 }
 
-class SPMPool(corecnt:Int, spmcnt:Int, spmsize:Int, spmwidth:Int, tdmslotwidth:Int = 1) extends Module {
+class SPMPool(corecnt:Int, spmcnt:Int, spmsize:Int, spmwidth:Int) extends Module {
 
-  val spms = (0 until spmcnt).map(e => Module(new SPMPool.TDMSPM(corecnt, spmsize, spmwidth, tdmslotwidth)))
+  val spms = (0 until spmcnt).map(e => Module(new SPMPool.TDMSPM(corecnt, spmsize, spmwidth)))
 
   val spmios = Vec(spms.map(e => e.io))
   val spmscheds = Vec(spms.map(e => {
@@ -152,96 +146,81 @@ class SPMPool(corecnt:Int, spmcnt:Int, spmsize:Int, spmwidth:Int, tdmslotwidth:I
 
   override val io = new SPMPool.IOSPMPool(corecnt,addrwidth,spms(0).spm.io.datain.getWidth)
 
-
-  for(i <- 0 until corecnt)
-  {
-    io(i).dataout := SInt(-1)
-    io(i).rdy := UInt(0)
-
-    for(j <- 0 until spmcnt)
-    {
-      spms(j).io.cores(i).addr := io(i).addr
-      spms(j).io.cores(i).datain := io(i).datain
-
-      val sel = io(i).addr(addrwidth-1, addrwidth-spmaddrwidth) === UInt(j+1)
-      val selReg = Reg(next = sel)
-
-      spms(j).io.cores(i).wr := Mux(sel, io(i).wr, Bool(false))
-
-      // We delay the address used for the output
-      when(selReg) {
-        io(i).dataout := spms(j).io.dataout
-        io(i).rdy := spms(j).io.cores(i).rdy
-      }
-    }
-  }
-
   val avails = Reverse(Cat(spmscheds.map(e => !orR(e))))
   val nxtavail = PriorityEncoder(avails)
   val anyavail = orR(avails)
 
   val cur = SPMPool.counter(corecnt)
-  val curio = io(cur)
 
+  for(i <- 0 until corecnt)
+  {
+    val curaddrhi = io(i).addr(addrwidth-1, addrwidth-spmaddrwidth)
+    val curaddrlo = io(i).addr(addrwidth-spmaddrwidth-1, 2)
 
-  val cursel = curio.addr(addrwidth-1, addrwidth-spmaddrwidth) === UInt(0)
-  val curselReg = Reg(next = cursel)
-  val curaddrlo = curio.addr(addrwidth-spmaddrwidth-1, 0)
+    io(i).rdy := Bool(false)
+    io(i).dataout := -1.S
 
-  val dataoutReg = Reg(curio.dataout)
-  val rdyReg = Reg(curio.rdy)
-
-  when(cursel) {
-    rdyReg := Bool(true)
-    when(curio.rd && curaddrlo === UInt(0)) {
-      when(anyavail) {
-        dataoutReg := nxtavail
-        spmscheds(nxtavail) := UIntToOH(cur)
+    when(curaddrhi === ((1 << curaddrhi.getWidth())-1).U) {
+      when(cur === i.U) {
+        io(i).rdy := io(i).rd || io(i).wr
+        when(io(i).rd && curaddrlo === ((1 << curaddrlo.getWidth())-1).U) {
+          when(anyavail) {
+            io(i).dataout := nxtavail
+            spmscheds(nxtavail) := UIntToOH(cur)
+          }
+        }.otherwise {
+          when(io(i).wr) {
+            spmscheds(curaddrlo) := io(i).datain
+          }.otherwise {
+            io(i).dataout := spmscheds(curaddrlo)
+          }
+        }
       }
     }.otherwise {
-      when(curio.wr) {
-        spmscheds(curaddrlo >> 1) := curio.datain
-      }.otherwise {
-        dataoutReg := spmscheds(curaddrlo >> 1)
-      }
+      io(i).dataout := spmios(curaddrhi).dataout
+      io(i).rdy := spmios(curaddrhi).cores(i).rdy
     }
-  }
 
-  val lst = Reg(next = cur)
-  val lstio = io(lst)
-
-  when(curselReg) {
-    lstio.rdy := rdyReg
-    lstio.dataout := dataoutReg
+    for(j <- 0 until spmcnt)
+    {
+      spms(j).io.cores(i).addr := io(i).addr(addrwidth-spmaddrwidth-1, 0)
+      spms(j).io.cores(i).datain := io(i).datain
+      spms(j).io.cores(i).wr := Mux(curaddrhi === j.U && !spms(j).io.cores(i).rdy, io(i).wr, Bool(false))
+      spms(j).io.cores(i).rd := Mux(curaddrhi === j.U && !spms(j).io.cores(i).rdy, io(i).rd, Bool(false))
+    }
   }
 }
 
-class SPMPoolOCPWrapper(corecnt:Int, spmcnt:Int, spmsize:Int, spmwidth:Int, tdmslotwidth:Int = 1) extends Module {
+class SPMPoolOCPWrapper(corecnt:Int, spmcnt:Int, spmsize:Int, spmwidth:Int) extends Module {
 
-  val pool = Module(new SPMPool(corecnt,spmcnt,spmsize,spmwidth,tdmslotwidth))
+  val pool = Module(new SPMPool(corecnt,spmcnt,spmsize,spmwidth))
 
   override val io = Vec(corecnt, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))
 
   for (i <- 0 until corecnt) {
 
-    pool.io(i).rd := io(i).M.Cmd === OcpCmd.RD
-    pool.io(i).wr := io(i).M.Cmd === OcpCmd.WR
-    pool.io(i).addr := io(i).M.Addr
-    pool.io(i).datain := io(i).M.Data
+    val cmdReg = Reg(io(i).M.Cmd)
+    val addrReg = Reg(io(i).M.Addr)
+    val dataReg = Reg(io(i).M.Data)
+
+    pool.io(i).rd := cmdReg === OcpCmd.RD
+    pool.io(i).wr := cmdReg === OcpCmd.WR
+    pool.io(i).addr := addrReg
+    pool.io(i).datain := dataReg
     io(i).S.Data := pool.io(i).dataout
 
-    val req = Reg(init = Bool(false))
-
-    when(io(i).M.Cmd === OcpCmd.RD || io(i).M.Cmd === OcpCmd.WR) {
-      req := Bool(true)
-    }.elsewhen(req && pool.io(i).rdy) {
-      req := Bool(false)
-    }
 
     io(i).S.Resp := OcpResp.NULL
-    when(req && pool.io(i).rdy) {
-      io(i).S.Resp := OcpResp.DVA
-    }
 
+    when(cmdReg === OcpCmd.IDLE) {
+      cmdReg := io(i).M.Cmd
+      addrReg := io(i).M.Addr
+      dataReg := io(i).M.Data
+    }.elsewhen(pool.io(i).rdy) {
+      io(i).S.Resp := OcpResp.DVA
+      cmdReg := io(i).M.Cmd
+      addrReg := io(i).M.Addr
+      dataReg := io(i).M.Data
+    }
   }
 }
