@@ -1,6 +1,5 @@
 /*
-    This is a multithread producer-consumer data-flow application 
-    for a single shared SPM with TDM access.
+    This is a multithread producer-consumer data-flow application for shared SPMs with ownership.
 
     Author: Oktay Baris
     Copyright: DTU, BSD License
@@ -12,18 +11,23 @@
 #include "libcorethread/corethread.h"
 
 #define DATA_LEN 4096 // words
-#define BUFFER_SIZE 512 // words
-#define CNT 4 //cores
-#define STATUS ((CNT-1)*2) // no of status flags
+#define BUFFER_SIZE 512 //words
+#define CNT 4
 
+#define NEXT 0x10000/4 // SPMs are placed every 64 KB 
 
-volatile int _SPM *spm_ptr = (( volatile int _SPM *)0xE8000000);
+volatile int _SPM *spm_ptr = (( volatile _SPM int *)0xE8000000);
 
 // Measure execution time with the clock cycle timer
 volatile _IODEV int *timer_ptr = (volatile _IODEV int *) (PATMOS_IO_TIMER+4);
 volatile _UNCACHED int start=0;
 volatile _UNCACHED int stop=0;
 volatile _UNCACHED int timeStamps[3]={0};
+
+//Status pointers in the main memory
+volatile _UNCACHED int status[(CNT-1)*2]={0};
+
+volatile _UNCACHED int owner;
 
 
 // Producer
@@ -32,8 +36,8 @@ void producer() {
   volatile int _SPM  *outbuffer1_ptr;
   volatile int _SPM  *outbuffer2_ptr;
 
-  volatile int _SPM *data_ready= &spm_ptr[0];  
-  volatile int _SPM *data_valid= &spm_ptr[1];  
+  volatile _UNCACHED  int *data_ready= &status[0];  
+  volatile _UNCACHED  int *data_valid= &status[1];  
 
   int id = get_cpuid();
   int cnt = get_cpucnt();
@@ -42,12 +46,15 @@ void producer() {
 
   while(i<(DATA_LEN/(BUFFER_SIZE*2))){
 
-      if( *data_valid == *data_ready){
+      if( (id == owner) && (*data_ready == *data_valid)){
 
-          outbuffer1_ptr = &spm_ptr[STATUS+0];
-          outbuffer2_ptr = &spm_ptr[STATUS+BUFFER_SIZE];
+         // printf("The owner2 is %d \n", owner);
+
+          outbuffer1_ptr = &spm_ptr[NEXT*id];
+          outbuffer2_ptr = &spm_ptr[NEXT*(id+1)];
         
-          timeStamps[0] = *timer_ptr;
+           //Producer starting time stamp
+          if(i==0){timeStamps[0] = *timer_ptr;}
 
           //producing data for the buffer 1
           for ( int j = 0; j < BUFFER_SIZE; j++ ) {
@@ -59,14 +66,24 @@ void producer() {
               *outbuffer2_ptr++ = 2 ; // produce data
           }
 
+          //Producer finishing time stamp
+          if(i==(DATA_LEN/(BUFFER_SIZE*2))-1){timeStamps[1] = *timer_ptr;}
+
           *data_ready = !(*data_ready);
           i++;
-               
+
+          // transfer the ownership to the next core
+          if (id < cnt - 1) {
+                ++owner;
+          } else {
+                owner = 0;
+          }         
       }
 
   }
-
-  timeStamps[1] = *timer_ptr;
+  //Producer finishing time stamp
+  //timeStamps[1] = *timer_ptr;
+  
 
   return;
 }
@@ -79,12 +96,12 @@ void intermediate(void *arg){
     int id = get_cpuid();
     int cnt = get_cpucnt();
 
-    //flag pointers for reading
-    volatile int _SPM *data_valid0= &spm_ptr[(id-1)*2];
-    volatile int _SPM *data_ready0= &spm_ptr[(id-1)*2+1];
+    //mem flag pointers for reading
+    volatile _UNCACHED int *data_valid0= &status[(id-1)*2];
+    volatile _UNCACHED int *data_ready0= &status[(id-1)*2+1];
 
-    volatile int _SPM *data_ready1= &spm_ptr[(id-1)*2+2];
-    volatile int _SPM *data_valid1= &spm_ptr[(id-1)*2+3];
+    volatile _UNCACHED int *data_ready1= &status[(id-1)*2+2];
+    volatile _UNCACHED int *data_valid1= &status[(id-1)*2+3];
 
     //buffer pointers
     volatile int _SPM  *inbuffer1_ptr;
@@ -96,13 +113,12 @@ void intermediate(void *arg){
 
     while(i<(DATA_LEN/(BUFFER_SIZE*2))){
 
-        if( (*data_ready0 != *data_valid0 ) && (*data_ready1 == *data_valid1) ){
+        if( (id == owner) && ((*data_ready0 != *data_valid0 ) && (*data_ready1 == *data_valid1)) ){
 
-
-          inbuffer1_ptr = &spm_ptr[STATUS+BUFFER_SIZE*(id-1)*2];
-          inbuffer2_ptr = &spm_ptr[STATUS+BUFFER_SIZE*(id-1)*2+BUFFER_SIZE];
-          outbuffer1_ptr = &spm_ptr[STATUS+BUFFER_SIZE*(id-1)*2+BUFFER_SIZE*2];
-          outbuffer2_ptr = &spm_ptr[STATUS+BUFFER_SIZE*(id-1)*2+BUFFER_SIZE*3];
+          inbuffer1_ptr = &spm_ptr[2*NEXT*(id-1)];
+          inbuffer2_ptr = &spm_ptr[2*NEXT*(id-1)+NEXT];
+          outbuffer1_ptr = &spm_ptr[2*NEXT*(id-1)+NEXT*2];
+          outbuffer2_ptr = &spm_ptr[2*NEXT*(id-1)+NEXT*3];
 
           //producing data for the buffer 1
           for ( int j = 0; j < BUFFER_SIZE; j++ ) {
@@ -114,10 +130,18 @@ void intermediate(void *arg){
               *outbuffer2_ptr++ = *inbuffer2_ptr++ +2 ; // produce data
           }
 
+          // update the flags
           *data_ready1 =  !(*data_ready1);
           *data_ready0 =  !(*data_ready0);
+          //for the time being for flow control
           i++;
-        
+
+          // transfer the ownership to the next core
+          if (id < cnt - 1) {
+                ++owner;
+          } else {
+                owner = 0;
+          }
          
       }
 
@@ -136,22 +160,25 @@ void consumer(void *arg) {
   int id = get_cpuid();
   int cnt = get_cpucnt();
 
-  volatile int _SPM *data_ready= &spm_ptr[(id-1)*2];  
-  volatile int _SPM *data_valid= &spm_ptr[(id-1)*2+1]; 
+  //flag pointers
+  volatile _UNCACHED int *data_ready= &status[(id-1)*2];  
+  volatile _UNCACHED int *data_valid= &status[(id-1)*2+1]; 
 
   // this region of the SPM  is used for debugging
-  output_ptr= &spm_ptr[STATUS+BUFFER_SIZE*2*(cnt-1)];
+  output_ptr= &spm_ptr[NEXT*(cnt+2)];
 
   int i=0; 
-  while(i<(DATA_LEN/(BUFFER_SIZE*2))){
+  while( i<(DATA_LEN/(BUFFER_SIZE*2))){
 
-      if( *data_ready != *data_valid){
+      if( (id == owner) && (*data_ready != *data_valid)){
 
-        inbuffer1_ptr = &spm_ptr[STATUS+BUFFER_SIZE*(id-1)*2];
-        inbuffer2_ptr = &spm_ptr[STATUS+BUFFER_SIZE*(id-1)*2+BUFFER_SIZE];
+        inbuffer1_ptr = &spm_ptr[2*NEXT*(id-1)];
+        inbuffer2_ptr = &spm_ptr[2*NEXT*(id-1)+NEXT];
         
         //Consumer starting time stamp
-        if(i==0){timeStamps[2] = *timer_ptr;}
+        if(i==0){
+            timeStamps[2] = *timer_ptr;
+            }
 
         //consuming data from the buffer 1
         for ( int j = 0; j < BUFFER_SIZE; j++ ) {
@@ -163,9 +190,20 @@ void consumer(void *arg) {
             *output_ptr++ = (*inbuffer2_ptr++) -2;
         }
 
+        //Consumer finishing time stamp
+        if(i==(DATA_LEN/(BUFFER_SIZE*2))-1){
+            timeStamps[3] = *timer_ptr;
+            }
+
         *data_valid = !(*data_valid);
-        i++;  
-        
+        i++; 
+
+        // transfer the ownership to the next core
+        if (id < (cnt-1)){
+            owner++;
+        }else{
+            owner=0;
+        }      
       }
 
   }
@@ -181,17 +219,14 @@ int main() {
 
   unsigned i,j;
 
- //set the status flags to 0
-  for(int i=0;i<STATUS;++i){
-    spm_ptr[i]=0;
-  }
-
-  int id = get_cpuid(); 
+  int id = get_cpuid(); // id=0
   int cnt = get_cpucnt();
+
+  owner = 0; //initially core 0 is the owner
 
   int parameter = 1;
 
-  printf("Total %d Cores\n",get_cpucnt()); 
+  printf("Total %d Cores\n",get_cpucnt()); // print core count
 
 
   for (i=1; i<cnt-1; ++i) {
@@ -201,11 +236,10 @@ int main() {
     printf("thread %d is created \n",i); 
   }
 
-  corethread_create(cnt-1, &consumer, &parameter);
+    corethread_create(cnt-1, &consumer, &parameter); 
+    producer();
 
-  producer();
-
- 
+  
     
 
   for(j=1; j<cnt; ++j) { 
@@ -223,7 +257,7 @@ int main() {
   printf("The Consumer finishes at %d \n", timeStamps[3]);   
   printf("The end-to-end latency is  %d clock cycles \n", timeStamps[3]-timeStamps[0]);
 
-  for (int i=0; i<+STATUS+BUFFER_SIZE*2*(cnt-1)+DATA_LEN; ++i) {
+  for (int i=0; i<BUFFER_SIZE*2*(cnt-1)+DATA_LEN; ++i) {
         printf("The Output Data %d is %d \n",i, spm_ptr[i]);
    }
   

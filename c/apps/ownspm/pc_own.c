@@ -1,6 +1,5 @@
 /*
-    This is a multithread producer-consumer application 
-    for a single shared SPM with TDM access.
+    This is a multithread producer-consumer application for shared SPMs with ownership.
 
     Author: Oktay Baris
     Copyright: DTU, BSD License
@@ -11,8 +10,10 @@
 #include "include/patio.h"
 #include "libcorethread/corethread.h"
 
-#define DATA_LEN  4096 // words
+#define DATA_LEN 4096 // words
 #define BUFFER_SIZE 512 // 32 words
+
+#define NEXT 0x10000/4 // SPMs are placed every 64 KB 
 
 volatile int _SPM *spm_ptr = (( volatile _SPM int *)0xE8000000);
 
@@ -20,10 +21,10 @@ volatile int _SPM *spm_ptr = (( volatile _SPM int *)0xE8000000);
 volatile _IODEV int *timer_ptr = (volatile _IODEV int *) (PATMOS_IO_TIMER+4);
 volatile _UNCACHED int start=0;
 volatile _UNCACHED int stop=0;
-volatile _UNCACHED int timeStamps[3]={0};
-
+volatile _UNCACHED int timeStamps[4]={0};
 //flags
-volatile int _SPM *data_ready;
+volatile _UNCACHED int data_ready;
+volatile _UNCACHED int owner;
 
 // Producer
 void producer() {
@@ -31,21 +32,18 @@ void producer() {
   volatile int _SPM  *buffer1_ptr;
   volatile int _SPM  *buffer2_ptr;
 
-  data_ready=&spm_ptr[0];
-
   int id = get_cpuid();
   int cnt = get_cpucnt();
 
-  int i=0; 
+  int i=0;
 
   while(i<DATA_LEN/(BUFFER_SIZE*2)){
 
+      if( (id == owner) && (data_ready == 0)){
 
-      if( *data_ready == 0){
-
-          buffer1_ptr = &spm_ptr[1];
-          buffer2_ptr = &spm_ptr[1+BUFFER_SIZE];
-
+          buffer1_ptr = &spm_ptr[NEXT*id];
+          buffer2_ptr = &spm_ptr[NEXT*(id+1)];
+        
           //Producer starting time stamp
           if(i==0){timeStamps[0] = *timer_ptr;}
 
@@ -58,13 +56,19 @@ void producer() {
           for ( int j = 0; j < BUFFER_SIZE; j++ ) {
               *buffer2_ptr++ = 2 ; // produce data
           }
-
+          
           //Producer finishing time stamp
           if(i==(DATA_LEN/(BUFFER_SIZE*2))-1){timeStamps[1] = *timer_ptr;}
 
-          *data_ready =  1;
+          data_ready = 1;
 
           i++;
+          // transfer the ownership to the next core
+          if (id == 0) {
+                ++owner;
+          } else {
+                owner = 0;
+          }
       }
 
   }
@@ -79,23 +83,21 @@ void consumer(void *arg) {
 
   volatile int _SPM  *output_ptr, *buffer1_ptr,*buffer2_ptr;
 
-  // this region of the SPM  is used for debugging
-  output_ptr= &spm_ptr[DATA_LEN];
-  
-  data_ready=&spm_ptr[0];
-
-
   int id = get_cpuid();
   int cnt = get_cpucnt();
 
+  // this region of the SPM  is used for debugging
+  output_ptr= &spm_ptr[NEXT*(id+1)];
 
   int i=0; 
+
   while(i<DATA_LEN/(BUFFER_SIZE*2)){
 
-      if( *data_ready == 1){
 
-        buffer1_ptr = &spm_ptr[1];
-        buffer2_ptr = &spm_ptr[1+BUFFER_SIZE];
+      if( (id == owner) && (data_ready == 1)){
+
+        buffer1_ptr = &spm_ptr[NEXT*(id-1)];
+        buffer2_ptr = &spm_ptr[NEXT*(id)];
         
         //Consumer starting time stamp
         if(i==0){timeStamps[2] = *timer_ptr;}
@@ -105,22 +107,29 @@ void consumer(void *arg) {
             *output_ptr++ = (*buffer1_ptr++) +1;
         }
 
-    
         //consuming data from the buffer 2
         for ( int j = 0; j < BUFFER_SIZE; j++ ) {
             *output_ptr++ = (*buffer2_ptr++) +2;
         }
+        
+        //Consumer finishing time stamp
+        if(i==(DATA_LEN/(BUFFER_SIZE*2))-1){timeStamps[3] = *timer_ptr;}
 
-        *data_ready = 0;
+        data_ready = 0;
 
         i++;
+
+         // transfer the ownership to the next core
+          if (id == 0) {
+                ++owner;
+          } else {
+                owner = 0;
+          }
       }
 
   }
-
    //Consumer finishing time stamp
-   timeStamps[3] = *timer_ptr;
-
+   //timeStamps[3] = *timer_ptr;
   return;
 }
 
@@ -132,24 +141,32 @@ int main() {
 
   data_ready=0;
 
-  int id = get_cpuid(); // id=0
+  int id = get_cpuid(); 
   int cnt = get_cpucnt();
+
+  owner = 0; //initially core 0 is the owner
 
   int parameter = 1;
 
   printf("Total %d Cores\n",get_cpucnt()); // print core count
 
+  printf("Writing the data to the SPM ...\n"); 
+
+
   corethread_create(1, &consumer, &parameter); 
   producer();  
+
   corethread_join(1,&parameter);
 
   printf("Computation is Done !!\n");
 
   //Debug
+
   printf("The Producer starts at %d \n", timeStamps[0]);
   printf("The Producer finishes at %d \n", timeStamps[1]);
   printf("The Consumer starts at %d \n", timeStamps[2]);
   printf("The Consumer finishes at %d \n", timeStamps[3]);
+
 
   for (int i=0; i<DATA_LEN*2; ++i) {
         printf("The Output Data %d is %d \n",i, spm_ptr[i]);
