@@ -10,8 +10,8 @@
 #include "include/patio.h"
 #include "libcorethread/corethread.h"
 
-#define DATA_LEN 20 // 256 words
-#define BUFFER_SIZE 5 //32 words
+#define DATA_LEN 256 // 256 words
+#define BUFFER_SIZE 32 //32 words
 #define CNT 4 //cores
 #define STATUS ((CNT-1)*2) // no of status flags
 
