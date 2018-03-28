@@ -11,10 +11,11 @@
 #include "include/patio.h"
 #include "libcorethread/corethread.h"
 
-#define DATA_LEN 4096 // words
-#define BUFFER_SIZE 512 // words
+#define DATA_LEN 1024 // words
+#define BUFFER_SIZE 256 // words
 #define CNT 4 //cores
-#define STATUS ((CNT-1)*2) // no of status flags
+#define B1_STATUS ((CNT-1)*2) // no of status flags for buffer1
+#define STATUS (B1_STATUS*2) // no of status flags
 
 
 volatile int _SPM *spm_ptr = (( volatile int _SPM *)0xE8000000);
@@ -23,49 +24,62 @@ volatile int _SPM *spm_ptr = (( volatile int _SPM *)0xE8000000);
 volatile _IODEV int *timer_ptr = (volatile _IODEV int *) (PATMOS_IO_TIMER+4);
 volatile _UNCACHED int start=0;
 volatile _UNCACHED int stop=0;
-volatile _UNCACHED int timeStamps[3]={0};
+volatile _UNCACHED int timeStamps[4]={0};
 
 
 // Producer
 void producer() {
 
+  // pointers to buffers
   volatile int _SPM  *outbuffer1_ptr;
   volatile int _SPM  *outbuffer2_ptr;
 
-  volatile int _SPM *data_ready= &spm_ptr[0];  
-  volatile int _SPM *data_valid= &spm_ptr[1];  
+  // pointers to status flags for buffer 1
+  volatile int _SPM *b1_ready= &spm_ptr[0];  
+  volatile int _SPM *b1_valid= &spm_ptr[1];  
+  //flag pointers for buffer 2
+  volatile int _SPM *b2_ready= &spm_ptr[B1_STATUS+0];  
+  volatile int _SPM *b2_valid= &spm_ptr[B1_STATUS+1]; 
 
   int id = get_cpuid();
   int cnt = get_cpucnt();
 
   int i=0; 
 
-  while(i<(DATA_LEN/(BUFFER_SIZE*2))){
+  while(i<DATA_LEN/BUFFER_SIZE){
 
-      if( *data_valid == *data_ready){
+      outbuffer1_ptr = &spm_ptr[STATUS+0];
+      outbuffer2_ptr = &spm_ptr[STATUS+BUFFER_SIZE];
 
-          outbuffer1_ptr = &spm_ptr[STATUS+0];
-          outbuffer2_ptr = &spm_ptr[STATUS+BUFFER_SIZE];
-        
-          timeStamps[0] = *timer_ptr;
+      if( *b1_valid == *b1_ready){
+ 
+         //Producer starting time stamp
+         if(i==0){timeStamps[0] = *timer_ptr;}
 
           //producing data for the buffer 1
           for ( int j = 0; j < BUFFER_SIZE; j++ ) {
               *outbuffer1_ptr++ = 1 ; // produce data
           }
+         // flip the data ready flag for buffer 1
+          *b1_ready = !(*b1_ready);
+          i++;
+
+      }
+
+      if( *b2_valid == *b2_ready){
           
           //producing data for the buffer 2
           for ( int j = 0; j < BUFFER_SIZE; j++ ) {
               *outbuffer2_ptr++ = 2 ; // produce data
           }
-
-          *data_ready = !(*data_ready);
+          // flip the data ready flag for buffer 2
+          *b2_ready = !(*b2_ready);
           i++;
                
       }
 
   }
-
+//producer finishing time stamp
   timeStamps[1] = *timer_ptr;
 
   return;
@@ -79,12 +93,17 @@ void intermediate(void *arg){
     int id = get_cpuid();
     int cnt = get_cpucnt();
 
-    //flag pointers for reading
-    volatile int _SPM *data_valid0= &spm_ptr[(id-1)*2];
-    volatile int _SPM *data_ready0= &spm_ptr[(id-1)*2+1];
+    //flag pointers for buffer 1
+    volatile int _SPM *b1_valid0= &spm_ptr[(id-1)*2];
+    volatile int _SPM *b1_ready0= &spm_ptr[(id-1)*2+1];
+    volatile int _SPM *b1_ready1= &spm_ptr[(id-1)*2+2];
+    volatile int _SPM *b1_valid1= &spm_ptr[(id-1)*2+3];
 
-    volatile int _SPM *data_ready1= &spm_ptr[(id-1)*2+2];
-    volatile int _SPM *data_valid1= &spm_ptr[(id-1)*2+3];
+    //flag pointers for buffer 2
+    volatile int _SPM *b2_valid0= &spm_ptr[B1_STATUS+(id-1)*2];
+    volatile int _SPM *b2_ready0= &spm_ptr[B1_STATUS+(id-1)*2+1];
+    volatile int _SPM *b2_ready1= &spm_ptr[B1_STATUS+(id-1)*2+2];
+    volatile int _SPM *b2_valid1= &spm_ptr[B1_STATUS+(id-1)*2+3];
 
     //buffer pointers
     volatile int _SPM  *inbuffer1_ptr;
@@ -94,31 +113,39 @@ void intermediate(void *arg){
 
     int i=0; 
 
-    while(i<(DATA_LEN/(BUFFER_SIZE*2))){
+    while(i<DATA_LEN/BUFFER_SIZE){
 
-        if( (*data_ready0 != *data_valid0 ) && (*data_ready1 == *data_valid1) ){
+        inbuffer1_ptr = &spm_ptr[STATUS+BUFFER_SIZE*(id-1)*2];
+        inbuffer2_ptr = &spm_ptr[STATUS+BUFFER_SIZE*(id-1)*2+BUFFER_SIZE];
+        outbuffer1_ptr = &spm_ptr[STATUS+BUFFER_SIZE*(id-1)*2+BUFFER_SIZE*2];
+        outbuffer2_ptr = &spm_ptr[STATUS+BUFFER_SIZE*(id-1)*2+BUFFER_SIZE*3];
 
+        if( (*b1_ready0 != *b1_valid0 ) && (*b1_ready1 == *b1_valid1) ){
 
-          inbuffer1_ptr = &spm_ptr[STATUS+BUFFER_SIZE*(id-1)*2];
-          inbuffer2_ptr = &spm_ptr[STATUS+BUFFER_SIZE*(id-1)*2+BUFFER_SIZE];
-          outbuffer1_ptr = &spm_ptr[STATUS+BUFFER_SIZE*(id-1)*2+BUFFER_SIZE*2];
-          outbuffer2_ptr = &spm_ptr[STATUS+BUFFER_SIZE*(id-1)*2+BUFFER_SIZE*3];
-
-          //producing data for the buffer 1
-          for ( int j = 0; j < BUFFER_SIZE; j++ ) {
-              *outbuffer1_ptr++ = *inbuffer1_ptr++ +1 ; // produce data
-          }
-          
-          //producing data for the buffer 2
-          for ( int j = 0; j < BUFFER_SIZE; j++ ) {
-              *outbuffer2_ptr++ = *inbuffer2_ptr++ +2 ; // produce data
-          }
-
-          *data_ready1 =  !(*data_ready1);
-          *data_ready0 =  !(*data_ready0);
-          i++;
+                //producing data for the buffer 1
+                for ( int j = 0; j < BUFFER_SIZE; j++ ) {
+                    *outbuffer1_ptr++ = *inbuffer1_ptr++ +1 ; // produce data
+                }
         
-         
+        // flip the flags for buffer 1
+        *b1_ready1 =  !(*b1_ready1);
+        *b1_ready0 =  !(*b1_ready0);
+        i++;
+          
+        }
+
+
+        if( (*b2_ready0 != *b2_valid0 ) && (*b2_ready1 == *b2_valid1) ){
+                //producing data for the buffer 2
+                for ( int j = 0; j < BUFFER_SIZE; j++ ) {
+                    *outbuffer2_ptr++ = *inbuffer2_ptr++ +2 ; // produce data
+                }
+
+        // flip the flag for buffer 2
+        *b2_ready1 =  !(*b2_ready1);
+        *b2_ready0 =  !(*b2_ready0);
+        i++;
+        
       }
 
     }
@@ -136,34 +163,50 @@ void consumer(void *arg) {
   int id = get_cpuid();
   int cnt = get_cpucnt();
 
-  volatile int _SPM *data_ready= &spm_ptr[(id-1)*2];  
-  volatile int _SPM *data_valid= &spm_ptr[(id-1)*2+1]; 
+  //flag pointers for buffer 1
+  volatile int _SPM *b1_ready= &spm_ptr[(id-1)*2];  
+  volatile int _SPM *b1_valid= &spm_ptr[(id-1)*2+1]; 
+
+  //flag pointers for buffer 2
+  volatile int _SPM *b2_ready= &spm_ptr[B1_STATUS+(id-1)*2];  
+  volatile int _SPM *b2_valid= &spm_ptr[B1_STATUS+(id-1)*2+1];
 
   // this region of the SPM  is used for debugging
   output_ptr= &spm_ptr[STATUS+BUFFER_SIZE*2*(cnt-1)];
 
-  int i=0; 
-  while(i<(DATA_LEN/(BUFFER_SIZE*2))){
+  int i=0;
+  int sum=0
 
-      if( *data_ready != *data_valid){
+  while(i<DATA_LEN/BUFFER_SIZE){
 
-        inbuffer1_ptr = &spm_ptr[STATUS+BUFFER_SIZE*(id-1)*2];
-        inbuffer2_ptr = &spm_ptr[STATUS+BUFFER_SIZE*(id-1)*2+BUFFER_SIZE];
-        
+    inbuffer1_ptr = &spm_ptr[STATUS+BUFFER_SIZE*(id-1)*2];
+    inbuffer2_ptr = &spm_ptr[STATUS+BUFFER_SIZE*(id-1)*2+BUFFER_SIZE];
+
+    if( *b1_ready != *b1_valid){
+
         //Consumer starting time stamp
         if(i==0){timeStamps[2] = *timer_ptr;}
 
         //consuming data from the buffer 1
         for ( int j = 0; j < BUFFER_SIZE; j++ ) {
-            *output_ptr++ = (*inbuffer1_ptr++) -1;
+            sum += (*inbuffer1_ptr++);
         }
+
+        // flip the flag for buffer 1
+        *b1_valid = !(*b1_valid);
+        i++; 
+
+
+    }
+
+    if( *b2_ready != *b2_valid){
         
         //consuming data from the buffer 2
         for ( int j = 0; j < BUFFER_SIZE; j++ ) {
-            *output_ptr++ = (*inbuffer2_ptr++) -2;
+            sum += (*inbuffer2_ptr++);
         }
-
-        *data_valid = !(*data_valid);
+        // flip the flag for buffer 2
+        *b2_valid = !(*b2_valid);
         i++;  
         
       }
@@ -221,7 +264,8 @@ int main() {
   printf("The Producer finishes at %d \n", timeStamps[1]);
   printf("The Consumer starts at %d \n", timeStamps[2]);
   printf("The Consumer finishes at %d \n", timeStamps[3]);   
-  printf("The end-to-end latency is  %d clock cycles \n", timeStamps[3]-timeStamps[0]);
+  printf("The Latency is %d clock cycles for %d words of bulk data\n", timeStamps[2]-timeStamps[0],DATA_LEN);
+
 
   for (int i=0; i<+STATUS+BUFFER_SIZE*2*(cnt-1)+DATA_LEN; ++i) {
         printf("The Output Data %d is %d \n",i, spm_ptr[i]);

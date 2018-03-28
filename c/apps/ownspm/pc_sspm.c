@@ -95,8 +95,9 @@ void consumer(void *arg) {
   int id = get_cpuid();
   int cnt = get_cpucnt();
 
-
+  int sum=0;
   int i=0; 
+
   while(i<DATA_LEN/(BUFFER_SIZE)){
 
       buffer1_ptr = &spm_ptr[2];
@@ -109,7 +110,7 @@ void consumer(void *arg) {
 
         //consuming data from the buffer 1
         for ( int j = 0; j < BUFFER_SIZE; j++ ) {
-            *output_ptr++ = (*buffer1_ptr++) +1;
+            sum += (*buffer1_ptr++);
         }
         // lower the data ready flag for buffer 1
         *data_ready1 = 0;
@@ -120,7 +121,7 @@ void consumer(void *arg) {
     
         //consuming data from the buffer 2
         for ( int j = 0; j < BUFFER_SIZE; j++ ) {
-            *output_ptr++ = (*buffer2_ptr++) +2;
+            sum += (*buffer2_ptr++);
         }
         // lower the data ready flag for buffer 2
         *data_ready2 = 0;
@@ -155,12 +156,15 @@ int main() {
 
   printf("Computation is Done !!\n");
 
-  //Debug
+  //Latencu
   printf("The Producer starts at %d \n", timeStamps[0]);
   printf("The Producer finishes at %d \n", timeStamps[1]);
   printf("The Consumer starts at %d \n", timeStamps[2]);
   printf("The Consumer finishes at %d \n", timeStamps[3]);
+  printf("The Latency is %d clock cycles for %d words of bulk data\n", timeStamps[2]-timeStamps[0],DATA_LEN);
 
+
+  //Debug : screen output data
   for (int i=0; i<DATA_LEN*2; ++i) {
         printf("The Output Data %d is %d \n",i, spm_ptr[i]);
    }
