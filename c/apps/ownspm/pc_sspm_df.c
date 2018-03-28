@@ -11,12 +11,11 @@
 #include "include/patio.h"
 #include "libcorethread/corethread.h"
 
-#define DATA_LEN 1024 // words
-#define BUFFER_SIZE 256 // words
+#define DATA_LEN 4096 // words
+#define BUFFER_SIZE 128 // a buffer size of 128W requires 3M spm size for 4 cores
 #define CNT 4 //cores
 #define B1_STATUS ((CNT-1)*2) // no of status flags for buffer1
 #define STATUS (B1_STATUS*2) // no of status flags
-
 
 volatile int _SPM *spm_ptr = (( volatile int _SPM *)0xE8000000);
 
@@ -25,7 +24,6 @@ volatile _IODEV int *timer_ptr = (volatile _IODEV int *) (PATMOS_IO_TIMER+4);
 volatile _UNCACHED int start=0;
 volatile _UNCACHED int stop=0;
 volatile _UNCACHED int timeStamps[4]={0};
-
 
 // Producer
 void producer() {
@@ -40,9 +38,6 @@ void producer() {
   //flag pointers for buffer 2
   volatile int _SPM *b2_ready= &spm_ptr[B1_STATUS+0];  
   volatile int _SPM *b2_valid= &spm_ptr[B1_STATUS+1]; 
-
-  int id = get_cpuid();
-  int cnt = get_cpucnt();
 
   int i=0; 
 
@@ -63,7 +58,6 @@ void producer() {
          // flip the data ready flag for buffer 1
           *b1_ready = !(*b1_ready);
           i++;
-
       }
 
       if( *b2_valid == *b2_ready){
@@ -74,24 +68,18 @@ void producer() {
           }
           // flip the data ready flag for buffer 2
           *b2_ready = !(*b2_ready);
-          i++;
-               
+          i++;           
       }
-
   }
 //producer finishing time stamp
   timeStamps[1] = *timer_ptr;
-
   return;
 }
-
-
 
 //intermediate
 void intermediate(void *arg){
 
     int id = get_cpuid();
-    int cnt = get_cpucnt();
 
     //flag pointers for buffer 1
     volatile int _SPM *b1_valid0= &spm_ptr[(id-1)*2];
@@ -105,7 +93,7 @@ void intermediate(void *arg){
     volatile int _SPM *b2_ready1= &spm_ptr[B1_STATUS+(id-1)*2+2];
     volatile int _SPM *b2_valid1= &spm_ptr[B1_STATUS+(id-1)*2+3];
 
-    //buffer pointers
+    //pointers buffering the data
     volatile int _SPM  *inbuffer1_ptr;
     volatile int _SPM  *inbuffer2_ptr;
     volatile int _SPM  *outbuffer1_ptr;
@@ -130,10 +118,9 @@ void intermediate(void *arg){
         // flip the flags for buffer 1
         *b1_ready1 =  !(*b1_ready1);
         *b1_ready0 =  !(*b1_ready0);
-        i++;
+         i++;
           
         }
-
 
         if( (*b2_ready0 != *b2_valid0 ) && (*b2_ready1 == *b2_valid1) ){
                 //producing data for the buffer 2
@@ -144,21 +131,17 @@ void intermediate(void *arg){
         // flip the flag for buffer 2
         *b2_ready1 =  !(*b2_ready1);
         *b2_ready0 =  !(*b2_ready0);
-        i++;
-        
+        i++;        
       }
-
     }
-
     return;
-
 }
 
 
 // Consumer
 void consumer(void *arg) {
 
-  volatile int _SPM  *output_ptr, *inbuffer1_ptr,*inbuffer2_ptr;
+  volatile int _SPM *inbuffer1_ptr,*inbuffer2_ptr;
 
   int id = get_cpuid();
   int cnt = get_cpucnt();
@@ -171,11 +154,8 @@ void consumer(void *arg) {
   volatile int _SPM *b2_ready= &spm_ptr[B1_STATUS+(id-1)*2];  
   volatile int _SPM *b2_valid= &spm_ptr[B1_STATUS+(id-1)*2+1];
 
-  // this region of the SPM  is used for debugging
-  output_ptr= &spm_ptr[STATUS+BUFFER_SIZE*2*(cnt-1)];
-
   int i=0;
-  int sum=0
+  int sum=0;
 
   while(i<DATA_LEN/BUFFER_SIZE){
 
@@ -195,8 +175,6 @@ void consumer(void *arg) {
         // flip the flag for buffer 1
         *b1_valid = !(*b1_valid);
         i++; 
-
-
     }
 
     if( *b2_ready != *b2_valid){
@@ -207,10 +185,8 @@ void consumer(void *arg) {
         }
         // flip the flag for buffer 2
         *b2_valid = !(*b2_valid);
-        i++;  
-        
+        i++;         
       }
-
   }
    //Consumer finishing time stamp
    timeStamps[3] = *timer_ptr;
@@ -236,7 +212,6 @@ int main() {
 
   printf("Total %d Cores\n",get_cpucnt()); 
 
-
   for (i=1; i<cnt-1; ++i) {
     int core_id = i; 
     int parameter = 1;
@@ -247,9 +222,6 @@ int main() {
   corethread_create(cnt-1, &consumer, &parameter);
 
   producer();
-
- 
-    
 
   for(j=1; j<cnt; ++j) { 
     int parameter = 1;
@@ -264,11 +236,12 @@ int main() {
   printf("The Producer finishes at %d \n", timeStamps[1]);
   printf("The Consumer starts at %d \n", timeStamps[2]);
   printf("The Consumer finishes at %d \n", timeStamps[3]);   
-  printf("The Latency is %d clock cycles for %d words of bulk data\n", timeStamps[2]-timeStamps[0],DATA_LEN);
+  printf("End-to-End Latency is %d clock cycles for %d words of bulk data\n", timeStamps[3]-timeStamps[0],DATA_LEN);
 
-
+/*
+ //Debug : screen output data
   for (int i=0; i<+STATUS+BUFFER_SIZE*2*(cnt-1)+DATA_LEN; ++i) {
         printf("The Output Data %d is %d \n",i, spm_ptr[i]);
    }
-  
+  */
 }
