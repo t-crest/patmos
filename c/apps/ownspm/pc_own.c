@@ -25,8 +25,8 @@ volatile _UNCACHED int timeStamps[4]={0};
 //flags
 volatile _UNCACHED int data_ready1;
 volatile _UNCACHED int data_ready2;
-volatile _UNCACHED int owner1;
-volatile _UNCACHED int owner2;
+//volatile _UNCACHED int owner;
+//volatile _UNCACHED int owner2;
 
 // Producer
 void producer() {
@@ -38,13 +38,14 @@ void producer() {
   int cnt = get_cpucnt();
 
   int i=0;
+  int sum=0;
 
   while(i<DATA_LEN/BUFFER_SIZE){
 
     buffer1_ptr = &spm_ptr[NEXT*id];
     buffer2_ptr = &spm_ptr[NEXT*(id+1)];
 
-    if( (id == owner1) && (data_ready1 == 0)){
+    if(data_ready1 == 0){
         
           //Producer starting time stamp
           if(i==0){timeStamps[0] = *timer_ptr;}
@@ -56,16 +57,9 @@ void producer() {
           data_ready1 = 1;
           i++;
 
-          // transfer the ownership to the next core
-          if (id == 0) {
-                ++owner1;
-          } else {
-                owner1 = 0;
-          }
-
     }
     
-    if( (id == owner2) && (data_ready2 == 0)){
+    if( data_ready2 == 0){
           
           //producing data for the buffer 2
           for ( int j = 0; j < BUFFER_SIZE; j++ ) {
@@ -75,12 +69,6 @@ void producer() {
           data_ready2 = 1;
           i++;
 
-          // transfer the ownership to the next core
-          if (id == 0) {
-                ++owner2;
-          } else {
-                owner2 = 0;
-          }
     }
 
   }
@@ -104,58 +92,42 @@ void consumer(void *arg) {
   output_ptr= &spm_ptr[NEXT*(id+1)];
 
   int i=0; 
+  int sum = 0;
 
   while(i<DATA_LEN/BUFFER_SIZE){
 
     buffer1_ptr = &spm_ptr[NEXT*(id-1)];
     buffer2_ptr = &spm_ptr[NEXT*(id)];
 
-    if( (id == owner1) && (data_ready1 == 1)){
+    if(data_ready1 == 1){
         
         //Consumer starting time stamp
         if(i==0){timeStamps[2] = *timer_ptr;}
 
         //consuming data from the buffer 1
         for ( int j = 0; j < BUFFER_SIZE; j++ ) {
-            *output_ptr++ = (*buffer1_ptr++) +1;
+            sum += *buffer1_ptr++;
         }
 
         data_ready1 = 0;
         i++;
 
-        // transfer the ownership to the next core
-        if (id == 0) {
-           ++owner1;
-        } else {
-             owner1 = 0;
-        }
-
-
     }
     
-    if( (id == owner2) && (data_ready2 == 1)){
+    if(data_ready2 == 1){
 
         //consuming data from the buffer 2
         for ( int j = 0; j < BUFFER_SIZE; j++ ) {
-            *output_ptr++ = (*buffer2_ptr++) +2;
+            sum += *buffer2_ptr++;
         }
-
         data_ready2 = 0;
-
         i++;
-
-         // transfer the ownership to the next core
-        if (id == 0) {
-             ++owner2;
-        } else {
-            owner2 = 0;
-        }
       }
 
   }
    //Consumer finishing time stamp
    timeStamps[3] = *timer_ptr;
-  return;
+   return;
 }
 
 
@@ -170,8 +142,8 @@ int main() {
   int id = get_cpuid(); 
   int cnt = get_cpucnt();
 
-  owner1 = 0; //initially core 0 is owning SPM1
-  owner2 = 0; //initially core 0 is owning SPM2
+  //owner = 0; //initially core 0 is owning SPM1
+  //owner2 = 0; //initially core 0 is owning SPM2
 
   int parameter = 1;
 
@@ -193,6 +165,9 @@ int main() {
   printf("The Producer finishes at %d \n", timeStamps[1]);
   printf("The Consumer starts at %d \n", timeStamps[2]);
   printf("The Consumer finishes at %d \n", timeStamps[3]);
+  printf("The Latency no 1 is %d clock cycles for %d words of bulk data\n", timeStamps[2]-timeStamps[0],DATA_LEN);
+   printf("The Latency no 2 is %d clock cycles for %d words of bulk data\n", timeStamps[3]-timeStamps[1],DATA_LEN);
+
 
 
   for (int i=0; i<DATA_LEN*2; ++i) {
