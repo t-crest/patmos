@@ -11,7 +11,7 @@
 #include "libcorethread/corethread.h"
 
 #define DATA_LEN 4096 // words
-#define BUFFER_SIZE 512 // 32 words
+#define BUFFER_SIZE 256 // words
 
 #define NEXT 0x10000/4 // SPMs are placed every 64 KB 
 
@@ -23,8 +23,10 @@ volatile _UNCACHED int start=0;
 volatile _UNCACHED int stop=0;
 volatile _UNCACHED int timeStamps[4]={0};
 //flags
-volatile _UNCACHED int data_ready;
-volatile _UNCACHED int owner;
+volatile _UNCACHED int data_ready1;
+volatile _UNCACHED int data_ready2;
+volatile _UNCACHED int owner1;
+volatile _UNCACHED int owner2;
 
 // Producer
 void producer() {
@@ -37,12 +39,12 @@ void producer() {
 
   int i=0;
 
-  while(i<DATA_LEN/(BUFFER_SIZE*2)){
+  while(i<DATA_LEN/BUFFER_SIZE){
 
-      if( (id == owner) && (data_ready == 0)){
+    buffer1_ptr = &spm_ptr[NEXT*id];
+    buffer2_ptr = &spm_ptr[NEXT*(id+1)];
 
-          buffer1_ptr = &spm_ptr[NEXT*id];
-          buffer2_ptr = &spm_ptr[NEXT*(id+1)];
+    if( (id == owner1) && (data_ready1 == 0)){
         
           //Producer starting time stamp
           if(i==0){timeStamps[0] = *timer_ptr;}
@@ -51,27 +53,39 @@ void producer() {
           for ( int j = 0; j < BUFFER_SIZE; j++ ) {
               *buffer1_ptr++ = 1 ; // produce data
           }
+          data_ready1 = 1;
+          i++;
+
+          // transfer the ownership to the next core
+          if (id == 0) {
+                ++owner1;
+          } else {
+                owner1 = 0;
+          }
+
+    }
+    
+    if( (id == owner2) && (data_ready2 == 0)){
           
           //producing data for the buffer 2
           for ( int j = 0; j < BUFFER_SIZE; j++ ) {
               *buffer2_ptr++ = 2 ; // produce data
           }
-          
-          //Producer finishing time stamp
-          if(i==(DATA_LEN/(BUFFER_SIZE*2))-1){timeStamps[1] = *timer_ptr;}
 
-          data_ready = 1;
-
+          data_ready2 = 1;
           i++;
+
           // transfer the ownership to the next core
           if (id == 0) {
-                ++owner;
+                ++owner2;
           } else {
-                owner = 0;
+                owner2 = 0;
           }
-      }
+    }
 
   }
+   //Producer finishing time stamp
+   timeStamps[1] = *timer_ptr;
 
   return;
 }
@@ -91,13 +105,12 @@ void consumer(void *arg) {
 
   int i=0; 
 
-  while(i<DATA_LEN/(BUFFER_SIZE*2)){
+  while(i<DATA_LEN/BUFFER_SIZE){
 
+    buffer1_ptr = &spm_ptr[NEXT*(id-1)];
+    buffer2_ptr = &spm_ptr[NEXT*(id)];
 
-      if( (id == owner) && (data_ready == 1)){
-
-        buffer1_ptr = &spm_ptr[NEXT*(id-1)];
-        buffer2_ptr = &spm_ptr[NEXT*(id)];
+    if( (id == owner1) && (data_ready1 == 1)){
         
         //Consumer starting time stamp
         if(i==0){timeStamps[2] = *timer_ptr;}
@@ -107,29 +120,41 @@ void consumer(void *arg) {
             *output_ptr++ = (*buffer1_ptr++) +1;
         }
 
+        data_ready1 = 0;
+        i++;
+
+        // transfer the ownership to the next core
+        if (id == 0) {
+           ++owner1;
+        } else {
+             owner1 = 0;
+        }
+
+
+    }
+    
+    if( (id == owner2) && (data_ready2 == 1)){
+
         //consuming data from the buffer 2
         for ( int j = 0; j < BUFFER_SIZE; j++ ) {
             *output_ptr++ = (*buffer2_ptr++) +2;
         }
-        
-        //Consumer finishing time stamp
-        if(i==(DATA_LEN/(BUFFER_SIZE*2))-1){timeStamps[3] = *timer_ptr;}
 
-        data_ready = 0;
+        data_ready2 = 0;
 
         i++;
 
          // transfer the ownership to the next core
-          if (id == 0) {
-                ++owner;
-          } else {
-                owner = 0;
-          }
+        if (id == 0) {
+             ++owner2;
+        } else {
+            owner2 = 0;
+        }
       }
 
   }
    //Consumer finishing time stamp
-   //timeStamps[3] = *timer_ptr;
+   timeStamps[3] = *timer_ptr;
   return;
 }
 
@@ -139,12 +164,14 @@ int main() {
 
   unsigned i,j;
 
-  data_ready=0;
+  data_ready1=0;
+  data_ready2=0;
 
   int id = get_cpuid(); 
   int cnt = get_cpucnt();
 
-  owner = 0; //initially core 0 is the owner
+  owner1 = 0; //initially core 0 is owning SPM1
+  owner2 = 0; //initially core 0 is owning SPM2
 
   int parameter = 1;
 
