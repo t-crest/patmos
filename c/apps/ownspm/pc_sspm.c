@@ -22,8 +22,11 @@ volatile _UNCACHED int start=0;
 volatile _UNCACHED int stop=0;
 volatile _UNCACHED int timeStamps[4]={0};
 
-//flags
-volatile int _SPM *data_ready1,*data_ready2;
+volatile _UNCACHED int result = 0;
+
+// pointers to flags in the shared SPM
+volatile int _SPM *data_ready1;
+volatile int _SPM *data_ready2;
 
 // Producer
 void producer() {
@@ -31,23 +34,19 @@ void producer() {
   volatile int _SPM  *buffer1_ptr;
   volatile int _SPM  *buffer2_ptr;
 
-  data_ready1=&spm_ptr[0];
-  data_ready2=&spm_ptr[1];
-
-  int id = get_cpuid();
-  int cnt = get_cpucnt();
-
   int i=0; 
+
+  timeStamps[0] = *timer_ptr;
 
   while(i<DATA_LEN/(BUFFER_SIZE)){
 
     buffer1_ptr = &spm_ptr[2];
     buffer2_ptr = &spm_ptr[2+BUFFER_SIZE];
 
-    if( *data_ready1 == 0){
-
-          //Producer starting time stamp
-          if(i==0){timeStamps[0] = *timer_ptr;}
+      // busy wait for buffer empty
+      while (*data_ready1 != 0) {
+        ;
+      }
 
           //producing data for the buffer 1
           for ( int j = 0; j < BUFFER_SIZE; j++ ) {
@@ -55,10 +54,12 @@ void producer() {
           }
           // set the data ready flag for buffer 1
           *data_ready1 =  1;
-          i++;
-     }
-     
-     if( *data_ready2 == 0){
+          i++;     
+      // busy wait for buffer empty
+      while (*data_ready2 != 0) {
+        ;
+      }
+
           
           //producing data for the buffer 2
           for ( int j = 0; j < BUFFER_SIZE; j++ ) {
@@ -67,9 +68,6 @@ void producer() {
          // set the data ready flag for buffer 2
          *data_ready2 =  1;
           i++;
-
-     }
-    //i++;
    }
 
  //producer finishing time stamp
@@ -83,17 +81,7 @@ void producer() {
 // Consumer
 void consumer(void *arg) {
 
-  volatile int _SPM  *output_ptr, *buffer1_ptr,*buffer2_ptr;
-
-  // this region of the SPM  is used for debugging
-  output_ptr= &spm_ptr[DATA_LEN];
-  
-  data_ready1=&spm_ptr[0];
-  data_ready2=&spm_ptr[1];
-
-
-  int id = get_cpuid();
-  int cnt = get_cpucnt();
+  volatile int _SPM  *buffer1_ptr,*buffer2_ptr;
 
   int sum=0;
   int i=0; 
@@ -103,21 +91,28 @@ void consumer(void *arg) {
       buffer1_ptr = &spm_ptr[2];
       buffer2_ptr = &spm_ptr[2+BUFFER_SIZE];
 
-      if( *data_ready1 == 1){
-        
-        //Consumer starting time stamp
-        if(i==0){timeStamps[2] = *timer_ptr;}
+      // busy wait for buffer ready
+      while (*data_ready1 != 1) {
+        ;
+      }
+
 
         //consuming data from the buffer 1
         for ( int j = 0; j < BUFFER_SIZE; j++ ) {
             sum += (*buffer1_ptr++);
         }
+
+        //Consumer time stamp after reading
+        if(i==0){timeStamps[2] = *timer_ptr;}
+
         // lower the data ready flag for buffer 1
         *data_ready1 = 0;
         i++;
-      } 
       
-      if( *data_ready2 == 1){
+      // busy wait for buffer ready
+      while (*data_ready2 != 1) {
+        ;
+      }
     
         //consuming data from the buffer 2
         for ( int j = 0; j < BUFFER_SIZE; j++ ) {
@@ -126,11 +121,11 @@ void consumer(void *arg) {
         // lower the data ready flag for buffer 2
         *data_ready2 = 0;
         i++;
-      }
    }
    //Consumer finishing time stamp
    timeStamps[3] = *timer_ptr;
 
+  result += sum;
   return;
 }
 
@@ -140,8 +135,11 @@ int main() {
 
   unsigned i,j;
 
-  data_ready1=0;
-  data_ready2=0;
+  data_ready1 = spm_ptr;
+  data_ready2 = spm_ptr+1;
+
+  *data_ready1 = 0;
+  *data_ready2 = 0;
 
   int id = get_cpuid(); // id=0
   int cnt = get_cpucnt();
@@ -156,17 +154,27 @@ int main() {
 
   printf("Computation is Done !!\n");
 
-  //Latencu
+  //Latency
+
   printf("The Producer starts at %d \n", timeStamps[0]);
   printf("The Producer finishes at %d \n", timeStamps[1]);
   printf("The Consumer starts at %d \n", timeStamps[2]);
   printf("The Consumer finishes at %d \n", timeStamps[3]);
+
+/* MS: this is wrong measurements
   printf("The Latency is %d clock cycles for %d words of bulk data\n", timeStamps[2]-timeStamps[0],DATA_LEN);
+  printf("The Latency is %d clock cycles for %d words of bulk data\n", timeStamps[3]-timeStamps[1],DATA_LEN);
+*/
+
+  printf("Transmission (end to end delay) of %d words takes %d clock cycles\n", DATA_LEN,
+timeStamps[3] - timeStamps[0]);
+
+  printf("Sum %d\n", result);
 
 
   //Debug : screen output data
   for (int i=0; i<DATA_LEN*2; ++i) {
-        printf("The Output Data %d is %d \n",i, spm_ptr[i]);
+  //      printf("The Output Data %d is %d \n",i, spm_ptr[i]);
    }
   
 
