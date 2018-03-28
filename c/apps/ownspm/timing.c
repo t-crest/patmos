@@ -49,15 +49,26 @@ int main() {
   for (int i=0; i<CNT; ++i) {
     *dead_ptr = data_spm[i];
     val = *dead_ptr; // delay by a random value
-    // minimum is 4 clock cycles on the shared SPM. Why? Should be just 2.
-    // Constant access time of 3 (instead of 1) cycles to the OwnSPM.
-    // This code is probably not using a single load instruction.
+
+/*
+The compiler does some instruction scheduling resulting in 2 more
+instructions between measurements. Not so nice.
+And even doing it in a not very smart way by introducing a nop for the load/use delay.
+
+li	$r2 = -402653184
+lwl	$r1 = [$r27 + 1]
+lwl	$r2 = [$r2]
+nop	
+add	$r22 = $r2, $r22
+lwl	$r3 = [$r27 + 1]
+*/
+
     start = *timer_ptr;
     add = *spm;
     val = *timer_ptr-start;
-    acc += add;
-    --val; // remove 1 cycle for the measurement overhead
+    val -= 3; // remove 1 cycle for the measurement overhead, and 2 for the added instructions.
     printf("%d ", val);
+    acc += add;
     if (min>val) min = val;
     if (max<val) max = val;
   }
