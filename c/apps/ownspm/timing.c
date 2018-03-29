@@ -12,6 +12,8 @@
 
 #include "../../libcorethread/corethread.h"
 
+// #define MULTIOWNER
+
 unsigned _SPM *data_spm = SPM_BASE;
 
 #define CNT 20
@@ -37,6 +39,10 @@ int main() {
   int min = 10000;
   int max = 0;
 
+#ifdef MULTIOWNER
+// Torur, please add configurations here to have the SPM at address 0xe800000
+// owned by core 0, by 2 cores, by 4 cores, and by 8 cores
+#endif
   // To avoid compiler optimizing all code away a result
   acc = 0;
 
