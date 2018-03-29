@@ -155,7 +155,9 @@ int main() {
   printf("The Producer finishes at %d \n", timeStamps[1]);
   printf("The Consumer starts at %d \n", timeStamps[2]);
   printf("The Consumer finishes at %d \n", timeStamps[3]);
-  printf("End-to-End Latency is %d clock cycles for %d words of bulk data\n", timeStamps[3]-timeStamps[0],DATA_LEN);
+  printf("End-to-End Latency is %d clock cycles\n    \
+         for %d words of bulk data\n   \
+         and %d of buffer size\n", timeStamps[3]-timeStamps[0],DATA_LEN,BUFFER_SIZE);
 
 
 /*

@@ -11,7 +11,9 @@
 #include "libcorethread/corethread.h"
 
 #define DATA_LEN 4096 // words
-#define BUFFER_SIZE 256 // words
+#define BUFFER_SIZE 128 // a buffer size of 128W requires 3MB spm size for 4 cores
+#define CNT 4 //cores
+#define STATUS_LEN (CNT-1) // no of status flags for buffer1
 
 // Measure execution time with the clock cycle timer
 volatile _IODEV int *timer_ptr = (volatile _IODEV int *) (PATMOS_IO_TIMER+4);
@@ -20,11 +22,9 @@ volatile _UNCACHED int stop=0;
 volatile _UNCACHED int timeStamps[4]={0};
 
 //data
-int data[BUFFER_SIZE*2]={0};
-
+volatile int data[BUFFER_SIZE*STATUS_LEN*2]={0};
 //flags
-volatile _UNCACHED int data_ready1;
-volatile _UNCACHED int data_ready2;
+volatile _UNCACHED int status[STATUS_LEN*2]={0};
 
 // Producer
 void producer() {
@@ -32,6 +32,11 @@ void producer() {
   volatile int *buffer1_ptr;
   volatile int *buffer2_ptr;
 
+  // pointers to status flags for buffer 1
+  volatile _UNCACHED int *b1_ready= &status[0];  
+  // pointers to status flags for buffer 2
+  volatile _UNCACHED int *b2_ready= &status[STATUS_LEN+0];  
+ 
   int i=0;
 
   while(i<DATA_LEN/BUFFER_SIZE){
@@ -39,7 +44,7 @@ void producer() {
     buffer1_ptr = &data[0];
     buffer2_ptr = &data[BUFFER_SIZE];
 
-    if( data_ready1 == 0){
+    if( *b1_ready == 0){
         
           //Producer starting time stamp
           if(i==0){timeStamps[0] = *timer_ptr;}
@@ -48,18 +53,19 @@ void producer() {
           for ( int j = 0; j < BUFFER_SIZE; j++ ) {
               *buffer1_ptr++ = 1 ; // produce data
           }
-          data_ready1 = 1;
+          *b1_ready = 1;
           i++;
     }
     
-    if( data_ready2 == 0){
+    if( *b2_ready == 0){
+
           inval_dcache(); //invalidate the data cache
           //producing data for the buffer 2
           for ( int j = 0; j < BUFFER_SIZE; j++ ) {
               *buffer2_ptr++ = 2 ; // produce data
           }
 
-          data_ready2 = 1;
+          *b2_ready = 1;
           i++;
     }
   }
@@ -69,21 +75,86 @@ void producer() {
 }
 
 
+//intermediate
+void intermediate(void *arg){
+
+    int id = get_cpuid();
+
+    //flag pointers for buffer 1
+    volatile _UNCACHED int *b1_ready0= &status[id-1];
+    volatile _UNCACHED int *b1_ready1= &status[id];
+
+    //flag pointers for buffer 2
+    volatile _UNCACHED int *b2_ready0= &status[STATUS_LEN+id-1];
+    volatile _UNCACHED int *b2_ready1= &status[STATUS_LEN+id];
+
+    //pointers buffering the data
+    volatile int *inbuffer1_ptr;
+    volatile int *inbuffer2_ptr;
+    volatile int *outbuffer1_ptr;
+    volatile int *outbuffer2_ptr;
+
+    int i=0; 
+
+    while(i<DATA_LEN/BUFFER_SIZE){
+
+        inbuffer1_ptr = &data[BUFFER_SIZE*(id-1)*2];
+        inbuffer2_ptr = &data[BUFFER_SIZE*(id-1)*2+BUFFER_SIZE];
+        outbuffer1_ptr = &data[BUFFER_SIZE*(id-1)*2+BUFFER_SIZE*2];
+        outbuffer2_ptr = &data[BUFFER_SIZE*(id-1)*2+BUFFER_SIZE*3];
+
+        if( (*b1_ready0 == 1 ) && (*b1_ready1 == 0) ){
+
+                //producing data for the buffer 1
+                for ( int j = 0; j < BUFFER_SIZE; j++ ) {
+                    *outbuffer1_ptr++ = *inbuffer1_ptr++ +1 ; // produce data
+                }
+        
+        // flip the flags for buffer 1
+        *b1_ready1 =  1;
+        *b1_ready0 =  0;
+         i++; 
+        }
+
+        if( (*b2_ready0 == 1 ) && (*b2_ready1 == 0) ){
+                //producing data for the buffer 2
+                for ( int j = 0; j < BUFFER_SIZE; j++ ) {
+                    *outbuffer2_ptr++ = *inbuffer2_ptr++ +2 ; // produce data
+                }
+
+        // flip the flag for buffer 2
+        *b2_ready1 =  1;
+        *b2_ready0 =  0;
+        i++;        
+      }
+    }
+    return;
+}
+
+
 
 // Consumer
 void consumer(void *arg) {
 
   volatile int *buffer1_ptr,*buffer2_ptr;
 
+  int id = get_cpuid();
+
+    //flag pointers for buffer 1
+  volatile _UNCACHED int *b1_ready= &status[id-1];  
+
+  //flag pointers for buffer 2
+  volatile _UNCACHED int *b2_ready= &status[STATUS_LEN+ id-1];  
+
   int i=0; 
   int sum=0;
 
   while(i<DATA_LEN/BUFFER_SIZE){
 
-    buffer1_ptr = &data[0];
-    buffer2_ptr = &data[BUFFER_SIZE];
+    buffer1_ptr = &data[BUFFER_SIZE*(id-1)*2];
+    buffer2_ptr = &data[BUFFER_SIZE*(id-1)*2+BUFFER_SIZE];
 
-    if(data_ready1 == 1){
+    if( *b1_ready == 1){
         
         //Consumer starting time stamp
         if(i==0){timeStamps[2] = *timer_ptr;}
@@ -92,18 +163,18 @@ void consumer(void *arg) {
         for ( int j = 0; j < BUFFER_SIZE; j++ ) {
             sum += (*buffer1_ptr++);
         }
-        data_ready1 = 0;
+        *b1_ready = 0;
         i++;
     }
     
-    if( data_ready2 == 1){
+    if( *b2_ready == 1){
 
         //consuming data from the buffer 2
         inval_dcache(); //invalidate the data cache
         for ( int j = 0; j < BUFFER_SIZE; j++ ) {
             sum += (*buffer2_ptr++);
         }
-        data_ready2 = 0;
+        *b2_ready = 0;
         i++;
       }
   }
@@ -118,9 +189,6 @@ int main() {
 
   unsigned i,j;
 
-  data_ready1=0;
-  data_ready2=0;
-
   int id = get_cpuid(); 
   int cnt = get_cpucnt();
 
@@ -128,12 +196,20 @@ int main() {
 
   printf("Total %d Cores\n",get_cpucnt()); // print core count
 
-  printf("Writing the data to the SPM ...\n"); 
+   for (i=1; i<cnt-1; ++i) {
+    int core_id = i; 
+    int parameter = 1;
+    corethread_create(core_id, &intermediate, &parameter);
+    printf("thread %d is created \n",i); 
+  }
 
-  corethread_create(1, &consumer, &parameter); 
+  corethread_create(cnt-1, &consumer, &parameter); 
   producer();  
 
-  corethread_join(1,&parameter);
+   for(j=1; j<cnt; ++j) { 
+    int parameter = 1;
+    corethread_join(j,&parameter);
+  }
 
   printf("Computation is Done !!\n");
 

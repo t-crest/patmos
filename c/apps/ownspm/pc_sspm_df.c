@@ -12,7 +12,7 @@
 #include "libcorethread/corethread.h"
 
 #define DATA_LEN 4096 // words
-#define BUFFER_SIZE 128 // a buffer size of 128W requires 3M spm size for 4 cores
+#define BUFFER_SIZE 128 // a buffer size of 128 Word requires 3MB SPM size for 4 cores
 #define CNT 4 //cores
 #define B1_STATUS ((CNT-1)*2) // no of status flags for buffer1
 #define STATUS (B1_STATUS*2) // no of status flags
@@ -236,7 +236,9 @@ int main() {
   printf("The Producer finishes at %d \n", timeStamps[1]);
   printf("The Consumer starts at %d \n", timeStamps[2]);
   printf("The Consumer finishes at %d \n", timeStamps[3]);   
-  printf("End-to-End Latency is %d clock cycles for %d words of bulk data\n", timeStamps[3]-timeStamps[0],DATA_LEN);
+  printf("End-to-End Latency is %d clock cycles\n    \
+         for %d words of bulk data\n   \
+         and %d of buffer size\n", timeStamps[3]-timeStamps[0],DATA_LEN,BUFFER_SIZE);
 
 /*
  //Debug : screen output data
