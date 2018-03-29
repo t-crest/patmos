@@ -12,7 +12,7 @@
 
 #include "../../libcorethread/corethread.h"
 
-// #define MULTIOWNER
+//#define MULTIOWNER
 
 unsigned _SPM *data_spm = SPM_BASE;
 
@@ -40,8 +40,9 @@ int main() {
   int max = 0;
 
 #ifdef MULTIOWNER
-// Torur, please add configurations here to have the SPM at address 0xe800000
-// owned by core 0, by 2 cores, by 4 cores, and by 8 cores
+#include "spmpool.h"
+#define OWNERS 4
+spm_sched_wr(0,(1 << OWNERS) - 1);
 #endif
   // To avoid compiler optimizing all code away a result
   acc = 0;
