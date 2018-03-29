@@ -53,7 +53,6 @@ void producer() {
           }
           data_ready1 = 1;
           i++;
-
     }
     
     if( data_ready2 == 0){

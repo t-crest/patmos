@@ -6,7 +6,6 @@
 */
 #include <machine/patmos.h>
 #include <machine/spm.h>
-
 #include "include/patio.h"
 #include "libcorethread/corethread.h"
 
@@ -58,7 +57,6 @@ void producer() {
           for ( int j = 0; j < BUFFER_SIZE; j++ ) {
               *buffer2_ptr++ = 2 ; // produce data
           }
-
           data_ready2 = 1;
           i++;
     }
@@ -67,7 +65,6 @@ void producer() {
    timeStamps[1] = *timer_ptr;
    return;
 }
-
 
 
 // Consumer
