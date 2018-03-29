@@ -8,15 +8,18 @@
 #include "spmpool.h"
 
 #define DEBUG
+#define LEN 10
 
 // The main function for the other threads on the another cores
 void work(void* arg) {
 
   int id = get_cpuid();
   int spmid = (int)arg;
+  
+  volatile int _SPM  *data_ptr = spm_base(spmid);
 
-  for (int i=0; i<100; ++i) {
-    spm_write(spmid,i,i); 
+  for (int i=0; i<LEN; ++i) {
+    *(data_ptr++) = i; 
   }
   
   corethread_exit((void *)spmid);
@@ -28,35 +31,37 @@ int main() {
 #endif
   int cnt = get_cpucnt();
   int spmids[10];
-  int dummy = spm_request();
-#ifdef DEBUG
-      printf("SPMID:%d\n",dummy);
-#endif
   for (int i=1; i< cnt; ++i) {
 
-    int spmid = spm_request();
+    int spmid = spm_req();
+
 #ifdef DEBUG
       printf("SPMID:%d\n",spmid);
 #endif
+
     spmids[i] = spmid;
-    schedule_write(spmid, (1 << i) + 1) ;
+    spm_sched_wr(spmid, (1 << i) + 1);
+
     corethread_create(i, &work, (void *)spmid); 
   }
 
   for (int i=1; i< cnt; ++i) {
+
     void * res;
     corethread_join(i, &res);
-  }
 #ifdef DEBUG
-  printf("Threads Joined\n");
+    printf("Joined Thread:%d\n",i);
 #endif
+  }
   for (int i=1; i<cnt; ++i) {
     int spmid = spmids[i];
 #ifdef DEBUG
     printf("SPMID:%d\n",spmid);
 #endif
-    for (int j=0; j<100; ++j) {
-      int data = spm_read(spmid,j);
+
+    volatile int _SPM  *data_ptr = spm_base(spmid);
+    for (int j=0; j<LEN; ++j) {
+      int data = *(data_ptr++);
 #ifdef DEBUG
       printf("%d",data);
 #endif
