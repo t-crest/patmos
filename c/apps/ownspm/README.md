@@ -1,8 +1,9 @@
-# Shared Memory with Ownership
+# Scratchpad Memories with Ownership
 
-These applications are used for the evaluation section of the following submitted paper:
+These applications are used for the evaluation section of the following paper:
 
-Scratchpad Memories with Ownership, *to be submitted to CASES 2018*
+Martin Schoeberl, Oktay Baris, Torur Biskopsto Strom, and Jens Sparso,
+Scratchpad Memories with Ownership, *submitted to CASES 2018*
 
 
 We use the T-CREST multicore to evaluate the shared memory with ownership.
@@ -16,8 +17,10 @@ Before building the Patmos processor (hardware or emulator) add the following li
 <pipeline dual="false" />
 ```
 
-where the cmp device is either `1` for the TDM arbitrated shared SPM or
-`5` for the SPMs with ownership. The number of SPMs with ownership
+where the cmp device is either `1` for the TDM arbitrated shared SPM,
+`5` for the SPMs with ownership, or `6` for the SPMs with multiple owners.
+
+The number of SPMs with ownership
 is currently configured to be the same as the number of processor cores.
 This can be changed in `Patmos.scala`.
 The individual SPMs are displaced every 64 KB, starting at the usual
@@ -27,12 +30,18 @@ The C programs for the tests are found here, e.g., for the shared SPM:
 [hello_spm.c](hello_spm.c)
 
 For other test programs set the variable `MAIN` at your compile make call.
-Following test prorams are available:
+Following test programs are available:
 
  * `hello_spm.c` does simple checks on a shared SPM
  * `timing.c` measures access times (using the deadline device with random delays)
  * `single_owner.c` does a multicore test on a single SPM with ownership
  * `test_owner.c` does a multicore test with two SPMs with ownership
+
+For the evaluation section in the paper we have written several producer/consumer
+based synthetic benchmarks for each configuration. The programs are
+named `pc_xxx.c` for a simple producer/consumer pair for version `xxx`
+and `pc_xxx_df.c` for an extended version that contains an intermediate
+processor.
 
 The experiments can be execute on the Patmos emulator of with the real
 hardware on an FPGA board.
@@ -90,7 +99,7 @@ To ensure that you have the exact version of T-CREST that we have used in the
 evaluation section of the paper, use the following `git` command to checkout that version:
 
 ```bash
-git checkout `git rev-list -n 1 --before="2018-xx-xx" master`
+git checkout `git rev-list -n 1 --before="2018-04-05" master`
 ```
 
 This can be done in all T-CREST repositories. However, it is most important
