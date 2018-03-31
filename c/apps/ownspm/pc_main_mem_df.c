@@ -10,8 +10,8 @@
 #include "include/patio.h"
 #include "libcorethread/corethread.h"
 
-#define DATA_LEN 4096 // words
-#define BUFFER_SIZE 128 // a buffer size of 128W requires 3MB SPM size for 4 cores
+#include "ownspm.h"
+
 #define CNT 4 //cores
 #define STATUS_LEN (CNT-1) // no of status flags for buffer1
 

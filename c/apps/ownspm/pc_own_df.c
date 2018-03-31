@@ -10,14 +10,10 @@
 #include "include/patio.h"
 #include "libcorethread/corethread.h"
 
-#define DATA_LEN 1024 // words
-#define BUFFER_SIZE 128 // a buffer size of 128W requires 3MB SPM size for 4 cores
+#include "ownspm.h"
+
 #define CNT 4
 #define STATUS_LEN (CNT-1) // no of status flags for a single buffer
-
-#define NEXT 0x10000/4 // SPMs are placed every 64 KB 
-
-volatile int _SPM *spm_ptr = (( volatile _SPM int *)0xE8000000);
 
 // Measure execution time with the clock cycle timer
 volatile _IODEV int *timer_ptr = (volatile _IODEV int *) (PATMOS_IO_TIMER+4);

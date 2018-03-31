@@ -12,12 +12,8 @@
 #include "libcorethread/corethread.h"
 #include "spmpool.h"
 
-#define DATA_LEN 4096 // words
-#define BUFFER_SIZE 256 // words
+#include "ownspm.h"
 
-#define NEXT 0x10000/4 // SPMs are placed every 64 KB 
-
-volatile int _SPM *spm_ptr = (( volatile _SPM int *)0xE8000000);
 
 // Measure execution time with the clock cycle timer
 volatile _IODEV int *timer_ptr = (volatile _IODEV int *) (PATMOS_IO_TIMER+4);
