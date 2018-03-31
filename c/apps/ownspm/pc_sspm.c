@@ -5,6 +5,8 @@
     Author: Oktay Baris
     Copyright: DTU, BSD License
 */
+
+#include <stdio.h>
 #include <machine/patmos.h>
 #include <machine/spm.h>
 
@@ -150,14 +152,14 @@ int main() {
   producer();  
   corethread_join(1,&parameter);
 
-  printf("Computation is Done !!\n");
+  // printf("Computation is Done !!\n");
 
   //Latency
 
-  printf("The Producer starts at %d \n", timeStamps[0]);
-  printf("The Producer finishes at %d \n", timeStamps[1]);
-  printf("The Consumer starts at %d \n", timeStamps[2]);
-  printf("The Consumer finishes at %d \n", timeStamps[3]);
+  // printf("The Producer starts at %d \n", timeStamps[0]);
+  // printf("The Producer finishes at %d \n", timeStamps[1]);
+  // printf("The Consumer starts at %d \n", timeStamps[2]);
+  // printf("The Consumer finishes at %d \n", timeStamps[3]);
 
 /* MS: this is wrong measurements
   printf("The Latency is %d clock cycles for %d words of bulk data\n", timeStamps[2]-timeStamps[0],DATA_LEN);
@@ -166,6 +168,9 @@ int main() {
 
   printf("Transmission (end to end delay) of %d words takes %d clock cycles\n", DATA_LEN,
 timeStamps[3] - timeStamps[0]);
+  int cycles = timeStamps[3]-timeStamps[0];
+  printf("measure pc_sspm: %d.%d cycles per word for %d words in %d words buffer\n",
+    cycles/DATA_LEN, cycles*10/DATA_LEN%10, DATA_LEN, BUFFER_SIZE);
 
   printf("Sum %d\n", result);
 

@@ -4,6 +4,7 @@
     Author: Oktay Baris
     Copyright: DTU, BSD License
 */
+#include <stdio.h>
 
 #include "include/patio.h"
 #include "libcorethread/corethread.h"

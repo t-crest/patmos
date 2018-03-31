@@ -4,7 +4,7 @@
 */
 
 #define DATA_LEN  4096 // words
-#define BUFFER_SIZE 256 // words
+#define BUFFER_SIZE 128 // words
 
 volatile int _SPM *spm_ptr = (( volatile _SPM int *)0xE8000000);
 

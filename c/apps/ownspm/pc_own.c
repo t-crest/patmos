@@ -4,6 +4,8 @@
     Author: Oktay Baris
     Copyright: DTU, BSD License
 */
+
+#include <stdio.h>
 #include <machine/patmos.h>
 #include <machine/spm.h>
 
@@ -133,7 +135,7 @@ int main() {
 
   printf("Total %d Cores\n",get_cpucnt()); // print core count
 
-  printf("Writing the data to the SPM ...\n"); 
+  // printf("Writing the data to the SPM ...\n"); 
 
 
   corethread_create(1, &consumer, &parameter); 
@@ -141,17 +143,20 @@ int main() {
 
   corethread_join(1,&parameter);
 
-  printf("Computation is Done !!\n");
+  // printf("Computation is Done !!\n");
 
   //Debug
 
-  printf("The Producer starts at %d \n", timeStamps[0]);
-  printf("The Producer finishes at %d \n", timeStamps[1]);
-  printf("The Consumer starts at %d \n", timeStamps[2]);
-  printf("The Consumer finishes at %d \n", timeStamps[3]);
+  // printf("The Producer starts at %d \n", timeStamps[0]);
+  // printf("The Producer finishes at %d \n", timeStamps[1]);
+  //printf("The Consumer starts at %d \n", timeStamps[2]);
+  // printf("The Consumer finishes at %d \n", timeStamps[3]);
   printf("End-to-End Latency is %d clock cycles\n    \
          for %d words of bulk data\n   \
          and %d of buffer size\n", timeStamps[3]-timeStamps[0],DATA_LEN,BUFFER_SIZE);
+  int cycles = timeStamps[3]-timeStamps[0];
+  printf("measure pc_own: %d.%d cycles per word for %d words in %d words buffer\n",
+    cycles/DATA_LEN, cycles*10/DATA_LEN%10, DATA_LEN, BUFFER_SIZE);
 
 
 /*
