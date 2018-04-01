@@ -20,14 +20,14 @@
 
 // Measure execution time with the clock cycle timer
 volatile _IODEV int *timer_ptr = (volatile _IODEV int *) (PATMOS_IO_TIMER+4);
-volatile _UNCACHED int start=0;
-volatile _UNCACHED int stop=0;
-volatile _UNCACHED int timeStamps[4]={0};
+volatile _UNCACHED int timeStamps[4];
 
 //Status pointers in the main memory
 // MS: why multiplied by 2?
 // This single assignment does not initialize the array
-volatile _UNCACHED int status[STATUS_LEN*2]={0};
+// volatile _UNCACHED int status[STATUS_LEN*2]={0};
+
+volatile _UNCACHED int status[4];
 
 
 // Producer
@@ -36,13 +36,6 @@ void producer() {
   volatile int _SPM  *outbuffer1_ptr;
   volatile int _SPM  *outbuffer2_ptr;
 
-  // pointers to status flag for buffer 1
-  volatile _UNCACHED  int *b1_ready= &status[0];   
-  // pointers to status flag for buffer 2
-  volatile _UNCACHED  int *b2_ready= &status[1];   
-
-  int id = get_cpuid();
-
   int i=0; 
 
   while(i<DATA_LEN/BUFFER_SIZE){
@@ -50,8 +43,12 @@ void producer() {
     outbuffer1_ptr = &spm_ptr[0];
     outbuffer2_ptr = &spm_ptr[NEXT];
 
-    if(*b1_ready == 0){
-        
+printf("%d %d %d %d %d\n", i, status[0], status[1], status[2], status[3]);
+
+    while(status[0] != 0) {
+      ;
+    }
+
            //Producer starting time stamp
           if(i==0){timeStamps[0] = *timer_ptr;}
 
@@ -61,21 +58,21 @@ void producer() {
           }
 
           // flip the data ready flag for buffer 1
-          *b1_ready = 1;
+          status[0] = 1;
           i++;
+
+    while(status[1] != 0) {
+      ;
     }
 
-    if(*b2_ready == 0){
-          
           //producing data for the buffer 2
           for ( int j = 0; j < BUFFER_SIZE; j++ ) {
               *outbuffer2_ptr++ = 2 ; // produce data
           }
 
           // flip the data ready flag for buffer 2
-          *b2_ready = 1;
+          status[1] = 1;
           i++;        
-    }
   }
 //producer finishing time stamp
   timeStamps[1] = *timer_ptr;
@@ -84,19 +81,10 @@ void producer() {
 
 
 
-//intermediate
+// intermediate
 void intermediate(void *arg){
 
-    int id = get_cpuid();
-
-    // pointers to status flags for buffer 1
-    volatile _UNCACHED int *b1_ready0= &status[0];
-    volatile _UNCACHED int *b1_ready1= &status[2];
-    // pointers to status flags for buffer 1
-    volatile _UNCACHED int *b2_ready0= &status[1];
-    volatile _UNCACHED int *b2_ready1= &status[3];
-
-    //buffer pointers
+    // buffer pointers
     volatile int _SPM  *inbuffer1_ptr;
     volatile int _SPM  *inbuffer2_ptr;
     volatile int _SPM  *outbuffer1_ptr;
@@ -111,7 +99,9 @@ void intermediate(void *arg){
         outbuffer1_ptr = &spm_ptr[NEXT*2];
         outbuffer2_ptr = &spm_ptr[NEXT*3];
 
-        if( (*b1_ready0 == 1 ) && (*b1_ready1 == 0) ){
+while ((status[0] != 1) && (status[2] != 0)) {
+  ;
+}
 
             //producing data for the buffer 1
             for ( int j = 0; j < BUFFER_SIZE; j++ ) {
@@ -119,29 +109,30 @@ void intermediate(void *arg){
             }
 
             // update the flags for buffer 1
-            *b1_ready1 =  1;
-            *b1_ready0 =  0;
+            status[0] = 0;
+            status[2] = 1;
             //for the time being for flow control
             i++;
 
-        }
-
-        if((*b2_ready0 == 1 ) && (*b2_ready1 == 0) ){
+while ((status[1] != 1) && (status[3] != 0)) {
+  ;
+}
           
             //producing data for the buffer 2
             for ( int j = 0; j < BUFFER_SIZE; j++ ) {
-                *outbuffer2_ptr++ = *inbuffer2_ptr++ +2 ; // produce data
+//                *outbuffer2_ptr++ = *inbuffer2_ptr++ +2 ; // produce data
+// something bad is happening with the following assignment.
+// The program hangs.
+*outbuffer2_ptr++ = 3;
             }
 
             // update the flags for buffer 2
-            *b2_ready1 =  1;
-            *b2_ready0 =  0;
+            status[1] = 0;
+            status[3] = 1;
             //for the time being for flow control
             i++;
          
         }
-    }
-    return;
 }
 
 
@@ -150,17 +141,6 @@ void consumer(void *arg) {
 
   volatile int _SPM  *output_ptr, *inbuffer1_ptr,*inbuffer2_ptr;
 
-  int id = get_cpuid();
-  int cnt = get_cpucnt();
-
-  /// pointers to status flags for buffer 1
-  volatile _UNCACHED int *b1_ready= &status[2];  
-   // pointers to status flags for buffer 2
-  volatile _UNCACHED int *b2_ready= &status[3];  
-
-  // this region of the SPM  is used for debugging
-  output_ptr= &spm_ptr[NEXT*(cnt+2)];
-
   int i=0; 
   int sum=0;
   while( i<DATA_LEN/BUFFER_SIZE){
@@ -168,7 +148,10 @@ void consumer(void *arg) {
     inbuffer1_ptr = &spm_ptr[NEXT*2];
     inbuffer2_ptr = &spm_ptr[NEXT*3];
 
-    if(*b1_ready == 1){
+    while (status[2] != 1) {
+      ;
+    }
+
 
         //Consumer starting time stamp
         if(i==0){
@@ -177,29 +160,27 @@ void consumer(void *arg) {
 
         //consuming data from the buffer 1
         for ( int j = 0; j < BUFFER_SIZE; j++ ) {
-            sum += (*inbuffer1_ptr++);
+//            sum += (*inbuffer1_ptr++);
         }
 
-        *b1_ready = 0;
+        status[2] = 0;
         i++; 
-    }
         
-
-    if( *b2_ready == 1){
+    while (status[3] != 1) {
+      ;
+    }
 
         //consuming data from the buffer 2
         for ( int j = 0; j < BUFFER_SIZE; j++ ) {
-            sum += (*inbuffer2_ptr++);
+//            sum += (*inbuffer2_ptr++);
         }
-        *b2_ready = 0;
+        status[3] = 0;
         i++; 
       
-    }
   }
    //Consumer finishing time stamp
    timeStamps[3] = *timer_ptr;
 
-  return;
 }
 
 
