@@ -15,6 +15,7 @@
 #include "ownspm.h"
 
 #define CNT 4
+// MS: why CNT - 1? Shouldn't it be 4?
 #define STATUS_LEN (CNT-1) // no of status flags for a single buffer
 
 // Measure execution time with the clock cycle timer
@@ -24,6 +25,8 @@ volatile _UNCACHED int stop=0;
 volatile _UNCACHED int timeStamps[4]={0};
 
 //Status pointers in the main memory
+// MS: why multiplied by 2?
+// This single assignment does not initialize the array
 volatile _UNCACHED int status[STATUS_LEN*2]={0};
 
 
@@ -33,10 +36,10 @@ void producer() {
   volatile int _SPM  *outbuffer1_ptr;
   volatile int _SPM  *outbuffer2_ptr;
 
-  // pointers to status flags for buffer 1
+  // pointers to status flag for buffer 1
   volatile _UNCACHED  int *b1_ready= &status[0];   
-  // pointers to status flags for buffer 1
-  volatile _UNCACHED  int *b2_ready= &status[STATUS_LEN+0];   
+  // pointers to status flag for buffer 2
+  volatile _UNCACHED  int *b2_ready= &status[1];   
 
   int id = get_cpuid();
 
@@ -44,8 +47,8 @@ void producer() {
 
   while(i<DATA_LEN/BUFFER_SIZE){
 
-    outbuffer1_ptr = &spm_ptr[NEXT*id];
-    outbuffer2_ptr = &spm_ptr[NEXT*(id+1)];
+    outbuffer1_ptr = &spm_ptr[0];
+    outbuffer2_ptr = &spm_ptr[NEXT];
 
     if(*b1_ready == 0){
         
@@ -87,11 +90,11 @@ void intermediate(void *arg){
     int id = get_cpuid();
 
     // pointers to status flags for buffer 1
-    volatile _UNCACHED int *b1_ready0= &status[id-1];
-    volatile _UNCACHED int *b1_ready1= &status[id];
+    volatile _UNCACHED int *b1_ready0= &status[0];
+    volatile _UNCACHED int *b1_ready1= &status[2];
     // pointers to status flags for buffer 1
-    volatile _UNCACHED int *b2_ready0= &status[STATUS_LEN+id-1];
-    volatile _UNCACHED int *b2_ready1= &status[STATUS_LEN+id];
+    volatile _UNCACHED int *b2_ready0= &status[1];
+    volatile _UNCACHED int *b2_ready1= &status[3];
 
     //buffer pointers
     volatile int _SPM  *inbuffer1_ptr;
@@ -103,10 +106,10 @@ void intermediate(void *arg){
 
     while(i<DATA_LEN/BUFFER_SIZE){
 
-        inbuffer1_ptr = &spm_ptr[2*NEXT*(id-1)];
-        inbuffer2_ptr = &spm_ptr[2*NEXT*(id-1)+NEXT];
-        outbuffer1_ptr = &spm_ptr[2*NEXT*(id-1)+NEXT*2];
-        outbuffer2_ptr = &spm_ptr[2*NEXT*(id-1)+NEXT*3];
+        inbuffer1_ptr = &spm_ptr[0];
+        inbuffer2_ptr = &spm_ptr[NEXT];
+        outbuffer1_ptr = &spm_ptr[NEXT*2];
+        outbuffer2_ptr = &spm_ptr[NEXT*3];
 
         if( (*b1_ready0 == 1 ) && (*b1_ready1 == 0) ){
 
@@ -151,9 +154,9 @@ void consumer(void *arg) {
   int cnt = get_cpucnt();
 
   /// pointers to status flags for buffer 1
-  volatile _UNCACHED int *b1_ready= &status[id-1];  
+  volatile _UNCACHED int *b1_ready= &status[2];  
    // pointers to status flags for buffer 2
-  volatile _UNCACHED int *b2_ready= &status[STATUS_LEN+id-1];  
+  volatile _UNCACHED int *b2_ready= &status[3];  
 
   // this region of the SPM  is used for debugging
   output_ptr= &spm_ptr[NEXT*(cnt+2)];
@@ -162,8 +165,8 @@ void consumer(void *arg) {
   int sum=0;
   while( i<DATA_LEN/BUFFER_SIZE){
 
-    inbuffer1_ptr = &spm_ptr[2*NEXT*(id-1)];
-    inbuffer2_ptr = &spm_ptr[2*NEXT*(id-1)+NEXT];
+    inbuffer1_ptr = &spm_ptr[NEXT*2];
+    inbuffer2_ptr = &spm_ptr[NEXT*3];
 
     if(*b1_ready == 1){
 
@@ -206,26 +209,26 @@ int main() {
   unsigned i,j;
 
   int id = get_cpuid(); // id=0
-  int cnt = get_cpucnt();
 
-  //owner = 0; //initially core 0 is the owner
+  for (i=0; i<4; ++i) {
+    status[i] = 0;
+  }
 
   int parameter = 1;
 
   printf("Total %d Cores\n",get_cpucnt()); // print core count
 
-  for (i=1; i<cnt-1; ++i) {
-    int core_id = i; 
-    int parameter = 1;
-    corethread_create(core_id, &intermediate, &parameter);
-    printf("thread %d is created \n",i); 
-  }
 
-    corethread_create(cnt-1, &consumer, &parameter); 
+    // MS: do not pass a pointer to a stack allocated variable to a thread.
+    // This variable ay be out of scope when the other thread accesses it.
+    // corethread_create(i, &intermediate, &parameter);
+    corethread_create(1, &intermediate, NULL);
+    corethread_create(2, &consumer, NULL); 
+    printf("Threads created\n");
     producer();
     
 
-  for(j=1; j<cnt; ++j) { 
+  for(j=1; j<3; ++j) { 
     int parameter = 1;
     corethread_join(j,&parameter);
   }
