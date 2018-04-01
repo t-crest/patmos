@@ -24,6 +24,17 @@ object Const {
   val NR_OF_PORTS = 5
 }
 
+class RwLine(memWidth: Int) extends Bundle{
+  val rw = Bool() // 1: Write, 0 : read
+  val address = UInt(width = memWidth)
+  val data = UInt(width = 32)
+}
+
+class SingleRwChannel(w: Int) extends Bundle {
+  val line = RwLine(w)
+  val valid = Bool()
+}
+
 class SingleChannel extends Bundle {
   val data = UInt(width = 32)
   val valid = Bool()
@@ -32,6 +43,12 @@ class SingleChannel extends Bundle {
 class Channel extends Bundle {
   val out = new SingleChannel().asOutput
   val in = new SingleChannel().asInput
+}
+
+class RwChannel(w: Int) extends Bundle {
+  // Channel with arbitrary address width, used in the two-way shared memory interface
+  val out = new SingleRwChannel(w).asOutput
+  val in = new SingleRwChannel(w).asInput
 }
 
 class RouterPorts extends Bundle {
