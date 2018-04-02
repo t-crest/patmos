@@ -19,8 +19,6 @@
 #define B1_STATUS (CNT-1) // no of status flags for buffer1
 #define STATUS (B1_STATUS*2) // no of status flags
 
-volatile int _SPM *spm_ptr = (( volatile int _SPM *)0xE8000000);
-
 // Measure execution time with the clock cycle timer
 volatile _IODEV int *timer_ptr = (volatile _IODEV int *) (PATMOS_IO_TIMER+4);
 volatile _UNCACHED int start=0;

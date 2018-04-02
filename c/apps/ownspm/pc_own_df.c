@@ -120,10 +120,7 @@ while ((status[1] != 1) && (status[3] != 0)) {
           
             //producing data for the buffer 2
             for ( int j = 0; j < BUFFER_SIZE; j++ ) {
-//                *outbuffer2_ptr++ = *inbuffer2_ptr++ +2 ; // produce data
-// something bad is happening with the following assignment.
-// The program hangs.
-*outbuffer2_ptr++ = 3;
+                *outbuffer2_ptr++ = *inbuffer2_ptr++ +2 ; // produce data
             }
 
             // update the flags for buffer 2
@@ -143,7 +140,7 @@ void consumer(void *arg) {
 
   int i=0; 
   int sum=0;
-  while( i<DATA_LEN/BUFFER_SIZE){
+  while(i<DATA_LEN/BUFFER_SIZE) {
 
     inbuffer1_ptr = &spm_ptr[NEXT*2];
     inbuffer2_ptr = &spm_ptr[NEXT*3];
@@ -160,7 +157,7 @@ void consumer(void *arg) {
 
         //consuming data from the buffer 1
         for ( int j = 0; j < BUFFER_SIZE; j++ ) {
-//            sum += (*inbuffer1_ptr++);
+            sum += (*inbuffer1_ptr++);
         }
 
         status[2] = 0;
@@ -172,7 +169,7 @@ void consumer(void *arg) {
 
         //consuming data from the buffer 2
         for ( int j = 0; j < BUFFER_SIZE; j++ ) {
-//            sum += (*inbuffer2_ptr++);
+            sum += (*inbuffer2_ptr++);
         }
         status[3] = 0;
         i++; 
@@ -201,17 +198,18 @@ int main() {
 
 
     // MS: do not pass a pointer to a stack allocated variable to a thread.
-    // This variable ay be out of scope when the other thread accesses it.
+    // This variable may be out of scope when the other thread accesses it.
     // corethread_create(i, &intermediate, &parameter);
     corethread_create(1, &intermediate, NULL);
     corethread_create(2, &consumer, NULL); 
     printf("Threads created\n");
     producer();
     
-
+printf("Producer done, other threads should be finished by now\n");
+// TODO wait some time for others to finish if join is shaky
   for(j=1; j<3; ++j) { 
     int parameter = 1;
-    corethread_join(j,&parameter);
+//    corethread_join(j,&parameter);
   }
 
   // printf("Computation is Done !!\n");
