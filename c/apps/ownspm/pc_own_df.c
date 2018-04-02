@@ -29,6 +29,8 @@ volatile _UNCACHED int timeStamps[4];
 
 volatile _UNCACHED int status[4];
 
+volatile _UNCACHED int status0, status1, status2, status3;
+
 
 // Producer
 void producer() {
@@ -43,9 +45,9 @@ void producer() {
     outbuffer1_ptr = &spm_ptr[0];
     outbuffer2_ptr = &spm_ptr[NEXT];
 
-printf("%d %d %d %d %d\n", i, status[0], status[1], status[2], status[3]);
+printf("%d %d %d %d %d\n", i, status0, status1, status2, status3);
 
-    while(status[0] != 0) {
+    while(status0 != 0) {
       ;
     }
 
@@ -54,24 +56,24 @@ printf("%d %d %d %d %d\n", i, status[0], status[1], status[2], status[3]);
 
           //producing data for the buffer 1
           for ( int j = 0; j < BUFFER_SIZE; j++ ) {
-              *outbuffer1_ptr++ = 1 ; // produce data
+//              *outbuffer1_ptr++ = 1 ; // produce data
           }
 
           // flip the data ready flag for buffer 1
-          status[0] = 1;
+          status0 = 1;
           i++;
 
-    while(status[1] != 0) {
+    while(status1 != 0) {
       ;
     }
 
           //producing data for the buffer 2
           for ( int j = 0; j < BUFFER_SIZE; j++ ) {
-              *outbuffer2_ptr++ = 2 ; // produce data
+//              *outbuffer2_ptr++ = 2 ; // produce data
           }
 
           // flip the data ready flag for buffer 2
-          status[1] = 1;
+          status1 = 1;
           i++;        
   }
 //producer finishing time stamp
@@ -99,33 +101,33 @@ void intermediate(void *arg){
         outbuffer1_ptr = &spm_ptr[NEXT*2];
         outbuffer2_ptr = &spm_ptr[NEXT*3];
 
-while ((status[0] != 1) && (status[2] != 0)) {
+while ((status0 != 1) && (status2 != 0)) {
   ;
 }
 
             //producing data for the buffer 1
             for ( int j = 0; j < BUFFER_SIZE; j++ ) {
-                *outbuffer1_ptr++ = *inbuffer1_ptr++ +1 ; // produce data
+//                *outbuffer1_ptr++ = *inbuffer1_ptr++ +1 ; // produce data
             }
 
             // update the flags for buffer 1
-            status[0] = 0;
-            status[2] = 1;
+            status0 = 0;
+            status2 = 1;
             //for the time being for flow control
             i++;
 
-while ((status[1] != 1) && (status[3] != 0)) {
+while ((status1 != 1) && (status3 != 0)) {
   ;
 }
           
             //producing data for the buffer 2
             for ( int j = 0; j < BUFFER_SIZE; j++ ) {
-                *outbuffer2_ptr++ = *inbuffer2_ptr++ +2 ; // produce data
+//                *outbuffer2_ptr++ = *inbuffer2_ptr++ +2 ; // produce data
             }
 
             // update the flags for buffer 2
-            status[1] = 0;
-            status[3] = 1;
+            status1 = 0;
+            status3 = 1;
             //for the time being for flow control
             i++;
          
@@ -145,7 +147,7 @@ void consumer(void *arg) {
     inbuffer1_ptr = &spm_ptr[NEXT*2];
     inbuffer2_ptr = &spm_ptr[NEXT*3];
 
-    while (status[2] != 1) {
+    while (status2 != 1) {
       ;
     }
 
@@ -157,21 +159,21 @@ void consumer(void *arg) {
 
         //consuming data from the buffer 1
         for ( int j = 0; j < BUFFER_SIZE; j++ ) {
-            sum += (*inbuffer1_ptr++);
+//            sum += (*inbuffer1_ptr++);
         }
 
-        status[2] = 0;
+        status2 = 0;
         i++; 
         
-    while (status[3] != 1) {
+    while (status3 != 1) {
       ;
     }
 
         //consuming data from the buffer 2
         for ( int j = 0; j < BUFFER_SIZE; j++ ) {
-            sum += (*inbuffer2_ptr++);
+//            sum += (*inbuffer2_ptr++);
         }
-        status[3] = 0;
+        status3 = 0;
         i++; 
       
   }
@@ -191,6 +193,10 @@ int main() {
   for (i=0; i<4; ++i) {
     status[i] = 0;
   }
+  status0 = 0;
+  status1 = 0;
+  status2 = 0;
+  status3 = 0;
 
   int parameter = 1;
 
