@@ -42,7 +42,6 @@ class TwoWayMem(n: Int, memSize: Int) extends Module {
 }
 
 object TwoWayMem extends App {
-
   chiselMain(Array("--backend", "v", "--targetDir", "generated"),
-    () => Module(new OneWayMem(2, 1024)))
+    () => Module(new TwoWayMem(2, 1024)))
 }

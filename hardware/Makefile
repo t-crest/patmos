@@ -224,3 +224,7 @@ oneway_test:
 Network-test: 
 	$(SBT) "test:runMain s4noc.NetworkTester"
 
+# TWOWAY make targets
+twoway:
+	$(SBT) "runMain twoway-dsm.TwoWayMem"
+
