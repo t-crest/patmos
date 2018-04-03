@@ -25,9 +25,9 @@ volatile _UNCACHED int timeStamps[4];
 //Status pointers in the main memory
 // MS: why multiplied by 2?
 // This single assignment does not initialize the array
-// volatile _UNCACHED int status[STATUS_LEN*2]={0};
+//volatile _UNCACHED int status[STATUS_LEN*2]={0};
 
-volatile _UNCACHED int status[4];
+//volatile _UNCACHED int status[4];
 
 volatile _UNCACHED int status0, status1, status2, status3;
 
@@ -45,7 +45,7 @@ void producer() {
     outbuffer1_ptr = &spm_ptr[0];
     outbuffer2_ptr = &spm_ptr[NEXT];
 
-printf("%d %d %d %d %d\n", i, status0, status1, status2, status3);
+//printf("%d %d %d %d %d\n", i, status0, status1, status2, status3);
 
     while(status0 != 0) {
       ;
@@ -100,10 +100,10 @@ void intermediate(void *arg){
         inbuffer2_ptr = &spm_ptr[NEXT];
         outbuffer1_ptr = &spm_ptr[NEXT*2];
         outbuffer2_ptr = &spm_ptr[NEXT*3];
-
-while ((status0 != 1) && (status2 != 0)) {
-  ;
-}
+  
+      while (!((status0 == 1) && (status2 == 0))) {
+      ;
+      }
 
             //producing data for the buffer 1
             for ( int j = 0; j < BUFFER_SIZE; j++ ) {
@@ -116,10 +116,9 @@ while ((status0 != 1) && (status2 != 0)) {
             //for the time being for flow control
             i++;
 
-while ((status1 != 1) && (status3 != 0)) {
-  ;
-}
-          
+      while (!((status1 == 1) && (status3 == 0))) {
+      ;
+      }          
             //producing data for the buffer 2
             for ( int j = 0; j < BUFFER_SIZE; j++ ) {
 //                *outbuffer2_ptr++ = *inbuffer2_ptr++ +2 ; // produce data
@@ -131,7 +130,7 @@ while ((status1 != 1) && (status3 != 0)) {
             //for the time being for flow control
             i++;
          
-        }
+      }
 }
 
 
@@ -190,9 +189,6 @@ int main() {
 
   int id = get_cpuid(); // id=0
 
-  for (i=0; i<4; ++i) {
-    status[i] = 0;
-  }
   status0 = 0;
   status1 = 0;
   status2 = 0;
@@ -215,7 +211,7 @@ printf("Producer done, other threads should be finished by now\n");
 // TODO wait some time for others to finish if join is shaky
   for(j=1; j<3; ++j) { 
     int parameter = 1;
-//    corethread_join(j,&parameter);
+    corethread_join(j,&parameter);
   }
 
   // printf("Computation is Done !!\n");
