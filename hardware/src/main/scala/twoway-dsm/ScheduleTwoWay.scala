@@ -23,14 +23,28 @@ import scala.util.Random
 object Schedule {
 
   def getSchedule(n: Int, inverted : Bool) = {
-
-    val s = n match {
-      case 2 => ScheduleTable.FourNodes
-      case 3 => ScheduleTable.NineNodes
-      case 4 => ScheduleTable.SixTeenNodes
-      case _ => throw new Error("Currently only 2x2, 3x3, and 4x4 NoCs supported, you requested: "+n+"x"+n)
+    
+      val temps = n match {
+        case 2 => ScheduleTable.FourNodes
+        case 3 => ScheduleTable.NineNodes
+        case 4 => ScheduleTable.SixTeenNodes
+        case _ => throw new Error("Currently only 2x2, 3x3, and 4x4 NoCs supported, you requested: "+n+"x"+n)
+      }
+    
+    if(inverted){
+      val temp = temps.replace('e', 'W')
+      val temp2 = temp.replace('w', 'E')
+      val temp3 = temp2.replace('s', 'N')
+      val temp4 = temp3.replace('n', 'S')
+      val temp5 = temp4.replace('W', 'w')
+      val temp6 = temp5.replace('E', 'e')
+      val temp7 = temp6.replace('S', 's')
+      val s = temp7.replace('N', 'n')
+    
+    }else{
+      val s = temps
     }
-
+    
     def port(c: Char) = {
       c match {
         case 'n' => NORTH
