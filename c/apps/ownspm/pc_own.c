@@ -9,7 +9,7 @@
 #include <machine/patmos.h>
 #include <machine/spm.h>
 
-#include "include/patio.h"
+//#include "include/patio.h"
 #include "libcorethread/corethread.h"
 
 #include "ownspm.h"
@@ -26,47 +26,55 @@ volatile _UNCACHED int data_ready2;
 // Producer
 void producer() {
 
-  volatile int _SPM  *buffer1_ptr;
-  volatile int _SPM  *buffer2_ptr;
 
   int id = get_cpuid();
 
+  volatile int _SPM  *buffer1_ptr = &spm_ptr[NEXT*id];
+  volatile int _SPM  *buffer2_ptr = &spm_ptr[NEXT*(id+1)];
+
+
   int i=0;
-  int sum=0;
 
-  while(i<DATA_LEN/BUFFER_SIZE){
+  while(i < DATA_LEN){
 
-    buffer1_ptr = &spm_ptr[NEXT*id];
-    buffer2_ptr = &spm_ptr[NEXT*(id+1)];
-
-    if(data_ready1 == 0){
-        
-          //Producer starting time stamp
-          if(i==0){timeStamps[0] = *timer_ptr;}
-
-          //producing data for the buffer 1
-          for ( int j = 0; j < BUFFER_SIZE; j++ ) {
-              *buffer1_ptr++ = 1 ; // produce data
-          }
-          data_ready1 = 1;
-          i++;
-    }
-    
-    if( data_ready2 == 0){
-          
-          //producing data for the buffer 2
-          for ( int j = 0; j < BUFFER_SIZE; j++ ) {
-              *buffer2_ptr++ = 2 ; // produce data
-          }
-
-          data_ready2 = 1;
-          i++;
-
+    while(data_ready1 == 1) {
+      ;
     }
 
+    //Producer starting time stamp
+    if(i==0){timeStamps[0] = *timer_ptr;}
+
+    int len = DATA_LEN - i;
+    if(BUFFER_SIZE < len)
+      len = BUFFER_SIZE;
+
+    //producing data for the buffer 1
+    for ( int j = 0; j < len; j++ ) {
+        *(buffer1_ptr+j) = 1 ; // produce data
+    }
+
+    data_ready1 = 1;
+    i += len;
+
+    while(data_ready2 == 1) {
+      ;
+    }
+
+    len = DATA_LEN - i;
+    if(BUFFER_SIZE < len)
+      len = BUFFER_SIZE;
+
+    //producing data for the buffer 2
+    for ( int j = 0; j < len; j++ ) {
+      *(buffer2_ptr+j) = 2 ; // produce data
+    }
+
+    data_ready2 = 1;
+    i += len;
   }
-   //Producer finishing time stamp
-   timeStamps[1] = *timer_ptr;
+
+  //Producer finishing time stamp
+  timeStamps[1] = *timer_ptr;
 
   return;
 }
@@ -76,42 +84,50 @@ void producer() {
 // Consumer
 void consumer(void *arg) {
 
-  volatile int _SPM *buffer1_ptr,*buffer2_ptr;
-
   int id = get_cpuid();
+  
+  volatile int _SPM  *buffer1_ptr = &spm_ptr[NEXT*(id-1)];
+  volatile int _SPM  *buffer2_ptr = &spm_ptr[NEXT*id];
+
 
   int i=0; 
   int sum = 0;
 
-  while(i<DATA_LEN/BUFFER_SIZE){
-
-    buffer1_ptr = &spm_ptr[NEXT*(id-1)];
-    buffer2_ptr = &spm_ptr[NEXT*(id)];
-
-    if(data_ready1 == 1){
-        
-        //Consumer starting time stamp
-        if(i==0){timeStamps[2] = *timer_ptr;}
-
-        //consuming data from the buffer 1
-        for ( int j = 0; j < BUFFER_SIZE; j++ ) {
-            sum += *buffer1_ptr++;
-        }
-
-        data_ready1 = 0;
-        i++;
-
+  while(i < DATA_LEN){
+ 
+    while(data_ready1 == 0) {
+      ;
     }
-    
-    if(data_ready2 == 1){
+        
+    //Consumer starting time stamp
+    if(i==0){timeStamps[2] = *timer_ptr;}
 
-        //consuming data from the buffer 2
-        for ( int j = 0; j < BUFFER_SIZE; j++ ) {
-            sum += *buffer2_ptr++;
-        }
-        data_ready2 = 0;
-        i++;
-      }
+    int len = DATA_LEN - i;
+    if(BUFFER_SIZE < len)
+      len = BUFFER_SIZE;
+
+    //consuming data from the buffer 1
+    for ( int j = 0; j < len; j++ ) {
+      sum += *(buffer1_ptr+j);
+    }
+
+    data_ready1 = 0;
+    i += len;
+
+    while(data_ready2 == 0) {
+      ;
+    }
+
+    len = DATA_LEN - i;
+    if(BUFFER_SIZE < len)
+      len = BUFFER_SIZE;
+
+    //consuming data from the buffer 2
+    for (int j = 0; j < len; j++ ) {
+      sum += *(buffer2_ptr+j);
+    }
+    data_ready2 = 0;
+    i += len;
 
   }
    //Consumer finishing time stamp
@@ -123,25 +139,23 @@ void consumer(void *arg) {
 
 int main() {
 
-  unsigned i,j;
-
   data_ready1=0;
   data_ready2=0;
 
   int id = get_cpuid(); 
   int cnt = get_cpucnt();
 
-  int parameter = 1;
 
-  printf("Total %d Cores\n",get_cpucnt()); // print core count
+
+  printf("Total %d Cores\n",cnt); // print core count
 
   // printf("Writing the data to the SPM ...\n"); 
 
+  corethread_create(1, &consumer, NULL); 
+  producer();
 
-  corethread_create(1, &consumer, &parameter); 
-  producer();  
-
-  corethread_join(1,&parameter);
+  void * dummy;  
+  corethread_join(1,&dummy);
 
   // printf("Computation is Done !!\n");
 
