@@ -71,8 +71,8 @@ void producer() {
   int id = get_cpuid();
 
 #ifdef _SSPM
-  volatile int _SPM  *buffer1_ptr = &spm_ptr[1];
-  volatile int _SPM  *buffer2_ptr = &spm_ptr[1+BUFFER_SIZE];
+  volatile int _SPM  *buffer1_ptr = &spm_ptr[0];
+  volatile int _SPM  *buffer2_ptr = &spm_ptr[BUFFER_SIZE];
 #endif
 #ifdef _MULTIOWN
   volatile int _SPM  *buffer1_ptr = spm_base(0);
@@ -100,41 +100,33 @@ void producer() {
     //Producer starting time stamp
     if(i==0){timeStamps[0] = *timer_ptr;}
 
-    int len = DATA_LEN - i;
-    if(BUFFER_SIZE < len)
-      len = BUFFER_SIZE;
-
 #ifdef _MAINMEM
     inval_dcache(); //invalidate the data cache
 #endif
 
     //producing data for the buffer 1
-    for ( int j = 0; j < len; j++ ) {
+    for ( int j = 0; j < BUFFER_SIZE; j++ ) {
         *(buffer1_ptr+j) = 1 ; // produce data
     }
 
     *data_ready1 = 1;
-    i += len;
+    i += BUFFER_SIZE;
 
     while(*data_ready2 == 1) {
       ;
     }
-
-    len = DATA_LEN - i;
-    if(BUFFER_SIZE < len)
-      len = BUFFER_SIZE;
 
 #ifdef _MAINMEM
     inval_dcache(); //invalidate the data cache
 #endif
 
     //producing data for the buffer 2
-    for ( int j = 0; j < len; j++ ) {
+    for ( int j = 0; j < BUFFER_SIZE; j++ ) {
       *(buffer2_ptr+j) = 2 ; // produce data
     }
 
     *data_ready2 = 1;
-    i += len;
+    i += BUFFER_SIZE;
   }
 
   //Producer finishing time stamp
@@ -151,8 +143,8 @@ void consumer(void *arg) {
   int id = get_cpuid();
 
 #ifdef _SSPM
-  volatile int _SPM  *buffer1_ptr = &spm_ptr[1];
-  volatile int _SPM  *buffer2_ptr = &spm_ptr[1+BUFFER_SIZE];
+  volatile int _SPM  *buffer1_ptr = &spm_ptr[0];
+  volatile int _SPM  *buffer2_ptr = &spm_ptr[BUFFER_SIZE];
 #endif
 #ifdef _MULTIOWN
   volatile int _SPM  *buffer1_ptr = spm_base(0);
@@ -217,8 +209,8 @@ void consumer(void *arg) {
 int main() {
 
 #ifdef _SSPM
-  data_ready1 = spm_ptr;
-  data_ready2 = spm_ptr+BUFFER_SIZE;
+  data_ready1 = &spm_ptr[2*BUFFER_SIZE];
+  data_ready2 = &spm_ptr[2*BUFFER_SIZE+1];
 #endif
 #ifdef _MULTIOWN
   // We statically assign the SPMs so we simply set the ownership
