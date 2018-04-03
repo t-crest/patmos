@@ -12,9 +12,9 @@ import Const._
 /**
  * Create and connect a n x n NoC.
  */
-class Network(n: Int, inverted : Bool) extends Module {
+class Network(n: Int, width: Int, inverted : Bool) extends Module {
   val io = new Bundle {
-    val local = Vec(n * n, new Channel())
+    val local = Vec(n * n, new RwChannel(width))
   }
 
   if(inverted) {
