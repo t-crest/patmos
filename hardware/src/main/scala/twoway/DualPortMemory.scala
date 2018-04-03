@@ -12,7 +12,7 @@ class Port(size: Int) extends Bundle {
   val addr = UInt(width = log2Up(size)).asInput
   val wrData = UInt(width = 32).asInput
   val rdData = UInt(width = 32).asOutput
-  val wren = Bool().asInput
+  val wrEna = Bool().asInput
 }
 
 class DualPort(size: Int) extends Bundle {
@@ -49,7 +49,7 @@ class TrueDualPortMemory(size: Int) extends Module {
   val mem = Mem(UInt(width = 32), size, seqRead = true)
 
   val regAddrA = Reg(io.portA.addr)
-  when(io.portA.wren) {
+  when(io.portA.wrEna) {
     mem(io.portA.addr) := io.portA.wrData
   }.otherwise {
     regAddrA := io.portA.addr
@@ -59,7 +59,7 @@ class TrueDualPortMemory(size: Int) extends Module {
   // This does not generate a true dual-ported memory,
   // but a register based implementation
   val regAddrB = Reg(io.portB.addr)
-  when(io.portB.wren) {
+  when(io.portB.wrEna) {
     mem(io.portB.addr) := io.portB.wrData
   }.otherwise {
     regAddrB := io.portB.addr

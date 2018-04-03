@@ -24,14 +24,10 @@ object Const {
   val NR_OF_PORTS = 5
 }
 
-class RwLine(memWidth: Int) extends Bundle{
-  val rw = Bool() // 1: Write, 0 : read
-  val address = UInt(width = memWidth)
-  val data = UInt(width = 32)
-}
-
 class SingleRwChannel(w: Int) extends Bundle {
-  val line = RwLine(w)
+  val rw = Bool() // 1: Write, 0 : read
+  val address = UInt(width = w)
+  val data = UInt(width = 32)
   val valid = Bool()
 }
 

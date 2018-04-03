@@ -22,7 +22,7 @@ import scala.util.Random
 
 object Schedule {
 
-  def getSchedule(n: Int, inverted : Bool) = {
+  def getSchedule(n: Int, inverted : Boolean) = {
     
       val temps = n match {
         case 2 => ScheduleTable.FourNodes
@@ -34,13 +34,10 @@ object Schedule {
     def invertMap(c: Char) = { // map function from original to inverted schedule 
       c match {case 'w' => 'e' case 'e' => 'w' case 'n' => 's' case 's' => 'n' case _ => c}
     }
-    
+    var s = temps
     if(inverted){
-      val s = temps.map(c => invertMap(c)) // if inverted is high the schedule should be inverted
-    
-    }else{
-      val s = temps
-    }
+      s = s.map(c => invertMap(c)) // if inverted is high the schedule should be inverted
+   }
     
     def port(c: Char) = {
       c match {
@@ -120,7 +117,7 @@ ne
   }
 
   def main(args: Array[String]): Unit = {
-    print(getSchedule(2))
+    print(getSchedule(2,false))
   }
 
 }

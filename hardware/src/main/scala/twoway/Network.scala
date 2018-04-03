@@ -12,15 +12,13 @@ import Const._
 /**
  * Create and connect a n x n NoC.
  */
-class Network(n: Int, width: Int, inverted : Bool) extends Module {
+class Network(n: Int, width: Int, inverted : Boolean) extends Module {
   val io = new Bundle {
     val local = Vec(n * n, new RwChannel(width))
   }
-
+  var schedule = Schedule.getSchedule(n,false)._1
   if(inverted) {
-    val schedule = Schedule.getSchedule(n,true)._1
-  } else {
-    val schedule = Schedule.getSchedule(n,false)._1
+    schedule = Schedule.getSchedule(n,true)._1
   }
 
   val net = new Array[Router](n * n)

@@ -226,5 +226,5 @@ Network-test:
 
 # TWOWAY make targets
 twoway:
-	$(SBT) "runMain twoway-dsm.TwoWayMem"
+	$(SBT) "runMain twoway.TwoWayMem"
 

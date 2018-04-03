@@ -29,7 +29,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   }
 
   // Write NOC
-  val st = Schedule.getSchedule(n)
+  val st = Schedule.getSchedule(n, false)
   val scheduleLength = st._1.length
   val writeNocTab = Vec(st._2.map(Bool(_)))
 
@@ -44,20 +44,19 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
 
   // Decode memory request from LOCAL Node - use memory port A
   val upperAddr = io.memReq.in.address >> blockAddrWidth; // Target node
-  val lowerAddr = io.memReq.in.address && (2^blockAddrWidth - 1) // Block address
+  val lowerAddr = io.memReq.in.address(blockAddrWidth, 0) // Block address
   when(io.memReq.out.valid){
-    when(upperAddr === nodeIndex){
+    when(Bool(upperAddr == UInt(nodeIndex))){
       // LOCAL NODE -> LOCAL MEMORY
       io.memPort.io.portA.wrEna := io.memReq.out.rw
       io.memReq.in.valid := Bool(true)
+      io.memPort.io.portA.addr := lowerAddr
       when(io.memReq.out.rw){
         // LOCAL MEMORY WRITE
-        io.memPort.io.portA.wrAddr := lowerAddr
         io.memPort.io.portA.wrData := io.memReq.in.data
-      } elsewhen {
+      } .otherwise {
         // LOCAL MEMORY READ
-        io.memPort.io.portA.rdAddr := lowerAddr
-        io.memReq.data := io.memPort.io.portA.rdData
+        io.memReq.in.data := io.memPort.io.portA.rdData
       }
     } .otherwise {
       // LOCAL NODE -> EXTERNAL MEMORY
@@ -70,7 +69,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
 
   // writeNoc transmission
   val valid = writeNocTab(regTdmCounter) === upperAddr
-  when(valid && io.memReq.in.valid && upperAddr != nodeIndex) {
+  when((valid && io.memReq.in.valid) && (upperAddr =/= UInt(nodeIndex))) {
     // Transmit outgoing memory read request/write when TDM reaches target node and request is not in local memory
     io.writeChannel.out.valid := Bool(true);
     when(io.memReq.out.rw){
@@ -80,20 +79,19 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   }
 
   // ReadBack NoC variables
-  val gotValue = Bool(false)
-  val readBackValue = UInt(width = 32, init= UInt(0)) 
+  val gotValue = Reg(init = Bool(false))
+  val readBackValue = Reg(init= UInt(0,32)) 
 
   // writeNoc reception - use memory port B
   when(io.writeChannel.in.valid) {
     val rxLowerAddr = io.writeChannel.in.address // Block address
+    io.memPort.io.portB.addr := rxLowerAddr
     when(io.writeChannel.in.rw){
       // LOCAL MEMORY WRITE
-      io.memPort.io.portB.wrAddr := rxLowerAddr
-      io.memPort.io.portB.wrData := io.writeChannel.data
-      io.memPort.io.portB.valid := io.writeChannel.in.rw
+      io.memPort.io.portB.wrData := io.writeChannel.in.data
+      io.memPort.io.portB.wrEna := io.writeChannel.in.rw
     } .otherwise {
       // LOCAL MEMORY READ
-      io.memPort.io.portB.rdAddr := rxLowerAddr
       readBackValue := io.memPort.io.portB.rdData
       gotValue := Bool(true)
     }
@@ -112,7 +110,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   // ReadBack NoC reception
   when(io.readBackChannel.in.valid){
     // Node should be waiting for the valid signal to be asserted, to indicate that data is available
-    io.memReq.in.data := io.readBackChannel.data
+    io.memReq.in.data := io.readBackChannel.out.data
     io.memReq.in.valid := io.readBackChannel.in.valid
   }
 }
