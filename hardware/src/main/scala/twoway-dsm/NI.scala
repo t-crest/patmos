@@ -38,11 +38,6 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   val end = regTdmCounter === UInt(scheduleLength - 1)
   regTdmCounter := Mux(end, UInt(0), regTdmCounter + UInt(1))
 
-  // Memory initialization
-  println(blockAddrWidth.toShort)
-  println("Memory block size: " + scala.math.pow(2, blockAddrWidth).toInt)
-  val memory = Module(new DualPortMemory(blockAddrWidth))
-
   // Default to not write to local memory
   io.memPort.io.portA.wrEna := Bool(false)
   io.memPort.io.portB.wrEna := Bool(false)
