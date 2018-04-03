@@ -23,7 +23,9 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
     val readBackChannel = new Channel()
     // MSB: 0 = read request, 1 = write (to block in other node)
     val writeChannel = new RwChannel(blockAddrWidth)
-    val memPort = new DualPort(size)
+    // Port A: Local node requests
+    // Port B: External requests
+    val memPort = new TrueDualPortMemory(size)
   }
 
   // Write NOC
@@ -42,27 +44,27 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   val memory = Module(new DualPortMemory(blockAddrWidth))
 
   // Default to not write to local memory
-  io.memPort.wrEna := Bool(false)
+  io.memPort.io.portA.wrEna := Bool(false)
+  io.memPort.io.portB.wrEna := Bool(false)
 
-  // Decode memory request from LOCAL Node
+  // Decode memory request from LOCAL Node - use memory port A
   val upperAddr = io.memReq.in.address >> blockAddrWidth; // Target node
   val lowerAddr = io.memReq.in.address && (2^blockAddrWidth - 1) // Block address
   when(io.memReq.out.valid){
     when(upperAddr === nodeIndex){
       // LOCAL NODE -> LOCAL MEMORY
-      io.memPort.wrEna := io.memReq.out.rw
+      io.memPort.io.portA.wrEna := io.memReq.out.rw
       io.memReq.in.valid := Bool(true)
       when(io.memReq.out.rw){
         // LOCAL MEMORY WRITE
-        io.memPort.wrAddr := lowerAddr
-        io.memPort.wrData := io.memReq.in.data
-
+        io.memPort.io.portA.wrAddr := lowerAddr
+        io.memPort.io.portA.wrData := io.memReq.in.data
       } elsewhen {
         // LOCAL MEMORY READ
-        io.memPort.rdAddr := lowerAddr
-        io.memReq.data := io.memPort.rdData
+        io.memPort.io.portA.rdAddr := lowerAddr
+        io.memReq.data := io.memPort.io.portA.rdData
       }
-    } elsewhen {
+    } .otherwise {
       // LOCAL NODE -> EXTERNAL MEMORY
       io.memReq.in.valid := Bool(false)
       io.writeChannel.out.address := lowerAddr
@@ -82,34 +84,30 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
     }
   }
 
-  // ReadBack NoC registers
+  // ReadBack NoC variables
   val gotValue = Bool(false)
   val readBackValue = UInt(width = 32, init= UInt(0)) 
 
-  // writeNoc reception
+  // writeNoc reception - use memory port B
   when(io.writeChannel.in.valid) {
     val rxLowerAddr = io.writeChannel.in.address // Block address
     when(io.writeChannel.in.rw){
       // LOCAL MEMORY WRITE
-      io.memPort.wrAddr := rxLowerAddr
-      io.memPort.wrData := io.writeChannel.data
-      io.memPort.valid := io.writeChannel.in.rw
-    } elsewhen(){
+      io.memPort.io.portB.wrAddr := rxLowerAddr
+      io.memPort.io.portB.wrData := io.writeChannel.data
+      io.memPort.io.portB.valid := io.writeChannel.in.rw
+    } .otherwise {
       // LOCAL MEMORY READ
-      // TDM cycle should start two cycles late for read data delay
-      io.memPort.rdAddr := rxLowerAddr
-      // TODO: Conflict between local read and external read? if io.memPort.rdAddr is changed in the one cycle between
-      // The below assignment (from a local read), incorrect data is read.
-      // is TrueDualPortMemory from DualPortMemory.scala, such that we have two read interfaces into local memory
-      readBackValue.data := io.memPort.rdData
-      gotValue := RegNext(Bool(true), init = Bool(false)) // huh?
+      io.memPort.io.portB.rdAddr := rxLowerAddr
+      readBackValue := io.memPort.io.portB.rdData
+      gotValue := Bool(true)
     }
   }
 
   // ReadBack NoC transmission
   io.readBackChannel.out.valid := Bool(false)
   when(gotValue){
-    // Transmit read value on readBack NoC - no validTab here, since the constant delay of 
+    // Transmit read value on readBack NoC - no validTab here, since the constant delay time of 
     // accessing the memory is factored into the readBack schedule
     io.readBackChannel.out.valid := gotValue
     io.readBackChannel.out.data  := readBackValue
