@@ -31,15 +31,12 @@ object Schedule {
         case _ => throw new Error("Currently only 2x2, 3x3, and 4x4 NoCs supported, you requested: "+n+"x"+n)
       }
     
+    def invertMap(c: Char) = { // map function from original to inverted schedule 
+      c match {case 'w' => 'e' case 'e' => 'w' case 'n' => 's' case 's' => 'n' case _ => c}
+    }
+    
     if(inverted){
-      val temp = temps.replace('e', 'W')
-      val temp2 = temp.replace('w', 'E')
-      val temp3 = temp2.replace('s', 'N')
-      val temp4 = temp3.replace('n', 'S')
-      val temp5 = temp4.replace('W', 'w')
-      val temp6 = temp5.replace('E', 'e')
-      val temp7 = temp6.replace('S', 's')
-      val s = temp7.replace('N', 'n')
+      val s = temps.map(c => invertMap(c)) // if inverted is high the schedule should be inverted
     
     }else{
       val s = temps
