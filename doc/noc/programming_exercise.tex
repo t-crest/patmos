@@ -6,7 +6,7 @@
 
 \usepackage{pslatex} % -- times instead of computer modern
 \usepackage[scaled=.84]{beramono} % a sane monospace font
-\usepackage{microtype}
+%\usepackage{microtype}
 
 \usepackage{url}
 \usepackage{booktabs}
@@ -25,7 +25,7 @@
 
 % Doxygen includes
 \usepackage{calc}
-\usepackage{../c_doc/latex/doxygen}
+%\usepackage{../c_doc/latex/doxygen}
 \usepackage{makeidx}
 \usepackage{multirow}
 
@@ -168,9 +168,9 @@
 \chapter{Preface}
 
 This exercise manual is written for the course `02211 Advanced Computer Architecture' at the Technical University of Denmark,
-but is intended as a stand alone document for anybody interested in learning about multicore programming with the Argo Network-on-Chip.
+but is intended as a stand-alone document for anybody interested in learning about multicore programming with the Argo Network-on-Chip.
 
-This document is subject to continuous development along the the platform it describes.
+This document is subject to continuous development along with the platform it describes.
 In case you have suggestions for improvement or find that the text is unclear and needs to be elaborated, please write to \href{mailto:rboso@dtu.dk}{rboso@dtu.dk} or \href{mailto:lpez@dtu.dk}{lpez@dtu.dk}.
 The latest version of this document is contained as LaTeX source in the Patmos repository in directory
 \code{patmos/doc} and can be built with \code{make noc}.
@@ -196,24 +196,24 @@ The latest version of this document is contained as LaTeX source in the Patmos r
 This document presents the background required to write a multicore program utilizing the Argo NoC~\cite{t-crest:argo:tvlsi2015} for intercore communication in the T-CREST plaform~\cite{t-crest:2015}.
 The exercises should give the reader a good understanding of how the Argo NoC can be utilized in a multicore application.
 The reader will get experience in how to write a multicore application that uses message passing.
-In the exercises we assume that the reader is familiar with the C programming language and multi-threaded programming in general.
+In the exercises, we assume that the reader is familiar with the C programming language and multi-threaded programming in general.
 Furthermore, we assume that the reader has already run a single core application on a Patmos processor in an FPGA, refer to the Patmos handbook~\cite{patmos:handbook} for details on the Patmos processor.
 
-An example of the multicore platform is shown in Fig.~\ref{fig:mc-patmos}. Core $P_0$ is referred to as the master core and the rest of the cores are referred to as slave cores. The reason that $P_0$ is the master core is that when an application is downloaded to the platform, the application starts executing \code{main()} on the master core, also the serial console  is connected to the master core. All cores are connected to the shared external memory, but the bandwidth towards the external memory is quiet low.
+An example of the multicore platform is shown in Fig.~\ref{fig:mc-patmos}. Core $P_0$ is referred to as the master core, and the rest of the cores are referred to as slave cores. The reason that $P_0$ is the master core is that when an application is downloaded to the platform, the application starts executing \code{main()} on the master core; also the serial console  is connected to the master core. All cores are connected to the shared external memory, but the bandwidth towards the external memory is quite low.
 Therefore, the programmer should utilize the NoC as much as possible for core-to-core communication.
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.9\textwidth]{fig/MultiCore.pdf}
 \caption{The Patmos multicore platform with the Argo NoC for intercore communication.
-The core with id 0 is referred to as the master core and the rest of the cores are referred to as the slave cores.}
+The core with id 0 is referred to as the master core, and the rest of the cores are referred to as the slave cores.}
 \label{fig:mc-patmos}
 \end{figure}
 
 Chapter~\ref{chap:arch} presents the architecture of the Argo Network-on-Chip.
-Chapter~\ref{chap:api} describes the programming interface of the multicore platform, including the thread library and the high level message passing.
+Chapter~\ref{chap:api} describes the programming interface of the multicore platform, including the thread library and the high-level message passing.
 Chapter~\ref{chap:exercise} contains the practical exercises to give the reader a practical introduction to the platform.
-Appendix~\ref{apx:build} describes the practical aspects of loading the program into the platform running in an FPGA.
-Appendix~\ref{apx:api} contains the Doxygen documentation of the C libraries.
+Finally, Appendix~\ref{apx:build} describes the practical aspects of loading the program into the platform running in an FPGA.
+%Appendix~\ref{apx:api} contains the Doxygen documentation of the C libraries.
 
 
 \chapter{The Architecture of Argo}
@@ -227,11 +227,11 @@ The guarantees on bandwidth and latency are enforced by a static time division m
 A TDM schedule is generated by the Poseidon TDM scheduler, based on some bandwidth requirements that are given in XML format.
 The statically allocated TDM schedule is loaded
 into hardware tables in the network interface when the platform boots.
-It is possible to reconfigure a new schedule at run time with the reconfiguration capabilities of the Argo NoC, but since the reconfiguration capabilities are not needed for these exercises, they are not described in this document.
-In these exercises we assume the default all-to-all schedule where all cores have communication channels to all other cores.
+It is possible to reconfigure a new schedule at runtime with the reconfiguration capabilities of the Argo NoC, but since the reconfiguration capabilities are not needed for these exercises, they are not described in this document.
+In these exercises, we assume the default all-to-all schedule where all cores have communication channels to all other cores.
 
 Figure~\ref{fig:argo-arch} shows the architecture of the Argo NoC.
-\begin{figure}[h]
+\begin{figure}[b!]
 \centering
 \includegraphics[width=\textwidth]{fig/argo-arch.pdf}
 \caption{The Argo architecture from a software perspective.
@@ -242,7 +242,7 @@ location in the communication SPM of the processor on the right.}
 \end{figure}
 The DMA block in the figure contains a table of DMA entries,
 each entry describes a DMA controller that can send to a remote processor.
-Each DMA controller is paired with a communication channel when the network in configured. 
+Each DMA controller is paired with a communication channel when the network is configured. 
 To transfer a block of data from a local SPM to a remote SPM, there are \ref{arch:list1}~steps:
 \begin{enumerate}
 \item Store the block of data in the local SPM
@@ -254,18 +254,18 @@ To transfer a block of data from a local SPM to a remote SPM, there are \ref{arc
   \end{itemize}
 \label{arch:list1}\end{enumerate}
 After step~\ref{arch:list1} the DMA will start to transfer data in each TDM slot that is allocated to the specified communication channel.
-When the DMA has transfered all packets through the network the `active' bit is reset by the NI for that DMA entry. The `active' bit can be pooled to wait for the DMA to finish.
+When the DMA has transferred all packets through the network the `active' bit is reset by the NI for that DMA entry. The `active' bit can be pooled to wait for the DMA to finish.
 
 Conflicts of reading and writing to the same addresses in the dual
-ported SPMs has to be handled by software, there is no protection in hardware.
+ported SPMs has to be handled by software; there is no protection in hardware.
 
 
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
 \chapter{Application Programming Interface}
 \label{chap:api}
 This chapter describes the Argo application programming interface (API).
-The Argo API is made up of three libraries, the thread library \code{libcorethread}, the NoC Driver library \code{libnoc}, and the message passing library \code{libmp}. We give an overview of the three libraries in the following three section.
-For detailed documentation refer to Appendix~\ref{apx:api}, which contains the doxygen documentation of the three C libraries.
+The Argo API is made up of three libraries, the thread library \code{libcorethread}, the NoC Driver library \code{libnoc}, and the message passing library \code{libmp}. In the following three sections, we give an overview of the three libraries.
+%For detailed documentation refer to Appendix~\ref{apx:api}, which contains the Doxygen documentation of the three C libraries.
 
 \section{Corethread Library}
 \label{sec:cthread}
@@ -284,7 +284,7 @@ The exit function should be called as the last thing before the return statement
 
 \item[\code{int corethread\_join( int core\_id, void ** retval )}]
 
-The join function will join the program flow of the master core with the program flow of the core specified by \code{core\_id}, the join function should only be called from the master core. The join function will point the \code{retval} pointer to the return value allocated by the thread on the slave core. Be aware, the return value should not be allocated on the stack of the slave core!
+The join function will join the program flow of the master core with the program flow of the core specified by \code{core\_id}, and the join function should only be called from the master core. The join function will point the \code{retval} pointer to the return value allocated by the thread on the slave core. Be aware, the return value should not be allocated on the stack of the slave core!
 
 \end{description}
 
@@ -294,7 +294,7 @@ The NoC driver \code{libnoc} provides direct access to the hardware functionalit
 There are driver functions for initialization of the NoC and for setting up DMA transfers.
 The \code{libnoc} library is linked together with the auto-generated c file from the Poseidon scheduler. The auto-generated c file contains the schedule data.
 The initialization of the NoC is done automatically before the \code{main()} function starts executing, if the compiler sees that the application uses any functions from the NoC driver.
-If the application requires direct control over data movement through the NoC the following functions can be used, but it is very advisable to use the message passing library presented in Section~\ref{sec:libmp} to reduce the amount om manual memory allocation.
+If the application requires direct control over data movement through the NoC the following functions can be used, but it is very advisable to use the message passing library presented in Section~\ref{sec:libmp} to reduce the amount of manual memory allocation.
 
 
 \begin{description}
@@ -308,7 +308,7 @@ The nbwrite function is a non-blocking function for writing a block of data at t
 
 \item[\code{void noc\_write( unsigned dma\_id, volatile void \_SPM *dst, volatile void \_SPM *src, size\_t size )}]
 
-The write function is calling the nbwrite in a while loop, until it returns success.
+The write function is calling the nbwrite in a while loop until it returns success.
 
 \end{description}
 
@@ -317,7 +317,7 @@ The write function is calling the nbwrite in a while loop, until it returns succ
 
 The \code{libmp} adds flow control, buffering and memory management on top of the \code{libnoc}.
 \code{libmp} implements two different concepts of message passing, queuing message passing and sampling message passing.
-Queuing message passing implements a first-in-first-out queue where all messages has to be consumed by the receiver.
+Queuing message passing implements a first-in-first-out queue where all messages have to be consumed by the receiver.
 Sampling message passing implements atomic updated of a sample value, this sample value can be read multiple times or not read at all before the next update.
 
 To communicate from one core to another, each core must create a port of the same type, either sampling or queuing. There must be one source port and one sink port. Furthermore, the unique channel identifier for the two ports must be the same.
@@ -329,10 +329,10 @@ To communicate from one core to another, each core must create a port of the sam
 The alloc function will allocate a block of memory of size
 \code{size} in the SPM local to the core with the id \code{id}.
 The alloc function can only be called from the master core executing \code{main()}
-and once the memory block is allocated it cannot be freed.
-In the current version of the software the alloc function will not
+and once the memory block is allocated, it cannot be freed.
+In the current version of the software, the alloc function will not
 give an out of memory error, so the programmer should be aware
-that he/she does not allocate more local memory than is present.
+to not allocate more local memory than what is present.
 
 \item[\code{qpd\_t * mp\_create\_qport( unsigned int chan\_id, direction\_t direction\_type, size\_t msg\_size, size\_t num\_buf)}]
 
@@ -347,25 +347,25 @@ The communication channel will transfer messages of size
 
 The nbsend function checks if there is a free buffer in the receiver
 and if the DMA controller for the given communication channel is free.
-If both are free it will set up the DMA to transfer the new block of data.
+If both are free, it will set up the DMA to transfer the new block of data.
 The nbsend function assumes that the user/application already
-wrote the data to be sent into the \code{write\_buf} buffer.
+wrote the data to be sent to the \code{write\_buf} buffer.
 
 \item[\code{void mp\_send( mpd\_t* mpd\_ptr )}]
 
-The send function calls the nb\_send function in a loop, until it returns success.
+The send function calls the nb\_send function in a loop until it returns success.
 
 \item[\code{int mp\_nbrecv( mpd\_t* mpd\_ptr )}]
 
 The nbrecv function checks if the next buffer, in the buffer queue,
 has received a complete message.
-If a message is received it will move the \code{read\_buf} pointer
+If a message is received, it will move the \code{read\_buf} pointer
 to the beginning of the message,
 such that the user/application can read the received data.
 
 \item[\code{void mp\_recv( mpd\_t* mpd\_ptr )}]
 
-The recv function calls the nb\_recv function in a loop, until it returns success.
+The recv function calls the nb\_recv function in a loop until it returns success.
 
 \item[\code{int mp\_nback( mpd\_t* mpd\_ptr )}]
 
@@ -376,7 +376,7 @@ of acknowledged messages is decremented.
 
 \item[\code{void mp\_ack( mpd\_t* mpd\_ptr )}]
 
-The ack function calls the nb\_ack function in a loop, until it returns success.
+The ack function calls the nb\_ack function in a loop until it returns success.
 
 \item[\code{spd\_t * mp\_create\_sport(unsigned int chan\_id, direction\_t direction\_type, size\_t sample\_size)}]
 
@@ -397,7 +397,7 @@ The read function reads a sample from the specified sampling port and places the
 
 \item[\code{int mp\_init\_ports()}]
 
-The init\_ports function initializes all the created ports. All ports shall be created in the initialization phase of the program and all cores needs to call the init\_ports function to initialize its local ports.
+The init\_ports function initializes all the created ports. All ports shall be created in the initialization phase of the program, and all cores need to call the init\_ports function to initialize its local ports.
 
 \end{description}
 
@@ -412,9 +412,9 @@ Please refer to the Appendix~\ref{apx:buildhw} for instructions on
 how to build an up-to-date hardware platform.
 
 \section{Circulating tokens}
-By creating an application that mimics streaming behavior between a number of processors, this exercise will illustrate to the reader how the basics of message passing works on Argo.
-In this exercise we will make an application that circulates a number of tokens in a ring of 8 slave processors.
-The number of tokens should be configurable, but always less than the number for processors.
+By creating an application that mimics streaming behavior between a number of processors, this exercise will illustrate to the reader how the basics of message passing work on Argo.
+In this exercise, we will make an application that circulates a number of tokens in a ring of 8 slave processors.
+The number of tokens should be configurable, but always less than the number of processors.
 Each of the processors in the ring shall repeatedly execute the following \ref{list:ex1:num1}~steps:
 
 \begin{framed}
@@ -425,14 +425,14 @@ Each of the processors in the ring shall repeatedly execute the following \ref{l
 
 \item Wait for a random amount of time in the interval [100 ms; 1 s]
 \label{list:step_rand}
-\item Send the token to the next processor, when the send is complete Turn off the processor LED to indicate the the token has been processed
+\item Send the token to the next processor, when the send is complete Turn off the processor LED to indicate the token has been processed
 
 \label{list:ex1:num1}\end{enumerate}
 \end{framed}
 
 \noindent Looking at the LEDs when the application runs,
 the reader should see tokens move from one LED to the other.
-This behavior should be easy to observe with only few tokens.
+This behavior should be easy to observe with only a few tokens.
 This exercise is split into \ref{list:ex1:num2}~tasks:
 \begin{framed}
 \begin{enumerate}
@@ -443,7 +443,7 @@ This exercise is split into \ref{list:ex1:num2}~tasks:
 \label{list:ex1:num2}\end{enumerate}
 \end{framed}
 
-\noindent In each task you should verify the your program is working as expected by compiling and downloading the program to the platform.
+\noindent In each task you should verify that your program is working as expected by compiling and downloading it to the platform.
 Figure~\ref{fig:header} shows the libraries to include in your program and the definition of the NoC master core as core 0.
 Moreover, it shows some useful functions to get information related to the multicore platform.
 
@@ -464,7 +464,7 @@ get_cpuid(); // returns the core ID
 \end{figure}
 
 \subsection{Task 1}
-In this task you should create a function that blinks the LED and execute the function on the slaves processors.
+In this task, you should create a function that blinks the LED and execute the function on the slave processors.
 The frequency of blinking the LED should be in the order of 1~-~10~Hz so that it is visible to the eye.
 Figure~\ref{fig:ctrl_led} shows an example of how to blink an LED, where the frequency of the blinking is set through a parameter of the blinking function.
 To turn the LED on and off, write a 1 and 0, respectively to the hardware address of the LED. 
@@ -473,15 +473,15 @@ To turn the LED on and off, write a 1 and 0, respectively to the hardware addres
 \begin{Verbatim}[xleftmargin=1cm,xrightmargin=1cm,frame=single,framesep=3mm]
 //blink function, period=0 -> ~10Hz, period=255 -> ~1Hz
 void blink(int period) {
-	// The hardware address of the LED
-	#define LED ( *( ( volatile _IODEV unsigned * ) 0xF0090000 ) )
+    // The hardware address of the LED
+    #define LED ( *( ( volatile _IODEV unsigned * ) 0xF0090000 ) )
 
-	for (;;)
+    for (;;)
     {
-		for (int i=400000+14117*period; i!=0; --i){LED = 1;}
-		for (int i=400000+14117*period; i!=0; --i){LED = 0;}
+        for (int i=400000+14117*period; i!=0; --i){LED = 1;}
+        for (int i=400000+14117*period; i!=0; --i){LED = 0;}
     }
-	return;
+    return;
 }
 \end{Verbatim}
 \caption{\label{fig:ctrl_led}An example of a function to blink a LED with the period as parameter.}
@@ -523,7 +523,7 @@ In task 2 you shall extend the blink function from task 1 to turn the LED on and
 We suggest to use the \code{rand\_r()} function to generate a random number,
 \code{rand\_r()} takes a pointer to a seed value in order to generate a random number.
 Do not use the \code{rand()} function as it is not thread-safe.
-The seed value in each core should be different, otherwise all cores have the
+The seed value in each core should be different; otherwise, all cores have the
 same sequence of pseudo-random numbers.
 
 Use the lower bits of the random number to generate a number on the desired range.
@@ -533,9 +533,9 @@ The \code{get\_cpu\_usecs()} function returns the value of the microsecond count
 The 8 LEDs should now independently blink with random varying frequencies.
 
 \subsection{Task 3}
-In this task you will start sending messages in order to move the tokens between the slave cores.
+In this task, you will start sending messages in order to move the tokens between the slave cores.
 The use of the message passing function is described in Section~\ref{sec:libmp}.
-The initialization of the message passing channels shall be done in the slave threads and before messages can be sent or received, each slave needs to initialize the message passing channels with the \code{mp\_chan\_init()} function.
+The initialization of the message passing channels shall be done in the slave threads, and before messages can be sent or received, each slave needs to initialize the message passing channels with the \code{mp\_chan\_init()} function.
 Figure~\ref{fig:open_channel} shows an example of how slave core 1 opens a source port (to send) towards core 2 and how slave core 2 opens a sink port (to receive) form core 1, creating a communication channel identified by the id 1 (first parameter in the function).
 
 \paragraph*{Expected output}
@@ -550,24 +550,24 @@ It should now be observable that the tokens move between cores.
 
 // Slave function running on core 1
 void slave1(void* param) {
-	// Create the port for channel 1
-	qpd_t * chan1 = mp_create_qport(1, SOURCE, 
-	MP_CHAN_BUF_SIZE, MP_CHAN_NUM_BUF);
-	mp_init_ports();
+    // Create the port for channel 1
+    qpd_t * chan1 = mp_create_qport(1, SOURCE, 
+    MP_CHAN_BUF_SIZE, MP_CHAN_NUM_BUF);
+    mp_init_ports();
 
-	// Do something
-	return;
+    // Do something
+    return;
 }
 
 // Slave function running on core 2
 void slave2(void* param) {
-	// Create the port for channel 1
-	qpd_t * chan1 = mp_create_qport(1, SINK, 
-	MP_CHAN_BUF_SIZE, MP_CHAN_NUM_BUF);
-	mp_init_ports();
+    // Create the port for channel 1
+    qpd_t * chan1 = mp_create_qport(1, SINK, 
+    MP_CHAN_BUF_SIZE, MP_CHAN_NUM_BUF);
+    mp_init_ports();
 
-	// Do something
-	return;
+    // Do something
+    return;
 }
 \end{Verbatim}
 \caption{\label{fig:open_channel}An example of how to create a communication channel.}
@@ -575,7 +575,7 @@ void slave2(void* param) {
 
 
 \subsection{Task 4}
-For the sake of the example, you should now pair a seed value to each tokens.
+For the sake of the example, you should now pair a seed value to each token.
 To send the seed value along with the message, you need to write the seed value into
 the \code{write\_buf} before sending the message, and read out the seed value from the \code{read\_buf}
 after receiving a message.
@@ -605,7 +605,7 @@ If you have more time left or just can not get enough of programming message pas
 \begin{itemize}
 \item Move the calculation of random numbers to core 0.
 Core 0 shall act like a server replying with a new random number when it receives a message from any of the slave cores.
-\item Create a mechanisme that terminates the executution of the blink function on the slaves, when the master is signaled to stop thought the terminal. 
+\item Create a mechanism that terminates the execution of the blink function on the slaves when the master is signaled to stop thought the terminal. 
 \end{itemize}
 
 \nopublish{
@@ -621,7 +621,7 @@ The exercise comprise the following tasks:
 
 \section{Next exercise}
 
-Ideas to other exercises:
+Ideas for other exercises:
 \begin{itemize}
 \item WCET analysis of the circulating tokens
   \begin{itemize}
@@ -641,7 +641,7 @@ Ideas to other exercises:
 \chapter{Build And Execute Instructions}
 \label{apx:build}
 
-In this chapter we present the details on how to 
+In this chapter, we present the details on how to 
 build and configure the hardware platform and compile and execute 
 a multicore program on the platform.
 
@@ -649,23 +649,35 @@ a multicore program on the platform.
 \label{apx:buildhw}
 
 The Aegean framework generates a hardware description from an
-xml description.
-The default xml description for the Altera DE2-115 board with 9 cores
+XML description.
+The default XML description for the Altera DE2-115 board with 9 cores
 has an external shared memory and an Argo network-on-chip.
 To build the platform run the following commands:
 \begin{Verbatim}
 cd ~/t-crest/aegean
-make AEGEAN_PLATFORM=default-altde2-115-9core platform synth
+make AEGEAN_PLATFORM=altde2-115-9core platform synth
 \end{Verbatim}
 The make command will generate a platform as described in the
-\code{config/default-altde2-115-9core.xml} file.
-When the platform description is generated the it will be synthesised.
+\code{config/altde2-115-9core.xml} file.
+When the platform description is generated, then it will be synthesised.
 When the synthesis is finished the multicore platform can be
-configured into the FPGA using the folowing commands:
+configured into the FPGA using the following commands:
 \begin{Verbatim}
 cd ~/t-crest
-make -C aegean AEGEAN_PLATFORM=default-altde2-115-9core config
+make -C aegean AEGEAN_PLATFORM=altde2-115-9core config
 \end{Verbatim}
+
+If you experience problems in building the multicore platform, you may need to update your T-CREST repositories to the newest version and re-build the project with the following commands before re-executing the commands listed above:
+\begin{Verbatim}
+cd ~/t-crest/
+./misc/gitall pull
+cd ~/t-crest/argo/
+git pull
+cd ~/t-crest/
+./misc/build.sh -c
+\end{Verbatim}
+
+If you still experience problems, please send an email to \textit{lpez@dtu.dk} (Luca Pezzarossa).
 
 \section{Compile and execute a multicore program}
 \label{apx:buildsw}
@@ -696,9 +708,9 @@ make -C patmos APP=${APP_NAME} download
 The \code{download} target of the Makefile depends on the comp target,
 therefore it is not necessary to execute the \code{comp} target before every download.
 Also, it is not strictly necessary to configure the FPGA with the hardware
-platform between each download of a program, but we advice you to do so.
+platform between each download of a program, but we advise you to do so.
 This will ensure that the hardware platform is probably initialized
-before your download a program.
+before you download a program.
 
 
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
