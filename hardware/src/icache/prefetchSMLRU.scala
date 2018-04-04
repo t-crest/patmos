@@ -6,12 +6,13 @@ import PrefetchCons2LRU._
 import PIConstants2LRU._
 import Constants._
 import scala.math._
+import util._ 
 
 class PFSMLRU extends Module {
   val io = new Prefetcher2LRUIO()
 	
-  val pc_address_even = io.feicache.addrEven(TAG_HIGH, INDEX_LOW)
-  val pc_address_odd = io.feicache.addrOdd(TAG_HIGH, INDEX_LOW)
+  val pc_address_even = Reg(next = io.feicache.addrEven(TAG_HIGH, INDEX_LOW))
+  val pc_address_odd = Reg(next = io.feicache.addrOdd(TAG_HIGH, INDEX_LOW))
   val prefTrig = io.ctrlpref.prefTrig
 
   //RPT ROM generation
@@ -25,10 +26,6 @@ class PFSMLRU extends Module {
   val depth_rom = depth_f()
   val retdes_rom = retdes_f() 
   
-  //Stack for CALL and RETURN
-  val stackAddrs = Mem(Bits(width = (TAG_SIZE + INDEX_SIZE)), MAX_CALLS) 
-  val stackIndex = Mem(Bits(width = (TAG_SIZE + INDEX_SIZE)), MAX_CALLS)
-
   // Registers generation
   val previous_addrs_R = Reg(init = Bits(0, width = (TAG_SIZE + INDEX_SIZE))) 
   val previous_addrs_even_R = Reg(init = Bits(0, width = (TAG_SIZE + INDEX_SIZE))) 
@@ -42,10 +39,24 @@ class PFSMLRU extends Module {
   val status_R = Vec.fill(MAX_DEPTH){Reg(init = UInt(0, width = MAX_DEPTH_WIDTH))}
   val iteration_outer_R = Vec.fill(MAX_DEPTH){Reg(init = UInt(0, width = MAX_ITERATION_WIDTH))}
   val cache_line_id_address_R = Reg(init = UInt(0, width = (TAG_SIZE + INDEX_SIZE)))
-  val output = Reg(init = Bits(0, width = EXTMEM_ADDR_WIDTH))
   val en_seq = Reg(init = Bool(false))
   val change_state = Reg(init = Bool(false))
   val flip_R = Reg(init = Bool(false))
+  val output = Bits(width = EXTMEM_ADDR_WIDTH)
+
+
+  //Stack for CALL and RETURN
+  val stackAddrs = MemBlock(MAX_CALLS, (TAG_SIZE + INDEX_SIZE))
+  val stackIndex = MemBlock(MAX_CALLS, INDEX_REG_WIDTH)
+
+  val write_enable = Bool()
+  write_enable := Bool(false)
+  stackAddrs.io <= (write_enable, sp_R, retdes_rom(index_R))
+  stackIndex.io <= (write_enable, sp_R, (index_R + UInt(1)))
+
+  val mem_address_read = stackAddrs.io(sp_R - UInt(1))
+  val mem_index_read = stackIndex.io(sp_R - UInt(1))
+
 
   // Reset the index when cache is flushed
   when (io.invalidate) {
@@ -63,10 +74,10 @@ class PFSMLRU extends Module {
 
   cache_line_id_address_R := cache_line_id_address
  
-  when (pc_address_even != previous_addrs_even_R) {
+  when (check_even_local) {
     previous_addrs_even_R := pc_address_even
   }
-  .elsewhen (pc_address_odd != previous_addrs_odd_R) {
+  when (check_odd_local) {
     previous_addrs_odd_R := pc_address_odd
   }
 
@@ -82,6 +93,10 @@ class PFSMLRU extends Module {
   val loop_entry = ((status_R(depth_rom(index_R))) === UInt(0))  
   val loop_iteration = ((status_R(depth_rom(index_R))) === UInt(1))  
   val loop_exit = ((status_R(depth_rom(index_R))) === UInt(2))  
+  val exit_condition = (small_l_stop_R === cache_line_id_address) 
+  val temp_R = Reg(init = Bits(0, width = EXTMEM_ADDR_WIDTH))
+
+  output := temp_R
 
   switch (state) {
     is(trigger) {
@@ -99,19 +114,18 @@ class PFSMLRU extends Module {
       }
       //matching with rpt table entry
       when (call && (!change_state) && index_match && line_change)  {  //call type
-          output := Cat(destination_rom(index_R), sign_ext_R)
-          stackAddrs(sp_R) := retdes_rom(index_R)  
-          stackIndex(sp_R) := index_R + UInt(1)
+	  output := Cat(destination_rom(index_R), sign_ext_R)
+          write_enable := Bool(true)
           sp_R := sp_R + UInt(1)
           index_R := next_rom(index_R)
-	  en_seq := Mux((trigger_rom(index_R) === destination_rom(index_R)), Bool(true), Bool(false))  // case call and destination are on the same cache line
+          en_seq := Mux((trigger_rom(index_R) === destination_rom(index_R)), Bool(true), Bool(false))  // case call and destination are on the same cache line
       }
       when (ret && (!change_state) && index_match && line_change) { // return type
-          output := Cat(stackAddrs(sp_R - UInt(1)), sign_ext_R)
-	  index_R := Mux((stackAddrs(sp_R - UInt(1)) === UInt(0)), UInt(0), stackIndex(sp_R - UInt(1))) 
-	  sp_R := Mux((stackAddrs(sp_R - UInt(1)) === UInt(0)), UInt(1), (sp_R - UInt(1)))
-          en_seq := Mux((trigger_rom(index_R) === stackAddrs(sp_R - UInt(1))), Bool(true), Bool(false))  // case ret and destination are on the same cache line
-      }		 
+	  output := Cat(mem_address_read, sign_ext_R)
+          index_R := Mux((mem_address_read === UInt(0)), UInt(0), mem_index_read)
+	  sp_R := Mux((mem_address_read === UInt(0)), UInt(1), (sp_R - UInt(1)))
+          en_seq := Mux((trigger_rom(index_R) === mem_address_read), Bool(true), Bool(false))  // case ret and destination are on the same cache line 
+      }
       when (cont_loop && (!change_state) && index_match && line_change) { // small_loop
           index_R := index_R + UInt(1)
 	  en_seq := Mux((count_rom(index_R) === UInt(0)), Bool(true), Bool(false))
@@ -149,10 +163,10 @@ class PFSMLRU extends Module {
       }    
     }
     is(small_loop) { //more than one prefetching 
-      when (small_l_stop_R === cache_line_id_address) {
+      when (exit_condition) {
         state := trigger
       }
-      .elsewhen (prefTrig || flip_R) {
+      when ((prefTrig || flip_R) && (!exit_condition)) {
 	flip_R := Bool(false)
 	state := Mux((small_l_count_R != UInt(0)), small_loop, trigger)    
         output := Cat(small_l_addr_R, sign_ext_R)
@@ -160,6 +174,7 @@ class PFSMLRU extends Module {
 	small_l_addr_R := small_l_addr_R + UInt(1)
       }
     } 
-    io.prefrepl.prefAddr := output
   }
+  io.prefrepl.prefAddr := output
+  temp_R := output
 }    
