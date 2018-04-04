@@ -25,7 +25,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
     val writeChannel = new RwChannel(blockAddrWidth)
     // Port A: Local node requests
     // Port B: External requests
-    val memPort = new TrueDualPortMemory(size)
+    val memPort = Module(new TrueDualPortMemory(size)) //adding module fixed a compile error. It should just make a mudule as you would in VHDL. Dont know why uou dont need ot for the channels for instance 
   }
 
   // Write NOC
