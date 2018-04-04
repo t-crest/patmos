@@ -16,7 +16,20 @@
     * Processor, memory and network interfacing.
     * Address to node translation.
     * Choosing time slot for sending message.
+* Dummy node:
+    * write a dummy node that can use the RwChannel (try read, wait for read return, try write, wait for write return)
 
+# Tests:
+* Simultanious local node write and external node write
+* Simultanious local node read and external node read-request
+* Speed/stress test
+    * Some small kind of processing in the node (ie. read a value, change it, and write it back)
+    * "beneficial test": the memories are laid out in a nice order, where each node mostly/only reads/writes to local memory
+    * "bad test": The memories are laid out such that each node almost nenver/never reads/writes to its local memory
+* Congestion
+* Reverse-schedule validation
+    * Our intuition tells us that reversing the schedule still yields a valid schedule that has no congestion. Formal proof of this?
+    * 
 
 
 ![alt tex][logo]
