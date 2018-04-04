@@ -62,6 +62,10 @@ void producer() {
       while( *b2_ready != 0){
           ;
       }
+
+        len = DATA_LEN - i;
+        if(BUFFER_SIZE < len)
+        len = BUFFER_SIZE;
           
           //producing data for the buffer 2
           for ( int j = 0; j < len; j++ ) {
@@ -208,8 +212,13 @@ int main() {
 
   unsigned i,j;
 
+  for(i=0; i<STATUS; ++i) {   
+    spm_ptr[j]=0;
+  }
+
   int id = get_cpuid(); 
   int cnt = get_cpucnt();
+
 
   int parameter = 1;
 
