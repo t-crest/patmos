@@ -351,9 +351,10 @@ If both are free, it will set up the DMA to transfer the new block of data.
 The nbsend function assumes that the user/application already
 wrote the data to be sent to the \code{write\_buf} buffer.
 
-\item[\code{void mp\_send( mpd\_t* mpd\_ptr )}]
+\item[\code{void mp\_send( mpd\_t* mpd\_ptr, const unsigned int timeout\_usecs )}]
 
 The send function calls the nb\_send function in a loop until it returns success.
+Put \code{timeout\_usecs} at 0 if not used.
 
 \item[\code{int mp\_nbrecv( mpd\_t* mpd\_ptr )}]
 
@@ -363,9 +364,10 @@ If a message is received, it will move the \code{read\_buf} pointer
 to the beginning of the message,
 such that the user/application can read the received data.
 
-\item[\code{void mp\_recv( mpd\_t* mpd\_ptr )}]
+\item[\code{void mp\_recv( mpd\_t* mpd\_ptr, const unsigned int timeout\_usecs )}]
 
 The recv function calls the nb\_recv function in a loop until it returns success.
+Put \code{timeout\_usecs} at 0 if not used.
 
 \item[\code{int mp\_nback( mpd\_t* mpd\_ptr )}]
 
@@ -374,9 +376,10 @@ has been acknowledged and sends the updated value to the
 sender core, if the send does not succeed the number
 of acknowledged messages is decremented.
 
-\item[\code{void mp\_ack( mpd\_t* mpd\_ptr )}]
+\item[\code{void mp\_ack( mpd\_t* mpd\_ptr, const unsigned int timeout\_usecs )}]
 
 The ack function calls the nb\_ack function in a loop until it returns success.
+Put \code{timeout\_usecs} at 0 if not used.
 
 \item[\code{spd\_t * mp\_create\_sport(unsigned int chan\_id, direction\_t direction\_type, size\_t sample\_size)}]
 
