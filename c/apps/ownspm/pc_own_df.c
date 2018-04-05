@@ -9,27 +9,20 @@
 #include <machine/patmos.h>
 #include <machine/spm.h>
 
-#include "include/patio.h"
 #include "libcorethread/corethread.h"
 
 #include "ownspm.h"
 
-#define CNT 4
-// MS: why CNT - 1? Shouldn't it be 4?
-#define STATUS_LEN (CNT-1) // no of status flags for a single buffer
 
 // Measure execution time with the clock cycle timer
 volatile _IODEV int *timer_ptr = (volatile _IODEV int *) (PATMOS_IO_TIMER+4);
 volatile _UNCACHED int timeStamps[4];
 
-//Status pointers in the main memory
-// MS: why multiplied by 2?
-// This single assignment does not initialize the array
-//volatile _UNCACHED int status[STATUS_LEN*2]={0};
 
-//volatile _UNCACHED int status[4];
-
-volatile _UNCACHED int status0, status1, status2, status3;
+volatile _UNCACHED int status0;
+volatile _UNCACHED int status1;
+volatile _UNCACHED int status2;
+volatile _UNCACHED int status3;
 
 
 // Producer
@@ -45,8 +38,6 @@ void producer() {
     outbuffer1_ptr = &spm_ptr[0];
     outbuffer2_ptr = &spm_ptr[NEXT];
 
-//printf("%d %d %d %d %d\n", i, status0, status1, status2, status3);
-
     while(status0 != 0) {
       ;
     }
@@ -56,7 +47,7 @@ void producer() {
 
           //producing data for the buffer 1
           for ( int j = 0; j < BUFFER_SIZE; j++ ) {
-//              *outbuffer1_ptr++ = 1 ; // produce data
+              *outbuffer1_ptr++ = 1 ; // produce data
           }
 
           // flip the data ready flag for buffer 1
@@ -69,7 +60,7 @@ void producer() {
 
           //producing data for the buffer 2
           for ( int j = 0; j < BUFFER_SIZE; j++ ) {
-//              *outbuffer2_ptr++ = 2 ; // produce data
+              *outbuffer2_ptr++ = 2 ; // produce data
           }
 
           // flip the data ready flag for buffer 2
@@ -100,14 +91,13 @@ void intermediate(void *arg){
         inbuffer2_ptr = &spm_ptr[NEXT];
         outbuffer1_ptr = &spm_ptr[NEXT*2];
         outbuffer2_ptr = &spm_ptr[NEXT*3];
-  
+ 
       while (!((status0 == 1) && (status2 == 0))) {
       ;
       }
-
             //producing data for the buffer 1
             for ( int j = 0; j < BUFFER_SIZE; j++ ) {
-//                *outbuffer1_ptr++ = *inbuffer1_ptr++ +1 ; // produce data
+                *outbuffer1_ptr++ = *inbuffer1_ptr++ +1 ; // produce data
             }
 
             // update the flags for buffer 1
@@ -115,13 +105,12 @@ void intermediate(void *arg){
             status2 = 1;
             //for the time being for flow control
             i++;
-
       while (!((status1 == 1) && (status3 == 0))) {
       ;
-      }          
+      }      
             //producing data for the buffer 2
             for ( int j = 0; j < BUFFER_SIZE; j++ ) {
-//                *outbuffer2_ptr++ = *inbuffer2_ptr++ +2 ; // produce data
+                *outbuffer2_ptr++ = *inbuffer2_ptr++ +2 ; // produce data
             }
 
             // update the flags for buffer 2
@@ -129,8 +118,8 @@ void intermediate(void *arg){
             status3 = 1;
             //for the time being for flow control
             i++;
-         
       }
+
 }
 
 
@@ -158,7 +147,7 @@ void consumer(void *arg) {
 
         //consuming data from the buffer 1
         for ( int j = 0; j < BUFFER_SIZE; j++ ) {
-//            sum += (*inbuffer1_ptr++);
+            sum += (*inbuffer1_ptr++);
         }
 
         status2 = 0;
@@ -170,7 +159,7 @@ void consumer(void *arg) {
 
         //consuming data from the buffer 2
         for ( int j = 0; j < BUFFER_SIZE; j++ ) {
-//            sum += (*inbuffer2_ptr++);
+            sum += (*inbuffer2_ptr++);
         }
         status3 = 0;
         i++; 
@@ -194,27 +183,17 @@ int main() {
   status2 = 0;
   status3 = 0;
 
-  int parameter = 1;
+  int *parameter;
 
   printf("Total %d Cores\n",get_cpucnt()); // print core count
 
+  corethread_create(1, &intermediate, NULL);
+  corethread_create(2, &consumer, NULL);
 
-    // MS: do not pass a pointer to a stack allocated variable to a thread.
-    // This variable may be out of scope when the other thread accesses it.
-    // corethread_create(i, &intermediate, &parameter);
-    corethread_create(1, &intermediate, NULL);
-    corethread_create(2, &consumer, NULL); 
-    printf("Threads created\n");
-    producer();
+  producer();
     
-printf("Producer done, other threads should be finished by now\n");
-// TODO wait some time for others to finish if join is shaky
-  for(j=1; j<3; ++j) { 
-    int parameter = 1;
-    corethread_join(j,&parameter);
-  }
-
-  // printf("Computation is Done !!\n");
+  corethread_join(1, (void **) &parameter);
+  corethread_join(2, (void **) &parameter);
 
   //Debug
 
