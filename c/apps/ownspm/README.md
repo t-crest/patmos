@@ -2,8 +2,10 @@
 
 These applications are used for the evaluation section of the following paper:
 
+<!---
 Martin Schoeberl, Oktay Baris, Torur Biskopsto Strom, and Jens Sparso,
-Scratchpad Memories with Ownership, *submitted to CASES 2018*
+--->
+*Blind*, Scratchpad Memories with Ownership, *submitted to CASES 2018*
 
 
 We use the T-CREST multicore to evaluate the shared memory with ownership.
@@ -36,14 +38,20 @@ Following test programs are available:
  * `timing.c` measures access times (using the deadline device with random delays)
  * `single_owner.c` does a multicore test on a single SPM with ownership
  * `test_owner.c` does a multicore test with two SPMs with ownership
+ * `pc.c` the producer/consumer test program
 
-For the evaluation section in the paper we have written several producer/consumer
-based synthetic benchmarks for each configuration. The programs are
-named `pc_xxx.c` for a simple producer/consumer pair for version `xxx`
-and `pc_xxx_df.c` for an extended version that contains an intermediate
-processor.
+For the evaluation section in the paper we have written a producer/consumer
+based synthetic benchmark: `pc.c`. It can be configured for the different
+versions of of the SPM. The default version uses main memory for the buffers.
+The configuration is via C based defines, which can also be passed to the
+compiler with command line arguments. E.g., compilation for the shared SPM
+is:
 
-The experiments can be execute on the Patmos emulator of with the real
+```bash
+make app APP=ownspm MAIN=pc COPTS="-D DATA_LEN=4096 -D _SSPM"
+```
+
+The experiments can be execute on the Patmos emulator or with the real
 hardware on an FPGA board.
 
 ## Emulator Based Testing
