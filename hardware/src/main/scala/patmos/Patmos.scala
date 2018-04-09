@@ -222,12 +222,23 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       oneway.io(i) <> cores(i).io.comSpm
     }
     // 3 and 4 are reserved for Oktay and Lefteris  
-  } else if (cmpDevice == 5) {
-    val spm = Module(new cmp.OwnSPM(nrCores, 1024))
+  } else if (cmpDevice == 3) {
+    val tdmArbiter = Module(new cmp.TdmArbiter(nrCores))
     for (i <- (0 until cores.length)) {
-      spm.io(i) <> cores(i).io.comSpm
+     tdmArbiter.io.slave(i) <> cores(i).io.comSpm
+    }
+  } else if (cmpDevice == 5) {
+    val ownspm = Module(new cmp.OwnSPM(nrCores, nrCores, 1024))
+    for (i <- (0 until cores.length)) {
+      ownspm.io(i) <> cores(i).io.comSpm
+    }
+  } else if (cmpDevice == 6) {
+    val spmpool = Module(new cmp.SPMPoolOCPWrapper(nrCores, nrCores, 1024, 32))
+    for (i <- (0 until cores.length)) {
+      spmpool.io(i) <> cores(i).io.comSpm
     }
   }
+
   for (i <- (0 until cores.length)) {
     memarbiter.io.master(i) <> cores(i).io.memPort
   }

@@ -1,7 +1,7 @@
-MAIN?=hello_spm
+MAIN?=test_owner
 
 all:
-	patmos-clang -O2 $(MAIN).c -I ../.. -I ../../include ../../libcorethread/*.c -o $(APP).elf
+	patmos-clang -O2 $(MAIN).c -I ../.. -I ../../include ../../libcorethread/*.c -o $(APP).elf $(COPTS)
 
 clean:
 	rm *.elf
