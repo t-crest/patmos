@@ -6,14 +6,24 @@ static unsigned long long start_time; //clock cycles at 80MHz (12.5 ns)
 static unsigned long long timer_time; //clock cycles at 80MHz (12.5 ns)
 static unsigned long long receive_pit; //clock cycles at 80MHz (12.5 ns)
 static unsigned long long scheduled_pit; //clock cycles at 80MHz (12.5 ns)
-
-unsigned char frame[16] = {
-    0xab, 0xad, 0xba, 0xbe, 0x0f, 0xa1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0xDC, 0x04, 0x00
+unsigned char CT_marker[4];
+unsigned char mac[6] = {
+    0x02, 0x89, 0x1D, 0x00, 0x04, 0x00
 }; 
 
-unsigned char sending = 0;
-void tte_clock_tick(void) __attribute__((naked));
+struct VL{
+   unsigned char max_queue;
+   unsigned int queue[10]; //magic number, arrays too big for VL0
+   unsigned int sizeQueue[10]; //not sure how to get rid of them though
+   unsigned char addplace;
+   unsigned char rmplace;
+};
 
+struct VL *VLarray;
+unsigned int sched[MAX_SCHED] = {16,4,20,16,4,20,16,4,20,16,4,20,16,4,20};
+unsigned int VLsched[MAX_SCHED] = {1,1,0,1,1,0,1,1,0,1,1,0,1,1,0};
+unsigned char schedplace;
+void tte_clock_tick(void) __attribute__((naked));
 
 unsigned char is_pcf(unsigned int addr){
 	unsigned type_1 = mem_iord_byte(addr + 12);
@@ -79,12 +89,12 @@ int handle_integration_frame(unsigned int addr,unsigned long long rec_start,unsi
 
 		//printf("new integration period: %u\n",integration_period);
 
-		start_time += integration_period;
-		if(sending==0 && integration_cycle==1){
-		  timer_time = start_time+((integration_period/100)*26);
+		if(integration_cycle==0){
+		  schedplace=0;
+		  timer_time = start_time+((integration_period/100)*10);
 		  arm_clock_timer(timer_time);
-		  sending=1;
 		}
+		start_time += integration_period;
 
 		//printf("next tick should be at: %llu\n",start_time);
 
@@ -101,15 +111,19 @@ unsigned long long transClk_to_clk (unsigned long long transClk){
 }
 
 unsigned char is_tte(unsigned int addr){
-	unsigned CT = mem_iord(addr + 0);
-	if(CT == TTE_CT_MARKER){ 
-		return 1;
+	for(int i=0;i<4;i++){
+	  if(mem_iord_byte(addr + i)!=CT_marker[i]){
+	    return 0;
+	  }
 	}
-	return 0;
+	return 1;
 }
 
-void tte_initialize(unsigned int int_period){ 
+void tte_initialize(unsigned int int_period, unsigned char CT[]){ 
 	integration_period=int_period;
+	for(int i=0;i<4;i++){
+	  CT_marker[i]=CT[i];
+        }
 	eth_iowr(0x40, 0x1D000400);
 	eth_iowr(0x44, 0x00000289);
 	eth_iowr(0x00, 0x0000A023); //exactly like eth_mac_initialize, but with pro-bit set
@@ -122,44 +136,97 @@ void tte_initialize(unsigned int int_period){
 
   	start_time = 0; 
 
+	VLarray = realloc(VLarray, 2 * sizeof(struct VL));
+
+	VLarray[0].addplace=0;
+	VLarray[0].rmplace=0;
+	VLarray[0].max_queue=5;
+	VLarray[1].addplace=0;
+	VLarray[1].rmplace=0;
+	VLarray[1].max_queue=10;
+
 	return;
 }
 
-void tte_prepare_test_data(unsigned int tx_addr, unsigned char data){
-  for(int i=0; i<16; i++){
-    mem_iowr_byte(tx_addr + i, frame[i]);
+void tte_prepare_header(unsigned int tx_addr, unsigned char VL[], unsigned char ethType[]){
+  for(int i=0; i<4; i++){
+    mem_iowr_byte(tx_addr + i, CT_marker[i]);
   }
-  for(int i=16; i<1514; i++){
+  mem_iowr_byte(tx_addr + 4, VL[0]);
+  mem_iowr_byte(tx_addr + 5, VL[1]);
+
+  for(int i=6; i<12; i++){
+    mem_iowr_byte(tx_addr + i, mac[i-6]);
+  }
+
+  mem_iowr_byte(tx_addr + 12, ethType[0]);
+  mem_iowr_byte(tx_addr + 13, ethType[1]);
+}
+
+void tte_prepare_test_data(unsigned int tx_addr, unsigned char VL[], unsigned char data, int length){
+  unsigned char ethType[2];
+  ethType[0]=((length-14)>>8) & 0xFF;
+  ethType[1]=(length-14) & 0xFF;
+
+  tte_prepare_header(tx_addr,VL,ethType);
+
+  for(int i=14; i<length; i++){
     mem_iowr_byte(tx_addr + i, data);
   }
 }
 
-void tte_stop_sending(){
-  sending=0;
+void tte_stop_ticking(){
+  for(int i=0;i<VLarray[0].max_queue;i++){
+    VLarray[0].queue[i]=0;
+    VLarray[0].sizeQueue[i]=0;
+  }
+  for(int i=0;i<VLarray[1].max_queue;i++){
+    VLarray[1].queue[i]=0;
+    VLarray[1].sizeQueue[i]=0;
+  }
 }
 
-void tte_send_test_data(unsigned int tx_addr){ 
-  static unsigned char num = 0;
-  num++;
-  if(num%2==0){
-    mem_iowr_byte(0x800 + 14,num);
-    eth_mac_send(0x800, 1514);
-  }
-  else{
-    mem_iowr_byte(0xdea + 14,num);
-    eth_mac_send(0xdea, 1514);
-  }
+void tte_schedule_send(unsigned int addr,unsigned int size,unsigned char i){
+  if(VLarray[i].queue[VLarray[i].addplace]==0){
+    VLarray[i].queue[VLarray[i].addplace]=addr;
+    VLarray[i].sizeQueue[VLarray[i].addplace]=size;
+    VLarray[i].addplace++;
+    if(VLarray[i].addplace==VLarray[i].max_queue){
+      VLarray[i].addplace=0;
+    }
+    return;
+  } 
+  printf("scheduling error: queue[%d]: %d\n",VLarray[i].addplace,VLarray[i].queue[VLarray[i].addplace]);
+}
+
+void tte_send_data(unsigned char i){ 
+  //static unsigned char num = 0;
+  //num++;
+  int tx_addr=VLarray[i].queue[VLarray[i].rmplace];
+  VLarray[i].queue[VLarray[i].rmplace]=0;
+  mem_iowr_byte(tx_addr + 14,VLarray[i].rmplace);
+  eth_mac_send(tx_addr, VLarray[i].sizeQueue[VLarray[i].rmplace]);
   return;
 }
 
 void tte_clock_tick(void) {
   exc_prologue();
   
-  if(sending==1){
-    timer_time += ((integration_period/5)*2);
-    arm_clock_timer(timer_time);
-    tte_send_test_data(0x800);
+  timer_time += ((integration_period/100)*sched[schedplace]);
+  schedplace++;
+  if(schedplace==MAX_SCHED){
+    schedplace=0;
   }
-
+  else{
+    arm_clock_timer(timer_time);
+  }
+  int i=VLsched[schedplace];
+  if(VLarray[i].queue[VLarray[i].rmplace]>0){
+    tte_send_data(i);
+    VLarray[i].rmplace++;
+    if(VLarray[i].rmplace==VLarray[i].max_queue){
+      VLarray[i].rmplace=0;
+    }
+  }
   exc_epilogue();
 }
