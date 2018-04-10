@@ -36,17 +36,31 @@ pc:
 	grep measure log.txt > results.txt
 	cat results.txt
 
-df:
+df_single:
 	-rm log.txt
-#	make app APP=ownspm MAIN=pc_main_mem_df
+#	make app APP=ownspm MAIN=pc_df COPTS="-D DATA_LEN=4096 -D BUFFER_SIZE=$$i -D _MAINMEM_DF -D _SINGLE_RELAY"; \
 #	$(EMUP)/emu4sspm tmp/ownspm.elf >> log.txt
-#	make app APP=ownspm MAIN=pc_sspm_df
-#	$(EMUP)/emu8sspm tmp/ownspm.elf >> log.txt
-#	make app APP=ownspm MAIN=pc_sspm_df
-#	$(EMUP)/emu4sspm tmp/ownspm.elf >> log.txt
-#	make app APP=ownspm MAIN=pc_pool_df
+#	make app APP=ownspm MAIN=pc_df COPTS="-D DATA_LEN=4096 -D BUFFER_SIZE=$$i -D _SSPM_DF -D _SINGLE_RELAY"; \
+#	$(EMUP)/emu4sspm tmp/ownspm.elf >> log.txt; 
+#	$(EMUP)/emu8sspm tmp/ownspm.elf >> log.txt; 
+#	make app APP=ownspm MAIN=pc_df COPTS="-D DATA_LEN=4096 -D BUFFER_SIZE=$$i -D _OWN_DF -D _SINGLE_RELAY"; \
+#	$(EMUP)/emu4_8own tmp/ownspm.elf >> log.txt
+#	make app APP=ownspm MAIN=pc_df COPTS="-D DATA_LEN=4096 -D BUFFER_SIZE=$$i -D _MULTIOWN_DF -D _SINGLE_RELAY"; \
 #	$(EMUP)/emu4_8multi tmp/ownspm.elf >> log.txt
-	make app APP=ownspm MAIN=pc_own_df
-	$(EMUP)/emu4_8own tmp/ownspm.elf >> log.txt
+	grep measure log.txt > results.txt
+	cat results.txt
+
+df_multi:
+# _MULTIOWN_DF with multiple relay nodes requires SPM number of (CNT-1)*2
+	-rm log.txt
+#	make app APP=ownspm MAIN=pc_df COPTS="-D DATA_LEN=4096 -D BUFFER_SIZE=$$i -D _MAINMEM_DF -D _MULTI_RELAY"; \
+#	$(EMUP)/emu4sspm tmp/ownspm.elf >> log.txt
+#	make app APP=ownspm MAIN=pc_df COPTS="-D DATA_LEN=4096 -D BUFFER_SIZE=$$i -D _SSPM_DF -D _MULTI_RELAY"; \
+#	$(EMUP)/emu4sspm tmp/ownspm.elf >> log.txt; 
+#	$(EMUP)/emu8sspm tmp/ownspm.elf >> log.txt; 
+#	make app APP=ownspm MAIN=pc_df COPTS="-D DATA_LEN=4096 -D BUFFER_SIZE=$$i -D _OWN_DF -D _MULTI_RELAY"; \
+#	$(EMUP)/emu4_8own tmp/ownspm.elf >> log.txt
+#	make app APP=ownspm MAIN=pc_df COPTS="-D DATA_LEN=4096 -D BUFFER_SIZE=$$i -D _MULTIOWN_DF -D _MULTI_RELAY"; \
+#	$(EMUP)/emu4_8multi tmp/ownspm.elf >> log.txt
 	grep measure log.txt > results.txt
 	cat results.txt
