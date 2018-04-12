@@ -8,9 +8,8 @@ package s4noc
 
 import Chisel._
 
-// TODO: check if too large address ports are optimized away when not used
 class CpuPort() extends Bundle {
-  val addr = UInt(width = 32).asInput
+  val addr = UInt(width = 6).asInput
   val rdData = UInt(width = 32).asOutput
   val wrData = UInt(width = 32).asInput
   val rd = Bool().asInput
