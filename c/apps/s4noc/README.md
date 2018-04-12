@@ -5,7 +5,7 @@ These applications are used for the evaluation section of the following submitte
 Martin, Luca, and Jens, A Simple Network Interface for a Simple Network-on-Chip,
 submitted to NOCS 2018.
 
-## Stand Alone Evalution
+## Stand Alone Evaluation
 
 The network interface and the S4NOC are written in Chisel and the
 source can be found at: `patmos/hardware/src/main/scala/s4noc`.
@@ -16,7 +16,6 @@ The tests can run from within folder `patmos/hardware`, e.g.:
 	sbt "test:runMain s4noc.RouterTester"
 	sbt "test:runMain s4noc.NetworkTester"
 	sbt "test:runMain s4noc.NetworkCompare"
-	sbt "test:runMain oneway.OneWayMemTester"
 
 or from your favorite Scala IDE (e.g., InelliJ or Eclipse) or from this folder with
 

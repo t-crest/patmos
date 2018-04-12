@@ -6,6 +6,9 @@ all:
 clean:
 	rm *.elf
 
+test:
+	cd ../../../hardware; sbt "test:runMain s4noc.S4nocTester"
+
 test-all:
 	cd ../../../hardware; sbt "test:runMain s4noc.ScheduleTester"
 	cd ../../../hardware; sbt "test:runMain s4noc.RouterTester"
