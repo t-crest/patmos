@@ -6,6 +6,9 @@ all:
 clean:
 	rm *.elf
 
+test-bubble:
+	cd ../../../hardware; sbt "runMain s4noc.FifoTester"
+
 test:
 	cd ../../../hardware; sbt "test:runMain s4noc.S4nocTester"
 
