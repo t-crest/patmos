@@ -311,64 +311,57 @@ void demo_mode(){
   	unsigned char CT[] = {0xAB,0xAD,0xBA,0xBE};
  	unsigned char VL0[] = {0x0F,0xA1};
  	unsigned char VL1[] = {0x0F,0xA2};
+	int sched_errors=0;
 
 	printf("\nDemo (rx, tx, LED, calculator)\n");
-	tte_initialize(0xC3500,CT); //0xC3500 = 10ms in clock cycles // 0x4C4B400 = 1s in clock cycles
-	/*tte_prepare_test_data(0x800,VL0,0xaa,200);
-	tte_prepare_test_data(0xE00,VL0,0xbb,400);
-	tte_prepare_test_data(0x1400,VL0,0xcc,300);
-	tte_prepare_test_data(0x1A00,VL0,0xdd,800);
-	tte_prepare_test_data(0x2000,VL0,0xee,1514);*/
+	tte_initialize(0xC3500,200,CT,2); //0xC3500 = 10ms in clock cycles, cluster cycle is 20ms, CT, 2 virtual links
+	tte_init_VL(0, 26,40); //VL 4001 starts at 2.6ms and has a period of 4ms
+	tte_init_VL(1, 10,20); //VL 4002 starts at 1ms and has a period of 2ms
+	tte_start_ticking();
 	arp_table_init();
 	for (int i =0; i<n; i++){
 		eth_mac_receive(rx_addr, 0);
 		rec_start = get_cpu_cycles();
-		//printf("...packet #%d received!\n\n", i+1);
-		//printf("Packet #%d info:\n", i+1);
 		if(is_pcf(rx_addr)){
-			//print_pcf();
 			if((mem_iord_byte(rx_addr + 28)) == 0x2){
-				//printf("integration_frame\n");
-				//printf("%d",handle_integration_frame(rx_addr,r_pit,p_pit,s_pit,i));
 				if(!handle_integration_frame(rx_addr,rec_start,r_pit,p_pit,s_pit,int_pd,trans_clk,i)){
 					n=i+1;
 					break;
 				}
 				if(i>10){
-		  		  if(i%2==0){ //max allowed to queue 5 at a time (for this schedule)
-		    		    tte_prepare_test_data(0x800,VL0,0xaa,200);
-				    tte_schedule_send(0x800,200,0);
+		  		  if(i%2==0){ //send the 10 allowed packets on VL1
 				    tte_prepare_test_data(0x2600,VL1,0x11,400);
-				    tte_schedule_send(0x2600,400,1);
+				    if(!tte_schedule_send(0x2600,400,1)) sched_errors++;
 				    tte_prepare_test_data(0x2C00,VL1,0x22,300);
-				    tte_schedule_send(0x2C00,300,1);
+				    if(!tte_schedule_send(0x2C00,300,1)) sched_errors++;
 				    tte_prepare_test_data(0x3200,VL1,0x33,800);
-				    tte_schedule_send(0x3200,800,1);
+				    if(!tte_schedule_send(0x3200,800,1)) sched_errors++;
 				    tte_prepare_test_data(0x3800,VL1,0x44,1514);
-				    tte_schedule_send(0x3800,1514,1);
+				    if(!tte_schedule_send(0x3800,1514,1)) sched_errors++;
 				    tte_prepare_test_data(0x3E00,VL1,0x55,400);
-				    tte_schedule_send(0x3E00,400,1);
+				    if(!tte_schedule_send(0x3E00,400,1)) sched_errors++;
 				    tte_prepare_test_data(0x4400,VL1,0x66,300);
-				    tte_schedule_send(0x4400,300,1);
+				    if(!tte_schedule_send(0x4400,300,1)) sched_errors++;
 				    tte_prepare_test_data(0x4A00,VL1,0x77,800);
-				    tte_schedule_send(0x4A00,800,1);
+				    if(!tte_schedule_send(0x4A00,800,1)) sched_errors++;
 				    tte_prepare_test_data(0x5000,VL1,0x88,1514);
-				    tte_schedule_send(0x5000,1514,1);
+				    if(!tte_schedule_send(0x5000,1514,1)) sched_errors++;
 				    tte_prepare_test_data(0x5600,VL1,0x99,400);
-				    tte_schedule_send(0x5600,400,1);
+				    if(!tte_schedule_send(0x5600,400,1)) sched_errors++;
 				    tte_prepare_test_data(0x5C00,VL1,0x10,300);
-				    tte_schedule_send(0x5C00,300,1);
+				    if(!tte_schedule_send(0x5C00,300,1)) sched_errors++;
 			  	  }
-				  else{
+				  else{ //send the 5 allowed packets on VL0
 				    tte_prepare_test_data(0x2000,VL0,0xee,1514);
-				    tte_schedule_send(0x2000,1514,0);
+				    if(!tte_schedule_send(0x2000,1514,0)) sched_errors++;
 				    tte_prepare_test_data(0x1A00,VL0,0xdd,800);
-				    tte_schedule_send(0x1A00,800,0);
+				    if(!tte_schedule_send(0x1A00,800,0)) sched_errors++;
 				    tte_prepare_test_data(0x1400,VL0,0xcc,300);
-				    tte_schedule_send(0x1400,300,0);
+				    if(!tte_schedule_send(0x1400,300,0)) sched_errors++;
 				    tte_prepare_test_data(0xE00,VL0,0xbb,400);
-				    tte_schedule_send(0xE00,400,0);
-				    //tte_schedule_send(0x800,200,0);
+				    if(!tte_schedule_send(0xE00,400,0)) sched_errors++;
+				    tte_prepare_test_data(0x800,VL0,0xaa,200);
+				    if(!tte_schedule_send(0x800,200,0)) sched_errors++;
 				  }
 				}
 			}
@@ -386,24 +379,11 @@ void demo_mode(){
 	/*for (int i =0; i<n; i++){
 		printf("%llu %llu %llu %d %llu\n",r_pit[i],p_pit[i],s_pit[i],int_pd[i],trans_clk[i]);
 	}*/
+	printf("sched errors: %d\n",sched_errors);
 	return;
 }
 
-void spam_demo(){
-  unsigned char CT[] = {0xAB,0xAD,0xBA,0xBE};
-  unsigned char VL[] = {0x0F,0xA1};
-
-  tte_initialize(0xC3500,CT);
-  tte_prepare_test_data(tx_addr,VL,0xaa,1514);
-  while(1!=0){
-    //tte_send_test_data(tx_addr);
-    printf(".");
-  }
-  return;
-}
-
 int main(){
-
 	char c;
 	
 	LED = 0x00;
@@ -431,7 +411,6 @@ int main(){
 				break;
 			case '2':
 				demo_mode();
-				//spam_demo();
 				break;
 			case '0':
 				printf("\nGoodbye!\n");

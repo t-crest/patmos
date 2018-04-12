@@ -2,26 +2,32 @@
 
 unsigned int integration_period; //clock cycles at 80Mhz (12.5 ns)
 unsigned int integration_cycle; //integer
+unsigned int cluster_period;
 static unsigned long long start_time; //clock cycles at 80MHz (12.5 ns)
 static unsigned long long timer_time; //clock cycles at 80MHz (12.5 ns)
 static unsigned long long receive_pit; //clock cycles at 80MHz (12.5 ns)
 static unsigned long long scheduled_pit; //clock cycles at 80MHz (12.5 ns)
 unsigned char CT_marker[4];
+unsigned char max_sched;
 unsigned char mac[6] = {
     0x02, 0x89, 0x1D, 0x00, 0x04, 0x00
 }; 
 
 struct VL{
    unsigned char max_queue;
-   unsigned int queue[10]; //magic number, arrays too big for VL0
-   unsigned int sizeQueue[10]; //not sure how to get rid of them though
+   unsigned int startTime;
+   unsigned int period;
+   unsigned int* queue;
+   unsigned int* sizeQueue;
    unsigned char addplace;
    unsigned char rmplace;
 };
 
 struct VL *VLarray;
-unsigned int sched[MAX_SCHED] = {16,4,20,16,4,20,16,4,20,16,4,20,16,4,20};
-unsigned int VLsched[MAX_SCHED] = {1,1,0,1,1,0,1,1,0,1,1,0,1,1,0};
+unsigned char VLsize;
+unsigned int *sched;
+unsigned int *VLsched;
+unsigned int startTick;
 unsigned char schedplace;
 void tte_clock_tick(void) __attribute__((naked));
 
@@ -91,7 +97,7 @@ int handle_integration_frame(unsigned int addr,unsigned long long rec_start,unsi
 
 		if(integration_cycle==0){
 		  schedplace=0;
-		  timer_time = start_time+((integration_period/100)*10);
+		  timer_time = start_time+((integration_period/100)*startTick);
 		  arm_clock_timer(timer_time);
 		}
 		start_time += integration_period;
@@ -119,15 +125,75 @@ unsigned char is_tte(unsigned int addr){
 	return 1;
 }
 
-void tte_initialize(unsigned int int_period, unsigned char CT[]){ 
+void tte_initialize(unsigned int int_period, unsigned int cl_period, unsigned char CT[], unsigned char VLcount){ 
 	integration_period=int_period;
+	cluster_period=cl_period;
 	for(int i=0;i<4;i++){
 	  CT_marker[i]=CT[i];
         }
 	eth_iowr(0x40, 0x1D000400);
 	eth_iowr(0x44, 0x00000289);
 	eth_iowr(0x00, 0x0000A023); //exactly like eth_mac_initialize, but with pro-bit set
-	
+
+	VLarray = malloc(VLcount * sizeof(struct VL));
+	VLsize=VLcount;
+	return;
+}
+
+void tte_init_VL(unsigned char i, unsigned int start, unsigned int period){
+	VLarray[i].startTime=start;
+	VLarray[i].period=period;
+	VLarray[i].addplace=0;
+	VLarray[i].rmplace=0;
+	VLarray[i].max_queue=(unsigned char) cluster_period/period;
+	VLarray[i].queue=(unsigned int*)malloc(VLarray[i].max_queue*sizeof(unsigned int));
+	VLarray[i].sizeQueue=(unsigned int*)malloc(VLarray[i].max_queue*sizeof(unsigned int));
+	for(int j=0;j<VLarray[i].max_queue;j++){
+  	  VLarray[i].queue[j]=0;
+  	  VLarray[i].sizeQueue[j]=0;
+	}
+}
+
+void tte_generate_schedule(){
+	unsigned int VLcurrent[VLsize];
+	unsigned int min=cluster_period;
+	unsigned int VL;
+	unsigned int current;
+	max_sched=0;
+	for(int i=0;i<VLsize;i++){
+	  if(VLarray[i].startTime<min){
+	    min=VLarray[i].startTime;
+	    VL=i;
+	  }
+	  VLcurrent[i]=VLarray[i].startTime;
+	  max_sched=max_sched+VLarray[i].max_queue;
+	}
+	startTick=min; 	current=min;
+	VLcurrent[VL]=VLcurrent[VL]+VLarray[VL].period;
+	sched=(unsigned int*)malloc(max_sched*sizeof(unsigned int));
+	VLsched=(unsigned int*)malloc(max_sched*sizeof(unsigned int));
+	VLsched[0]=VL;
+	int index=0;
+	while(1){
+  	  min=cluster_period*2;
+	  for(int i=0;i<VLsize;i++){
+	    if(VLcurrent[i]<min){
+	      min=VLcurrent[i];
+	      VL=i;
+	    }
+	  }
+	  sched[index]=min-current;
+	  if(index<max_sched-1) VLsched[index+1]=VL;
+	  current=min;
+	  VLcurrent[VL]=VLcurrent[VL]+VLarray[VL].period;
+	  if(min>=cluster_period) break;
+	  index++;
+	}
+}
+
+void tte_start_ticking(){
+	tte_generate_schedule();
+
 	exc_register(16, &tte_clock_tick);
 
   	intr_unmask_all();
@@ -135,17 +201,6 @@ void tte_initialize(unsigned int int_period, unsigned char CT[]){
   	intr_enable();
 
   	start_time = 0; 
-
-	VLarray = realloc(VLarray, 2 * sizeof(struct VL));
-
-	VLarray[0].addplace=0;
-	VLarray[0].rmplace=0;
-	VLarray[0].max_queue=5;
-	VLarray[1].addplace=0;
-	VLarray[1].rmplace=0;
-	VLarray[1].max_queue=10;
-
-	return;
 }
 
 void tte_prepare_header(unsigned int tx_addr, unsigned char VL[], unsigned char ethType[]){
@@ -176,17 +231,14 @@ void tte_prepare_test_data(unsigned int tx_addr, unsigned char VL[], unsigned ch
 }
 
 void tte_stop_ticking(){
-  for(int i=0;i<VLarray[0].max_queue;i++){
-    VLarray[0].queue[i]=0;
-    VLarray[0].sizeQueue[i]=0;
+  for(int i=0;i<VLsize;i++){
+    free(VLarray[i].queue);
+    free(VLarray[i].sizeQueue);
   }
-  for(int i=0;i<VLarray[1].max_queue;i++){
-    VLarray[1].queue[i]=0;
-    VLarray[1].sizeQueue[i]=0;
-  }
+  free(VLarray);
 }
 
-void tte_schedule_send(unsigned int addr,unsigned int size,unsigned char i){
+char tte_schedule_send(unsigned int addr,unsigned int size,unsigned char i){
   if(VLarray[i].queue[VLarray[i].addplace]==0){
     VLarray[i].queue[VLarray[i].addplace]=addr;
     VLarray[i].sizeQueue[VLarray[i].addplace]=size;
@@ -194,14 +246,13 @@ void tte_schedule_send(unsigned int addr,unsigned int size,unsigned char i){
     if(VLarray[i].addplace==VLarray[i].max_queue){
       VLarray[i].addplace=0;
     }
-    return;
+    return 1;
   } 
-  printf("scheduling error: queue[%d]: %d\n",VLarray[i].addplace,VLarray[i].queue[VLarray[i].addplace]);
+  return 0;
+  //printf("scheduling error: queue[%d]: %d\n",VLarray[i].addplace,VLarray[i].queue[VLarray[i].addplace]);
 }
 
 void tte_send_data(unsigned char i){ 
-  //static unsigned char num = 0;
-  //num++;
   int tx_addr=VLarray[i].queue[VLarray[i].rmplace];
   VLarray[i].queue[VLarray[i].rmplace]=0;
   mem_iowr_byte(tx_addr + 14,VLarray[i].rmplace);
@@ -213,14 +264,14 @@ void tte_clock_tick(void) {
   exc_prologue();
   
   timer_time += ((integration_period/100)*sched[schedplace]);
+  int i=VLsched[schedplace];
   schedplace++;
-  if(schedplace==MAX_SCHED){
+  if(schedplace==max_sched){
     schedplace=0;
   }
   else{
     arm_clock_timer(timer_time);
   }
-  int i=VLsched[schedplace];
   if(VLarray[i].queue[VLarray[i].rmplace]>0){
     tte_send_data(i);
     VLarray[i].rmplace++;
