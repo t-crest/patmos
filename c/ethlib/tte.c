@@ -40,14 +40,33 @@ unsigned char is_pcf(unsigned int addr){
 	return 0;
 }
 
-int handle_integration_frame(unsigned int addr,unsigned long long rec_start,unsigned long long r_pit[],unsigned long long p_pit[],unsigned long long s_pit[],unsigned int int_pd[],unsigned long long trans_clk[],int i){
+unsigned char tte_receive(unsigned int addr){ //0 for failed pcf, 1 for success pcf, 2 for tte, 3 for
+	unsigned long long rec_start;
+	eth_mac_receive(addr, 0);
+	rec_start = get_cpu_cycles();
+	if(is_pcf(addr)){
+	  if((mem_iord_byte(addr + 28)) == 0x2){
+	    if(handle_integration_frame(addr,rec_start)){
+	      return 1;  	
+	    }
+	    else{
+              return 0;
+            }
+          }
+	} else if (is_tte(addr)){
+	  return 2;
+        }
+        else{
+	  return 3;
+        }
+}
+
+int handle_integration_frame(unsigned int addr,unsigned long long rec_start){
 	unsigned long long permanence_pit;
 	unsigned long long sched_rec_pit;
 	unsigned long long trans_clock; // weird 2^(-16) ns format
 
 	receive_pit=get_cpu_cycles();
-	//printf("r: %llu\n",receive_pit);
-	r_pit[i]=receive_pit;
 
 	trans_clock = mem_iord_byte(addr + 34);
 	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 35));
@@ -60,17 +79,10 @@ int handle_integration_frame(unsigned int addr,unsigned long long rec_start,unsi
 	trans_clock = transClk_to_clk(trans_clock);
 	trans_clock += TTE_WIRE_DELAY + TTE_STATIC_RECIEVE_DELAY + (receive_pit-rec_start);
 
-	//printf("transparent clock: %llu\n",trans_clock);
-
-	trans_clk[i] = trans_clock;
-
 	integration_cycle = mem_iord_byte(addr + 14);
 	integration_cycle = (integration_cycle << 8) | (mem_iord_byte(addr + 15));
 	integration_cycle = (integration_cycle << 8) | (mem_iord_byte(addr + 16));
 	integration_cycle = (integration_cycle << 8) | (mem_iord_byte(addr + 17));
-
-	//printf("rec_start: %llu, r_pit: %llu, dyn rec delay: %llu\n",rec_start,receive_pit,(receive_pit-rec_start));
-	//printf("transClock after convert and delay: %llu\n",trans_clock);
 
 	permanence_pit = receive_pit + (TTE_MAX_TRANS_DELAY-trans_clock); 
 	if(start_time==0){
@@ -78,10 +90,6 @@ int handle_integration_frame(unsigned int addr,unsigned long long rec_start,unsi
 	}
 
 	sched_rec_pit = start_time + 2*TTE_MAX_TRANS_DELAY + TTE_COMP_DELAY;
-	s_pit[i]=sched_rec_pit;
-
-	//printf("p: %llu\n",permanence_pit);
-	p_pit[i]=permanence_pit;
 
 	if(permanence_pit>(sched_rec_pit-TTE_PRECISION) &&
 	    permanence_pit<(sched_rec_pit+TTE_PRECISION)){
@@ -91,9 +99,6 @@ int handle_integration_frame(unsigned int addr,unsigned long long rec_start,unsi
 		}
 
 		integration_period = integration_period + permanence_pit - sched_rec_pit;
-		int_pd[i] = integration_period;
-
-		//printf("new integration period: %u\n",integration_period);
 
 		if(integration_cycle==0){
 		  schedplace=0;
@@ -101,8 +106,6 @@ int handle_integration_frame(unsigned int addr,unsigned long long rec_start,unsi
 		  arm_clock_timer(timer_time);
 		}
 		start_time += integration_period;
-
-		//printf("next tick should be at: %llu\n",start_time);
 
 		return 1;
 	}
@@ -133,7 +136,7 @@ void tte_initialize(unsigned int int_period, unsigned int cl_period, unsigned ch
         }
 	eth_iowr(0x40, 0x1D000400);
 	eth_iowr(0x44, 0x00000289);
-	eth_iowr(0x00, 0x0000A023); //exactly like eth_mac_initialize, but with pro-bit set
+	eth_iowr(0x00, 0x0000A423); //exactly like eth_mac_initialize, but with pro-bit set and fullduplex
 
 	VLarray = malloc(VLcount * sizeof(struct VL));
 	VLsize=VLcount;

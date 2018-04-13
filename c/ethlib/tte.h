@@ -13,7 +13,9 @@
 
 unsigned char is_pcf(unsigned int addr);
 
-int handle_integration_frame(unsigned int addr,unsigned long long rec_start,unsigned long long r_pit[],unsigned long long p_pit[],unsigned long long s_pit[],unsigned int int_pd[],unsigned long long trans_clk[],int i);
+unsigned char tte_receive(unsigned int addr);
+
+int handle_integration_frame(unsigned int addr,unsigned long long rec_start);
 
 unsigned char is_tte(unsigned int addr);
 

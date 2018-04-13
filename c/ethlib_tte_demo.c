@@ -302,16 +302,13 @@ void print_pcf(){
 
 void demo_mode(){
 	int n = 2000;
-	unsigned long long r_pit[n];
-	unsigned long long p_pit[n];
-	unsigned long long s_pit[n];
-	unsigned int int_pd[n];
-	unsigned long long trans_clk[n];
-	unsigned long long rec_start;
   	unsigned char CT[] = {0xAB,0xAD,0xBA,0xBE};
  	unsigned char VL0[] = {0x0F,0xA1};
  	unsigned char VL1[] = {0x0F,0xA2};
 	int sched_errors=0;
+	int tte=0;
+	int eth=0;
+	unsigned char reply;
 
 	printf("\nDemo (rx, tx, LED, calculator)\n");
 	tte_initialize(0xC3500,200,CT,2); //0xC3500 = 10ms in clock cycles, cluster cycle is 20ms, CT, 2 virtual links
@@ -319,67 +316,71 @@ void demo_mode(){
 	tte_init_VL(1, 10,20); //VL 4002 starts at 1ms and has a period of 2ms
 	tte_start_ticking();
 	arp_table_init();
-	for (int i =0; i<n; i++){
-		eth_mac_receive(rx_addr, 0);
-		rec_start = get_cpu_cycles();
-		if(is_pcf(rx_addr)){
-			if((mem_iord_byte(rx_addr + 28)) == 0x2){
-				if(!handle_integration_frame(rx_addr,rec_start,r_pit,p_pit,s_pit,int_pd,trans_clk,i)){
-					n=i+1;
-					break;
-				}
-				if(i>10){
-		  		  if(i%2==0){ //send the 10 allowed packets on VL1
-				    tte_prepare_test_data(0x2600,VL1,0x11,400);
-				    if(!tte_schedule_send(0x2600,400,1)) sched_errors++;
-				    tte_prepare_test_data(0x2C00,VL1,0x22,300);
-				    if(!tte_schedule_send(0x2C00,300,1)) sched_errors++;
-				    tte_prepare_test_data(0x3200,VL1,0x33,800);
-				    if(!tte_schedule_send(0x3200,800,1)) sched_errors++;
-				    tte_prepare_test_data(0x3800,VL1,0x44,1514);
-				    if(!tte_schedule_send(0x3800,1514,1)) sched_errors++;
-				    tte_prepare_test_data(0x3E00,VL1,0x55,400);
-				    if(!tte_schedule_send(0x3E00,400,1)) sched_errors++;
-				    tte_prepare_test_data(0x4400,VL1,0x66,300);
-				    if(!tte_schedule_send(0x4400,300,1)) sched_errors++;
-				    tte_prepare_test_data(0x4A00,VL1,0x77,800);
-				    if(!tte_schedule_send(0x4A00,800,1)) sched_errors++;
-				    tte_prepare_test_data(0x5000,VL1,0x88,1514);
-				    if(!tte_schedule_send(0x5000,1514,1)) sched_errors++;
-				    tte_prepare_test_data(0x5600,VL1,0x99,400);
-				    if(!tte_schedule_send(0x5600,400,1)) sched_errors++;
-				    tte_prepare_test_data(0x5C00,VL1,0x10,300);
-				    if(!tte_schedule_send(0x5C00,300,1)) sched_errors++;
-			  	  }
-				  else{ //send the 5 allowed packets on VL0
-				    tte_prepare_test_data(0x2000,VL0,0xee,1514);
-				    if(!tte_schedule_send(0x2000,1514,0)) sched_errors++;
-				    tte_prepare_test_data(0x1A00,VL0,0xdd,800);
-				    if(!tte_schedule_send(0x1A00,800,0)) sched_errors++;
-				    tte_prepare_test_data(0x1400,VL0,0xcc,300);
-				    if(!tte_schedule_send(0x1400,300,0)) sched_errors++;
-				    tte_prepare_test_data(0xE00,VL0,0xbb,400);
-				    if(!tte_schedule_send(0xE00,400,0)) sched_errors++;
-				    tte_prepare_test_data(0x800,VL0,0xaa,200);
-				    if(!tte_schedule_send(0x800,200,0)) sched_errors++;
-				  }
-				}
-			}
-		} /*else if (is_tte(rx_addr)){
-			printf("TTE VERSION!\n");
-			printf("CT_marker: 0x%04X\n",mem_iord(rx_addr));
-			print_eth_packets();
-		}
-		else{
-			//printf("NOT THE TTE VERSION!\n");
-			//print_eth_packets();
-		}*/
-	}
+	/*tte_prepare_test_data(0x2600,VL1,0x11,400);
+	tte_prepare_test_data(0x2C00,VL1,0x22,300);
+	tte_prepare_test_data(0x3200,VL1,0x33,800);
+	tte_prepare_test_data(0x3800,VL1,0x44,1514);
+	tte_prepare_test_data(0x3E00,VL1,0x55,400);
+	tte_prepare_test_data(0x4400,VL1,0x66,300);
+	tte_prepare_test_data(0x4A00,VL1,0x77,800);
+	tte_prepare_test_data(0x5000,VL1,0x88,1514);
+	tte_prepare_test_data(0x5600,VL1,0x99,400);
+	tte_prepare_test_data(0x5C00,VL1,0x10,300);*/
+	for (int i =0; i<n;){
+	  reply=tte_receive(rx_addr);
+	  if(reply==0){ //failed pcf
+            printf("pcf out of schedule \n");
+	    break;
+          }
+	  if(reply==1){ //successfull pcf
+	    if(i>10){
+              if(i%2==0){ //send the 10 allowed packets on VL1
+	        tte_prepare_test_data(0x2600,VL1,0x11,400);
+		if(!tte_schedule_send(0x2600,400,1)) sched_errors++;
+		tte_prepare_test_data(0x2C00,VL1,0x22,300);
+		if(!tte_schedule_send(0x2C00,300,1)) sched_errors++;
+		tte_prepare_test_data(0x3200,VL1,0x33,800);
+		if(!tte_schedule_send(0x3200,800,1)) sched_errors++;
+		tte_prepare_test_data(0x3800,VL1,0x44,1514);
+		if(!tte_schedule_send(0x3800,1514,1)) sched_errors++;
+		tte_prepare_test_data(0x3E00,VL1,0x55,400);
+		if(!tte_schedule_send(0x3E00,400,1)) sched_errors++;
+		tte_prepare_test_data(0x4400,VL1,0x66,300);
+		if(!tte_schedule_send(0x4400,300,1)) sched_errors++;
+		tte_prepare_test_data(0x4A00,VL1,0x77,800);
+		if(!tte_schedule_send(0x4A00,800,1)) sched_errors++;
+		tte_prepare_test_data(0x5000,VL1,0x88,1514);
+		if(!tte_schedule_send(0x5000,1514,1)) sched_errors++;
+		tte_prepare_test_data(0x5600,VL1,0x99,400);
+		if(!tte_schedule_send(0x5600,400,1)) sched_errors++;
+		tte_prepare_test_data(0x5C00,VL1,0x10,300);
+		if(!tte_schedule_send(0x5C00,300,1)) sched_errors++;
+	      }
+	      else{ //send the 5 allowed packets on VL0
+		tte_prepare_test_data(0x2000,VL0,0xee,1514);
+		if(!tte_schedule_send(0x2000,1514,0)) sched_errors++;
+		tte_prepare_test_data(0x1A00,VL0,0xdd,800);
+		if(!tte_schedule_send(0x1A00,800,0)) sched_errors++;
+		tte_prepare_test_data(0x1400,VL0,0xcc,300);
+		if(!tte_schedule_send(0x1400,300,0)) sched_errors++;
+		tte_prepare_test_data(0xE00,VL0,0xbb,400);
+		if(!tte_schedule_send(0xE00,400,0)) sched_errors++;
+		tte_prepare_test_data(0x800,VL0,0xaa,200);
+		if(!tte_schedule_send(0x800,200,0)) sched_errors++;
+	      }
+	    }
+	    i++;
+          } else if (reply==2){ //incoming tte
+	    tte++;
+	  }
+	  else{ //incoming ethernet msg
+	    eth++;
+	  }
+	} 
 	tte_stop_ticking();
-	/*for (int i =0; i<n; i++){
-		printf("%llu %llu %llu %d %llu\n",r_pit[i],p_pit[i],s_pit[i],int_pd[i],trans_clk[i]);
-	}*/
 	printf("sched errors: %d\n",sched_errors);
+	printf("received tte: %d\n",tte);
+	printf("received eth: %d\n",eth); 
 	return;
 }
 
