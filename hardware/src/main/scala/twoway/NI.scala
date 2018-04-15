@@ -36,7 +36,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   val st = Schedule.getSchedule(n, false, nodeIndex)
   val scheduleLength = st._1.length
   val writeNocTab = Vec(st._2.map(Bool(_)))
-  val timeslotToNode = st._3
+  val timeslotToNode = Vec(st._3.map(UInt(_))) //Not sure but my hope is that this converts the array to a ROM, that can be used as a look 
   // TDM counter - same counter is used for both NoCs
   val regTdmCounter = Reg(init = UInt(0, log2Up(scheduleLength)))
   val end = regTdmCounter === UInt(scheduleLength - 1)
@@ -49,8 +49,10 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   val lowerAddr = io.memReq.in.address(blockAddrWidth, 0) // Block address
 
   // writeNoc transmission, Can we write something?
-  val valid = writeNocTab(regTdmCounter) // CHANGE HERE TO SAY IF WE ARE IN CORRECT SLOT
-
+  //val valid = writeNocTab(regTdmCounter) // CHANGE HERE TO SAY IF WE ARE IN CORRECT SLOT
+  //val valid = writeNocTab && timeslotToNode(upperAddr) === regtdmCounter
+  //val valid = Bool()
+  val valid = Bool(writeNocTab(regTdmCounter)&&(timeslotToNode(upperAddr) === regTdmCounter))
 
   // Set default values for readBackChannel
   io.readBackChannel.out.data := UInt(0)
