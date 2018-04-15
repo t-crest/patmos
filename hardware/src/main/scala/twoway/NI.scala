@@ -36,7 +36,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   val st = Schedule.getSchedule(n, false, nodeIndex)
   val scheduleLength = st._1.length
   val writeNocTab = Vec(st._2.map(Bool(_)))
-
+  val timeslotToNode = st._3
   // TDM counter - same counter is used for both NoCs
   val regTdmCounter = Reg(init = UInt(0, log2Up(scheduleLength)))
   val end = regTdmCounter === UInt(scheduleLength - 1)
