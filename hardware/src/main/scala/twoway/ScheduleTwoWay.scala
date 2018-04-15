@@ -22,7 +22,7 @@ import scala.util.Random
 
 object Schedule {
 
-  def getSchedule(n: Int, inverted : Boolean) = {
+  def getSchedule(n: Int, inverted : Boolean, nodeIndex: Int) = {
     
       val temps = n match {
         case 2 => ScheduleTable.FourNodes
@@ -84,7 +84,52 @@ object Schedule {
       if (valid(i)) line += 1
     }
     println("Schedule is " + schedule.length + " clock cycles")
-    (schedule, valid)
+    // The next part generates a timeslot to recieve node look up table, in the form of an array of integers.
+    // The index specifies the node that you want to send a package, and the value of that index is the timeslot i should be sent in.
+    var startNode = nodeIndex
+    var timeSlot = 0
+    val timeSlotToNode = new Array[Int](n*n)
+    
+    for (i <- 0 until (n*n)-1){
+      startNode = nodeIndex
+      timeSlot = 0;
+      for (j <- 0 until split(i).length()){
+        split(i)(j) match {
+          case ' ' => startNode += 0
+                      timeSlot += 1
+          
+          case 'e' => if ((startNode + 1) % n == 0) {
+                        startNode -= (n-1)
+                      }else{
+                        startNode += 1
+                      }
+          
+          case 'w' => if(startNode % n == 0){
+                        startNode += (n-1)
+                      }else{
+                        startNode -= 1
+                      }
+          
+          case 'n' => if (startNode >= 0 && startNode < n){
+                        startNode += n * (n - 1)
+                      }else{
+                        startNode -= n
+                      }
+          
+          case 's' => if (startNode >= n * (n-1) && startNode < n * n){
+                        startNode -= n * (n - 1)
+                      }else{
+                        startNode += n
+                      }
+          case 'l' => 
+          case _ => println("invalid direction symbol")
+        }
+      }
+      timeSlotToNode(startNode) = timeSlot
+    }
+
+
+    (schedule, valid, timeSlotToNode)
   }
 
   /* A 2x2 schedule is as follows:
@@ -117,7 +162,7 @@ ne
   }
 
   def main(args: Array[String]): Unit = {
-    print(getSchedule(2,false))
+    print(getSchedule(2,false,0)) // not sure what the purpose of this is -> guesing we won't need the timeslot to node look up table -> nodeIndex = 0
   }
 
 }

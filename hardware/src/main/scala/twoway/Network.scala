@@ -16,10 +16,8 @@ class Network(n: Int, width: Int, inverted : Boolean) extends Module {
   val io = new Bundle {
     val local = Vec(n * n, new RwChannel(width))
   }
-  var schedule = Schedule.getSchedule(n,false)._1
-  if(inverted) {
-    schedule = Schedule.getSchedule(n,true)._1
-  }
+  var schedule = Schedule.getSchedule(n,inverted,0)._1 //We will not use the timeslot to node look up table -> nodeIndex is set to 0
+  
 
   val net = new Array[Router](n * n)
   for (i <- 0 until n * n) {

@@ -33,7 +33,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   //io.memReq.in.valid := Bool(false)
 
   // Write NOC
-  val st = Schedule.getSchedule(n, false)
+  val st = Schedule.getSchedule(n, false, nodeIndex)
   val scheduleLength = st._1.length
   val writeNocTab = Vec(st._2.map(Bool(_)))
 
