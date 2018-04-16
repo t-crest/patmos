@@ -228,3 +228,5 @@ Network-test:
 twoway:
 	$(SBT) "runMain twoway.TwoWayMem"
 
+twoway_test:
+	$(SBT) "test:runMain twoway.TwoWayMemTester"

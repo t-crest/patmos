@@ -24,13 +24,44 @@ class TwoWayMem(n: Int, memSize: Int) extends Module {
   val readBackNetwork = Module(new Network(n, 32, true))
   val writeNetwork = Module(new Network(n, writeNetWidth, false))
 
-  for (i <- 0 until n * n) {
-    val ni = Module(new NI(n,i, memSize))
-    ni.io.writeChannel.in := writeNetwork.io.local(i).out
-    writeNetwork.io.local(i).in := ni.io.writeChannel.out
 
-    ni.io.readBackChannel.in := readBackNetwork.io.local(i).out
-    readBackNetwork.io.local(i).in := ni.io.readBackChannel.out
+  //val outputVec = Vec((n*n -1): Bool())
+  val numbArray = new Array[Int](n*n)
+
+  for (i <- 0 until n*n){
+    numbArray(i) = i
+  }
+
+
+  val nodesx = for (i <- 0 until n*n) yield
+  {
+   val exe_unit = Module(new Node(n,i, memSize))
+   // any wiring or other logic can go here
+   exe_unit
+  }
+  //val nodes = Vec(numbArray.map(Module(new Node(n,_, memSize))))
+
+
+  val NIs = for (i <- 0 until n*n) yield
+  {
+   val exe_unit = Module(new NI(n,i, memSize))
+   // any wiring or other logic can go here
+   exe_unit
+  }
+
+  val exe_units_io = Vec(NIs.map(_.io))
+
+  for (i <- 0 until n * n) {
+
+
+    NIs(i).io.memReq <> nodesx(i).io.local
+    //outputVec(i) <> node.output
+    
+    NIs(i).io.writeChannel.in := writeNetwork.io.local(i).out
+    writeNetwork.io.local(i).in := NIs(i).io.writeChannel.out
+
+    NIs(i).io.readBackChannel.in := readBackNetwork.io.local(i).out
+    readBackNetwork.io.local(i).in := NIs(i).io.readBackChannel.out
   }
 }
 
