@@ -84,8 +84,8 @@ object Schedule {
       if (valid(i)) line += 1
     }
     println("Schedule is " + schedule.length + " clock cycles")
-    // The next part generates a timeslot to recieve node look up table, in the form of an array of integers.
-    // The index specifies the node that you want to send a package, and the value of that index is the timeslot i should be sent in.
+    // The following part generates a 'timeslot-to-recieve-node' look-up table, in the form of an array of integers.
+    // Index into array specifies target node, and returned value is the timeslot which the package should be transmitted in.
     var startNode = nodeIndex
     var timeSlot = 0
     val timeSlotToNode = new Array[Int](n*n)

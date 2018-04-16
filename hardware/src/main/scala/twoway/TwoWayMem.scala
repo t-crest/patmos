@@ -21,39 +21,29 @@ class TwoWayMem(n: Int, memSize: Int) extends Module {
 
   val writeNetWidth = log2Down(memSize) + 1 + 32
 
+  // Instantiate the two NoCs
   val readBackNetwork = Module(new Network(n, 32, true))
   val writeNetwork = Module(new Network(n, writeNetWidth, false))
 
 
-  //val outputVec = Vec((n*n -1): Bool())
-  val numbArray = new Array[Int](n*n)
-
-  for (i <- 0 until n*n){
-    numbArray(i) = i
-  }
-
-
-  val nodesx = for (i <- 0 until n*n) yield
+  // Create (dummy) nodes
+  val nodes = for (i <- 0 until n*n) yield
   {
-   val exe_unit = Module(new Node(n,i, memSize))
+   val node = Module(new Node(n,i, memSize))
    // any wiring or other logic can go here
-   exe_unit
+   node
   }
-  //val nodes = Vec(numbArray.map(Module(new Node(n,_, memSize))))
 
-
+  // Create network interfaces (NI)
   val NIs = for (i <- 0 until n*n) yield
   {
-   val exe_unit = Module(new NI(n,i, memSize))
+   val singleNI = Module(new NI(n,i, memSize))
    // any wiring or other logic can go here
-   exe_unit
+   singleNI
   }
 
-  val exe_units_io = Vec(NIs.map(_.io))
-
+  // Connect network interfaces with nodes & NoCs
   for (i <- 0 until n * n) {
-
-
     NIs(i).io.memReq <> nodesx(i).io.local
     //outputVec(i) <> node.output
     

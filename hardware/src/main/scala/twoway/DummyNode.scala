@@ -15,15 +15,14 @@ class Node(n: Int, nodeIndex: Int, size: Int) extends Module{
         val output = Bool().asOutput
         val internal = UInt().asOutput
 
-
+        // Create interface for tester -> network interface accessS
         val rwp = Input(Bool())
         val validp = Bool().asInput
         val addressp = UInt(width=10).asInput
         val datap = UInt(width=32).asInput
     }
 
-    
-
+    // Connect tester inputs to node output (to NI)
     //io.local.out.rw := io.rwp
     io.local.out.valid := io.validp
     io.local.out.address := io.addressp
