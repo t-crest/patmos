@@ -19,7 +19,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
     // MSB: 0 = read, 1 = write
     // memReq.in.valid is set to 1 when the request has been fulfilled (either a write has
     // been transmitted to the noc, or a read has been received from local/external memory)
-    val memReq = new RwChannel(memoryWidth).flip // Memory requests from Node
+    val memReq = new RwChannel(memoryWidth) // Memory requests from Node
     val readBackChannel = new Channel()
     // MSB: 0 = read request, 1 = write (to block in other node)
     val writeChannel = new RwChannel(blockAddrWidth)
@@ -29,7 +29,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   }
 
   // Set default values for memReq
-  io.memReq.in.data := UInt(0)
+  io.memReq.out.data := UInt(0)
   //io.memReq.in.valid := Bool(false)
 
   // Write NOC
@@ -45,7 +45,8 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
 
 
   // Decode memory request from LOCAL Node - use memory port A
-  val upperAddr = io.memReq.in.address >> blockAddrWidth; // Target node
+  val upperAddr = UInt(width = log2Up(nrChannels))
+  upperAddr := io.memReq.in.address >> blockAddrWidth; // Target node
   val lowerAddr = io.memReq.in.address(blockAddrWidth, 0) // Block address
 
   // writeNoc transmission, Can we write something?
@@ -67,38 +68,61 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   // Set default vaues for memPort
   io.memPort.io.portB.addr := UInt(0)
   io.memPort.io.portB.wrData := UInt(0)
+  io.memPort.io.portA.addr := UInt(0)
+  io.memPort.io.portA.wrData := UInt(0)
 
 
-  io.memReq.in.valid := Bool(false)
+  io.memReq.out.valid := Bool(false)
 
   // Default to not write to local memory
   io.memPort.io.portA.wrEna := Bool(false)
   io.memPort.io.portB.wrEna := Bool(false)
 
-  when(io.memReq.out.valid){
-    when(Bool(upperAddr == UInt(nodeIndex))){  //Is this right? When valid it should alwayws be for the node.
+  val delayValid = Reg(init = Bool(false), next = Bool(false))
+
+  io.memReq.out.valid := delayValid  //Change to register
+
+  when(io.memReq.in.valid){
+    println("Test")
+    println(upperAddr)
+    println(nodeIndex)
+    when(Bool(upperAddr === UInt(nodeIndex))){  //Is this right? When valid it should alwayws be for the node.
       // LOCAL NODE -> LOCAL MEMORY
-      io.memPort.io.portA.wrEna := io.memReq.out.rw
-      io.memReq.in.valid := Bool(true)  //Change to register
+      io.memPort.io.portA.wrEna := io.memReq.in.rw
+
+
+      //io.memReq.out.valid := Bool(true)  //Change to register
       io.memPort.io.portA.addr := lowerAddr
 
       io.memPort.io.portA.wrData := io.memReq.in.data 
-      io.memReq.in.data := io.memPort.io.portA.rdData 
+      io.memReq.out.data := io.memPort.io.portA.rdData
+
+      //Read request needs a one cycle delay.
+      delayValid := Bool(false)
+
+      when(io.memReq.in.rw === Bool(false)){
+ 
+        delayValid := Bool(true)
+   
+      }.otherwise{
+        io.memReq.out.valid := Bool(true)  //Change to register
+      }
+
     } .otherwise {
       // LOCAL NODE -> EXTERNAL MEMORY
-      io.memReq.in.valid := Bool(false)
+      io.memReq.out.valid := Bool(false)
       io.writeChannel.out.address := lowerAddr        
-      io.writeChannel.out.data := io.memReq.out.data
+      io.writeChannel.out.data := io.memReq.in.data
       io.writeChannel.out.rw := io.memReq.in.rw
 
-      when(io.memReq.out.rw){
+      when(io.memReq.in.rw){
         //Change valid to "Is target correct"
         when((valid) && (upperAddr =/= UInt(nodeIndex))) {
           // Transmit outgoing memory read request/write when TDM reaches target node and request is not in local memory
           io.writeChannel.out.valid := Bool(true);
-          when(io.memReq.out.rw){
+          when(io.memReq.in.rw){
             // external write has been transmitted, the node is allowed to continue execution
-            io.memReq.in.valid := io.memReq.out.rw  //Multiple writes to valid.
+            io.memReq.out.valid := io.memReq.in.rw  //Multiple writes to valid.
           }
         }
       }.otherwise{
@@ -106,8 +130,8 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
         // ReadBack NoC reception
         when(io.readBackChannel.in.valid){
           // Node should be waiting for the valid signal to be asserted, to indicate that data is available
-          io.memReq.in.data := io.readBackChannel.in.data
-          io.memReq.in.valid := io.readBackChannel.in.valid
+          io.memReq.out.data := io.readBackChannel.in.data
+          io.memReq.out.valid := io.readBackChannel.in.valid
         }
       }
     }
