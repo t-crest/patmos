@@ -21,7 +21,7 @@ class Network(n: Int, width: Int, inverted : Boolean) extends Module {
 
   val net = new Array[Router](n * n)
   for (i <- 0 until n * n) {
-    net(i) = Module(new Router(schedule))
+    net(i) = Module(new Router(schedule, inverted))
     io.local(i).out := net(i).io.ports(LOCAL).out
     net(i).io.ports(LOCAL).in := io.local(i).in
   }

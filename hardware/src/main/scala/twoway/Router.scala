@@ -51,10 +51,11 @@ class RouterPorts extends Bundle {
   val ports = Vec(Const.NR_OF_PORTS, new Channel())
 }
 
-class Router(schedule: Array[Array[Int]]) extends Module {
+class Router(schedule: Array[Array[Int]], inverted : Boolean) extends Module {
   val io = new RouterPorts
+  val timeshift = if(inverted){4}else{0} // Since as this version is works only 2x2 and 3x3. there are maximally 3 timeslots from the start of a route to local.
 
-  val regCounter = RegInit(UInt(0, log2Up(schedule.length)))
+  val regCounter = RegInit(UInt(0+timeshift, log2Up(schedule.length)))
   val end = regCounter === UInt(schedule.length - 1)
   regCounter := Mux(end, UInt(0), regCounter + UInt(1))
   
@@ -81,5 +82,5 @@ class Router(schedule: Array[Array[Int]]) extends Module {
 object Router extends App {
 
   chiselMain(Array("--backend", "v", "--targetDir", "generated"),
-    () => Module(new Router(Schedule.genRandomSchedule(7))))
+    () => Module(new Router(Schedule.genRandomSchedule(7), false)))
 }
