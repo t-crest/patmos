@@ -25,6 +25,7 @@ object Const {
 }
 
 class SingleRwChannel(w: Int) extends Bundle {
+  override def cloneType: this.type = new SingleRwChannel(w).asInstanceOf[this.type]
   val rw = Bool() // 1: Write, 0 : read
   val address = UInt(width = w)
   val data = UInt(width = 32)
@@ -35,24 +36,25 @@ class SingleChannel extends Bundle {
   val data = UInt(width = 32)
   val valid = Bool()
 }
-
+ 
 class Channel extends Bundle {
   val out = new SingleChannel().asOutput
   val in = new SingleChannel().asInput
 }
 
 class RwChannel(w: Int) extends Bundle {
+  override def cloneType: this.type = new RwChannel(w).asInstanceOf[this.type]
   // Channel with arbitrary address width, used in the two-way shared memory interface
   val out = new SingleRwChannel(w).asOutput
   val in = new SingleRwChannel(w).asInput
 }
 
-class RouterPorts extends Bundle {
-  val ports = Vec(Const.NR_OF_PORTS, new Channel())
+class RouterPorts(w : Int) extends Bundle {
+  val ports = Vec(Const.NR_OF_PORTS, new RwChannel(w))
 }
 
-class Router(schedule: Array[Array[Int]], inverted : Boolean) extends Module {
-  val io = new RouterPorts
+class Router(schedule: Array[Array[Int]], inverted : Boolean, w : Int) extends Module {
+  val io = new RouterPorts(w)
   val timeshift = if(inverted){4}else{0} // Since as this version is works only 2x2 and 3x3. there are maximally 3 timeslots from the start of a route to local.
 
   val regCounter = RegInit(UInt(0+timeshift, log2Up(schedule.length)))
@@ -82,5 +84,5 @@ class Router(schedule: Array[Array[Int]], inverted : Boolean) extends Module {
 object Router extends App {
 
   chiselMain(Array("--backend", "v", "--targetDir", "generated"),
-    () => Module(new Router(Schedule.genRandomSchedule(7), false)))
+    () => Module(new Router(Schedule.genRandomSchedule(7), false, 8)))
 }
