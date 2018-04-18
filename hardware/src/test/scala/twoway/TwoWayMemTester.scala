@@ -83,22 +83,6 @@ class TestExternalWrite(dut: TwoWayMem) extends Tester(dut) {
 
   poke(dut.io.nodearray(0).test.out.valid, false)
   step(1)
-
-
-  //Read same value that we wrote, hopefully
-  poke(dut.io.nodearray(0).test.out.rw, 0)  
-  poke(dut.io.nodearray(0).test.out.data, 0x00)
-  poke(dut.io.nodearray(0).test.out.address, 0x42)
-  poke(dut.io.nodearray(0).test.out.valid, true)
-
-  step(1)
-
-  while(peek(dut.io.nodearray(0).test.in.valid) == 0){
-    step(1)
-  }
-  poke(dut.io.nodearray(0).test.out.valid, false)
-
-  step(3)
 }
 
 class TestExternalReadback(dut: TwoWayMem) extends Tester(dut) {
