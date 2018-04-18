@@ -25,7 +25,10 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
     val writeChannel = new RwChannel(blockAddrWidth)
     // Port A: Local node requests
     // Port B: External requests
-    val memPort = Module(new TrueDualPortMemory(size)) //adding module fixed a compile error. It should just make a mudule as you would in VHDL. Dont know why uou dont need ot for the channels for instance 
+    val memPort = Module(new TrueDualPortMemory(Math.pow(2,blockAddrWidth).toInt)) //adding module fixed a compile error. It should just make a mudule as you would in VHDL. Dont know why uou dont need ot for the channels for instance 
+  
+    val testSignal = UInt(width=32).asOutput
+    
   }
 
   // Set default values for memReq
@@ -47,13 +50,24 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   // Decode memory request from LOCAL Node - use memory port A
   val upperAddr = UInt(width = log2Up(nrChannels))
   upperAddr := io.memReq.in.address >> blockAddrWidth; // Target node
-  val lowerAddr = io.memReq.in.address(blockAddrWidth, 0) // Block address
+  
+  val lowerAddr = UInt(width = blockAddrWidth)
+  lowerAddr := io.memReq.in.address(blockAddrWidth, 0) // Block address
 
   // writeNoc transmission, Can we write something?
   //val valid = writeNocTab(regTdmCounter) // CHANGE HERE TO SAY IF WE ARE IN CORRECT SLOT
   //val valid = writeNocTab && timeslotToNode(upperAddr) === regtdmCounter
   //val valid = Bool()
-  val valid = Bool(writeNocTab(regTdmCounter)&&(timeslotToNode(upperAddr) === regTdmCounter))
+
+  // TDM schedule starts one cycles later for read data delay
+  val regDelay = RegNext(regTdmCounter, init=UInt(0))
+  val valid = Bool(timeslotToNode(upperAddr) === regDelay)
+
+  debug(io.testSignal)
+
+  io.testSignal := io.writeChannel.in.data
+
+  debug(io.testSignal)
 
   // Set default values for readBackChannel
   io.readBackChannel.out.data := UInt(0)
@@ -107,22 +121,33 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
       }.otherwise{
         io.memReq.out.valid := Bool(true)  //Change to register
       }
+      io.writeChannel.out.address := lowerAddr    
+
+    io.testSignal := UInt(11)
 
     } .otherwise {
+
+
+      
       // LOCAL NODE -> EXTERNAL MEMORY
-      io.memReq.out.valid := Bool(false)
+      io.memReq.out.valid := delayValid
       io.writeChannel.out.address := lowerAddr        
       io.writeChannel.out.data := io.memReq.in.data
       io.writeChannel.out.rw := io.memReq.in.rw
 
+      
+
       when(io.memReq.in.rw){
+          io.testSignal := UInt(13)
         //Change valid to "Is target correct"
-        when((valid) && (upperAddr =/= UInt(nodeIndex))) {
+        when((valid) ) {
+            delayValid := Bool(true)
+              io.testSignal := UInt(14)
           // Transmit outgoing memory read request/write when TDM reaches target node and request is not in local memory
           io.writeChannel.out.valid := Bool(true);
           when(io.memReq.in.rw){
             // external write has been transmitted, the node is allowed to continue execution
-            io.memReq.out.valid := io.memReq.in.rw  //Multiple writes to valid.
+            //io.memReq.out.valid := io.memReq.in.rw  //Multiple writes to valid.
           }
         }
       }.otherwise{

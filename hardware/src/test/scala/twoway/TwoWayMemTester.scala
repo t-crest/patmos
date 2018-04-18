@@ -68,13 +68,15 @@ class TestExternalWrite(dut: TwoWayMem) extends Tester(dut) {
 
   step(1)
 
+
   poke(dut.io.nodearray(0).test.out.rw, 1)  
   poke(dut.io.nodearray(0).test.out.data, 0x42)
-  poke(dut.io.nodearray(0).test.out.address, 0x142) //Write to node 1
+  poke(dut.io.nodearray(0).test.out.address, 0x342) //Write to node 1
   poke(dut.io.nodearray(0).test.out.valid, true)
 
   step(1)
 
+  peek(dut.NIs(0).io.memReq.in.data)
 
   //Wait for valid returns
   while(peek(dut.io.nodearray(0).test.in.valid) == 0){
@@ -83,6 +85,35 @@ class TestExternalWrite(dut: TwoWayMem) extends Tester(dut) {
 
   poke(dut.io.nodearray(0).test.out.valid, false)
   step(1)
+
+
+  var count = 0
+  while(peek(dut.NIs(0).io.writeChannel.in.valid) == 0 && count <= 15){
+  step(1)
+  peek(dut.NIs(3).io.writeChannel.in.valid)
+  peek(dut.NIs(3).io.writeChannel.in.data)
+  peek(dut.NIs(3).io.writeChannel.in.address)
+  peek(dut.NIs(3).io.memPort.io.portB.addr)
+  peek(dut.NIs(3).io.memPort.io.portB.wrEna)
+  
+
+
+  count +=1
+  }
+
+
+  //Check new data:
+  //Write to all memReq channels, asking for memory in node 3
+  poke(dut.io.nodearray(3).test.out.rw, 0)  
+  poke(dut.io.nodearray(3).test.out.address, 0x342)
+  poke(dut.io.nodearray(3).test.out.valid, true)
+
+  step(1)
+
+  peek(dut.io.nodearray(3).test.in.data)
+
+  step(1)
+  peek(dut.io.nodearray(3).test.in.data)
 }
 
 class TestExternalReadback(dut: TwoWayMem) extends Tester(dut) {
