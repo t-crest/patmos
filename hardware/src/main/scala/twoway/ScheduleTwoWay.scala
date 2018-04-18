@@ -46,7 +46,7 @@ object Schedule {
         case 's' => SOUTH
         case 'w' => WEST
         case 'l' => LOCAL
-        case ' ' => 0
+        case ' ' => if (inverted) SOUTH else 0
       }
     }
 
@@ -65,8 +65,17 @@ object Schedule {
     val len = split.reduceLeft((a, b) => if (a.length > b.length) a else b).length
     val schedule = new Array[Array[Int]](len)
     val valid = new Array[Boolean](len)
+
     for (i <- 0 until len) {
       schedule(i) = new Array[Int](NR_OF_PORTS)
+    }
+
+    if(inverted){
+      for(i <- 0 until len){
+        for(j <- 0 until NR_OF_PORTS){
+          schedule(i)(j) = SOUTH
+        }
+      }
     }
     for (i <- 0 until split.length) {
       var from = 'l'
@@ -129,7 +138,7 @@ object Schedule {
     }
 
 
-    (schedule, valid, timeSlotToNode)
+    (schedule, valid, timeSlotToNode, len-split(0).length())
   }
 
   /* A 2x2 schedule is as follows:
