@@ -96,6 +96,11 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
 
   io.memReq.out.valid := delayValid  //Change to register
 
+
+  //Register to only have valid high to write network for one cycle.
+  val transmitted = Reg(init = Bool(false))
+  transmitted := transmitted
+
   when(io.memReq.in.valid){
     println("Test")
     println(upperAddr)
@@ -126,35 +131,40 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
     io.testSignal := UInt(11)
 
     } .otherwise {
-
-
-      
       // LOCAL NODE -> EXTERNAL MEMORY
       io.memReq.out.valid := delayValid
       io.writeChannel.out.address := lowerAddr        
       io.writeChannel.out.data := io.memReq.in.data
       io.writeChannel.out.rw := io.memReq.in.rw
 
-      
-
       when(io.memReq.in.rw){
           io.testSignal := UInt(13)
         //Change valid to "Is target correct"
         when((valid) ) {
-            delayValid := Bool(true)
-              io.testSignal := UInt(14)
+          delayValid := Bool(true)
+          io.testSignal := UInt(14)
           // Transmit outgoing memory read request/write when TDM reaches target node and request is not in local memory
           io.writeChannel.out.valid := Bool(true);
           when(io.memReq.in.rw){
-            // external write has been transmitted, the node is allowed to continue execution
-            //io.memReq.out.valid := io.memReq.in.rw  //Multiple writes to valid.
+          // external write has been transmitted, the node is allowed to continue execution
+          //io.memReq.out.valid := io.memReq.in.rw  //Multiple writes to valid.
           }
         }
       }.otherwise{
+        //Write request
+
+        when((valid) && !transmitted ) {
+          transmitted := Bool(true)
+          delayValid := Bool(false)
+          io.testSignal := UInt(14)
+          // Transmit outgoing memory read request/write when TDM reaches target node and request is not in local memory
+          io.writeChannel.out.valid := Bool(true);
+        }
 
         // ReadBack NoC reception
         when(io.readBackChannel.in.valid){
           // Node should be waiting for the valid signal to be asserted, to indicate that data is available
+          transmitted := Bool(false)
           io.memReq.out.data := io.readBackChannel.in.data
           io.memReq.out.valid := io.readBackChannel.in.valid
         }
@@ -193,7 +203,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
     // Transmit read value on readBack NoC - no validTab here, since the constant delay time of 
     // accessing the memory is factored into the readBack schedule
     io.readBackChannel.out.valid := gotValue
-    io.readBackChannel.out.data  := readBackValue
+    io.readBackChannel.out.data  := io.memPort.io.portB.rdData
     gotValue := Bool(false)
   }
 
