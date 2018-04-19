@@ -205,7 +205,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   // ReadBack NoC transmission
 
   // TDM counter - 1
-  val shiftedTdmCounter = Reg(init = UInt(0, log2Up(scheduleLength)))
+  val shiftedTdmCounter = Reg(init = UInt(1, log2Up(scheduleLength)))
   val end2 = shiftedTdmCounter === UInt(scheduleLength - 1)
   shiftedTdmCounter := Mux(end2, UInt(0), shiftedTdmCounter + UInt(1))
 
@@ -223,14 +223,14 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
 
   // When readbackDelayFlag is set, we take the 1-cycle delayed input
   val transmittedValue = Mux(readbackDelayFlag, readbackValueDelayed, io.memPort.io.portB.rdData)
-
+    
   io.readBackChannel.out.valid := Bool(false)
   when(gotValue){
     // Transmit read value on readBack NoC - no validTab here, since the constant delay time of 
     // accessing the memory is factored into the readBack schedule.
 
     //Though, if the validtab is low, it needs to transmit in the next cycle.
-    when(readBackValid(regDelay)){
+    when(readBackValid(regTdmCounter)){
       io.readBackChannel.out.valid := gotValue
       io.readBackChannel.out.data  := transmittedValue
       gotValue := Bool(false)
