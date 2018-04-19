@@ -138,7 +138,7 @@ object Schedule {
     }
 
 
-    (schedule, valid, timeSlotToNode, len-split(0).length())
+    (schedule, valid, timeSlotToNode, len-split(0).length()-1)
   }
 
   /* A 2x2 schedule is as follows:
