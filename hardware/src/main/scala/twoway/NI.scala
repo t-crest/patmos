@@ -224,14 +224,20 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   // When readbackDelayFlag is set, we take the 1-cycle delayed input
   val transmittedValue = Mux(readbackDelayFlag, readbackValueDelayed, io.memPort.io.portB.rdData)
     
+  // If flag has been set, gotValid must be delayed once
+  
+  val gotValueDelayed = Reg(init = Bool(false))
+  gotValueDelayed := gotValue
+  val gotValueMux = Mux(readbackDelayFlag, gotValueDelayed, gotValue)
+
   io.readBackChannel.out.valid := Bool(false)
-  when(gotValue){
+  when(gotValueMux){
     // Transmit read value on readBack NoC - no validTab here, since the constant delay time of 
     // accessing the memory is factored into the readBack schedule.
 
     //Though, if the validtab is low, it needs to transmit in the next cycle.
     when(readBackValid(regTdmCounter)){
-      io.readBackChannel.out.valid := gotValue
+      io.readBackChannel.out.valid := gotValueMux
       io.readBackChannel.out.data  := transmittedValue
       gotValue := Bool(false)
     }.otherwise{
