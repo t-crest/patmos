@@ -19,7 +19,7 @@ class Network(n: Int, width: Int, inverted : Boolean) extends Module {
   var schedule = Schedule.getSchedule(n,inverted,0)._1 //We will not use the timeslot to node look up table -> nodeIndex is set to 0
   var validTab =  Schedule.getSchedule(n,inverted,0)._2 //Get validtab.
   val timeShiftForInvert = Schedule.getSchedule(n,inverted,0)._4 // Get timeshift for writeback
-  val net = new Array[Router](n * n)
+  val net = new Array[Router](n * n) 
   for (i <- 0 until n * n) {
     net(i) = Module(new Router(schedule, validTab, inverted, width, timeShiftForInvert))
     io.local(i).out := net(i).io.ports(LOCAL).out

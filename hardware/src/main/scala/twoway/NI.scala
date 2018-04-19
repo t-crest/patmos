@@ -30,7 +30,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
     val testSignal = UInt(width=32).asOutput
     
   }
-
+ 
   // Set default values for memReq
   io.memReq.out.data := UInt(0)
   //io.memReq.in.valid := Bool(false)

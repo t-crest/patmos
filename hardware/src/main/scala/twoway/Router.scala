@@ -57,7 +57,7 @@ class Router(schedule: Array[Array[Int]], validTab: Array[Boolean], inverted : B
   val io = new RouterPorts(w)
   //val timeshift = if(inverted){2}else{0} // Since as this version is works only 2x2 and 3x3. there are maximally 3 timeslots from the start of a route to local.
 
-  val regCounter = RegInit(UInt( if(inverted){timeshift}else{0}, log2Up(schedule.length)))
+  val regCounter = RegInit(UInt( 0, log2Up(schedule.length)))
   val end = regCounter === UInt(schedule.length - 1)
   regCounter := Mux(end, UInt(0), regCounter + UInt(1))
   
@@ -73,18 +73,25 @@ class Router(schedule: Array[Array[Int]], validTab: Array[Boolean], inverted : B
     }
   }
 
-
   // TDM schedule starts one cycles later for read data delay
   val regDelay = RegNext(regCounter, init=UInt(0))
   val currentSched = sched(regDelay)
+  
+  //Delay the valid signal to avoid sending when router is not listening.
+  val delayValid = Reg(Bool(true), next = RegNext(valid(regDelay)))
+  val delayValid2 = RegNext(delayValid)
 
-
-
+  debug(currentSched)
+  debug(sched)
+  debug(delayValid)
+  debug(regDelay)
 
   // We assume that on reset the valid signal is false.
   // Better have it reset. 
   for (j <- 0 until Const.NR_OF_PORTS) {
-    io.ports(j).out := RegNext(io.ports(currentSched(j)).in)
+    val del1 = RegNext(io.ports(currentSched(j)).in)
+    val del2 = del1//RegNext(del1) //Is this wrong??
+    io.ports(j).out := Mux(delayValid2, del1,del2)
   }
 
 }
