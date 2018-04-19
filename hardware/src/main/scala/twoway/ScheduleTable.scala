@@ -35,23 +35,22 @@ object ScheduleTable {
     "       sl|" +
     "        wl|"
 
-  val SixTeenNodes =
+  val SixTeenNodes = // modified schedule
     "nneel|" +
-    " esl|" +
-    "   neel|" +
-    "    nnel|" +
-    "     wnnl|" +
-    "       eesl|" +
-    "        nl|" +
-    "         nel|" +
-    "          nwl|" +
+    "  nnel|" +
+    "   wnnl|" +
+    "     eesl|" +
+    "      neel|" +
+    "        nel|" +
+    "         nwl|" +
+    "          esl|" +
     "           nnl|" +
     "            eel|" +
     "             swl|" +
-    "               el|" +
-    "                sl|" +
-    "                 wl|"
-
+    "               nl|" +
+    "                el|" +
+    "                 sl|" +
+    "                  wl|"
   def main(args: Array[String]): Unit = {
     var cnt = Source.fromFile(args(0)).getLines.length
     val lines = Source.fromFile(args(0)).getLines
