@@ -210,7 +210,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
     // accessing the memory is factored into the readBack schedule.
 
     //Though, if the validtab is low, it needs to transmit in the next cycle.
-    when(Bool(true)){//readBackValid(regDelay)){
+    when(readBackValid(regDelay)){
       io.readBackChannel.out.valid := gotValue
       io.readBackChannel.out.data  := io.memPort.io.portB.rdData
       gotValue := Bool(false)
