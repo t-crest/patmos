@@ -184,7 +184,7 @@ class TestLocalSequentialWriteRead(dut: TwoWayMem) extends Tester(dut) {
     poke(dut.io.nodearray(receivingNode).test.out.address, 0x42 + i + 0x100 * receivingNode)
     poke(dut.io.nodearray(receivingNode).test.out.valid, true)
     step(1)
-    peek(dut.io.nodearray(receivingNode).test.out.data)
+    peek(dut.io.nodearray(receivingNode).test.in.data)
   }
 }
 
@@ -232,7 +232,10 @@ class TestSimultaniousReads(dut: TwoWayMem) extends Tester(dut) {
     for(i <- 0 until 4){
       peek(dut.io.nodearray(i).test.in.valid)
       peek(dut.io.nodearray(i).test.in.data)
-      peek(dut.io.nodearray(i).test.in.valid)
+      if (peek(dut.io.nodearray(i).test.in.data) != 0){
+        step(1)
+        poke(dut.io.nodearray(i).test.out.valid, false)
+      }
     }
 
   }
@@ -246,7 +249,7 @@ object TwoWayMemTester {
     chiselMainTest(Array("--genHarness", "--test", "--backend", "c",
       "--compile", "--vcd", "--targetDir", "generated"),
       () => Module(new TwoWayMem(2, 1024))) {
-        c => new TestLocalSequentialWriteRead(c)
+        c => new TestSimultaniousReads(c)
       }
   }
 }
