@@ -45,7 +45,6 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   val end = regTdmCounter === UInt(scheduleLength - 1)
   regTdmCounter := Mux(end, UInt(0), regTdmCounter + UInt(1))
 
-
   // Readback NOC:
   val stback = Schedule.getSchedule(n, false, nodeIndex)
   val scheduleLengthback = st._1.length
@@ -178,7 +177,8 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
 
   // ReadBack NoC variables
   val gotValue = Reg(init = Bool(false))
-  val readBackValue = Reg(init= UInt(0,32)) 
+  val readbackValueDelayed = Reg(init= UInt(0,32))  // a 1-cycle buffer is needed on the read value for transmitting readback requests when a blank in the cycle has occured
+  readbackValueDelayed := io.memPort.io.portB.rdData
 
   // writeNoc reception - use memory port B
   val rxLowerAddr = io.writeChannel.in.address // Block address
@@ -192,7 +192,6 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
     when(io.writeChannel.in.rw){
     } .otherwise {
       // LOCAL MEMORY READ
-      readBackValue := io.memPort.io.portB.rdData
       gotValue := Bool(true)
     }
   }.otherwise{
@@ -204,6 +203,27 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   io.testSignal := readBackValid(regDelay)
 
   // ReadBack NoC transmission
+
+  // TDM counter - 1
+  val shiftedTdmCounter = Reg(init = UInt(0, log2Up(scheduleLength)))
+  val end2 = shiftedTdmCounter === UInt(scheduleLength - 1)
+  shiftedTdmCounter := Mux(end2, UInt(0), shiftedTdmCounter + UInt(1))
+
+  // After the first blank has been encountered in the schedule, all subsequent values must be delayed by
+  // a single clockcycle. This flag must be reset upon the end of the schedule
+  val readbackDelayFlag = Reg(init = Bool(false))
+  when(!readbackDelayFlag && !writeNocTab(shiftedTdmCounter)){
+    // the first blank has been encountered in the writeNocTab
+    readbackDelayFlag := Bool(true)
+  }
+  
+  when(shiftedTdmCounter === UInt(0) && readbackDelayFlag){
+    readbackDelayFlag := Bool(false)
+  }
+
+  // When readbackDelayFlag is set, we take the 1-cycle delayed input
+  val transmittedValue = Mux(readbackDelayFlag, readbackValueDelayed, io.memPort.io.portB.rdData)
+
   io.readBackChannel.out.valid := Bool(false)
   when(gotValue){
     // Transmit read value on readBack NoC - no validTab here, since the constant delay time of 
@@ -212,7 +232,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
     //Though, if the validtab is low, it needs to transmit in the next cycle.
     when(readBackValid(regDelay)){
       io.readBackChannel.out.valid := gotValue
-      io.readBackChannel.out.data  := io.memPort.io.portB.rdData
+      io.readBackChannel.out.data  := transmittedValue
       gotValue := Bool(false)
     }.otherwise{
       io.memPort.io.portB.addr := RegNext(rxLowerAddr)

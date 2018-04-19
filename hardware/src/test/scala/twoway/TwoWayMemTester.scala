@@ -126,7 +126,7 @@ class TestExternalReadback(dut: TwoWayMem) extends Tester(dut) {
   }  
   step(1)
 
-  val receivingNode = 3;
+  val receivingNode = 1;
 
   //Write 0x42 to address 0x342, which is in node 3.
   poke(dut.io.nodearray(receivingNode).test.out.rw, 1)  
