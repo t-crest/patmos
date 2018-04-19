@@ -46,6 +46,11 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   regTdmCounter := Mux(end, UInt(0), regTdmCounter + UInt(1))
 
 
+  // Readback NOC:
+  val stback = Schedule.getSchedule(n, false, nodeIndex)
+  val scheduleLengthback = st._1.length
+  val readBackValid = Vec(stback._2.map(Bool(_)))
+
 
   // Decode memory request from LOCAL Node - use memory port A
   val upperAddr = UInt(width = log2Up(nrChannels))
@@ -63,11 +68,8 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   val regDelay = RegNext(regTdmCounter, init=UInt(0))
   val valid = Bool(timeslotToNode(upperAddr) === regDelay)
 
-  debug(io.testSignal)
 
-  io.testSignal := io.writeChannel.in.data
-
-  debug(io.testSignal)
+ 
 
   // Set default values for readBackChannel
   io.readBackChannel.out.data := UInt(0)
@@ -128,7 +130,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
       }
       io.writeChannel.out.address := lowerAddr    
 
-    io.testSignal := UInt(11)
+
 
     } .otherwise {
       // LOCAL NODE -> EXTERNAL MEMORY
@@ -138,11 +140,11 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
       io.writeChannel.out.rw := io.memReq.in.rw
 
       when(io.memReq.in.rw){
-          io.testSignal := UInt(13)
+
         //Change valid to "Is target correct"
         when((valid) ) {
           delayValid := Bool(true)
-          io.testSignal := UInt(14)
+  
           // Transmit outgoing memory read request/write when TDM reaches target node and request is not in local memory
           io.writeChannel.out.valid := Bool(true);
           when(io.memReq.in.rw){
@@ -156,7 +158,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
         when((valid) && !transmitted ) {
           transmitted := Bool(true)
           delayValid := Bool(false)
-          io.testSignal := UInt(14)
+
           // Transmit outgoing memory read request/write when TDM reaches target node and request is not in local memory
           io.writeChannel.out.valid := Bool(true);
         }
@@ -197,14 +199,24 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
     io.memPort.io.portB.wrEna := Bool(false)
   }
 
+  debug(io.testSignal)
+
+  io.testSignal := readBackValid(regDelay)
+
   // ReadBack NoC transmission
   io.readBackChannel.out.valid := Bool(false)
   when(gotValue){
     // Transmit read value on readBack NoC - no validTab here, since the constant delay time of 
-    // accessing the memory is factored into the readBack schedule
-    io.readBackChannel.out.valid := gotValue
-    io.readBackChannel.out.data  := io.memPort.io.portB.rdData
-    gotValue := Bool(false)
+    // accessing the memory is factored into the readBack schedule.
+
+    //Though, if the validtab is low, it needs to transmit in the next cycle.
+    when(Bool(true)){//readBackValid(regDelay)){
+      io.readBackChannel.out.valid := gotValue
+      io.readBackChannel.out.data  := io.memPort.io.portB.rdData
+      gotValue := Bool(false)
+    }.otherwise{
+      io.memPort.io.portB.addr := RegNext(rxLowerAddr)
+    }
   }
 
 
