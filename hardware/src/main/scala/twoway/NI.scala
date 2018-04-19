@@ -9,7 +9,7 @@ import s4noc_twoway._
  */
 
 class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
-  val nrChannels = n * n - 1
+  val nrChannels = n * n
   val memoryWidth = log2Down(size)
   val blockAddrWidth = log2Down(size/nrChannels)
 
@@ -205,7 +205,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   // ReadBack NoC transmission
 
   // TDM counter - 1
-  val shiftedTdmCounter = Reg(init = UInt(1, log2Up(scheduleLength)))
+  val shiftedTdmCounter = Reg(init = UInt(st._4 - 1 , log2Up(scheduleLength)))
   val end2 = shiftedTdmCounter === UInt(scheduleLength - 1)
   shiftedTdmCounter := Mux(end2, UInt(0), shiftedTdmCounter + UInt(1))
 
