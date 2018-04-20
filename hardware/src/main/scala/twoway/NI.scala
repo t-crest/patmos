@@ -103,9 +103,6 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   transmitted := transmitted
 
   when(io.memReq.in.valid){
-    println("Test")
-    println(upperAddr)
-    println(nodeIndex)
     when(Bool(upperAddr === UInt(nodeIndex))){  //Is this right? When valid it should alwayws be for the node.
       // LOCAL NODE -> LOCAL MEMORY
       io.memPort.io.portA.wrEna := io.memReq.in.rw
@@ -160,14 +157,6 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
 
           // Transmit outgoing memory read request/write when TDM reaches target node and request is not in local memory
           io.writeChannel.out.valid := Bool(true);
-        }
-
-        // ReadBack NoC reception
-        when(io.readBackChannel.in.valid){
-          // Node should be waiting for the valid signal to be asserted, to indicate that data is available
-          transmitted := Bool(false)
-          io.memReq.out.data := io.readBackChannel.in.data
-          io.memReq.out.valid := io.readBackChannel.in.valid
         }
       }
     }
@@ -248,6 +237,12 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
       io.memPort.io.portB.addr := RegNext(rxLowerAddr)
     }
   }
-
+        // ReadBack NoC reception
+        when(io.readBackChannel.in.valid){
+          // Node should be waiting for the valid signal to be asserted, to indicate that data is available
+          transmitted := Bool(false)
+          io.memReq.out.data := io.readBackChannel.in.data
+          io.memReq.out.valid := io.readBackChannel.in.valid
+        }
 
 }
