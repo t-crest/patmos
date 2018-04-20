@@ -198,7 +198,7 @@ class TestSimultaniousReads(dut: TwoWayMem) extends Tester(dut) {
   }  
   step(1)
 
-  val receivingNode = 3;
+  val receivingNode = 0;
 
   //Write four different values in receiving node (address 42,43,44,45)
   for(i <- 0 until 4){
@@ -243,13 +243,72 @@ class TestSimultaniousReads(dut: TwoWayMem) extends Tester(dut) {
   step(3)
 }
 
+class TestExternalReadbackAll(dut: TwoWayMem) extends Tester(dut) {
+  for (j <- 0 until 4) {
+    //Write 0 to all nodes
+    poke(dut.io.nodearray(j).test.out.rw, 0)  
+    poke(dut.io.nodearray(j).test.out.data, 0)
+    poke(dut.io.nodearray(j).test.out.address, 0)
+    poke(dut.io.nodearray(j).test.out.valid, false)
+  }  
+  step(1)
+
+  println(s"Starting")
+  for(j <- 0 until 4){
+    //Write 0x42 to address 0x342, which is in node 3.
+    poke(dut.io.nodearray(j).test.out.rw, 1)  
+    poke(dut.io.nodearray(j).test.out.data, 0x42 + j)
+    poke(dut.io.nodearray(j).test.out.address, 0x42 + 0x100 * j)
+    poke(dut.io.nodearray(j).test.out.valid, true)
+  }
+  step(1)
+  //Set nodes to 0 again.
+  for(j <- 0 until 4){
+    poke(dut.io.nodearray(j).test.out.rw, 0)  
+    poke(dut.io.nodearray(j).test.out.data, 0x00)
+    poke(dut.io.nodearray(j).test.out.address, 0x00)
+    poke(dut.io.nodearray(j).test.out.valid, false)
+  }
+
+  step(5)
+
+  println(s"Requesting")
+
+  //Have all nodes request a datapoint from all nodes, one at a time.
+  for(j <- 0 until 4){
+    for(i <- 0 until 4){
+      //Ask for memory 0x342 from node 0.
+      poke(dut.io.nodearray(j).test.out.rw, 0)  
+      poke(dut.io.nodearray(j).test.out.address, 0x42 + 0x100 * i)
+      poke(dut.io.nodearray(j).test.out.valid, true)
+
+      var counter = 0
+      while(peek(dut.io.nodearray(j).test.in.valid) == 0 && counter < 20){
+        step(1)
+        counter += 1
+      }
+      if(counter == 20){
+        println(s"DID NOT RECEIVE")
+      }
+      expect(dut.io.nodearray(j).test.in.data, 0x42 + i)
+      expect(dut.io.nodearray(j).test.in.valid, 1)
+
+
+      poke(dut.io.nodearray(j).test.out.rw, 0)  
+      poke(dut.io.nodearray(j).test.out.address, 0)
+      poke(dut.io.nodearray(j).test.out.valid, false)
+      step(7)
+    }
+  }
+}
 
 object TwoWayMemTester {
   def main(args: Array[String]): Unit = {
     chiselMainTest(Array("--genHarness", "--test", "--backend", "c",
-      "--compile", "--vcd", "--targetDir", "generated"),
+      "--compile", "--vcd", "--targetDir", "generated","--debug"),
       () => Module(new TwoWayMem(2, 1024))) {
-        c => new TestSimultaniousReads(c)
+        c => new TestExternalReadbackAll(c)
+
       }
   }
 }
