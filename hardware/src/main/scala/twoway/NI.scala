@@ -227,7 +227,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   // If flag has been set, gotValid must be delayed once
   
   val gotValueDelayed = Reg(init = Bool(false))
-  gotValueDelayed := gotValue
+  gotValueDelayed := readbackDelayFlag & gotValue
   val gotValueMux = Mux(readbackDelayFlag, gotValueDelayed, gotValue)
 
   io.readBackChannel.out.valid := Bool(false)
@@ -239,7 +239,11 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
     when(readBackValid(regTdmCounter)){
       io.readBackChannel.out.valid := gotValueMux
       io.readBackChannel.out.data  := transmittedValue
-      gotValue := Bool(false)
+      when(io.writeChannel.in.valid && !io.writeChannel.in.rw ){
+        gotValue := Bool(true)
+      }otherwise{
+        gotValue := Bool(false)
+      }
     }.otherwise{
       io.memPort.io.portB.addr := RegNext(rxLowerAddr)
     }
