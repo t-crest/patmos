@@ -23,21 +23,16 @@ class TwoWayMem(n: Int, memSize: Int) extends Module {
 
   }
 
-//  for(i <- 0 until n*n){
-//    io.nodearray(i).test <> nodearray(i).test
-//  }
+
 
   // Dummy output keep hardware generated
   val dout = Reg(next = Vec(n * n, UInt(width = 32)))
 
-  val writeNetWidth = log2Down(memSize) + 1 + 32
+  val writeNetWidth = log2Down(memSize) - log2Down(n*n)
 
-  // Instantiate the two NoCs
-  val readBackNetwork = Module(new Network(n, 32, true))
+  // Instantiate the two NoCs. Readback has no address so 1
+  val readBackNetwork = Module(new Network(n, 1, true))
   val writeNetwork = Module(new Network(n, writeNetWidth, false))
-
-
-  // Create (dummy) nodes
 
 
   // Create network interfaces (NI)
@@ -70,6 +65,6 @@ class TwoWayMem(n: Int, memSize: Int) extends Module {
 object TwoWayMem {
   def main(args: Array[String]): Unit = {
     chiselMain(Array("--backend", "v", "--targetDir", "generated"),
-      () => Module(new TwoWayMem(2, 1024)))
+      () => Module(new TwoWayMem(4, 1024)))
   }
 }
