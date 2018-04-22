@@ -42,13 +42,14 @@ class NodeRead(n: Int, nodeIndex: Int, size: Int) extends Module{
     }
 
     io.local.out.rw := Bool(false)
+    
     io.local.out.address := UInt(0)
     io.local.out.data := UInt(0)
     io.local.out.valid := Bool(false)
 
     val sReset :: sRead :: sSendPacket :: sLight :: Nil = Enum(UInt(),4)
     val state = Reg(init = sReset)
-    val stateLast = RegNext(state)
+    val stateLast = RegNext(state, init = sReset)
 
 
     when(state === sLight){
@@ -57,7 +58,7 @@ class NodeRead(n: Int, nodeIndex: Int, size: Int) extends Module{
         io.led := Bool(false)
     }
 
-    val counter = Reg(UInt(0))
+    val counter = Reg(init = UInt(0))
 
 
     val m =( if(nodeIndex + 1 == n * n) 0 else nodeIndex + 1)
