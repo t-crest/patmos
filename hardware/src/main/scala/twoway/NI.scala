@@ -234,7 +234,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
         gotValue := Bool(false)
       }
     }.otherwise{
-      io.memPort.io.portB.addr := RegNext(rxLowerAddr)
+      io.memPort.io.portB.addr := RegNext(rxLowerAddr, init = UInt(0))
     }
   }
         // ReadBack NoC reception
