@@ -21,7 +21,8 @@ class Network(n: Int, width: Int, inverted : Boolean) extends Module {
   val timeShiftForInvert = Schedule.getSchedule(n,inverted,0)._4 // Get timeshift for writeback
   val net = new Array[Router](n * n) 
   for (i <- 0 until n * n) {
-    net(i) = Module(new Router(schedule, validTab, inverted, width, timeShiftForInvert))
+    //If it is the inverted network, it does not need an address
+    net(i) = Module(new Router(schedule, validTab, inverted, if(inverted) 1 else width, timeShiftForInvert))
     io.local(i).out := net(i).io.ports(LOCAL).out
     net(i).io.ports(LOCAL).in := io.local(i).in
   }
