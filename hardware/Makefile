@@ -230,3 +230,10 @@ twoway:
 
 twoway_test:
 	$(SBT) "test:runMain twoway.TwoWayMemTester"
+
+twowayboard:
+	$(SBT) "runMain twoway.TwoWayBoard"
+
+twowayboard_test:
+	$(SBT) "test:runMain twoway.TwoWayBoardTester"
+
