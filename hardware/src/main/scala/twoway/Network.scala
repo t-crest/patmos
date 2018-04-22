@@ -22,7 +22,7 @@ class Network(n: Int, width: Int, inverted : Boolean) extends Module {
   val net = new Array[Router](n * n) 
   for (i <- 0 until n * n) {
     //If it is the inverted network, it does not need an address
-    net(i) = Module(new Router(schedule, validTab, inverted, if(inverted) 1 else width, timeShiftForInvert))
+    net(i) = Module(new Router(schedule, validTab, inverted,  width, timeShiftForInvert))
     io.local(i).out := net(i).io.ports(LOCAL).out
     net(i).io.ports(LOCAL).in := io.local(i).in
   }
