@@ -15,28 +15,17 @@ import s4noc_twoway._
 
 class TwoWayMem(n: Int, memSize: Int) extends Module {
 
-    val memoryWidth = log2Down(memSize)
-    val nodearray = Vec{for (i <- 0 until n*n) yield
-      {
-        val node = Module(new Node(n,i, memSize))
-        // any wiring or other logic can go here
-        node.io
-      }
-    }
+  val memoryWidth = log2Down(memSize)
   val io = new Bundle {
     //val testSignal = new RwChannel(log2Down(memSize)).flip.asInput
-    val nodearray = Vec(n*n, new Bundle{
-        val local = new RwChannel(memoryWidth)
-        val output = Bool().asOutput
-        val test = new RwChannel(memoryWidth).flip
-        }
-    )
+
+    val nodearray = Vec(n*n, new RwChannel(memoryWidth)).flip
 
   }
 
-  for(i <- 0 until n*n){
-    io.nodearray(i).test <> nodearray(i).test
-  }
+//  for(i <- 0 until n*n){
+//    io.nodearray(i).test <> nodearray(i).test
+//  }
 
   // Dummy output keep hardware generated
   val dout = Reg(next = Vec(n * n, UInt(width = 32)))
@@ -62,8 +51,8 @@ class TwoWayMem(n: Int, memSize: Int) extends Module {
   // Connect network interfaces with nodes & NoCs
   for (i <- 0 until n * n) {
 
-    NIs(i).io.memReq.in <>  nodearray(i).local.out
-    NIs(i).io.memReq.out <>  nodearray(i).local.in
+    NIs(i).io.memReq.in <>  io.nodearray(i).out
+    NIs(i).io.memReq.out <>  io.nodearray(i).in
     
     //NIs(i).io.memReq.out.rw := Bool(true)//nodearray(i).local.out.rw
     
