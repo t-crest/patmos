@@ -8,11 +8,13 @@
 #include <machine/spm.h>
 #include "../../libcorethread/corethread.h"
 
+#include "s4noc.h"
+
 volatile _UNCACHED int done;
 
 void work(void* arg) {
 
-  volatile _SPM int *s4noc = (volatile _SPM int *) (0xE8000000);
+  volatile _SPM int *s4noc = (volatile _SPM int *) (S4NOC_ADDRESS);
 
   // Wait for RX FIFO data available
   for(;;) {
@@ -27,11 +29,11 @@ void work(void* arg) {
 
 int main() {
 
-  volatile _SPM int *s4noc = (volatile _SPM int *) (0xE8000000);
+  volatile _SPM int *s4noc = (volatile _SPM int *) (S4NOC_ADDRESS);
 
   done = 0;
 
-  corethread_create(3, &work, NULL);
+  corethread_create(RCV, &work, NULL);
 
   // wait for TX FIFO ready
   for(;;) {
