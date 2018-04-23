@@ -21,7 +21,7 @@ class Entry extends Bundle {
   val time = UInt(width = 6).asInput
 }
 
-class NetworkInterface(dim: Int) extends Module {
+class NetworkInterface(dim: Int, fifoDepth: Int) extends Module {
   val io = new Bundle {
     val cpuPort = new CpuPort()
     val local = new Channel()
@@ -46,7 +46,7 @@ class NetworkInterface(dim: Int) extends Module {
     entryReg.time := io.cpuPort.addr
   }
 
-  val inFifo = Module(new BubbleFifo(2))
+  val inFifo = Module(new BubbleFifo(fifoDepth))
   inFifo.io.enq.write := Bool(false)
   inFifo.io.enq.din.data := io.cpuPort.wrData
   inFifo.io.enq.din.time := io.cpuPort.addr
@@ -65,7 +65,7 @@ class NetworkInterface(dim: Int) extends Module {
 
   // for now same clock cycle
 
-  val outFifo = Module(new BubbleFifo(2))
+  val outFifo = Module(new BubbleFifo(4))
   outFifo.io.enq.write := Bool(false)
   outFifo.io.enq.din.data := io.local.in.data
   outFifo.io.enq.din.time := regDelay

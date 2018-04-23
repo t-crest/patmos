@@ -12,9 +12,9 @@ import patmos.Constants._
 import ocp._
 import s4noc._
 
-class S4nocOCPWrapper(nrCores: Int) extends Module {
+class S4nocOCPWrapper(nrCores: Int, fifoDepth: Int) extends Module {
 
-  val s4noc = Module(new S4noc(nrCores))
+  val s4noc = Module(new S4noc(nrCores, fifoDepth))
 
   val io = Vec(nrCores, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))
 

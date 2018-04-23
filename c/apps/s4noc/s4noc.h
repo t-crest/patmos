@@ -11,7 +11,7 @@
 #endif
 
 #ifndef HANDSHAKE
-#define HANDSHAKE 2
+#define HANDSHAKE 4
 #endif
 
 #define S4NOC_ADDRESS 0xE8000000

@@ -239,7 +239,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     }
   }
   else if (cmpDevice == 7) {
-    val s4noc = Module(new cmp.S4nocOCPWrapper(nrCores))
+    val s4noc = Module(new cmp.S4nocOCPWrapper(nrCores, 4))
     for (i <- (0 until cores.length)) {
       s4noc.io(i) <> cores(i).io.comSpm
     }
