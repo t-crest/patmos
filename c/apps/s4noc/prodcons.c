@@ -21,7 +21,7 @@ void work(void* arg) {
   int sum = 0;
 
   // Wait for RX FIFO data available for first time stamp
-  while (!(s4noc[2] & 2)) {
+  while (!s4noc[RX_READY]) {
     ;
   }
   ts = *timer_ptr;
@@ -30,10 +30,10 @@ void work(void* arg) {
 
   for (int i=0; i<LEN/BUF_LEN; ++i) {
     for (int j=0; j<BUF_LEN; ++j) {
-      while (!(s4noc[2] & 2)) {
+      while (!s4noc[RX_READY]) {
         ;
       }
-      sum += s4noc[0];
+      sum += s4noc[IN_DATA];
       ++credit;
       if (credit == HANDSHAKE) {
         credit = 0;
@@ -60,7 +60,7 @@ int main() {
   for (int i=0; i<LEN/BUF_LEN; ++i) {
     for (int j=0; j<BUF_LEN; ++j) {
       // wait for TX FIFO ready
-      while (!(s4noc[2] & 1)) {
+      while (!s4noc[TX_FREE]) {
         ;
       }
       s4noc[SEND_SLOT] = 1;
@@ -68,10 +68,10 @@ int main() {
       // wait for consumers credit
       if (credit == HANDSHAKE) {
         credit = 0;
-        while (!(s4noc[2] & 2)) {
+        while (!s4noc[RX_READY]) {
           ;
         }
-        s4noc[0]; // consume it
+        s4noc[IN_DATA]; // consume it
       } 
     }
   }

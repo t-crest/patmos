@@ -18,10 +18,9 @@ void work(void* arg) {
 
   // Wait for RX FIFO data available
   for(;;) {
-    int status = s4noc[2];
-    if (status & 2) break;
+    if (s4noc[RX_READY]) break;
   }
-  int val = s4noc[0];
+  int val = s4noc[IN_DATA];
   if (val == 0xcafebabe) {
     done = 1;
   }

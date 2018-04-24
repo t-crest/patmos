@@ -73,8 +73,6 @@ class NetworkInterface(dim: Int, fifoDepth: Int) extends Module {
     outFifo.io.enq.write := Bool(true)
   }
 
-  val status = Cat(UInt(0, 30), !outFifo.io.deq.empty, !inFifo.io.enq.full)
-
   io.cpuPort.rdData := outFifo.io.deq.dout.data
   outFifo.io.deq.read := Bool(false)
   val regTime = RegInit(UInt(0, 6))
@@ -85,7 +83,9 @@ class NetworkInterface(dim: Int, fifoDepth: Int) extends Module {
     } .elsewhen(addr === UInt(1)) {
       io.cpuPort.rdData := regTime
     } .elsewhen(addr === UInt(2)) {
-      io.cpuPort.rdData := status
+      io.cpuPort.rdData := Cat(UInt(0, 31), !inFifo.io.enq.full)
+    } .elsewhen(addr === UInt(3)) {
+      io.cpuPort.rdData := Cat(UInt(0, 31), !outFifo.io.deq.empty)
     }
   }
 }

@@ -16,6 +16,11 @@
 
 #define S4NOC_ADDRESS 0xE8000000
 
+#define IN_DATA 0
+#define IN_SLOT 1
+#define TX_FREE 2
+#define RX_READY 3
+
 // small NoC is 2x2, the other version is 3x3
 #define SMALLNOC 1
 
