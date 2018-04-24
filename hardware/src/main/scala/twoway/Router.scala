@@ -73,10 +73,15 @@ class Router(schedule: Array[Array[Int]], validTab: Array[Boolean], inverted : B
   val regDelay = RegNext(regCounter, init=UInt(0))
   val currentSched = sched(regDelay)
 
+
+  val setToZero = new RwChannel(w)
+  setToZero.in.valid := Bool(false)
+  setToZero.in.address := UInt(0)
+  
   // We assume that on reset the valid signal is false.
   // Better have it reset. 
   for (j <- 0 until Const.NR_OF_PORTS) {
-    io.ports(j).out := RegNext(io.ports(currentSched(j)).in)
+    io.ports(j).out := RegNext(io.ports(currentSched(j)).in, init = setToZero.in)
   }
 }
 

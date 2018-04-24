@@ -30,7 +30,7 @@ class DualPortMemory(size: Int) extends Module {
 
   val mem = Mem(UInt(width = 32), size, seqRead = true)
 
-  io.port.rdData := mem(Reg(next = io.port.rdAddr))
+  io.port.rdData := mem(Reg(next = io.port.rdAddr, init = UInt(0)))
   when(io.port.wrEna) {
     mem(io.port.wrAddr) := io.port.wrData
   }
@@ -48,7 +48,7 @@ class TrueDualPortMemory(size: Int) extends Module {
 
   val mem = Mem(UInt(width = 32), size, seqRead = true)
 
-  val regAddrA = Reg(io.portA.addr)
+  val regAddrA = Reg(io.portA.addr, init = UInt(0))
   when(io.portA.wrEna) {
     mem(io.portA.addr) := io.portA.wrData
   }.otherwise {
@@ -58,7 +58,7 @@ class TrueDualPortMemory(size: Int) extends Module {
 
   // This does not generate a true dual-ported memory,
   // but a register based implementation
-  val regAddrB = Reg(io.portB.addr)
+  val regAddrB = Reg(io.portB.addr, init = UInt(0))
   when(io.portB.wrEna) {
     mem(io.portB.addr) := io.portB.wrData
   }.otherwise {
