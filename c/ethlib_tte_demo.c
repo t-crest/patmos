@@ -302,9 +302,16 @@ void print_pcf(){
 
 void demo_mode(){
 	int n = 2000;
+	unsigned long long r_pit[n];  //for logging
+	unsigned long long p_pit[n];
+	unsigned long long s_pit[n];
+	unsigned int int_pd[n];
+	unsigned long long trans_clk[n];
+
   	unsigned char CT[] = {0xAB,0xAD,0xBA,0xBE};
  	unsigned char VL0[] = {0x0F,0xA1};
  	unsigned char VL1[] = {0x0F,0xA2};
+
 	int sched_errors=0;
 	int tte=0;
 	int eth=0;
@@ -327,9 +334,11 @@ void demo_mode(){
 	tte_prepare_test_data(0x5600,VL1,0x99,400);
 	tte_prepare_test_data(0x5C00,VL1,0x10,300);*/
 	for (int i =0; i<n;){
-	  reply=tte_receive(rx_addr);
+	  //reply=tte_receive(rx_addr);
+	  reply=tte_receive_log(rx_addr,r_pit,p_pit,s_pit,int_pd,trans_clk,i); //for logging
 	  if(reply==0){ //failed pcf
             printf("pcf out of schedule \n");
+	    n=i;
 	    break;
           }
 	  if(reply==1){ //successfull pcf
@@ -349,15 +358,15 @@ void demo_mode(){
 		if(!tte_schedule_send(0x4400,300,1)) sched_errors++;
 		tte_prepare_test_data(0x4A00,VL1,0x77,800);
 		if(!tte_schedule_send(0x4A00,800,1)) sched_errors++;
-		tte_prepare_test_data(0x5000,VL1,0x88,1514);
+		/*tte_prepare_test_data(0x5000,VL1,0x88,1514);
 		if(!tte_schedule_send(0x5000,1514,1)) sched_errors++;
 		tte_prepare_test_data(0x5600,VL1,0x99,400);
 		if(!tte_schedule_send(0x5600,400,1)) sched_errors++;
 		tte_prepare_test_data(0x5C00,VL1,0x10,300);
-		if(!tte_schedule_send(0x5C00,300,1)) sched_errors++;
+		if(!tte_schedule_send(0x5C00,300,1)) sched_errors++;*/
 	      }
 	      else{ //send the 5 allowed packets on VL0
-		tte_prepare_test_data(0x2000,VL0,0xee,1514);
+		/*tte_prepare_test_data(0x2000,VL0,0xee,1514);
 		if(!tte_schedule_send(0x2000,1514,0)) sched_errors++;
 		tte_prepare_test_data(0x1A00,VL0,0xdd,800);
 		if(!tte_schedule_send(0x1A00,800,0)) sched_errors++;
@@ -366,12 +375,15 @@ void demo_mode(){
 		tte_prepare_test_data(0xE00,VL0,0xbb,400);
 		if(!tte_schedule_send(0xE00,400,0)) sched_errors++;
 		tte_prepare_test_data(0x800,VL0,0xaa,200);
-		if(!tte_schedule_send(0x800,200,0)) sched_errors++;
+		if(!tte_schedule_send(0x800,200,0)) sched_errors++;*/
 	      }
 	    }
 	    i++;
           } else if (reply==2){ //incoming tte
 	    tte++;
+	    reply=mem_iord_byte(rx_addr+14);
+	    tte_prepare_test_data(0x800,VL0,reply,200);
+	    if(!tte_schedule_send(0x800,200,0)) sched_errors++;
 	  }
 	  else{ //incoming ethernet msg
 	    eth++;
@@ -381,6 +393,9 @@ void demo_mode(){
 	printf("sched errors: %d\n",sched_errors);
 	printf("received tte: %d\n",tte);
 	printf("received eth: %d\n",eth); 
+	for (int i =0; i<n; i++){ //logging
+		printf("%llu %llu %llu %d %llu\n",r_pit[i],p_pit[i],s_pit[i],int_pd[i],trans_clk[i]);
+	}
 	return;
 }
 

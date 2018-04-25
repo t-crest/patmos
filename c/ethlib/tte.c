@@ -7,6 +7,7 @@ static unsigned long long start_time; //clock cycles at 80MHz (12.5 ns)
 static unsigned long long timer_time; //clock cycles at 80MHz (12.5 ns)
 static unsigned long long receive_pit; //clock cycles at 80MHz (12.5 ns)
 static unsigned long long scheduled_pit; //clock cycles at 80MHz (12.5 ns)
+signed long long prev_error;
 unsigned char CT_marker[4];
 unsigned char max_sched;
 unsigned char mac[6] = {
@@ -40,6 +41,28 @@ unsigned char is_pcf(unsigned int addr){
 	return 0;
 }
 
+unsigned char tte_receive_log(unsigned int addr,unsigned long long r_pit[],unsigned long long p_pit[],
+  unsigned long long s_pit[],unsigned int int_pd[],unsigned long long trans_clk[],int i){
+	unsigned long long rec_start;
+	eth_mac_receive(addr, 0);
+	rec_start = get_cpu_cycles();
+	if(is_pcf(addr)){
+	  if((mem_iord_byte(addr + 28)) == 0x2){
+	    if(handle_integration_frame_log(addr,rec_start,r_pit,p_pit,s_pit,int_pd,trans_clk,i)){
+              return 1;
+            }
+	    else{
+              return 0;
+            }
+          }
+	} else if (is_tte(addr)){
+	  return 2;
+        }
+        else{
+	  return 3;
+        }
+}
+
 unsigned char tte_receive(unsigned int addr){ //0 for failed pcf, 1 for success pcf, 2 for tte, 3 for
 	unsigned long long rec_start;
 	eth_mac_receive(addr, 0);
@@ -61,10 +84,78 @@ unsigned char tte_receive(unsigned int addr){ //0 for failed pcf, 1 for success 
         }
 }
 
+int handle_integration_frame_log(unsigned int addr,unsigned long long rec_start,
+  unsigned long long r_pit[],unsigned long long p_pit[],unsigned long long s_pit[],
+  unsigned int int_pd[],unsigned long long trans_clk[],int i){
+	unsigned long long permanence_pit;
+	unsigned long long sched_rec_pit;
+	unsigned long long trans_clock; // weird 2^(-16) ns format
+	signed long long error;
+
+	receive_pit=get_cpu_cycles();
+	r_pit[i]=receive_pit;
+
+	trans_clock = mem_iord_byte(addr + 34);
+	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 35));
+	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 36));
+	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 37));
+	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 38));
+	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 39));
+	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 40));
+	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 41));
+	trans_clock = transClk_to_clk(trans_clock);
+	trans_clock += TTE_WIRE_DELAY + TTE_STATIC_RECIEVE_DELAY + (receive_pit-rec_start);
+
+	trans_clk[i] = trans_clock;
+
+	integration_cycle = mem_iord_byte(addr + 14);
+	integration_cycle = (integration_cycle << 8) | (mem_iord_byte(addr + 15));
+	integration_cycle = (integration_cycle << 8) | (mem_iord_byte(addr + 16));
+	integration_cycle = (integration_cycle << 8) | (mem_iord_byte(addr + 17));
+
+	permanence_pit = receive_pit + (TTE_MAX_TRANS_DELAY-trans_clock); 
+	if(start_time==0){
+		start_time=permanence_pit-(2*TTE_MAX_TRANS_DELAY + TTE_COMP_DELAY);
+	}
+
+	sched_rec_pit = start_time + 2*TTE_MAX_TRANS_DELAY + TTE_COMP_DELAY;
+	s_pit[i]=sched_rec_pit;
+	p_pit[i]=permanence_pit;
+
+	if(permanence_pit>(sched_rec_pit-TTE_PRECISION) &&
+	    permanence_pit<(sched_rec_pit+TTE_PRECISION)){
+		for(unsigned long long i=get_cpu_cycles();i<(sched_rec_pit+2*TTE_PRECISION);){
+		  i=get_cpu_cycles();
+		  //busy wait until we're out of clock correction delay (should do this differently?)
+		}
+
+		error=permanence_pit - sched_rec_pit;
+		integration_period = integration_period + error/4; //P 
+		integration_period = integration_period + error-prev_error; //D
+		prev_error=error;
+		int_pd[i] = integration_period;
+
+
+		if(integration_cycle==0){
+		  schedplace=0;
+		  timer_time = start_time+((integration_period/100)*startTick);
+		  arm_clock_timer(timer_time);
+		}
+		start_time += integration_period;
+
+		return 1;
+	}
+	printf("out: %llu , %llu\n",
+		(sched_rec_pit-TTE_PRECISION),
+		(sched_rec_pit+TTE_PRECISION));
+	return 0;
+}
+
 int handle_integration_frame(unsigned int addr,unsigned long long rec_start){
 	unsigned long long permanence_pit;
 	unsigned long long sched_rec_pit;
 	unsigned long long trans_clock; // weird 2^(-16) ns format
+	signed long long error;
 
 	receive_pit=get_cpu_cycles();
 
@@ -98,7 +189,10 @@ int handle_integration_frame(unsigned int addr,unsigned long long rec_start){
 		  //busy wait until we're out of clock correction delay (should do this differently?)
 		}
 
-		integration_period = integration_period + permanence_pit - sched_rec_pit;
+		error=permanence_pit - sched_rec_pit;
+		integration_period = integration_period + error/4; //P 
+		integration_period = integration_period + error-prev_error; //D
+		prev_error=error;
 
 		if(integration_cycle==0){
 		  schedplace=0;
