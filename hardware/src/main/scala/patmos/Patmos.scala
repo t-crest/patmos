@@ -247,7 +247,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     for (i <- (0 until nrCores)) {
       asynclock.io(i) <> cores(i).io.comSpm
     }
-  } else if (cmpDevice == 6) {
+  } else if (cmpDevice == 11) {
 		val twoway = Module(new cmp.TwoWayOCPWrapper(nrCores))
 		for ( i <- 0 until nrCores){
 			twoway.io(i) <> cores(i).io.comSpm
