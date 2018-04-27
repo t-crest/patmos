@@ -229,7 +229,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     }
   } else if (cmpDevice == 6) {
 		val twoway = Module(new cmp.TwoWayOCPWrapper(nrCores))
-		for ( i <- 0 until cores.length){
+		for ( i <- 0 until nrCores){
 			twoway.io(i) <> cores(i).io.comSpm
 		}
   }
