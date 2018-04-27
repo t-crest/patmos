@@ -96,6 +96,7 @@ class NodeRead(n: Int, nodeIndex: Int, size: Int) extends Module{
         io.local.out.valid := Bool(true)
         when(io.local.in.valid && stateLast === sSendPacket){
             state := sRead
+            io.local.out.valid := Bool(false)
         }
     }
     is(sLight) {
