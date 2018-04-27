@@ -53,7 +53,7 @@ class TwoWayOCPWrapper(nrCores: Int) extends Module {
     io(i).S.Data := twowaymem.io.nodearray(i).in.data
     
 	//Our version already delays resposse??
-    io(i).S.Resp := resp//Reg(init = OcpResp.NULL, next = resp)
+    io(i).S.Resp := Reg(init = OcpResp.NULL, next = resp)
 
 
 
