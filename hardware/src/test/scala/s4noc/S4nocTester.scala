@@ -49,7 +49,7 @@ object S4nocTester {
   def main(args: Array[String]): Unit = {
     chiselMainTest(Array("--genHarness", "--test", "--backend", "c",
       "--compile", "--vcd", "--targetDir", "generated"),
-      () => Module(new S4noc(4))) {
+      () => Module(new S4noc(4,4))) {
       c => new S4nocTester(c)
     }
   }
