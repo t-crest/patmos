@@ -43,8 +43,6 @@ void work(void* arg) {
 
 int main() {
 
-  // Measure execution time with the clock cycle timer
-  volatile _IODEV int *timer_ptr = (volatile _IODEV int *) (PATMOS_IO_TIMER+4);
   volatile _SPM int *sspm = (volatile _SPM int *) (0xE8000000);
 
   ok = 1;

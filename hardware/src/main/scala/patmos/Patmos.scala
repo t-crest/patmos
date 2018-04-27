@@ -207,13 +207,13 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   println("Config cmp: " + cmpDevice)
   // This is a hack and workaround for CMP experiments
   if (cmpDevice == 0) {
-    val hardlock = Module(new cmp.HardlockOCPWrapper(() => new cmp.Hardlock(nrCores, 8)))
-    for (i <- (0 until cores.length)) {
+    val hardlock = Module(new cmp.HardlockOCPWrapper(() => new cmp.Hardlock(nrCores, nrCores)))
+    for (i <- (0 until nrCores)) {
       hardlock.io(i) <> cores(i).io.comSpm
     }
   } else if (cmpDevice == 1) {
     val spm = Module(new cmp.SharedSPM(nrCores, 1024))
-    for (i <- (0 until cores.length)) {
+    for (i <- (0 until nrCores)) {
       spm.io(i) <> cores(i).io.comSpm
     }
   } else if (cmpDevice == 2) {
@@ -221,11 +221,31 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     for (i <- (0 until nrCores)) {
       oneway.io(i) <> cores(i).io.comSpm
     }
-    // 3 and 4 are reserved for Oktay and Lefteris  
+    // 3 and 4 are reserved for Oktay and Lefteris
+  } else if (cmpDevice == 3) {
+    val tdmArbiter = Module(new cmp.TdmArbiter(nrCores))
+    for (i <- (0 until nrCores)) {
+      tdmArbiter.io.slave(i) <> cores(i).io.comSpm
+    }
   } else if (cmpDevice == 5) {
-    val spm = Module(new cmp.OwnSPM(nrCores, 1024))
-    for (i <- (0 until cores.length)) {
-      spm.io(i) <> cores(i).io.comSpm
+    val ownspm = Module(new cmp.OwnSPM(nrCores, nrCores, 1024))
+    for (i <- (0 until nrCores)) {
+      ownspm.io(i) <> cores(i).io.comSpm
+    }
+  } else if (cmpDevice == 6) {
+    val spmpool = Module(new cmp.SPMPoolOCPWrapper(nrCores, nrCores, 256, 32))
+    for (i <- (0 until nrCores)) {
+      spmpool.io(i) <> cores(i).io.comSpm
+    }
+  } else if (cmpDevice == 7) {
+    val s4noc = Module(new cmp.S4nocOCPWrapper(nrCores, 4))
+    for (i <- (0 until nrCores)) {
+      s4noc.io(i) <> cores(i).io.comSpm
+    }
+  } else if (cmpDevice == 10) {
+    val asynclock = Module(new cmp.AsyncLock(nrCores,nrCores))
+    for (i <- (0 until nrCores)) {
+      asynclock.io(i) <> cores(i).io.comSpm
     }
   } else if (cmpDevice == 6) {
 		val twoway = Module(new cmp.TwoWayOCPWrapper(nrCores))
