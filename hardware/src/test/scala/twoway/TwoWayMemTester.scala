@@ -281,12 +281,21 @@ class TestExternalReadbackAll(dut: TwoWayMem) extends Tester(dut) {
   println(s"Requesting")
 
   //Have all nodes request a datapoint from all nodes, one at a time.
+  //We only hold the request high for a single cycle, which is 
+  //what the OCPCore dictates.
   for(j <- 0 until 4){
     for(i <- 0 until 4){
       //Ask for memory 0x342 from node 0.
       poke(dut.io.nodearray(j).out.rw, 0)  
       poke(dut.io.nodearray(j).out.address, 0x42 + 0x100 * i)
       poke(dut.io.nodearray(j).out.valid, true)
+
+      step(1)
+
+      poke(dut.io.nodearray(j).out.rw, 0)  
+      poke(dut.io.nodearray(j).out.address, 0)
+      poke(dut.io.nodearray(j).out.valid, false)
+
 
       var counter = 0
       while(peek(dut.io.nodearray(j).in.valid) == 0 && counter < 20){
