@@ -50,10 +50,11 @@ class TwoWayOCPWrapper(nrCores: Int) extends Module {
     twowaymem.io.nodearray(i).out.address := io(i).M.Addr >> 2
     twowaymem.io.nodearray(i).out.data := io(i).M.Data
     twowaymem.io.nodearray(i).out.valid := io(i).M.Cmd === OcpCmd.WR || io(i).M.Cmd === OcpCmd.RD
+    twowaymem.io.nodearray(i).out.rw := io(i).M.Cmd === OcpCmd.WR
     io(i).S.Data := twowaymem.io.nodearray(i).in.data
     
 	//Our version already delays resposse??
-    io(i).S.Resp := Reg(init = OcpResp.NULL, next = resp)
+    io(i).S.Resp := resp//Reg(init = OcpResp.NULL, next = resp)
 
 
 
