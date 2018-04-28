@@ -95,52 +95,71 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
 
   val delayValid = Reg(init = Bool(false), next = Bool(false))
 
-  io.memReq.out.valid := delayValid  //Change to register
+  io.memReq.out.valid := delayValid  //Changed to register
+
+
+  //Delay data is used to choose between ports.
+  val delayData = Reg(init = UInt(0));
 
 
   //Register to only have valid high to write network for one cycle.
   val transmitted = Reg(init = Bool(false))
   transmitted := transmitted
 
+  when(delayData === UInt(1)){
+    io.memReq.out.data :=  io.memPort.io.portA.rdData
+  }.otherwise{
+    when(delayData === UInt(2)){
+
+    io.memReq.out.data := io.readBackChannel.in.data
+
+    }.otherwise{
+      io.memReq.out.data := UInt(0);
+    }
+  }
+
+
+      delayData := UInt(0)
+
   when(io.memReq.in.valid){
     when(Bool(upperAddr === UInt(nodeIndex))){  //Is this right? When valid it should alwayws be for the node.
       // LOCAL NODE -> LOCAL MEMORY
       io.memPort.io.portA.wrEna := io.memReq.in.rw
 
+      delayData := UInt(1)
 
       //io.memReq.out.valid := Bool(true)  //Change to register
       io.memPort.io.portA.addr := lowerAddr
 
       io.memPort.io.portA.wrData := io.memReq.in.data 
-      io.memReq.out.data := io.memPort.io.portA.rdData
 
-      //Read request needs a one cycle delay.
-      delayValid := Bool(false)
 
-      when(io.memReq.in.rw === Bool(false)){
- 
-        delayValid := Bool(true)
-   
-      }.otherwise{
-        io.memReq.out.valid := Bool(true)  //Change to register
-      }
-      io.writeChannel.out.address := lowerAddr    
+      //Read request needs a one cycle delay. Also for write request.
+      //Valid will go high next cycle, where the data will be stored/retrieved.
+      
+      delayValid := Bool(true)
 
+
+      //We don't use the write channel here.
+      //io.writeChannel.out.address := lowerAddr    
 
 
     } .otherwise {
       // LOCAL NODE -> EXTERNAL MEMORY
-      io.memReq.out.valid := delayValid
+      
+      //We always use the delayValid
+      //io.memReq.out.valid := delayValid
       io.writeChannel.out.address := lowerAddr        
       io.writeChannel.out.data := io.memReq.in.data
       io.writeChannel.out.rw := io.memReq.in.rw
 
       when(io.memReq.in.rw){
+        //When it is a write
 
-        //Change valid to "Is target correct"
+        //When the target is correct, we set valid high next time.
         when((valid) ) {
           delayValid := Bool(true)
-  
+
           // Transmit outgoing memory read request/write when TDM reaches target node and request is not in local memory
           io.writeChannel.out.valid := Bool(true);
           when(io.memReq.in.rw){
@@ -241,6 +260,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
         when(io.readBackChannel.in.valid){
           // Node should be waiting for the valid signal to be asserted, to indicate that data is available
           transmitted := Bool(false)
+          delayData := UInt(2)
           io.memReq.out.data := io.readBackChannel.in.data
           io.memReq.out.valid := io.readBackChannel.in.valid
         }
