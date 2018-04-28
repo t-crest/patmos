@@ -65,10 +65,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
 
   // TDM schedule starts one cycles later for read data delay
   val regDelay = RegNext(regTdmCounter, init=UInt(0))
-  val valid = Bool(timeslotToNode(upperAddr) === regDelay)
 
-
- 
 
   // Set default values for readBackChannel
   io.readBackChannel.out.data := UInt(0)
@@ -120,13 +117,27 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
 
 
       delayData := UInt(0)
+  //Registers for requests that takes multiple cycles, where the data is only valid one cycle.
+  val notProcessed = Reg(init = Bool(false))
+  val inDataReg = Reg(init = UInt(0))
+  val inAddressReg = Reg(init = UInt(0))
+  val inRwReg = Reg(init = Bool(false))
 
+
+
+  val valid = Bool(timeslotToNode(Mux(notProcessed,inAddressReg >> blockAddrWidth, upperAddr)) === regDelay)
+ 
+
+  //This when handles requests if they are immediate.
   when(io.memReq.in.valid){
     when(Bool(upperAddr === UInt(nodeIndex))){  //Is this right? When valid it should alwayws be for the node.
       // LOCAL NODE -> LOCAL MEMORY
       io.memPort.io.portA.wrEna := io.memReq.in.rw
 
       delayData := UInt(1)
+
+      //When it is local it always takes a single cycle.
+      notProcessed := Bool(false)
 
       //io.memReq.out.valid := Bool(true)  //Change to register
       io.memPort.io.portA.addr := lowerAddr
@@ -146,7 +157,17 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
 
     } .otherwise {
       // LOCAL NODE -> EXTERNAL MEMORY
-      
+
+      //Assume the data has not been processed.
+      notProcessed := Bool(true)
+
+      //We sample the request the first time.
+      inDataReg := io.memReq.in.data
+      inAddressReg := io.memReq.in.address
+      inRwReg := io.memReq.in.rw
+
+
+
       //We always use the delayValid
       //io.memReq.out.valid := delayValid
       io.writeChannel.out.address := lowerAddr        
@@ -173,6 +194,49 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
         when((valid) && !transmitted ) {
           transmitted := Bool(true)
           delayValid := Bool(false)
+
+          // Transmit outgoing memory read request/write when TDM reaches target node and request is not in local memory
+          io.writeChannel.out.valid := Bool(true);
+        }
+      }
+    }
+  }.otherwise{
+    when(notProcessed){
+    //If notProcessed is high, this process takes over. This iis if a request takes multiple cycles.
+
+      // LOCAL NODE -> EXTERNAL MEMORY
+
+      //Assume the data has not been processed.
+      notProcessed := Bool(true)
+
+
+      //We always use the delayValid
+      //io.memReq.out.valid := delayValid
+      io.writeChannel.out.address := inAddressReg(blockAddrWidth, 0) // Block address
+      io.writeChannel.out.data := inDataReg
+      io.writeChannel.out.rw := inRwReg
+
+      when(inRwReg){
+        //When it is a write
+
+        //When the target is correct, we set valid high next time.
+        when((valid) ) {
+          delayValid := Bool(true)
+          notProcessed := Bool(false)
+          // Transmit outgoing memory read request/write when TDM reaches target node and request is not in local memory
+          io.writeChannel.out.valid := Bool(true);
+          when(inRwReg){
+          // external write has been transmitted, the node is allowed to continue execution
+          //io.memReq.out.valid := io.memReq.in.rw  //Multiple writes to valid.
+          }
+        }
+      }.otherwise{
+        //Write request
+
+        when((valid) && !transmitted ) {
+          transmitted := Bool(true)
+          delayValid := Bool(false)
+          notProcessed := Bool(false)
 
           // Transmit outgoing memory read request/write when TDM reaches target node and request is not in local memory
           io.writeChannel.out.valid := Bool(true);
