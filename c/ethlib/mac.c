@@ -70,6 +70,14 @@ unsigned char mac_packet_type(unsigned int addr){
 	return 0;
 }
 
+//This function retrieves the mac of the sender
+void mac_addr_sender(unsigned int rx_addr, unsigned char source_mac[]){
+	int i;
+	for (int i=0; i<6; i++){
+		source_mac[i] = mem_iord_byte(rx_addr + 6 + i);//ETH header mymac
+	}
+}
+
 ///////////////////////////////////////////////////////////////
 //Support functions related to the MAC layer
 ///////////////////////////////////////////////////////////////

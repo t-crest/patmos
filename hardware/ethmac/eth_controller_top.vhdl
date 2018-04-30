@@ -9,6 +9,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use std.textio.all;
 
 entity eth_controller_top is
 	generic(
@@ -165,8 +166,8 @@ architecture rtl of eth_controller_top is
 	signal wb_b_err_o  : std_logic;
 
 begin
-	MCmd_b <= "000" when (MAddr(15 downto 12) = "1111") else MCmd;
-	MCmd_r <= "000" when (MAddr(15 downto 12) /= "1111") else MCmd;
+	MCmd_b <= "000" when (MAddr(BUFF_ADDR_WIDTH-1 downto 12) = (BUFF_ADDR_WIDTH-1 downto 12=>'1')) else MCmd;	--control buffer, 15th bit is reserved for PTP
+	MCmd_r <= "000" when (MAddr(BUFF_ADDR_WIDTH-1 downto 12) /= (BUFF_ADDR_WIDTH-1 downto 12=>'1')) else MCmd;	--control registers, 15th bit is reserved for PTP
 	SResp  <= SResp_r when (mux_sel = '1') else SResp_b;
 	SData  <= SData_r when (mux_sel = '1') else SData_b;
 
