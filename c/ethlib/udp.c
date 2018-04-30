@@ -232,3 +232,63 @@ int udp_send(unsigned int tx_addr, unsigned int rx_addr, unsigned char destinati
 	return 1;
 }
 
+int udp_send_mac(unsigned int tx_addr, unsigned int rx_addr, unsigned char destination_mac[], unsigned char destination_ip[], unsigned short int source_port, unsigned short int destination_port, unsigned char data[], unsigned short int data_length, long long unsigned int timeout){
+	//Resolve the ip address
+	unsigned short int udp_length = data_length + 8;
+	unsigned short int ip_length = udp_length + 20;
+	unsigned short int frame_length = ip_length + 14;
+
+	//MAC addrs
+	for (int i=0; i<6; i++){
+		mem_iowr_byte(tx_addr + i, destination_mac[i]);//ETH header destination
+		mem_iowr_byte(tx_addr + 6 + i, my_mac[i]);//ETH header mymac
+	}
+	//MAC type + IP version + IP type
+	mem_iowr(tx_addr + 12, 0x08004500);
+
+	mem_iowr_byte(tx_addr + 16, ip_length >> 8);
+	mem_iowr_byte(tx_addr + 17, ip_length & 0xFF);
+	//Identification
+	ipv4_id++;
+	mem_iowr_byte(tx_addr + 18, (ipv4_id >> 8));//Need to be changed
+	mem_iowr_byte(tx_addr + 19, (ipv4_id & 0xFF));//Need to be changed
+	//Flags + TTL + Protocol
+	mem_iowr(tx_addr + 20, 0x40004011);
+	//Checksum
+	mem_iowr_byte(tx_addr + 24, 0x00);//Nobody cares about IP checksum
+	mem_iowr_byte(tx_addr + 25, 0x00);//Nobody cares about IP checksum
+	//IP addrs
+	for (int i=0; i<4; i++){
+		mem_iowr_byte(tx_addr + 26 + i, my_ip[i]);//Sender myip
+		mem_iowr_byte(tx_addr + 30 + i, destination_ip[i]);//Destination ip
+	}
+	//Source port
+	mem_iowr_byte(tx_addr + 34, source_port >> 8);
+	mem_iowr_byte(tx_addr + 35, source_port & 0xFF);
+	//Destination port
+	mem_iowr_byte(tx_addr + 36, destination_port >> 8);
+	mem_iowr_byte(tx_addr + 37, destination_port & 0xFF);
+	//UDP length
+	mem_iowr_byte(tx_addr + 38, udp_length >> 8);
+	mem_iowr_byte(tx_addr + 39, udp_length & 0xFF);
+	//UDP checksum = 0
+	mem_iowr_byte(tx_addr + 40, 0x00);
+	mem_iowr_byte(tx_addr + 41, 0x00);
+	//UDP data
+	for (int i=0; i<data_length; i++){
+		mem_iowr_byte(tx_addr + 42 + i, data[i]);//Sender myip
+	}
+	//IPv4 checksum
+	unsigned short int checksum = ipv4_compute_checksum(tx_addr);
+	mem_iowr_byte(tx_addr + 24, (checksum >> 8));
+	mem_iowr_byte(tx_addr + 25, (checksum & 0xFF));
+	//UDP checksum
+	checksum = udp_compute_checksum(tx_addr);
+	mem_iowr_byte(tx_addr + 40, (checksum >> 8));
+	mem_iowr_byte(tx_addr + 41, (checksum & 0xFF));
+	eth_mac_send(tx_addr, frame_length);
+	return 1;
+}
+
+
+
