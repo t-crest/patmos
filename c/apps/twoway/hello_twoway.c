@@ -22,7 +22,7 @@ void work(void* arg) {
   int id = get_cpuid();
   //Slave cores write to their own memory.
   for(int i = 0; i < CNT; i++){
-    txMem[id*CNT + i] = id*0x10000 + 0x100 + i;
+    txMem[id*WORDS + i] = id*0x10000 + 0x100 + i;
   }
 }
 
@@ -43,7 +43,7 @@ int main() {
 
   for (int i=0; i<CNT; ++i) {
     for (int j=0; j<4; ++j) {
-      printf("%08x\n", rxMem[i*CNT + j]);
+      printf("%08x\n", rxMem[i*WORDS + j]);
     }
   }
 
