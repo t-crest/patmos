@@ -24,22 +24,22 @@ object Const {
   val NR_OF_PORTS = 5
 }
 
-class SingleChannel extends Bundle {
-  val data = UInt(width = 32)
+class SingleChannel[T <: Bits](dt: T) extends Bundle {
+  val data = dt // dt.clone // UInt(width = 32)
   val valid = Bool()
 }
 
-class Channel extends Bundle {
-  val out = new SingleChannel().asOutput
-  val in = new SingleChannel().asInput
+class Channel[T <: Bits](dt: T) extends Bundle {
+  val out = new SingleChannel[T](dt).asOutput
+  val in = new SingleChannel[T](dt).asInput
 }
 
-class RouterPorts extends Bundle {
-  val ports = Vec(Const.NR_OF_PORTS, new Channel())
+class RouterPorts[T <: Bits](dt: T) extends Bundle {
+  val ports = Vec(Const.NR_OF_PORTS, new Channel(dt))
 }
 
-class Router(schedule: Array[Array[Int]]) extends Module {
-  val io = new RouterPorts
+class Router[T <: Bits](schedule: Array[Array[Int]], dt: T) extends Module {
+  val io = new RouterPorts(dt)
 
   val regCounter = RegInit(UInt(0, log2Up(schedule.length)))
   val end = regCounter === UInt(schedule.length - 1)
@@ -68,5 +68,5 @@ class Router(schedule: Array[Array[Int]]) extends Module {
 object Router extends App {
 
   chiselMain(Array("--backend", "v", "--targetDir", "generated"),
-    () => Module(new Router(Schedule.genRandomSchedule(7))))
+    () => Module(new Router(Schedule.genRandomSchedule(7), UInt(width = 32))))
 }

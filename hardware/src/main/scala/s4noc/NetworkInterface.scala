@@ -21,10 +21,10 @@ class Entry extends Bundle {
   val time = UInt(width = 6).asInput
 }
 
-class NetworkInterface(dim: Int, fifoDepth: Int) extends Module {
+class NetworkInterface[T <: Bits](dim: Int, fifoDepth: Int, dt: T) extends Module {
   val io = new Bundle {
     val cpuPort = new CpuPort()
-    val local = new Channel()
+    val local = new Channel(dt)
   }
 
   // TODO: too much repetition

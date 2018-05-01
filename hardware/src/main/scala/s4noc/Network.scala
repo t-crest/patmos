@@ -12,16 +12,16 @@ import Const._
 /**
  * Create and connect a n x n NoC.
  */
-class Network(n: Int) extends Module {
+class Network[T <: Bits](n: Int, dt: T) extends Module {
   val io = new Bundle {
-    val local = Vec(n * n, new Channel())
+    val local = Vec(n * n, new Channel(dt))
   }
 
   val schedule = Schedule.getSchedule(n)._1
 
-  val net = new Array[Router](n * n)
+  val net = new Array[Router[T]](n * n)
   for (i <- 0 until n * n) {
-    net(i) = Module(new Router(schedule))
+    net(i) = Module(new Router(schedule, dt))
     io.local(i).out := net(i).io.ports(LOCAL).out
     net(i).io.ports(LOCAL).in := io.local(i).in
   }
