@@ -31,7 +31,7 @@ class TwoWayOCPWrapper(nrCores: Int) extends Module {
   val dim = math.sqrt(nrCores).toInt
   if (dim * dim != nrCores) throw new Error("Number of cores must be quadratic")
   // just start with four words
-  val size = 256 * nrCores
+  val size = 128 * nrCores
   val twowaymem = Module(new twoway.TwoWayMem(dim, size))
 
   println("TwoWayMem")
