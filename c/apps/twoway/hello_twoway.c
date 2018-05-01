@@ -1,10 +1,5 @@
 /*
-  Small test program for the One-Way Shared Memory.
-
-  Fills TX memories with core specific patterns and reads out
-  the RX memory of core 0 to see which blocks of data come from where.
-
-  Author: Martin Schoeberl
+  Small test program for the distributed shared memory
 */
 
 #include <stdio.h>
@@ -12,18 +7,43 @@
 #include "../../libcorethread/corethread.h"
 
 #define CNT 4
-#define WORDS 256
+#define WORDS 128
+
 
 // The main function for the other threads on the other cores
 void work(void* arg) {
 
-  volatile _SPM int *txMem = (volatile _SPM int *) (0xE8000000);
+  volatile _SPM int *mem = (volatile _SPM int *) (0xE8000000);
 
   int id = get_cpuid();
+
   //Slave cores write to their own memory.
-  for(int i = 0; i < CNT; i++){
-    txMem[id*WORDS + i] = id*0x10000 + 0x100 + i;
-  }
+  /*for(int i = 0; i < CNT; i++){
+    mem[id*WORDS + i] = id*0x10000 + 0x100 + i;
+  }*/
+
+
+	
+	while(1){
+  	//Wait for token
+		while(mem[id*WORDS] == 0);
+	
+		//Use token
+		volatile int tmp = 0;
+
+		for (int  i = 0; i < 10; i++){
+			tmp ++;
+		}
+
+		//Pass token
+		int next = id + 1;
+		if (next >= 4) next = 1;
+
+		mem[next*WORDS] = mem[id*WORDS];
+		
+		//Delete own token:
+		mem[id*WORDS] = 0;
+	}
 }
 
 int main() {
@@ -39,13 +59,31 @@ int main() {
   printf("\n");
   printf("Number of cores: %d\n", get_cpucnt());
 
-  //Print content off all the slaves memory.
 
+	volatile _SPM int *led_ptr = (volatile _SPM int *) 0xF0090000;
+
+			for (int  i = 0; i < 10000; i++){
+			*led_ptr = 1;
+		}
+		*led_ptr = 0;
+
+  //Print content of all the slaves memory.
   for (int i=0; i<CNT; ++i) {
     for (int j=0; j<4; ++j) {
       printf("%08x\n", rxMem[i*WORDS + j]);
     }
   }
+
+	//Initiate token
+	rxMem[WORDS] = 5;
+
+	while(1){
+		for (int i=1; i<CNT; ++i) {
+			printf("Core:%d, %08x\n", i,rxMem[i*WORDS]);
+		}
+		for (volatile int i = 0; i < 10000; i++);
+		printf("\n");
+	}
 
   return 0;
 }
