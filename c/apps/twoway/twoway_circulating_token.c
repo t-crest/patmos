@@ -46,11 +46,11 @@ void work(void* arg) {
         while(*p_readPtr != TOKEN){
             // wait until we observe our token
         }
-        */
+        
         *p_readPtr = 0; // reset the token on the partner - we now own the token
 
         // Our turn to light the LEDS
-        for (int i = 4; i != 0; --i)
+        for (int i = 4000000; i != 0; --i)
         {
             LED = 1;
         }

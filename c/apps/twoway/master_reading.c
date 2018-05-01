@@ -12,33 +12,25 @@
 #define LED ( *((volatile _IODEV unsigned *)0xF0090000))
 
 
+#define DELAY_TIME 3000000
+
+#define DELAY(time) for (volatile int i = time; i != 0; i--)
+
 // The main function for the other threads on the other cores
 void work(void* arg) {
 
   volatile _SPM int *mem = (volatile _SPM int *) (0xE8000000);
 
   int id = get_cpuid();
-
-  //Slave cores write to their own memory.
-  for(int i = 0; i < CNT; i++){
-    mem[id*WORDS + i] = id*0x10000 + 0x100 + i;
-  }
 	
+    // Initialize own value to cpuid, to be able to discern between
+    // the three cores
+    mem[id*WORDS] = id;
+
 	while(1){
-  	//Wait for token
-		while(mem[id*WORDS] == 0);
-	
-		//Use token
-		for(volatile int i = 4000000; i != 0; i--);
-
-		//Pass token
-		int next = id + 1;
-		if (next >= 4) next = 1;
-
-		mem[next*WORDS] = (mem[id*WORDS] + 3) & 1;
-		
-		//Delete own token:
-		mem[id*WORDS] = 0;
+  	  //Slave cores write to their own memory.
+        mem[id*WORDS] = mem[id*WORDS] + 1;
+        DELAY(DELAY_TIME);
 	}
 }
 
@@ -55,14 +47,6 @@ int main() {
   printf("\n");
   printf("Number of cores: %d\n", get_cpucnt());
 
-
-	volatile _SPM int *led_ptr = (volatile _SPM int *) 0xF0090000;
-
-			for (int  i = 0; i < 10000; i++){
-			*led_ptr = 1;
-		}
-		*led_ptr = 0;
-
   //Print content of all the slaves memory.
   for (int i=0; i<CNT; ++i) {
     for (int j=0; j<4; ++j) {
@@ -70,16 +54,13 @@ int main() {
     }
   }
 
-	//Initiate token
-	rxMem[WORDS] = 5;
-
-	while(1){
-		for (int i=1; i<CNT; ++i) {
-			printf("Core:%d, %08x\n", i,rxMem[i*WORDS]);
-		}
-		for (volatile int i = 0; i < 1000000; i++);
-		printf("\n");
-	}
+    while(1){
+        for (int i=1; i<CNT; ++i) {
+            printf("Core:%d, %08x\n", i,rxMem[i*WORDS]);
+        }
+        DELAY(DELAY_TIME);
+        printf("\n");
+    }
 
   return 0;
 }
