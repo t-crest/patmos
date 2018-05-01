@@ -34,22 +34,6 @@ void slaveWriter(void *arg)
     }
 }
 
-#define slaveReaderStartAddress 0x10
-
-void slaveReader(void *arg)
-{
-    volatile _SPM int *mem = (volatile _SPM int *)(0xE8000000);
-
-    // A slave reads all subsequent cores at their base adress
-
-    for (int i = get_cpuid() + 1; i < get - cpucnt(); ++i)
-    {
-        rxMem[i*WORDS]);
-    }
-    DELAY(DELAY_TIME);
-    printf("\n");
-}
-
 int main()
 {
 
