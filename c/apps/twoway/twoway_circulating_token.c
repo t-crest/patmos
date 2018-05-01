@@ -15,8 +15,9 @@
 
 #define TOKEN 0x42
 
-#define N_TOKENS 5 // Number of times a core sees a token
-#define LED (*((volatile _IODEV unsigned *)0xF0090000))
+#define N_TOKENS 3 // Number of times a core sees a token
+
+#define DELAY(time) for (volatile int i = time; i != 0; i--)
 
 // Shared data in main memory for the return value
 volatile _UNCACHED static int field;
@@ -36,30 +37,22 @@ void work(void *arg)
     volatile _SPM int *readPtr = mem_ptr + (get_cpuid() << BLOCKWIDTH);
     volatile _SPM int *p_readPtr = mem_ptr + (partnerID << BLOCKWIDTH);
 
-    if (get_cpuid() == 1)
-    {
-        // Inject token inside core 1 @ 0x100
-        *readPtr = TOKEN;
-    }
-
     int tokenCounter = 0;
     while (tokenCounter != N_TOKENS)
     {
-
+        volatile int spinlock;
         while (*p_readPtr != TOKEN)
         {
             // wait until we observe our token
+            spinlock++;
         }
 
         *p_readPtr = 0; // reset the token on the partner - we now own the token
 
         // Our turn to light the LEDS
-        for (int i = 4000000; i != 0; --i)
-        {
-            LED = 1;
-        }
-        LED = 0;
-
+        mem_ptr[get_cpuid()] = 1;
+        DELAY(1000000);
+        mem_ptr[get_cpuid()] = 0;
         // Write token to ourself (starting transfer of token to next core)
         *readPtr = TOKEN;
 
@@ -75,24 +68,29 @@ int main()
     volatile _SPM int *mem_ptr = (volatile _IODEV int *)(0xE8000000);
 
     printf("Number of cores: %d\n", get_cpucnt());
-    int parameter = 0;
     for (int i = 1; i < get_cpucnt(); i++)
     {
+        int parameter;
         corethread_create(i, (void *)&work, (void *)&parameter);
     }
+    // Inject token into core 1
+    mem_ptr[2 << BLOCKWIDTH] = TOKEN;
 
-    int *param;
-    for (int i = 1; i < get_cpucnt(); i++)
+    // master reads its own memory to control the LED
+    while (1)
     {
-        corethread_join(i, &param);
+        // Monitor the "LED" sections of the memory and print if something was detected.
+        // This also heavily stress the readback network
+        DELAY(100000);
+        for (int i = 1; i < get_cpucnt(); i++)
+        {
+            if (mem_ptr[i] != 0)
+            {
+                // turn on LED for the given core
+                printf("%d on\n", i);
+            }
+        }
     }
 
-    for (int i = 1; i < get_cpucnt(); i++)
-    {
-        // Print values in cores
-        printf("Core %d:\n", i);
-        printf("%p = %04x\n", mem_ptr + (i << BLOCKWIDTH), *(mem_ptr + (i << BLOCKWIDTH)));
-        printf("\n");
-    }
     return 0;
 }
