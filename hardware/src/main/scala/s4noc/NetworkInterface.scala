@@ -16,12 +16,13 @@ class CpuPort() extends Bundle {
   val wr = Bool().asInput
 }
 
+// This should be a generic for the FIFO
 class Entry extends Bundle {
   val data = UInt(width = 32).asOutput
   val time = UInt(width = 6).asInput
 }
 
-class NetworkInterface[T <: Bits](dim: Int, fifoDepth: Int, dt: T) extends Module {
+class NetworkInterface[T <: Data](dim: Int, fifoDepth: Int, dt: T) extends Module {
   val io = new Bundle {
     val cpuPort = new CpuPort()
     val local = new Channel(dt)
@@ -65,7 +66,7 @@ class NetworkInterface[T <: Bits](dim: Int, fifoDepth: Int, dt: T) extends Modul
 
   // for now same clock cycle
 
-  val outFifo = Module(new BubbleFifo(4))
+  val outFifo = Module(new BubbleFifo(fifoDepth))
   outFifo.io.enq.write := Bool(false)
   outFifo.io.enq.din.data := io.local.in.data
   outFifo.io.enq.din.time := regDelay

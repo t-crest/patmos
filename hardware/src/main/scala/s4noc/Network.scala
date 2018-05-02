@@ -12,7 +12,7 @@ import Const._
 /**
  * Create and connect a n x n NoC.
  */
-class Network[T <: Bits](n: Int, dt: T) extends Module {
+class Network[T <: Data](n: Int, dt: T) extends Module {
   val io = new Bundle {
     val local = Vec(n * n, new Channel(dt))
   }

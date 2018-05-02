@@ -17,13 +17,13 @@ import Const._
  */
 class NetworkOfFour() extends Module {
   val io = new Bundle {
-    val local = Vec(4, new Channel())
+    val local = Vec(4, new Channel(UInt(width = 32)))
   }
 
   val schedule = Schedule.getSchedule(2)
-  val net = new Array[Router](4)
+  val net = new Array[Router[UInt]](4)
   for (i <- 0 until 4) {
-    net(i) = Module(new Router(schedule._1))
+    net(i) = Module(new Router(schedule._1, UInt(width = 32)))
     io.local(i).out := net(i).io.ports(LOCAL).out
     net(i).io.ports(LOCAL).in := io.local(i).in
   }
@@ -51,12 +51,12 @@ class NetworkOfFour() extends Module {
 
 class TwoNetworks() extends Module {
   val io = new Bundle {
-    val toNocA = Vec(4, new Channel())
-    val toNocB = Vec(4, new Channel())
+    val toNocA = Vec(4, new Channel(UInt(width = 32)))
+    val toNocB = Vec(4, new Channel(UInt(width = 32)))
   }
 
   val na = Module(new NetworkOfFour())
-  val nb = Module(new Network(2))
+  val nb = Module(new Network(2, UInt(width = 32)))
   for (i <- 0 until 4) {
     io.toNocA(i).out := na.io.local(i).out
     na.io.local(i).in := io.toNocA(i).in

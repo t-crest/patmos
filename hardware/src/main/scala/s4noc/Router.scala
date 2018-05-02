@@ -24,21 +24,25 @@ object Const {
   val NR_OF_PORTS = 5
 }
 
-class SingleChannel[T <: Bits](dt: T) extends Bundle {
-  val data = dt // dt.clone // UInt(width = 32)
+class SingleChannel[T <: Data](dt: T) extends Bundle {
+  val data = dt.clone
   val valid = Bool()
+
+  override def clone() = (new SingleChannel(dt)).asInstanceOf[this.type]
 }
 
-class Channel[T <: Bits](dt: T) extends Bundle {
-  val out = new SingleChannel[T](dt).asOutput
-  val in = new SingleChannel[T](dt).asInput
+class Channel[T <: Data](dt: T) extends Bundle {
+  val out = new SingleChannel(dt).asOutput
+  val in = new SingleChannel(dt).asInput
+
+  override def clone() = (new Channel(dt)).asInstanceOf[this.type]
 }
 
-class RouterPorts[T <: Bits](dt: T) extends Bundle {
+class RouterPorts[T <: Data](dt: T) extends Bundle {
   val ports = Vec(Const.NR_OF_PORTS, new Channel(dt))
 }
 
-class Router[T <: Bits](schedule: Array[Array[Int]], dt: T) extends Module {
+class Router[T <: Data](schedule: Array[Array[Int]], dt: T) extends Module {
   val io = new RouterPorts(dt)
 
   val regCounter = RegInit(UInt(0, log2Up(schedule.length)))
