@@ -1,5 +1,5 @@
 /*
-  Producer/consumer example for the S4NOC.
+  Count dropped words on the producer/consumer example without handshake.
 
   Author: Martin Schoeberl
 */
@@ -9,8 +9,6 @@
 #include "../../libcorethread/corethread.h"
 
 #include "s4noc.h"
-
-// #define CREDITS 1
 
 #define WAIT_ON_START 1
 
@@ -44,13 +42,6 @@ void work(void* arg) {
         ;
       }
       sum += s4noc[IN_DATA];
-#ifdef CREDITS
-      ++credit;
-      if (credit == HANDSHAKE) {
-        credit = 0;
-        s4noc[CREDIT_SLOT] = 13;
-      } 
-#endif
     }
   }
   time = *timer_ptr - ts;
@@ -71,8 +62,6 @@ int main() {
 
   corethread_create(rcv, &work, NULL);
 
-  int credit = 0;
-
 #ifdef WAIT_ON_START
   while (!started) {
     ;
@@ -86,17 +75,6 @@ int main() {
         ;
       }
       s4noc[SEND_SLOT] = 1;
-#ifdef CREDITS
-      ++credit;
-      // wait for consumers credit
-      if (credit == HANDSHAKE) {
-        credit = 0;
-        while (!s4noc[RX_READY]) {
-          ;
-        }
-        s4noc[IN_DATA]; // consume it
-      }
-#endif
     }
   }
 

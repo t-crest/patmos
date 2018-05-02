@@ -1,9 +1,9 @@
 # The S4NOC
 
-These applications are used for the evaluation section of the following submitted paper:
+These applications are used for the evaluation section of the following paper:
 
-Martin, Luca, and Jens, A Simple Network Interface for a Simple Network-on-Chip,
-submitted to NOCS 2018.
+Martin Schoeberl, Luca Pezzarossa, and Jens Sparso,
+A Simple Network Interface for a Simple Network-on-Chip, submitted to NOCS 2018.
 
 ## Stand Alone Evaluation
 
@@ -16,11 +16,13 @@ The tests can run from within folder `patmos/hardware`, e.g.:
 	sbt "test:runMain s4noc.RouterTester"
 	sbt "test:runMain s4noc.NetworkTester"
 	sbt "test:runMain s4noc.NetworkCompare"
+	sbt "test:runMain s4noc.S4nocTester"
 
 or from your favorite Scala IDE (e.g., InelliJ or Eclipse) or from this folder with
 
 ```bash
 make test-all
+make test
 ```
 
 ## Evaluation with T-CREST
@@ -77,7 +79,7 @@ To ensure that you have the exact version of T-CREST that we have used in the
 evaluation section of the paper, use the following `git` command to checkout that version:
 
 ```bash
-git checkout `git rev-list -n 1 --before="2018-05-02" master`
+git checkout `git rev-list -n 1 --before="2018-05-16" master`
 ```
 
 This can be done in all T-CREST repositories. However, it is most important
