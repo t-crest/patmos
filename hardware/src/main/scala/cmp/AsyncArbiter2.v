@@ -7,9 +7,9 @@
  */
 module AsyncArbiter2 (ack, req1, req2, ack1, ack2, req);
 
-input ack /* synthesis keep */;
-input req1 /* synthesis keep */;
-input req2 /* synthesis keep */;
+input ack;
+input req1;
+input req2;
 
 output ack1 /* synthesis keep */;
 output ack2 /* synthesis keep */;

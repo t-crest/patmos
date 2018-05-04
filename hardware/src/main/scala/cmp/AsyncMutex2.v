@@ -6,8 +6,8 @@
  */
 module AsyncMutex2 (reqin1, reqin2, reqout1, reqout2);
 
-input reqin1 /* synthesis keep */;
-input reqin2 /* synthesis keep */;
+input reqin1;
+input reqin2;
 
 output reqout1 /* synthesis keep */;
 output reqout2 /* synthesis keep */;
