@@ -21,56 +21,44 @@ class AsyncLock(corecnt: Int, lckcnt: Int) extends Module {
 
   val arbiterio = Vec(arbiters.map(e => e.io))
 
-
-
   override val io = Vec(corecnt,new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))
-
-  
-  val reqReg = Reg(init = Bits(0,corecnt))
-  val dvaReg = Reg(init = Bits(0,corecnt))
-
 
   for (i <- 0 until corecnt) {
 
-    val reqReg = Reg(init = Bool(false))
     val addr = io(i).M.Addr(log2Up(lckcnt)-1+2, 2)
-    val addrReg = Reg(addr)
-    val ack1Reg = Reg(next = arbiterio(addrReg).cores(i).ack)
-    val ack2Reg = Reg(next = ack1Reg)
-    val dvaReg = Reg(init = Bool(false))
+    val acks = Bits(width = lckcnt)
+    acks := 0.U
+    val blck = orR(acks)
 
     for (j <- 0 until lckcnt) {
-      when(addrReg === j.U) {
-        arbiterio(j).cores(i).req := reqReg
-      }.otherwise {
-        arbiterio(j).cores(i).req := Bool(false)
+      val reqReg = Reg(init = Bool(false))
+      arbiterio(j).cores(i).req := reqReg
+      val ackReg = Reg(next = Reg(next = arbiterio(j).cores(i).ack))
+      acks(j) := ackReg =/= reqReg
+
+      when(addr === j.U) {
+        when(io(i).M.Cmd === OcpCmd.RD) {
+          reqReg := Bool(true)
+        }.elsewhen(io(i).M.Cmd === OcpCmd.WR) {
+          reqReg := Bool(false)
+        }
       }
     }
 
-    //arbiterio(addrReg).cores(i).req := reqReg
+    val dvaReg = Reg(init = Bool(false))
 
-    when(io(i).M.Cmd === OcpCmd.RD) {
-      reqReg := Bool(true)
-      ack1Reg := Bool(false)
-      ack2Reg := Bool(false)
-      addrReg := addr
+    when(io(i).M.Cmd =/= OcpCmd.IDLE) {
       dvaReg := Bool(true)
-    }.elsewhen(io(i).M.Cmd === OcpCmd.WR) {
-      reqReg := Bool(false)
-      ack1Reg := Bool(true)
-      ack2Reg := Bool(true)
-      addrReg := addr
-      dvaReg := Bool(true)
-    }.elsewhen(dvaReg === Bool(true) && reqReg === ack2Reg) {
+    }.elsewhen(dvaReg === Bool(true) && !blck) {
       dvaReg := Bool(false)
     }
 
     io(i).S.Resp := OcpResp.NULL
-    when(dvaReg === Bool(true) && reqReg === ack2Reg) {
+    when(dvaReg === Bool(true) && !blck) {
       io(i).S.Resp := OcpResp.DVA
     }
 
-
-    //io(i).S.Data := UInt(0)
+    // Perhaps remove this
+    io(i).S.Data := UInt(0)
   }
 }

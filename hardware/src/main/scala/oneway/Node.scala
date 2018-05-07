@@ -15,7 +15,7 @@ import s4noc._
  */
 class Node(n: Int, size: Int) extends Module {
   val io = new Bundle {
-    val local = new Channel()
+    val local = new Channel(UInt(width = size))
     val memPort = new DualPort(size)
   }
 

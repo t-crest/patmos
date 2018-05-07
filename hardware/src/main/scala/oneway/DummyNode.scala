@@ -16,7 +16,7 @@ import s4noc._
  */
 class DummyNode(n: Int) extends Module {
   val io = new Bundle {
-    val local = new Channel()
+    val local = new Channel(UInt(width = 32))
     val dout = UInt(width = 32).asOutput
   }
   

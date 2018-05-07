@@ -17,10 +17,10 @@ class S4noc(n: Int, fifoDepth: Int) extends Module  {
   val dim = math.sqrt(n).toInt
   if (dim * dim != n) throw new Error("Number of cores must be quadratic")
 
-  val net = Module(new Network(dim))
+  val net = Module(new Network(dim, UInt(width = 32)))
 
   for (i <- 0 until n) {
-    val ni = Module(new NetworkInterface(dim, fifoDepth))
+    val ni = Module(new NetworkInterface(dim, fifoDepth, UInt(width = 32)))
     net.io.local(i).in := ni.io.local.out
     ni.io.local.in := net.io.local(i).out
     io.cpuPorts(i) <> ni.io.cpuPort
