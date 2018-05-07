@@ -57,16 +57,16 @@ object NoCNode extends DeviceObject {
     Module(new NoCNode(linkWidth=linkWidth,addrWidth=addrWidth))
   }
 
-  trait Pins {
-    val noCNodePins = new Bundle() {
-      val irq = new IRQ()
-      val spm = new SPMMasterPort(linkWidth,addrWidth)
-      val northPort = new RouterPort(linkWidth)
-      val southPort = new RouterPort(linkWidth)
-      val eastPort = new RouterPort(linkWidth)
-      val westPort = new RouterPort(linkWidth)
-    }
-  }
+//  trait Pins {
+//    val noCNodePins = new Bundle() {
+//      val irq = new IRQ()
+//      val spm = new SPMMasterPort(linkWidth,addrWidth)
+//      val northPort = new RouterPort(linkWidth)
+//      val southPort = new RouterPort(linkWidth)
+//      val eastPort = new RouterPort(linkWidth)
+//      val westPort = new RouterPort(linkWidth)
+//    }
+//  }
 }
 
 class NoCNode(linkWidth : Int, addrWidth : Int) extends IODevice() {

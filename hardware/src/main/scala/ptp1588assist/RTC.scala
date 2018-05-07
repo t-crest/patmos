@@ -25,11 +25,9 @@ class RTC(clockFreq: Int, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTi
   val prescaleReg = Reg(init = UInt(0, width = 4))
   val secCntReg = Reg(init = UInt((clockFreq).U, width = nanoWidth))
   val stepReg = Reg(init = UInt(1, width = 16))
-  val timeReg = Reg(init = UInt(initialTime, width = secondsWidth + nanoWidth))
-  println("-initializing secTickReg with " + (initialTime >> 32))
-  val secTickReg = Reg(init = UInt(initialTime >> 32, width = secondsWidth))
-  println("-initializing nsTickReg with " + (initialTime & 0x00000000FFFFFFFFL))
-  val nsTickReg = Reg(init = UInt(initialTime & 0x00000000FFFFFFFFL, width = nanoWidth))
+  val timeReg = Reg(init = UInt(0, width = secondsWidth + nanoWidth))
+  val secTickReg = Reg(init = UInt(initialTime, width = secondsWidth))
+  val nsTickReg = Reg(init = UInt(0, width = nanoWidth))
   val updateSecReg = Reg(init = false.B)
   val updateNsReg = Reg(init = false.B)
   val periodSelReg = Reg(init = UInt(secondsWidth + nanoWidth - 1, width = log2Up(secondsWidth + nanoWidth)))
@@ -51,42 +49,43 @@ class RTC(clockFreq: Int, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTi
   updateSecReg := false.B
   updateNsReg := false.B
 
-  when(updateNsReg){
-    nsTickReg := timeReg(DATA_WIDTH-1, 0)
-  }.elsewhen(updateSecReg){
-    secTickReg := timeReg(2*DATA_WIDTH-1, DATA_WIDTH)
-  }.elsewhen(tickReg){
-    when(nsTickReg >= (1000000000.U - 50.U)){
-      secTickReg := secTickReg + 1.U
-      nsTickReg := 0.U
-    }.otherwise{
-      nsTickReg := nsTickReg + 50.U
+  // when(updateNsReg){
+  //   nsTickReg := timeReg(DATA_WIDTH-1, 0)
+  // }.elsewhen(updateSecReg){
+  //   secTickReg := timeReg(2*DATA_WIDTH-1, DATA_WIDTH)
+  // }.elsewhen(tickReg){
+  //   when(nsTickReg >= (1000000000.U - 50.U)){
+  //     secTickReg := secTickReg + 1.U
+  //     nsTickReg := 0.U
+  //   }.otherwise{
+  //     nsTickReg := nsTickReg + 50.U
+  //   }
+  // }
+
+  when(tickReg) {
+    when(nsTickReg >= 1000000000.U - 50.U) {
+      when(~updateSecReg) {
+        secTickReg := secTickReg + 1.U
+        nsTickReg := 0.U
+      }.otherwise{
+        secTickReg := timeReg(2*DATA_WIDTH-1, DATA_WIDTH) + 1.U
+      }
+    }.otherwise {
+      when(~updateNsReg) {
+        nsTickReg := nsTickReg + 50.U //TODO: Configurable timestep based on prescaler (i.e. 4-cycles 50ns at 80MHz)
+      }.otherwise{
+        nsTickReg := timeReg(DATA_WIDTH-1, 0) + 50.U
+      }
+    }
+  }.otherwise{
+    when(updateSecReg) {
+      secTickReg := timeReg(2*DATA_WIDTH-1, DATA_WIDTH)
+    }
+    when(updateNsReg){
+      nsTickReg := timeReg(DATA_WIDTH-1, 0)
     }
   }
 
-//  when(tickReg) {
-//    when((nsTickReg >= (1000000000.U - 50.U) & ~updateNsReg) || (nsTickReg >= (1000000000.U - 50.U - timeReg(DATA_WIDTH-1, 0)) & updateNsReg)){
-//      when(~updateSecReg) {
-//        secTickReg := secTickReg + 1.U
-//      }.otherwise{
-//        secTickReg := timeReg(2*DATA_WIDTH-1, DATA_WIDTH) + 1.U
-//      }
-//      nsTickReg := 0.U
-//    }.otherwise {
-//      when(~updateNsReg) {
-//        nsTickReg := nsTickReg + 50.U //TODO: Configurable timestep based on prescaler (i.e. 4-cycles 50ns at 80MHz)
-//      }.otherwise{
-//        nsTickReg := timeReg(DATA_WIDTH-1, 0) + 50.U
-//      }
-//    }
-//  }.otherwise{
-//    when(updateSecReg) {
-//      secTickReg := timeReg(2*DATA_WIDTH-1, DATA_WIDTH)
-//    }
-//    when(updateNsReg){
-//      nsTickReg := timeReg(DATA_WIDTH-1, 0)
-//    }
-//  }
 
   when(~updateNsReg && ~updateSecReg){
     timeReg := secTickReg ## nsTickReg

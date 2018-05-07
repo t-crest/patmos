@@ -42,7 +42,11 @@
 
 void ptpv2_intr_tx_handler(void) {
 	exc_prologue();
+<<<<<<< HEAD
 	unsigned char msgType = (unsigned char) (PTP_TXCHAN_STATUS & PTP_CHAN_MSG_TYPE_MASK);
+=======
+	unsigned char msgType = (unsigned char) PTP_TXCHAN_MESSAGE_TYPE;
+>>>>>>> cc3357405a4e3455e939ede67576d66a26a31d60
 	printf("ptpv2_tx_intr_h(%x02X)\n", msgType);
 	if(msgType==PTP_SYNC_MSGTYPE){
 		//Master
@@ -171,8 +175,8 @@ int ptpv2_issue_msg(unsigned tx_addr, unsigned rx_addr, unsigned char destinatio
 		ptpTimeRecord.t3Nanoseconds = (unsigned) PTP_TXCHAN_TIMESTAMP_NS;
 		ptpTimeRecord.t3Seconds = (unsigned) PTP_TXCHAN_TIMESTAMP_SEC;
 		#else
-		ptpTimeRecord.t4Nanoseconds = (unsigned) RTC_TIME_NS;
-		ptpTimeRecord.t4Seconds = (unsigned) RTC_TIME_SEC;
+		ptpTimeRecord.t3Nanoseconds = (unsigned) RTC_TIME_NS;
+		ptpTimeRecord.t3Seconds = (unsigned) RTC_TIME_SEC;
 		#endif
 	}	
 	return 1;
@@ -229,8 +233,8 @@ int ptpv2_handle_msg(unsigned tx_addr, unsigned rx_addr, unsigned char source_ma
 		ptpTimeRecord.delaySeconds = ptp_calc_one_way_delay(ptpTimeRecord.t1Seconds, ptpTimeRecord.t2Seconds, ptpTimeRecord.t3Seconds, ptpTimeRecord.t4Seconds);
 		ptpTimeRecord.offsetNanoseconds = ptp_calc_offset(ptpTimeRecord.t1Nanoseconds, ptpTimeRecord.t2Nanoseconds, ptpTimeRecord.delayNanoseconds);
 		ptpTimeRecord.offsetSeconds = ptp_calc_offset(ptpTimeRecord.t1Seconds, ptpTimeRecord.t2Seconds, ptpTimeRecord.delaySeconds);
-		unsigned int correctNs = (unsigned) (RTC_TIME_NS + ptpTimeRecord.offsetNanoseconds);
-		unsigned int correctSec = (unsigned) (RTC_TIME_SEC + ptpTimeRecord.offsetSeconds);
+		unsigned int correctNs = (unsigned) (RTC_TIME_NS - ptpTimeRecord.offsetNanoseconds);
+		unsigned int correctSec = (unsigned) (RTC_TIME_SEC - ptpTimeRecord.offsetSeconds);
 		//Apply correction
 		if(abs(ptpTimeRecord.offsetNanoseconds) > PTP_NS_OFFSET_THRESHOLD){
 			RTC_TIME_NS = correctNs;
@@ -251,7 +255,7 @@ int ptpv2_handle_msg(unsigned tx_addr, unsigned rx_addr, unsigned char source_ma
 
 //Calculates the offset from the master clock based on timestamps T1, T2
 int ptp_calc_offset(unsigned int t1, unsigned int t2, int delay){
-	return (int) (t1-t2-delay);
+	return (int) (t2-t1-delay);
 }
 
 //Calculates the delay from the master clock based on timestamps T1, T2, T3, T4

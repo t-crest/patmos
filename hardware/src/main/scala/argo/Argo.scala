@@ -1,5 +1,5 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute.
+   Copyright 2018 Technical University of Denmark, DTU Compute.
    All rights reserved.
 
    This file is part of the time-predictable VLIW processor Patmos.
@@ -31,9 +31,9 @@
  */
 
 /*
- * A synchronous Argo router
+ * Wrapper for Argo NxN bi-torus NoC
  *
- * Authors: Rasmus Bo Soerensen (rasmus@rbscloud.dk)
+ * Authors: Eleftherios Kyriakakis
  *
  */
 
@@ -41,34 +41,43 @@ package argo
 
 import Chisel._
 import Node._
+import patmos.Constants._
+import util._
+import ocp._
+import patmos._
 
-class Router(argoConf: ArgoConfig) extends Module() {
-  val io = new Bundle() {
-    val northPort = new RouterPort(argoConf)
-    val southPort = new RouterPort(argoConf)
-    val eastPort = new RouterPort(argoConf)
-    val westPort = new RouterPort(argoConf)
-    val localPort = new RouterPort(argoConf)
-  }
+// Aegean in the center and all the islands are Patmos
+class Argo extends Module {
+	val io = new Bundle() {
+		val comConf = Vec.fill(ArgoConfig.getSize){new OcpNISlavePort(ADDR_WIDTH, DATA_WIDTH)}
+		val comSpm = Vec.fill(ArgoConfig.getSize){new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)}
+		val superMode = Bits(INPUT, ArgoConfig.getSize)
+	}
+	println("Argo "+ ArgoConfig.getSize +"-cores instantiated")
+
+  // Declare Modules
+	val argoNoc = Module(new ArgoNoC(ArgoConfig.getConfig))
+	val comSPMWrapper = Vec.fill(ArgoConfig.getSize){Module(new ComSpmWrapper(ArgoConfig.getConfig)).io}
 
 
-  val xbar = Module(new XBar(argoConf.LINK_WIDTH))
-  val northHPU = Module(new HPU("North",argoConf.LINK_WIDTH))
-  val southHPU = Module(new HPU("South",argoConf.LINK_WIDTH))
-  val eastHPU = Module(new HPU("East",argoConf.LINK_WIDTH))
-  val westHPU = Module(new HPU("West",argoConf.LINK_WIDTH))
-  val localHPU = Module(new HPU("Local",argoConf.LINK_WIDTH))
+	// Wire up
+	for(i <- 0 until ArgoConfig.getSize){
+    // NoC - Patmos
+    argoNoc.io.ocpPorts(i).M := io.comConf(i).M
+    io.comConf(i).S := argoNoc.io.ocpPorts(i).S
+    io.comConf(i).S.Flag := argoNoc.io.irq(2+i*2-1, i*2)
+    io.comConf(i).S.Reset_n := Bits("b0")
+		// SPM - Patmos
+		comSPMWrapper(i).ocp.M := io.comSpm(i).M
+    io.comSpm(i).S := comSPMWrapper(i).ocp.S
+		// SPM - NoC
+		comSPMWrapper(i).spm.M := argoNoc.io.spmPorts(i).M
+    argoNoc.io.spmPorts(i).S := comSPMWrapper(i).spm.S
+	}
+}
 
-//  northHPU.io.inLink := io.northPort.in
-//  southHPU.io.inLink := io.southPort.in
-//  eastHPU.io.inLink := io.eastPort.in
-//  westHPU.io.inLink := io.westPort.in
-//  localHPU.io.inLink := io.localPort.in
-//
-//  io.northPort.out := xbar.io.northOut
-//  io.southPort.out := xbar.io.southOut
-//  io.eastPort.out := xbar.io.eastOut
-//  io.westPort.out := xbar.io.westOut
-//  io.localPort.out := xbar.io.localOut
-
+object Argo {
+	def main(args: Array[String]): Unit = {
+		chiselMain(args, () => Module(new Argo()))
+	}
 }

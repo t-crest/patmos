@@ -1,0 +1,356 @@
+# -------------------------------------------------------------------------- #
+#
+# Copyright (C) 1991-2011 Altera Corporation
+# Your use of Altera Corporation's design tools, logic functions
+# and other software and tools, and its AMPP partner logic
+# functions, and any output files from any of the foregoing
+# (including device programming or simulation files), and any
+# associated documentation or information are expressly subject
+# to the terms and conditions of the Altera Program License
+# Subscription Agreement, Altera MegaCore Function License
+# Agreement, or other applicable license agreement, including,
+# without limitation, that your use is for the sole purpose of
+# programming logic devices manufactured by Altera and sold by
+# Altera or its authorized distributors.  Please refer to the
+# applicable agreement for further details.
+#
+# -------------------------------------------------------------------------- #
+#
+# Quartus II
+# Version 11.0 Build 208 07/03/2011 Service Pack 1 SJ Web Edition
+# Date created = 11:11:57  June 19, 2012
+#
+# -------------------------------------------------------------------------- #
+#
+# Notes:
+#
+# 1) The default values for assignments are stored in the file:
+#		patmos_core_assignment_defaults.qdf
+#    If this file doesn't exist, see file:
+#		assignment_defaults.qdf
+#
+# 2) Altera recommends that you do not modify this file. This
+#    file is updated automatically by the Quartus II software
+#    and any changes you make may be lost or overwritten.
+#
+# -------------------------------------------------------------------------- #
+
+
+set_global_assignment -name FAMILY "Cyclone IV E"
+set_global_assignment -name DEVICE EP4CE115F29C7
+set_global_assignment -name TOP_LEVEL_ENTITY patmos_top
+set_global_assignment -name ORIGINAL_QUARTUS_VERSION "11.0 SP1"
+set_global_assignment -name PROJECT_CREATION_TIME_DATE "11:11:57  JUNE 19, 2012"
+set_global_assignment -name LAST_QUARTUS_VERSION 14.0
+
+
+set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
+set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
+set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 1
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
+set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+set_global_assignment -name USE_CONFIGURATION_DEVICE ON
+set_global_assignment -name RESERVE_ALL_UNUSED_PINS "AS INPUT TRI-STATED"
+set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "3.3-V LVCMOS"
+
+
+
+set_global_assignment -name RESERVE_ALL_UNUSED_PINS_NO_OUTPUT_GND "AS INPUT TRI-STATED"
+
+set_location_assignment PIN_Y2 -to clk
+set_location_assignment PIN_T8 -to oSRAM_A[19]
+set_location_assignment PIN_AB8 -to oSRAM_A[18]
+set_location_assignment PIN_AB9 -to oSRAM_A[17]
+set_location_assignment PIN_AC11 -to oSRAM_A[16]
+set_location_assignment PIN_AB11 -to oSRAM_A[15]
+set_location_assignment PIN_AA4 -to oSRAM_A[14]
+set_location_assignment PIN_AC3 -to oSRAM_A[13]
+set_location_assignment PIN_AB4 -to oSRAM_A[12]
+set_location_assignment PIN_AD3 -to oSRAM_A[11]
+set_location_assignment PIN_AF2 -to oSRAM_A[10]
+set_location_assignment PIN_T7 -to oSRAM_A[9]
+set_location_assignment PIN_AF5 -to oSRAM_A[8]
+set_location_assignment PIN_AC5 -to oSRAM_A[7]
+set_location_assignment PIN_AB5 -to oSRAM_A[6]
+set_location_assignment PIN_AE6 -to oSRAM_A[5]
+set_location_assignment PIN_AB6 -to oSRAM_A[4]
+set_location_assignment PIN_AC7 -to oSRAM_A[3]
+set_location_assignment PIN_AE7 -to oSRAM_A[2]
+set_location_assignment PIN_AD7 -to oSRAM_A[1]
+set_location_assignment PIN_AB7 -to oSRAM_A[0]
+set_location_assignment PIN_AD5 -to oSRAM_OE_N
+set_location_assignment PIN_AE8 -to oSRAM_WE_N
+set_location_assignment PIN_AF8 -to oSRAM_CE_N
+set_location_assignment PIN_AD4 -to oSRAM_LB_N
+set_location_assignment PIN_AC4 -to oSRAM_UB_N
+set_location_assignment PIN_AG3 -to SRAM_DQ[15]
+set_location_assignment PIN_AF3 -to SRAM_DQ[14]
+set_location_assignment PIN_AE4 -to SRAM_DQ[13]
+set_location_assignment PIN_AE3 -to SRAM_DQ[12]
+set_location_assignment PIN_AE1 -to SRAM_DQ[11]
+set_location_assignment PIN_AE2 -to SRAM_DQ[10]
+set_location_assignment PIN_AD2 -to SRAM_DQ[9]
+set_location_assignment PIN_AD1 -to SRAM_DQ[8]
+set_location_assignment PIN_AF7 -to SRAM_DQ[7]
+set_location_assignment PIN_AH6 -to SRAM_DQ[6]
+set_location_assignment PIN_AG6 -to SRAM_DQ[5]
+set_location_assignment PIN_AF6 -to SRAM_DQ[4]
+set_location_assignment PIN_AH4 -to SRAM_DQ[3]
+set_location_assignment PIN_AG4 -to SRAM_DQ[2]
+set_location_assignment PIN_AF4 -to SRAM_DQ[1]
+set_location_assignment PIN_AH3 -to SRAM_DQ[0]
+set_location_assignment PIN_G12 -to iUartPins_rxd
+set_location_assignment PIN_G9 -to oUartPins_txd
+set_location_assignment PIN_F17 -to oLedsPins_led[8]
+set_location_assignment PIN_G21 -to oLedsPins_led[7]
+set_location_assignment PIN_G22 -to oLedsPins_led[6]
+set_location_assignment PIN_G20 -to oLedsPins_led[5]
+set_location_assignment PIN_H21 -to oLedsPins_led[4]
+set_location_assignment PIN_E24 -to oLedsPins_led[3]
+set_location_assignment PIN_E25 -to oLedsPins_led[2]
+set_location_assignment PIN_E22 -to oLedsPins_led[1]
+set_location_assignment PIN_E21 -to oLedsPins_led[0]
+set_location_assignment PIN_R24 -to iKeysPins_key[3]
+set_location_assignment PIN_N21 -to iKeysPins_key[2]
+set_location_assignment PIN_M21 -to iKeysPins_key[1]
+set_location_assignment PIN_M23 -to iKeysPins_key[0]
+set_location_assignment PIN_C20 -to ENET0_MDC
+set_location_assignment PIN_B21 -to ENET0_MDIO
+set_location_assignment PIN_C19 -to ENET0_RST_N
+set_location_assignment PIN_A15 -to ENET0_RX_CLK
+set_location_assignment PIN_E15 -to ENET0_RX_COL
+set_location_assignment PIN_D15 -to ENET0_RX_CRS
+set_location_assignment PIN_C16 -to ENET0_RX_DATA[0]
+set_location_assignment PIN_D16 -to ENET0_RX_DATA[1]
+set_location_assignment PIN_D17 -to ENET0_RX_DATA[2]
+set_location_assignment PIN_C15 -to ENET0_RX_DATA[3]
+set_location_assignment PIN_C17 -to ENET0_RX_DV
+set_location_assignment PIN_D18 -to ENET0_RX_ER
+set_location_assignment PIN_B17 -to ENET0_TX_CLK
+set_location_assignment PIN_C18 -to ENET0_TX_DATA[0]
+set_location_assignment PIN_D19 -to ENET0_TX_DATA[1]
+set_location_assignment PIN_A19 -to ENET0_TX_DATA[2]
+set_location_assignment PIN_B19 -to ENET0_TX_DATA[3]
+set_location_assignment PIN_A18 -to ENET0_TX_EN
+set_location_assignment PIN_B18 -to ENET0_TX_ER
+set_location_assignment PIN_AH23 -to iUart2Pins_rxd
+set_location_assignment PIN_AG26 -to oUart2Pins_txd
+set_location_assignment PIN_G18 -to osevenSegmentDisplayPins_hexDisp_0[0]
+set_location_assignment PIN_F22 -to osevenSegmentDisplayPins_hexDisp_0[1]
+set_location_assignment PIN_E17 -to osevenSegmentDisplayPins_hexDisp_0[2]
+set_location_assignment PIN_L26 -to osevenSegmentDisplayPins_hexDisp_0[3]
+set_location_assignment PIN_L25 -to osevenSegmentDisplayPins_hexDisp_0[4]
+set_location_assignment PIN_J22 -to osevenSegmentDisplayPins_hexDisp_0[5]
+set_location_assignment PIN_H22 -to osevenSegmentDisplayPins_hexDisp_0[6]
+set_location_assignment PIN_M24 -to osevenSegmentDisplayPins_hexDisp_1[0]
+set_location_assignment PIN_Y22 -to osevenSegmentDisplayPins_hexDisp_1[1]
+set_location_assignment PIN_W21 -to osevenSegmentDisplayPins_hexDisp_1[2]
+set_location_assignment PIN_W22 -to osevenSegmentDisplayPins_hexDisp_1[3]
+set_location_assignment PIN_W25 -to osevenSegmentDisplayPins_hexDisp_1[4]
+set_location_assignment PIN_U23 -to osevenSegmentDisplayPins_hexDisp_1[5]
+set_location_assignment PIN_U24 -to osevenSegmentDisplayPins_hexDisp_1[6]
+set_location_assignment PIN_AA25 -to osevenSegmentDisplayPins_hexDisp_2[0]
+set_location_assignment PIN_AA26 -to osevenSegmentDisplayPins_hexDisp_2[1]
+set_location_assignment PIN_Y25 -to osevenSegmentDisplayPins_hexDisp_2[2]
+set_location_assignment PIN_W26 -to osevenSegmentDisplayPins_hexDisp_2[3]
+set_location_assignment PIN_Y26 -to osevenSegmentDisplayPins_hexDisp_2[4]
+set_location_assignment PIN_W27 -to osevenSegmentDisplayPins_hexDisp_2[5]
+set_location_assignment PIN_W28 -to osevenSegmentDisplayPins_hexDisp_2[6]
+set_location_assignment PIN_V21 -to osevenSegmentDisplayPins_hexDisp_3[0]
+set_location_assignment PIN_U21 -to osevenSegmentDisplayPins_hexDisp_3[1]
+set_location_assignment PIN_AB20 -to osevenSegmentDisplayPins_hexDisp_3[2]
+set_location_assignment PIN_AA21 -to osevenSegmentDisplayPins_hexDisp_3[3]
+set_location_assignment PIN_AD24 -to osevenSegmentDisplayPins_hexDisp_3[4]
+set_location_assignment PIN_AF23 -to osevenSegmentDisplayPins_hexDisp_3[5]
+set_location_assignment PIN_Y19 -to osevenSegmentDisplayPins_hexDisp_3[6]
+set_location_assignment PIN_AB19 -to osevenSegmentDisplayPins_hexDisp_4[0]
+set_location_assignment PIN_AA19 -to osevenSegmentDisplayPins_hexDisp_4[1]
+set_location_assignment PIN_AG21 -to osevenSegmentDisplayPins_hexDisp_4[2]
+set_location_assignment PIN_AH21 -to osevenSegmentDisplayPins_hexDisp_4[3]
+set_location_assignment PIN_AE19 -to osevenSegmentDisplayPins_hexDisp_4[4]
+set_location_assignment PIN_AF19 -to osevenSegmentDisplayPins_hexDisp_4[5]
+set_location_assignment PIN_AE18 -to osevenSegmentDisplayPins_hexDisp_4[6]
+set_location_assignment PIN_AD18 -to osevenSegmentDisplayPins_hexDisp_5[0]
+set_location_assignment PIN_AC18 -to osevenSegmentDisplayPins_hexDisp_5[1]
+set_location_assignment PIN_AB18 -to osevenSegmentDisplayPins_hexDisp_5[2]
+set_location_assignment PIN_AH19 -to osevenSegmentDisplayPins_hexDisp_5[3]
+set_location_assignment PIN_AG19 -to osevenSegmentDisplayPins_hexDisp_5[4]
+set_location_assignment PIN_AF18 -to osevenSegmentDisplayPins_hexDisp_5[5]
+set_location_assignment PIN_AH18 -to osevenSegmentDisplayPins_hexDisp_5[6]
+set_location_assignment PIN_AA17 -to osevenSegmentDisplayPins_hexDisp_6[0]
+set_location_assignment PIN_AB16 -to osevenSegmentDisplayPins_hexDisp_6[1]
+set_location_assignment PIN_AA16 -to osevenSegmentDisplayPins_hexDisp_6[2]
+set_location_assignment PIN_AB17 -to osevenSegmentDisplayPins_hexDisp_6[3]
+set_location_assignment PIN_AB15 -to osevenSegmentDisplayPins_hexDisp_6[4]
+set_location_assignment PIN_AA15 -to osevenSegmentDisplayPins_hexDisp_6[5]
+set_location_assignment PIN_AC17 -to osevenSegmentDisplayPins_hexDisp_6[6]
+set_location_assignment PIN_AD17 -to osevenSegmentDisplayPins_hexDisp_7[0]
+set_location_assignment PIN_AE17 -to osevenSegmentDisplayPins_hexDisp_7[1]
+set_location_assignment PIN_AG17 -to osevenSegmentDisplayPins_hexDisp_7[2]
+set_location_assignment PIN_AH17 -to osevenSegmentDisplayPins_hexDisp_7[3]
+set_location_assignment PIN_AF17 -to osevenSegmentDisplayPins_hexDisp_7[4]
+set_location_assignment PIN_AG18 -to osevenSegmentDisplayPins_hexDisp_7[5]
+set_location_assignment PIN_AA14 -to osevenSegmentDisplayPins_hexDisp_7[6]
+set_location_assignment PIN_G19  -to oLedsPins_ledR[0]
+set_location_assignment PIN_F19  -to oLedsPins_ledR[1]
+set_location_assignment PIN_E19  -to oLedsPins_ledR[2]
+set_location_assignment PIN_F21  -to oLedsPins_ledR[3]
+set_location_assignment PIN_F18  -to oLedsPins_ledR[4]
+set_location_assignment PIN_E18  -to oLedsPins_ledR[5]
+set_location_assignment PIN_J19  -to oLedsPins_ledR[6]
+set_location_assignment PIN_H19  -to oLedsPins_ledR[7]
+set_location_assignment PIN_G15  -to oLedsPins_ledR[15]
+set_location_assignment PIN_G16  -to oLedsPins_ledR[16]
+set_location_assignment PIN_H15  -to oLedsPins_ledR[17]
+
+set_global_assignment -name SYNTH_TIMING_DRIVEN_SYNTHESIS ON
+set_global_assignment -name CYCLONEII_OPTIMIZATION_TECHNIQUE SPEED
+set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
+set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
+set_global_assignment -name DEVICE_FILTER_PACKAGE FBGA
+set_global_assignment -name VHDL_FILE ../../vhdl/altera/cyc2_pll.vhd
+set_global_assignment -name VHDL_FILE ../../ethmac/buffer/ocp_to_bram.vhd
+set_global_assignment -name VHDL_FILE ../../ethmac/buffer/rx_tx_buffer.vhd
+set_global_assignment -name VHDL_FILE ../../ethmac/buffer/tdp_sc_bram.vhd
+set_global_assignment -name VHDL_FILE ../../ethmac/buffer/wb_to_bram.vhd
+set_global_assignment -name VERILOG_FILE ../../ethmac/ethmac/eth_clockgen.v
+set_global_assignment -name VERILOG_FILE ../../ethmac/ethmac/eth_shiftreg.v
+set_global_assignment -name VERILOG_FILE ../../ethmac/ethmac/eth_outputcontrol.v
+set_global_assignment -name VERILOG_FILE ../../ethmac/ethmac/eth_miim.v
+set_global_assignment -name VERILOG_FILE ../../ethmac/ethmac/eth_register.v
+set_global_assignment -name VERILOG_FILE ../../ethmac/ethmac/eth_registers.v
+set_global_assignment -name VERILOG_FILE ../../ethmac/ethmac/eth_receivecontrol.v
+set_global_assignment -name VERILOG_FILE ../../ethmac/ethmac/eth_transmitcontrol.v
+set_global_assignment -name VERILOG_FILE ../../ethmac/ethmac/eth_maccontrol.v
+set_global_assignment -name VERILOG_FILE ../../ethmac/ethmac/eth_crc.v
+set_global_assignment -name VERILOG_FILE ../../ethmac/ethmac/eth_txcounters.v
+set_global_assignment -name VERILOG_FILE ../../ethmac/ethmac/eth_txstatem.v
+set_global_assignment -name VERILOG_FILE ../../ethmac/ethmac/eth_random.v
+set_global_assignment -name VERILOG_FILE ../../ethmac/ethmac/eth_txethmac.v
+set_global_assignment -name VERILOG_FILE ../../ethmac/ethmac/eth_rxcounters.v
+set_global_assignment -name VERILOG_FILE ../../ethmac/ethmac/eth_rxstatem.v
+set_global_assignment -name VERILOG_FILE ../../ethmac/ethmac/eth_rxaddrcheck.v
+set_global_assignment -name VERILOG_FILE ../../ethmac/ethmac/eth_rxethmac.v
+set_global_assignment -name VERILOG_FILE ../../ethmac/ethmac/eth_fifo.v
+set_global_assignment -name VERILOG_FILE ../../ethmac/ethmac/eth_spram_256x32.v
+set_global_assignment -name VERILOG_FILE ../../ethmac/ethmac/eth_wishbone.v
+set_global_assignment -name VERILOG_FILE ../../ethmac/ethmac/eth_macstatus.v
+set_global_assignment -name VERILOG_FILE ../../ethmac/ethmac/eth_top.v
+set_global_assignment -name VHDL_FILE ../../ethmac/eth_controller_top.vhdl
+set_global_assignment -name VERILOG_FILE ../../build/Patmos.v
+set_global_assignment -name VHDL_FILE "../../vhdl/patmos_de2-115-ptp.vhdl"
+
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[4]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[5]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[6]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[7]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_WE_N
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[8]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[9]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[10]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[11]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[12]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[13]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[14]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[15]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[16]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[17]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[18]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[19]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_CE_N
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_LB_N
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_OE_N
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_UB_N
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_led[8]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_led[7]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_led[6]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_led[5]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_led[4]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_led[3]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_led[2]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_led[1]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_led[0]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_ledR[0]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_ledR[1]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_ledR[2]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_ledR[3]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_ledR[4]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_ledR[5]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_ledR[6]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_ledR[7]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_ledR[15]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_ledR[16]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_ledR[17]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oUartPins_txd
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to iUartPins_rxd
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oUart2Pins_txd
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to iUart2Pins_rxd
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[15]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[14]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[13]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[12]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[11]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[10]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[9]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[8]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[7]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[6]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[5]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[4]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[0]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to iKeysPins_key[3]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to iKeysPins_key[2]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to iKeysPins_key[1]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to iKeysPins_key[0]
+
+set_instance_assignment -name IO_STANDARD "2.5 V" -to osevenSegmentDisplayPins_hexDisp_0[0]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to osevenSegmentDisplayPins_hexDisp_0[1]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to osevenSegmentDisplayPins_hexDisp_0[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to osevenSegmentDisplayPins_hexDisp_7[6]
+
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET0_TX_DATA[0]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET0_RX_DATA[0]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET0_TX_DATA[1]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET0_RX_DATA[1]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET0_TX_DATA[2]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET0_RX_DATA[2]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET0_TX_DATA[3]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET0_RX_DATA[3]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET0_GTX_CLK
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET0_TX_EN
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET0_TX_ER
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET0_RST_N
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET0_RX_DV
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET0_RX_ER
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET0_RX_CRS
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET0_RX_COL
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET0_RX_CLK
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET0_TX_CLK
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET0_MDC
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET0_MDIO
+
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to clk
+
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:comp|SRamCtrl:ramCtrl|addrReg"
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:comp|SRamCtrl:ramCtrl|doutReg"
+set_instance_assignment -name FAST_OUTPUT_ENABLE_REGISTER ON -to "Patmos:comp|SRamCtrl:ramCtrl|doutEnaReg"
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:comp|SRamCtrl:ramCtrl|noeReg"
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:comp|SRamCtrl:ramCtrl|nweReg"
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:comp|SRamCtrl:ramCtrl|nlbReg"
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:comp|SRamCtrl:ramCtrl|nubReg"
+set_global_assignment -name FITTER_EFFORT "STANDARD FIT"
+set_global_assignment -name OPTIMIZE_HOLD_TIMING "ALL PATHS"
+set_global_assignment -name OPTIMIZE_MULTI_CORNER_TIMING ON
+set_global_assignment -name PHYSICAL_SYNTHESIS_COMBO_LOGIC ON
+set_global_assignment -name SEED 6
+set_global_assignment -name VERILOG_MACRO "SYNTHESIS=<None>"
+
+set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
