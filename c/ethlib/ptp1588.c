@@ -159,6 +159,7 @@ int ptpv2_issue_msg(unsigned tx_addr, unsigned rx_addr, unsigned char destinatio
 	if(msgType==PTP_SYNC_MSGTYPE){
 		//Master
 		#ifdef USE_HW_TIMESTAMP
+		while((PTP_TXCHAN_STATUS & PTP_CHAN_VALID_TS_MASK) != PTP_CHAN_VALID_TS_MASK){continue;}
 		ptpTimeRecord.t1Nanoseconds = (unsigned) PTP_TXCHAN_TIMESTAMP_NS;
 		ptpTimeRecord.t1Seconds = (unsigned) PTP_TXCHAN_TIMESTAMP_SEC;
 		#else
@@ -168,6 +169,7 @@ int ptpv2_issue_msg(unsigned tx_addr, unsigned rx_addr, unsigned char destinatio
 	} else if(msgType==PTP_DLYREQ_MSGTYPE){
 		//Slave
 		#ifdef USE_HW_TIMESTAMP
+		while((PTP_TXCHAN_STATUS & PTP_CHAN_VALID_TS_MASK) != PTP_CHAN_VALID_TS_MASK){continue;}
 		ptpTimeRecord.t3Nanoseconds = (unsigned) PTP_TXCHAN_TIMESTAMP_NS;
 		ptpTimeRecord.t3Seconds = (unsigned) PTP_TXCHAN_TIMESTAMP_SEC;
 		#else
@@ -182,6 +184,7 @@ int ptpv2_handle_msg(unsigned tx_addr, unsigned rx_addr, unsigned char source_ma
 	unsigned char ans = 0;
 	unsigned char udp_data[54] = {0};
 	#ifdef USE_HW_TIMESTAMP
+	while((PTP_RXCHAN_STATUS & PTP_CHAN_VALID_TS_MASK) != PTP_CHAN_VALID_TS_MASK){continue;}
 	unsigned int timestampNanoseconds = (unsigned) PTP_RXCHAN_TIMESTAMP_NS;
 	unsigned int timestampSeconds =  (unsigned) PTP_RXCHAN_TIMESTAMP_SEC;
 	#else
@@ -229,11 +232,15 @@ int ptpv2_handle_msg(unsigned tx_addr, unsigned rx_addr, unsigned char source_ma
 		ptpTimeRecord.delaySeconds = ptp_calc_one_way_delay(ptpTimeRecord.t1Seconds, ptpTimeRecord.t2Seconds, ptpTimeRecord.t3Seconds, ptpTimeRecord.t4Seconds);
 		ptpTimeRecord.offsetNanoseconds = ptp_calc_offset(ptpTimeRecord.t1Nanoseconds, ptpTimeRecord.t2Nanoseconds, ptpTimeRecord.delayNanoseconds);
 		ptpTimeRecord.offsetSeconds = ptp_calc_offset(ptpTimeRecord.t1Seconds, ptpTimeRecord.t2Seconds, ptpTimeRecord.delaySeconds);
-		unsigned int correctNs = (unsigned) (RTC_TIME_NS + ptpTimeRecord.offsetNanoseconds);
-		unsigned int correctSec = (unsigned) (RTC_TIME_SEC + ptpTimeRecord.offsetSeconds);
+		unsigned int correctNs = (unsigned) ((int)RTC_TIME_NS - ptpTimeRecord.offsetNanoseconds);
+		unsigned int correctSec = (unsigned) ((int)RTC_TIME_SEC - ptpTimeRecord.offsetSeconds);
 		//Apply correction
-		if(abs(ptpTimeRecord.offsetNanoseconds) > PTP_NS_OFFSET_THRESHOLD){
-			RTC_TIME_NS = correctNs;
+		if(RTC_CORRECTION_OFFSET == 0){
+			if(abs(ptpTimeRecord.offsetNanoseconds) > PTP_NS_OFFSET_THRESHOLD){
+				RTC_TIME_NS = correctNs;
+			} else {
+				RTC_CORRECTION_OFFSET = ptpTimeRecord.offsetNanoseconds;
+			}
 		}
 		if(abs(ptpTimeRecord.offsetSeconds) > PTP_SEC_OFFSET_THRESHOLD){
 			RTC_TIME_SEC = correctSec;
@@ -250,13 +257,13 @@ int ptpv2_handle_msg(unsigned tx_addr, unsigned rx_addr, unsigned char source_ma
 }
 
 //Calculates the offset from the master clock based on timestamps T1, T2
-int ptp_calc_offset(unsigned int t1, unsigned int t2, int delay){
-	return (int) -(t2-t1-delay);
+int ptp_calc_offset(int t1, int t2, int delay){
+	return (int) (t2-t1-delay);
 }
 
 //Calculates the delay from the master clock based on timestamps T1, T2, T3, T4
-int ptp_calc_one_way_delay(unsigned int t1, unsigned int t2, unsigned int t3, unsigned int t4){
-	return (int) (t2-t1+t4-t3)/2;
+int ptp_calc_one_way_delay(int t1, int t2, int t3, int t4){
+	return (int) floorf((t2-t1+t4-t3)/2.0f);
 }
 
 ///////////////////////////////////////////////////////////////

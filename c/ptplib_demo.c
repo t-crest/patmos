@@ -176,19 +176,24 @@ void ptp_slave_loop(){
 	unsigned short int seqId = 0;
 	while(1){
 		if(0xE == *key_ptr){
-			*led_ptr = 0x8;
+			*led_ptr = 0xE;
 			RTC_TIME_NS = 0;
 			RTC_TIME_SEC = 0;
+		} else if(0xD == *key_ptr){
+			*led_ptr = 0xD;
+			RTC_CORRECTION_OFFSET = 0;
 		} else {
 			*led_ptr = checkForPacket(2, PTP_EVENT_PORT, PTP_RPLY_TIMEOUT);
+			printf("$offset\t%d\n", RTC_CORRECTION_OFFSET);
 		}
 	}
 }
 
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv){
 	*led_ptr = 0x7;
+
+	puts("PTPlib Demo Started\n");
 	puts("\n");
 
 	//MAC controller settings
@@ -200,11 +205,21 @@ int main(int argc, char **argv)
 	initNanoseconds = RTC_TIME_NS;
 	initSeconds = RTC_TIME_SEC;
 
+	//Test offset
+	RTC_CORRECTION_OFFSET = 4000000;
+	if(RTC_CORRECTION_OFFSET == 0 || RTC_CORRECTION_OFFSET == initNanoseconds){
+		printf("Error HW clock adjustment does not work");
+		return -1;
+	}
+	while(RTC_CORRECTION_OFFSET != 0){continue;}
+	RTC_TIME_NS = initNanoseconds;
+	RTC_TIME_SEC = initSeconds;
+
 	//Demo
 	#ifdef PTP_MASTER
 		ipv4_set_my_ip((unsigned char[4]){192, 168, 2, 50});
 		arp_table_init();
-		puts("PTP Master Demo Started\n");
+		puts("Mode Master Running\n");
 		arp_resolve_ip(rx_addr, tx_addr, target_ip, 200000);
 		print_general_info();
 		*led_ptr = 0x0;
@@ -215,7 +230,7 @@ int main(int argc, char **argv)
 	#ifdef PTP_SLAVE
 		ipv4_set_my_ip((unsigned char[4]){192, 168, 2, 1});
 		arp_table_init();
-		puts("PTP Slave Demo Started\n");
+		puts("Mode Slave Running\n");
 		arp_resolve_ip(rx_addr, tx_addr, target_ip, 200000);
 		print_general_info();
 		*led_ptr = 0x0;

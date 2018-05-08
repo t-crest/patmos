@@ -63,7 +63,7 @@
 #define RTC_TIME_SEC *((volatile _SPM unsigned int *) 0xF00DE804)
 #define RTC_PERIOD_LO *((volatile _SPM unsigned int *) 0xF00DE810)
 #define RTC_PERIOD_HI *((volatile _SPM unsigned int *) 0xF00DE814)
-#define RTC_STEP *((volatile _SPM unsigned int *) 0xF00DE820)
+#define RTC_CORRECTION_OFFSET *((volatile _SPM int *) 0xF00DE820)
 
 #define PTP_EVENT_PORT 319
 #define PTP_GENERAL_PORT 320
@@ -101,7 +101,7 @@
 #define PTP_REQ_TIMEOUT 100000
 #define PTP_RPLY_TIMEOUT 1000000
 
-#define PTP_NS_OFFSET_THRESHOLD 500
+#define PTP_NS_OFFSET_THRESHOLD 5000
 #define PTP_SEC_OFFSET_THRESHOLD 0
 
 #define NS_TO_SEC 0.000001
@@ -193,10 +193,10 @@ int ptpv2_issue_msg(unsigned tx_addr, unsigned rx_addr, unsigned char destinatio
 int ptpv2_handle_msg(unsigned tx_addr, unsigned rx_addr, unsigned char source_mac[6], unsigned char source_ip[4]);
 
 //Calculates the offset from the master clock based on timestamps T1, T2
-int ptp_calc_offset(unsigned int t1, unsigned int t2, int delay);
+int ptp_calc_offset(int t1, int t2, int delay);
 
 //Calculates the delay from the master clock based on timestamps T1, T2, T3, T4
-int ptp_calc_one_way_delay(unsigned int t1, unsigned int t2, unsigned int t3, unsigned int t4);
+int ptp_calc_one_way_delay(int t1, int t2, int t3, int t4);
 
 ///////////////////////////////////////////////////////////////
 //Help Functions

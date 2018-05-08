@@ -12,19 +12,19 @@ class RTC(clockFreq: Int, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTi
     val periodIntr = Bool(OUTPUT)
   }
 
-  // Constants
   println("IEEE 1588 RTC instantiated with clockFrequency @ " + clockFreq + " MHz.")
+
+  // Constants
+  val timeStep = 50.S
 
   // Register command
   val masterReg = Reg(next = io.ocp.M)
 
   // Registers
-  val carryNs = Reg(init = UInt(0, width = nanoWidth))
-  val carrySec = Reg(init = UInt(0, width = secondsWidth))
   val tickReg = Reg(init = false.B)
   val prescaleReg = Reg(init = UInt(0, width = 4))
-  val secCntReg = Reg(init = UInt((clockFreq).U, width = nanoWidth))
-  val stepReg = Reg(init = UInt(1, width = 16))
+  val correctionStepReg = Reg(init = SInt(0, width = nanoWidth+1))
+  val nsOffsetReg = Reg(init = SInt(0, width = nanoWidth+1))
   val timeReg = Reg(init = UInt(0, width = secondsWidth + nanoWidth))
   val secTickReg = Reg(init = UInt(initialTime, width = secondsWidth))
   val nsTickReg = Reg(init = UInt(0, width = nanoWidth))
@@ -46,66 +46,44 @@ class RTC(clockFreq: Int, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTi
     prescaleReg := prescaleReg + 1.U
   }
 
-  updateSecReg := false.B
-  updateNsReg := false.B
+  //Update Seconds
+  when(updateSecReg) {
+    secTickReg := timeReg(2 * DATA_WIDTH - 1, DATA_WIDTH)
+  }
 
-  // when(updateNsReg){
-  //   nsTickReg := timeReg(DATA_WIDTH-1, 0)
-  // }.elsewhen(updateSecReg){
-  //   secTickReg := timeReg(2*DATA_WIDTH-1, DATA_WIDTH)
-  // }.elsewhen(tickReg){
-  //   when(nsTickReg >= (1000000000.U - 50.U)){
-  //     secTickReg := secTickReg + 1.U
-  //     nsTickReg := 0.U
-  //   }.otherwise{
-  //     nsTickReg := nsTickReg + 50.U
-  //   }
-  // }
+  //Update Nanoseconds
+  when(updateNsReg){
+   nsTickReg := timeReg(DATA_WIDTH-1, 0)
+  }.elsewhen(tickReg){
+   when(nsTickReg >= (1000000000.U - (timeStep + correctionStepReg).asUInt())){
+     secTickReg := secTickReg + 1.U
+     nsTickReg := 0.U
+   }.otherwise{
+     nsTickReg := nsTickReg + (timeStep + correctionStepReg).asUInt()
+   }
+  }
 
+  //Smooth Adjustment
   when(tickReg) {
-    when(nsTickReg >= 1000000000.U - 50.U) {
-      when(~updateSecReg) {
-        secTickReg := secTickReg + 1.U
-        nsTickReg := 0.U
-      }.otherwise{
-        secTickReg := timeReg(2*DATA_WIDTH-1, DATA_WIDTH) + 1.U
+    when(nsOffsetReg =/= 0.S) {
+      when(nsOffsetReg < 0.S) {
+        correctionStepReg := 1.S //If negative offset then move faster (lacking behind)
+      }.otherwise {
+        correctionStepReg := -1.S //If positive offset then move slower (running forward)
       }
+      nsOffsetReg := nsOffsetReg + correctionStepReg //Correct towards zero
     }.otherwise {
-      when(~updateNsReg) {
-        nsTickReg := nsTickReg + 50.U //TODO: Configurable timestep based on prescaler (i.e. 4-cycles 50ns at 80MHz)
-      }.otherwise{
-        nsTickReg := timeReg(DATA_WIDTH-1, 0) + 50.U
-      }
-    }
-  }.otherwise{
-    when(updateSecReg) {
-      secTickReg := timeReg(2*DATA_WIDTH-1, DATA_WIDTH)
-    }
-    when(updateNsReg){
-      nsTickReg := timeReg(DATA_WIDTH-1, 0)
+      correctionStepReg := 0.S
     }
   }
 
-
-  when(~updateNsReg && ~updateSecReg){
+  //Register current time when it is not being updated
+  when(masterReg.Cmd === OcpCmd.IDLE && ~updateNsReg && ~updateSecReg && ~tickReg){
     timeReg := secTickReg ## nsTickReg
   }
 
-  // Read response
-  when(masterReg.Cmd === OcpCmd.RD) {
-    respReg := OcpResp.DVA
-    when(masterReg.Addr(5,4) === Bits("b00")){
-      when(masterReg.Addr(3,2) === Bits("b00")){
-        dataReg := timeReg(DATA_WIDTH-1, 0)
-      }.elsewhen(masterReg.Addr(3,2) ===Bits("b01")){
-        dataReg := timeReg(2*DATA_WIDTH-1, DATA_WIDTH)
-      }
-    }.elsewhen(masterReg.Addr(5,4) === Bits("b01")){
-      dataReg := periodSelReg
-    }.elsewhen(masterReg.Addr(5,4) === Bits("b10")){
-      dataReg := stepReg
-    }
-  }
+  updateSecReg := false.B
+  updateNsReg := false.B
 
   // Write response
   when(masterReg.Cmd === OcpCmd.WR) {
@@ -121,7 +99,23 @@ class RTC(clockFreq: Int, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTi
     }.elsewhen(masterReg.Addr(5, 4) === Bits("b01")) {
       periodSelReg := masterReg.Data
     }.elsewhen(masterReg.Addr(5, 4) === Bits("b10")) {
-      stepReg := masterReg.Data(15, 0)
+      nsOffsetReg := masterReg.Data(nanoWidth-1, 0).asSInt()
+    }
+  }
+
+  // Read response
+  when(masterReg.Cmd === OcpCmd.RD) {
+    respReg := OcpResp.DVA
+    when(masterReg.Addr(5,4) === Bits("b00")){
+      when(masterReg.Addr(3,2) === Bits("b00")){
+        dataReg := timeReg(DATA_WIDTH-1, 0)
+      }.elsewhen(masterReg.Addr(3,2) ===Bits("b01")){
+        dataReg := timeReg(2*DATA_WIDTH-1, DATA_WIDTH)
+      }
+    }.elsewhen(masterReg.Addr(5,4) === Bits("b01")){
+      dataReg := periodSelReg
+    }.elsewhen(masterReg.Addr(5,4) === Bits("b10")){
+      dataReg := nsOffsetReg
     }
   }
 

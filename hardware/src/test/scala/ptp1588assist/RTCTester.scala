@@ -10,9 +10,10 @@ class RTCTester(dut: RTC, testCycles: Int) extends Tester(dut){
     step(1)
     peek(dut.io.ptpTimestamp)
     if(!asked && (i % 33) == 0 ) {
-      if (i % 72 == 0) {
+      if (i % 72 == 0 && peek(dut.nsOffsetReg)==0) {
         poke(dut.io.ocp.M.Cmd, 1)//Write
-        poke(dut.io.ocp.M.Data, 0xFFFF)
+        poke(dut.io.ocp.M.Data, 1023)
+        poke(dut.io.ocp.M.Addr, 0xF00DE820)
       } else if(i % 32 == 0) {
         poke(dut.io.ocp.M.Cmd, 2)//Read
       }
@@ -31,7 +32,7 @@ object RTCTester {
   def main(args: Array[String]): Unit = {
     chiselMainTest(Array("--genHarness", "--test", "--backend", "c",
       "--compile", "--vcd", "--targetDir", "generated"),
-      () => Module(new RTC(clockFreq = 80000000, secondsWidth = 32, nanoWidth = 32, initialTime = 0x5ac385dcffffff00L))) {
+      () => Module(new RTC(clockFreq = 80000000, secondsWidth = 32, nanoWidth = 32, initialTime = 0x5ac385dc))) {
       dut => new RTCTester(dut, testCycles = 10000)
     }
   }

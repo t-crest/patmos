@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+import sys
 from pyqtgraph.Qt import QtGui, QtCore
 import numpy as np
 import pyqtgraph as pg
@@ -19,6 +20,12 @@ data = [0]
 raw=serial.Serial("/dev/ttyUSB0",115200)
 # raw.open()
 
+try:
+    thres = int(sys.argv[1])
+except (ValueError, TypeError, IndexError):
+    thres = 10000
+    print "Parameter missing or not valid for plot Y-axis limits (default=10000)"
+
 def update():
     global curve, data
     line = raw.readline()
@@ -26,7 +33,7 @@ def update():
         try:
             seq,sec,nano = line.split("\t")
             y = int(nano)
-            data.append(max(min(y, 10000), -10000))
+            data.append(max(min(y, thres), -thres))
             xdata = np.array(data, dtype='int32')
             curve.setData(xdata)
             app.processEvents()
