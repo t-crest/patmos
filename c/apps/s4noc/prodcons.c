@@ -10,9 +10,7 @@
 
 #include "s4noc.h"
 
-// #define CREDITS 1
-
-#define WAIT_ON_START 1
+#define NR_CREDITS 2
 
 volatile _UNCACHED int started;
 volatile _UNCACHED int done;
@@ -25,10 +23,12 @@ void work(void* arg) {
   int ts;
   int sum = 0;
 
-#ifdef WAIT_ON_START
   // get started, time to insert some credits before signaling start
+  for (int i=0; i<NR_CREDITS; ++i ) {
+    while (!s4noc[TX_FREE]) {;}
+    s4noc[CREDIT_SLOT] = 1;
+  }
   started = 1;
-#endif
 
   // Wait for RX FIFO data available for first time stamp
   while (!s4noc[RX_READY]) {
@@ -36,21 +36,13 @@ void work(void* arg) {
   }
   ts = *timer_ptr;
 
-  int credit = 0;
-
   for (int i=0; i<LEN/BUF_LEN; ++i) {
     for (int j=0; j<BUF_LEN; ++j) {
       while (!s4noc[RX_READY]) {
         ;
       }
       sum += s4noc[IN_DATA];
-#ifdef CREDITS
-      ++credit;
-      if (credit == HANDSHAKE) {
-        credit = 0;
-        s4noc[CREDIT_SLOT] = 13;
-      } 
-#endif
+      s4noc[CREDIT_SLOT] = 1;
     }
   }
   time = *timer_ptr - ts;
@@ -73,37 +65,34 @@ int main() {
 
   int credit = 0;
 
-#ifdef WAIT_ON_START
   while (!started) {
     ;
   }
-#endif
 
   for (int i=0; i<LEN/BUF_LEN; ++i) {
     for (int j=0; j<BUF_LEN; ++j) {
+      // wait for a credit
+      while (!s4noc[RX_READY]) {
+        ;
+      }
+      s4noc[IN_DATA]; // consume it
       // wait for TX FIFO ready
+      // without it is 24 clock cycles, this costs another 8 cycles
+      // In this case we do not really need it, as we know there will be a free slot
+      // for each received credit
+/*
       while (!s4noc[TX_FREE]) {
         ;
       }
+*/
       s4noc[SEND_SLOT] = 1;
-#ifdef CREDITS
-      ++credit;
-      // wait for consumers credit
-      if (credit == HANDSHAKE) {
-        credit = 0;
-        while (!s4noc[RX_READY]) {
-          ;
-        }
-        s4noc[IN_DATA]; // consume it
-      }
-#endif
     }
   }
 
   printf("Number of cores: %d\n", get_cpucnt());
   // now, after the print, we should be done
   if (done) {
-    printf("%d sum in %d cycles\n", result, time);
+    printf("%d sum in %d cycles, %d cycles per word\n", result, time, time/result);
   } else {
     printf("Not done\n");
   }
