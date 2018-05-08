@@ -1,5 +1,6 @@
 /*
   Producer/consumer example for the S4NOC.
+  Including flow control with credits.
 
   Author: Martin Schoeberl
 */
