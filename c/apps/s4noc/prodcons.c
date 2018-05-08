@@ -10,7 +10,9 @@
 
 #include "s4noc.h"
 
+#ifndef NR_CREDITS
 #define NR_CREDITS 2
+#endif
 
 volatile _UNCACHED int started;
 volatile _UNCACHED int done;
@@ -92,7 +94,7 @@ int main() {
   printf("Number of cores: %d\n", get_cpucnt());
   // now, after the print, we should be done
   if (done) {
-    printf("%d sum in %d cycles, %d cycles per word\n", result, time, time/result);
+    printf("%d sum in %d cycles, %g cycles per word\n", result, time, 1. * time/result);
   } else {
     printf("Not done\n");
   }
