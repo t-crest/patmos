@@ -42,24 +42,24 @@ void measure_from_master() {
 
   printf("\n---- EXTERNAL MEASUREMENTS ----\n");
 
-  // External read/writes
+  // External read/write
   const int CNT = 1 << 12;
-  const int TRYS = 3;
+  const int TRYS = 1;
   printf("Measuring min/max values over %d attempts\n", CNT);
   int min = 100;
   int max = 0;
   printf("\n");
   for (int t = 1; t <= TRYS; t++) {
     printf("-- Try #%d --\n", t);
-    for (int i = 1; i < get_cpucnt(); i++) {
-      printf("master to core %d:\n", i);
+    for (int i = 0; i < get_cpucnt(); i++) {
       volatile _SPM int *ptr = mem_ptr + (i << BLOCKWIDTH);
+      printf("master to core %d:    write ptr:%p\n", i, ptr);
       // External write
       for (int k = 0; k < CNT; k++) {
         *dead_ptr = 10000;
         val = *dead_ptr; // Delay by random value
         start = *timer_ptr;
-        *ptr = val;
+        *(ptr) = 10;
         val = *timer_ptr - start;
         if (min > val)
           min = val;
@@ -75,7 +75,7 @@ void measure_from_master() {
         *dead_ptr = 10000;
         val = *dead_ptr;
         start = *timer_ptr;
-        val = *ptr;
+        val = *(ptr);
         val = *timer_ptr - start;
         if (min > val)
           min = val;
