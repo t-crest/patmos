@@ -11,7 +11,7 @@
 
 #include "../../libcorethread/corethread.h"
 
-#define BLOCKWIDTH 7
+#define BLOCKWIDTH 8
 
 void measure_from_master() {
   // Pointer to the deadline device
@@ -43,13 +43,14 @@ void measure_from_master() {
   printf("\n---- EXTERNAL MEASUREMENTS ----\n");
 
   // External read/writes
-  const int CNT = 1 << 9;
+  const int CNT = 1 << 12;
+  const int TRYS = 3;
   printf("Measuring min/max values over %d attempts\n", CNT);
   int min = 100;
   int max = 0;
   printf("\n");
-  for (int ae = 0; ae < 2; ae++) {
-    printf("-- iteration %d: --\n", ae);
+  for (int t = 1; t <= TRYS; t++) {
+    printf("-- Try #%d --\n", t);
     for (int i = 1; i < get_cpucnt(); i++) {
       printf("master to core %d:\n", i);
       volatile _SPM int *ptr = mem_ptr + (i << BLOCKWIDTH);
@@ -66,6 +67,8 @@ void measure_from_master() {
           max = val;
       }
       printf("Write:  Min: %d max: %d\n", min, max);
+      min = 100;
+      max = 0;
 
       // External read
       for (int k = 0; k < CNT; k++) {
@@ -81,6 +84,8 @@ void measure_from_master() {
       }
       printf("Read:   Min: %d max: %d\n", min, max);
       printf("\n");
+      min = 100;
+      max = 0;
     }
   }
 }
