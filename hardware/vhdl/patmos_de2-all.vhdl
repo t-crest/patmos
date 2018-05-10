@@ -20,7 +20,16 @@ entity patmos_top is
     port(
         clk           : in    std_logic;
         oLedsPins_led : out   std_logic_vector(8 downto 0);
+        oLedsPins_ledR : out  std_logic_vector(17 downto 0);
         iKeysPins_key : in    std_logic_vector(3 downto 0);
+        osevenSegmentDisplayPins_hexDisp_7 : out std_logic_vector(6 downto 0);
+		osevenSegmentDisplayPins_hexDisp_6 : out std_logic_vector(6 downto 0);
+		osevenSegmentDisplayPins_hexDisp_5 : out std_logic_vector(6 downto 0);
+		osevenSegmentDisplayPins_hexDisp_4 : out std_logic_vector(6 downto 0);
+		osevenSegmentDisplayPins_hexDisp_3 : out std_logic_vector(6 downto 0);
+		osevenSegmentDisplayPins_hexDisp_2 : out std_logic_vector(6 downto 0);
+		osevenSegmentDisplayPins_hexDisp_1 : out std_logic_vector(6 downto 0);
+		osevenSegmentDisplayPins_hexDisp_0 : out std_logic_vector(6 downto 0);
         oUartPins_txd : out   std_logic;
         iUartPins_rxd : in    std_logic;
         oUart2Pins_txd : out   std_logic;
@@ -99,6 +108,18 @@ architecture rtl of patmos_top is
             io_ethMacPins_mdc_pad_o               : out   std_logic; -- MII Management data clock (to PHY)
             io_ethMacPins_md_pad_o                : out   std_logic; -- MII data output (to I/O cell)
             io_ethMacPins_md_padoe_o              : out   std_logic; -- MII data output enable (to I/O cell)
+            io_ethMacPins_rtcDisp_7               : out std_logic_vector(6 downto 0);
+    		io_ethMacPins_rtcDisp_6               : out std_logic_vector(6 downto 0);
+    		io_ethMacPins_rtcDisp_5               : out std_logic_vector(6 downto 0);
+    		io_ethMacPins_rtcDisp_4               : out std_logic_vector(6 downto 0);
+    		io_ethMacPins_rtcDisp_3               : out std_logic_vector(6 downto 0);
+    		io_ethMacPins_rtcDisp_2               : out std_logic_vector(6 downto 0);
+    		io_ethMacPins_rtcDisp_1               : out std_logic_vector(6 downto 0);
+    		io_ethMacPins_rtcDisp_0               : out std_logic_vector(6 downto 0); 
+            io_ethMacPins_ledPHY                  : out   std_logic;
+            io_ethMacPins_ledSOF                  : out   std_logic;
+            io_ethMacPins_ledEOF                  : out   std_logic;
+            io_ethMacPins_ledSFD                  : out   std_logic_vector(7 downto 0);
 
             io_sramCtrlPins_ramOut_addr           : out std_logic_vector(19 downto 0);
             io_sramCtrlPins_ramOut_doutEna        : out std_logic;
@@ -114,11 +135,11 @@ architecture rtl of patmos_top is
             );
     end component;
 
-    -- DE2-70: 50 MHz clock => 80 MHz
+    -- DE2-70: 50 MHz clock => 100 MHz
     -- BeMicro: 16 MHz clock => 25.6 MHz
     constant pll_infreq : real    := 50.0;
-    constant pll_mult   : natural := 8;
-    constant pll_div    : natural := 5;
+	constant pll_mult   : natural := 8;
+	constant pll_div    : natural := 5;
 
     signal clk_int : std_logic;
 
@@ -203,6 +224,18 @@ begin
                            ENET0_MDC,
                            md_pad_o_int,
                            md_padoe_o_int,
+                           osevenSegmentDisplayPins_hexDisp_7,
+                           osevenSegmentDisplayPins_hexDisp_6,
+                           osevenSegmentDisplayPins_hexDisp_5,
+                           osevenSegmentDisplayPins_hexDisp_4,
+                           osevenSegmentDisplayPins_hexDisp_3,
+                           osevenSegmentDisplayPins_hexDisp_2,
+                           osevenSegmentDisplayPins_hexDisp_1,
+                           osevenSegmentDisplayPins_hexDisp_0,
+                           oLedsPins_ledR(17),
+                           oLedsPins_ledR(16),
+                           oLedsPins_ledR(15),
+                           oLedsPins_ledR(7 downto 0),
                            oSRAM_A, 
                            sram_out_dout_ena, SRAM_DQ, sram_out_dout, oSRAM_CE_N, oSRAM_OE_N, oSRAM_WE_N, oSRAM_LB_N, oSRAM_UB_N,
                            oUart2Pins_txd, 

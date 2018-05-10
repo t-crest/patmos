@@ -47,10 +47,10 @@
 
 //This function sends an ethernet frame located at tx_addr and of length frame_length.
 void eth_mac_send(unsigned int tx_addr, unsigned int frame_length){
-	eth_iowr(0x04, 0x00000001);
+    eth_iowr(0x04, 0x00000001);
 	eth_iowr(0x404, tx_addr);
 	eth_iowr(0x400, ((frame_length<<16)|(0xF000)));
-//  	while ((eth_iord(0x04) & 0x1)==0){;}
+ 	while ((eth_iord(0x400) & 0x8000)==1){;}; //Wait until is is done
 return;
 }
 
@@ -219,7 +219,6 @@ unsigned get_rx_db_irq() {
     unsigned cur_data = eth_iord(cur_addr_rx_db);
     return (cur_data>>14) & 1;
 }
-
 
 /////////////////////
 // Help functions
