@@ -118,11 +118,8 @@ class TestExternalWrite(dut: TwoWayMem) extends Tester(dut) {
 
 class TestExternalReadback(dut: TwoWayMem) extends Tester(dut) {
 
-
-
-
   
-  for (j <- 0 until 4) {
+  for (j <- 0 until 16) {
     //Write 0 to all nodes
     poke(dut.io.nodearray(j).out.rw, 0)  
     poke(dut.io.nodearray(j).out.data, 0)
@@ -136,8 +133,8 @@ class TestExternalReadback(dut: TwoWayMem) extends Tester(dut) {
 
   //Write 0x42 to address 0x342, which is in node 3.
   poke(dut.io.nodearray(receivingNode).out.rw, 1)  
-  poke(dut.io.nodearray(receivingNode).out.data, 0x42)
-  poke(dut.io.nodearray(receivingNode).out.address, 0x42 + 0x100 * receivingNode)
+  poke(dut.io.nodearray(receivingNode).out.data, 0x2)
+  poke(dut.io.nodearray(receivingNode).out.address, 0x2 + 0x40 * receivingNode)
   poke(dut.io.nodearray(receivingNode).out.valid, true)
 
   step(1)
@@ -153,11 +150,11 @@ class TestExternalReadback(dut: TwoWayMem) extends Tester(dut) {
 
   //Ask for memory 0x342 from node 0.
   poke(dut.io.nodearray(transmittingNode).out.rw, 0)  
-  poke(dut.io.nodearray(transmittingNode).out.address, 0x42 + 0x100 * receivingNode)
+  poke(dut.io.nodearray(transmittingNode).out.address, 0x2 + 0x40 * receivingNode)
   poke(dut.io.nodearray(transmittingNode).out.valid, true)
 
   var counter = 0
-  while(peek(dut.io.nodearray(transmittingNode).in.valid) == 0 && counter < 20){
+  while(peek(dut.io.nodearray(transmittingNode).in.valid) == 0 && counter < 40){
     step(1)
     counter += 1
 
@@ -250,7 +247,9 @@ class TestSimultaniousReads(dut: TwoWayMem) extends Tester(dut) {
 }
 
 class TestExternalReadbackAll(dut: TwoWayMem) extends Tester(dut) {
-  for (j <- 0 until 4) {
+  val n = 16
+
+  for (j <- 0 until n) {
     //Write 0 to all nodes
     poke(dut.io.nodearray(j).out.rw, 0)  
     poke(dut.io.nodearray(j).out.data, 0)
@@ -260,16 +259,16 @@ class TestExternalReadbackAll(dut: TwoWayMem) extends Tester(dut) {
   step(1)
 
   println(s"Starting")
-  for(j <- 0 until 4){
+  for(j <- 0 until n){
     //Write 0x42 to address 0x342, which is in node 3.
     poke(dut.io.nodearray(j).out.rw, 1)  
-    poke(dut.io.nodearray(j).out.data, 0x42 + j)
-    poke(dut.io.nodearray(j).out.address, 0x42 + 0x100 * j)
+    poke(dut.io.nodearray(j).out.data, 0x2 + j)
+    poke(dut.io.nodearray(j).out.address, 0x2 + 0x40 * j)
     poke(dut.io.nodearray(j).out.valid, true)
   }
   step(1)
   //Set nodes to 0 again.
-  for(j <- 0 until 4){
+  for(j <- 0 until n){
     poke(dut.io.nodearray(j).out.rw, 0)  
     poke(dut.io.nodearray(j).out.data, 0x00)
     poke(dut.io.nodearray(j).out.address, 0x00)
@@ -283,11 +282,11 @@ class TestExternalReadbackAll(dut: TwoWayMem) extends Tester(dut) {
   //Have all nodes request a datapoint from all nodes, one at a time.
   //We only hold the request high for a single cycle, which is 
   //what the OCPCore dictates.
-  for(j <- 0 until 4){
-    for(i <- 0 until 4){
+  for(j <- 0 until n){
+    for(i <- 0 until n){
       //Ask for memory 0x342 from node 0.
       poke(dut.io.nodearray(j).out.rw, 0)  
-      poke(dut.io.nodearray(j).out.address, 0x42 + 0x100 * i)
+      poke(dut.io.nodearray(j).out.address,  0x2 + 0x40 * i)
       poke(dut.io.nodearray(j).out.valid, true)
 
       step(1)
@@ -298,21 +297,21 @@ class TestExternalReadbackAll(dut: TwoWayMem) extends Tester(dut) {
 
 
       var counter = 0
-      while(peek(dut.io.nodearray(j).in.valid) == 0 && counter < 20){
+      while(peek(dut.io.nodearray(j).in.valid) == 0 && counter < 40){
         step(1)
         counter += 1
       }
-      if(counter == 20){
+      if(counter == 40){
         println(s"DID NOT RECEIVE")
       }
-      expect(dut.io.nodearray(j).in.data, 0x42 + i)
+      expect(dut.io.nodearray(j).in.data, 0x2 + i)
       expect(dut.io.nodearray(j).in.valid, 1)
 
 
       poke(dut.io.nodearray(j).out.rw, 0)  
       poke(dut.io.nodearray(j).out.address, 0)
       poke(dut.io.nodearray(j).out.valid, false)
-      step(7)
+      step(20)
     }
   }
 }
@@ -321,8 +320,8 @@ object TwoWayMemTester {
   def main(args: Array[String]): Unit = {
     chiselMainTest(Array("--genHarness", "--test", "--backend", "c",
       "--compile", "--vcd", "--targetDir", "generated","--debug"),
-      () => Module(new TwoWayMem(2, 1024))) {
-        c => new TestExternalReadbackAll(c)
+      () => Module(new TwoWayMem(4, 1024))) {
+        c => new TestExternalReadback(c)
 
       }
   }
