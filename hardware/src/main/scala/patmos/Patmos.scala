@@ -298,5 +298,15 @@ object PatmosMain {
     val datFile = args(2)
 
     chiselMainTest(chiselArgs, () => Module(new Patmos(configFile, binFile, datFile))) { f => new PatmosTest(f) }
+
+
+    //If a device uses the TrueDualPortRam it needs to be modified, which is done in MakeRams
+    val cmpDevice = Config.getConfig.cmpDevice
+    if(cmpDevice == 11 || cmpDevice == 2){
+      println()
+      println("Modifying generated verilog to make true dual port memory")
+      println()
+      MakeRams.main()
+    }
   }
 }
