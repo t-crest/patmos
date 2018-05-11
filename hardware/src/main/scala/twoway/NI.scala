@@ -39,7 +39,9 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   val st = Schedule.getSchedule(n, false, nodeIndex)
   val scheduleLength = st._1.length
   val writeNocTab = Vec(st._2.map(Bool(_)))
-  val timeslotToNode = Vec(st._3.map(UInt(_))) //Not sure but my hope is that this converts the array to a ROM, that can be used as a look 
+  val timeslotToNode = Vec(st._3.map(UInt(_))) //Not sure but my hope is that this converts the array to a ROM, that can be used as a look
+  
+
   // TDM counter - same counter is used for both NoCs
   val regTdmCounter = Reg(init = UInt(0, log2Up(scheduleLength)))
   val end = regTdmCounter === UInt(scheduleLength - 1)
@@ -179,6 +181,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
 
         //When the target is correct, we set valid high next time.
         when((valid) ) {
+          notProcessed := Bool(false)
           delayValid := Bool(true)
 
           // Transmit outgoing memory read request/write when TDM reaches target node and request is not in local memory
@@ -194,6 +197,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
         when((valid) && !transmitted ) {
           transmitted := Bool(true)
           delayValid := Bool(false)
+          notProcessed := Bool(false)
 
           // Transmit outgoing memory read request/write when TDM reaches target node and request is not in local memory
           io.writeChannel.out.valid := Bool(true);
@@ -247,10 +251,24 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
 
 
 
+
   // ReadBack NoC variables
   val gotValue = Reg(init = Bool(false))
   val readbackValueDelayed = Reg(init= UInt(0,32))  // a 1-cycle buffer is needed on the read value for transmitting readback requests when a blank in the cycle has occured
   readbackValueDelayed := io.memPort.io.portB.rdData
+
+    val rbDelayArray = st._5
+  val rbDelayROM = Vec(rbDelayArray.map(UInt(_)))
+  val nrOfFIFORegs = rbDelayArray.reduceLeft(_ max _) // finds the greates number in the array which corrosponds to the number of registers needed.
+  val rbFIFO = RegInit(Vec(Seq.fill(nrOfFIFORegs)(new SingleChannel()))) // generate the rbFIFO
+  val localValidTable = Vec(st._6.map(Bool(_)))//used to check wether an insertion should be preformed
+  
+
+  // TDM counter - 1 clk cycle delayed, such that the 1 cycle read time is accounded for, one cycle for the router to NI and one unknown...
+  val FIFOTdmCounter = Reg(init = UInt(scheduleLength - 3, log2Up(scheduleLength)))
+  val endTDMFIFO = FIFOTdmCounter === UInt(scheduleLength - 1)
+  FIFOTdmCounter := Mux(endTDMFIFO, UInt(0), FIFOTdmCounter + UInt(1))
+  
 
   // writeNoc reception - use memory port B
   val rxLowerAddr = io.writeChannel.in.address // Block address
@@ -276,13 +294,49 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
 
   // ReadBack NoC transmission
 
+
   // TDM counter - 1
   val shiftedTdmCounter = Reg(init = UInt(st._4, log2Up(scheduleLength)))
   val end2 = shiftedTdmCounter === UInt(scheduleLength - 1)
   shiftedTdmCounter := Mux(end2, UInt(0), shiftedTdmCounter + UInt(1))
+  
+  val regShiftedTdmCounter = RegNext(shiftedTdmCounter, init=UInt(0))//This works for all route 2x2 and 3x3 and all route except the 4'th indexed ass 3 in 4x4
+  //val reg2ShiftedTdmCounter = RegNext(regShiftedTdmCounter, init=UInt(0))//this fixes 0->11 read but destroyed a lot of others
+  //FIFO logic
+  when(localValidTable(FIFOTdmCounter)){
+    rbFIFO(0).data := io.memPort.io.portB.rdData
+    rbFIFO(0).valid := gotValue // is set high when data is ready in from the memory
+    when(io.writeChannel.in.valid && !io.writeChannel.in.rw){ // if new data is available in the next cycle
+      gotValue := Bool(true)
+    }.otherwise{
+      gotValue := Bool(false)
+    }
+    for(i <-1 until rbFIFO.length){ 
+      rbFIFO(i) := rbFIFO(i - 1)
+    }
+  }
+  //Multiplexer that pics out the appropriate data in the FIFO for the readback network.
+  var muxReadDataChannel = new SingleChannel()
+  muxReadDataChannel.data := UInt(0)
+  muxReadDataChannel.valid := Bool(false)
+
+  when(rbDelayROM(regShiftedTdmCounter) === UInt(0)){
+    muxReadDataChannel.data := io.memPort.io.portB.rdData
+    muxReadDataChannel.valid := gotValue
+    when(io.writeChannel.in.valid && !io.writeChannel.in.rw){
+      gotValue := Bool(true)
+    }.otherwise{
+      gotValue := Bool(false)
+    }
+  }.otherwise{
+    muxReadDataChannel := rbFIFO(rbDelayROM(regShiftedTdmCounter) - UInt(1) )
+  }
+
+
 
   // After the first blank has been encountered in the schedule, all subsequent values must be delayed by
   // a single clockcycle. This flag must be reset upon the end of the schedule
+  /*This should no longer be used
   val readbackDelayFlag = Reg(init = Bool(false))
   when(!readbackDelayFlag && !writeNocTab(shiftedTdmCounter)){
     // the first blank has been encountered in the writeNocTab
@@ -320,6 +374,11 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
       io.memPort.io.portB.addr := RegNext(rxLowerAddr, init = UInt(0))
     }
   }
+  */
+  
+ 
+  io.readBackChannel.out.valid := muxReadDataChannel.valid
+  io.readBackChannel.out.data := muxReadDataChannel.data
         // ReadBack NoC reception
         when(io.readBackChannel.in.valid){
           // Node should be waiting for the valid signal to be asserted, to indicate that data is available
@@ -327,6 +386,8 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
           delayData := UInt(2)
           io.memReq.out.data := io.readBackChannel.in.data
           io.memReq.out.valid := io.readBackChannel.in.valid
+        }.otherwise{
+          io.memReq.out.valid := delayValid
         }
 
 }

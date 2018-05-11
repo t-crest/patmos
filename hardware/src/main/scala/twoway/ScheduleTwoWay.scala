@@ -65,6 +65,7 @@ object Schedule {
     val len = split.reduceLeft((a, b) => if (a.length > b.length) a else b).length
     val schedule = new Array[Array[Int]](len)
     val valid = new Array[Boolean](len)
+    val localValid = new Array[Boolean](len)
 
     for (i <- 0 until len) {
       schedule(i) = new Array[Int](NR_OF_PORTS)
@@ -92,6 +93,22 @@ object Schedule {
       valid(i) = split(line)(i) != ' '
       if (valid(i)) line += 1
     }
+
+    line = 0
+    var count = 0
+    for (i <- 0 until len) {
+      if (i < split(count).length() - 1) {
+        localValid(i) = false
+      } else {
+        if (split(count)(i) == 'l') {
+          localValid(i) = true
+          count += 1
+        } else {
+          localValid(i) = false
+        }
+      }
+    }
+
     println("Schedule is " + schedule.length + " clock cycles")
     // The following part generates a 'timeslot-to-recieve-node' look-up table, in the form of an array of integers.
     // Index into array specifies target node, and returned value is the timeslot which the package should be transmitted in.
@@ -137,8 +154,33 @@ object Schedule {
       timeSlotToNode(startNode) = timeSlot
     }
 
+    //The following generates a lookup table for the FIFO with look ahead used to answer read request in the correct timeslot
+    var blankArray = new Array[Int](len)
+    var blankCounter = 0
+    //here we generate the table but does not account for emptying the FIFO, in the last couple of timeslots
+    for (i <- 0 until len) {
+      if (valid(i) == false) {
+        blankCounter += 1
+      }
+      if (i < len - split(0).length() && blankCounter > 1) {
+        if (localValid(i + split(0).length() - 2) == false) {
+          blankCounter -= 1
+        }
+      }
+      blankArray(i) = blankCounter
+    }
+    blankArray(blankArray.length - 1) = 0
+    blankCounter = blankArray(blankArray.length - 2)
+    
+    // We make sure that we empty the FIFO
+    var counter = blankCounter - 1
+    for (i <- 0 until blankCounter) {
+      blankArray(blankArray.length - i - 2) -= counter
+      counter -= 1
+    }
 
-    (schedule, valid, timeSlotToNode, len-split(0).length()-1)
+
+    (schedule, valid, timeSlotToNode, len-split(0).length()-1, blankArray, localValid)
   }
 
   /* A 2x2 schedule is as follows:
