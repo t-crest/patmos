@@ -80,8 +80,10 @@ int main() {
   for (int i=0; i<LEN/BUF_LEN; ++i) {
     for (int j=0; j<BUF_LEN; ++j) {
       while (!s4noc[TX_FREE]) {;}
+      *dead_ptr = DELAY/2;
+      val = *dead_ptr;
       s4noc[SLOT_PRODU_TO_CONSU] = i*BUF_LEN + j;//1;
-      *dead_ptr = DELAY;
+      *dead_ptr = DELAY/2;
       val = *dead_ptr;
     }
   }
