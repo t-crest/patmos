@@ -181,6 +181,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
 
         //When the target is correct, we set valid high next time.
         when((valid) ) {
+          notProcessed := Bool(false)
           delayValid := Bool(true)
 
           // Transmit outgoing memory read request/write when TDM reaches target node and request is not in local memory
@@ -196,6 +197,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
         when((valid) && !transmitted ) {
           transmitted := Bool(true)
           delayValid := Bool(false)
+          notProcessed := Bool(false)
 
           // Transmit outgoing memory read request/write when TDM reaches target node and request is not in local memory
           io.writeChannel.out.valid := Bool(true);
@@ -373,7 +375,9 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
     }
   }
   */
-  io.readBackChannel.out.valid := muxReadDataChannel.valid & readBackValid(regShiftedTdmCounter  )
+  
+ 
+  io.readBackChannel.out.valid := muxReadDataChannel.valid
   io.readBackChannel.out.data := muxReadDataChannel.data
         // ReadBack NoC reception
         when(io.readBackChannel.in.valid){
@@ -382,6 +386,8 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
           delayData := UInt(2)
           io.memReq.out.data := io.readBackChannel.in.data
           io.memReq.out.valid := io.readBackChannel.in.valid
+        }.otherwise{
+          io.memReq.out.valid := delayValid
         }
 
 }
