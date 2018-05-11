@@ -162,8 +162,8 @@ object Schedule {
       if (valid(i) == false) {
         blankCounter += 1
       }
-      if (i < len - split(0).length()) {
-        if (localValid(i + split(0).length() - 1) == false) {
+      if (i < len - split(0).length() && blankCounter > 1) {
+        if (localValid(i + split(0).length() - 2) == false) {
           blankCounter -= 1
         }
       }
