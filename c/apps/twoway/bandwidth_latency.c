@@ -125,25 +125,25 @@ void bandwidth_2x2(void *arg) {
   case 0: {
     target1 = 3;
     target2 = 2;
-    target1 = 1;
+    target3 = 1;
     break;
   }
   case 1: {
     target1 = 3;
     target2 = 0;
-    target1 = 2;
+    target3 = 2;
     break;
   }
   case 2: {
     target1 = 1;
     target2 = 0;
-    target1 = 3;
+    target3 = 3;
     break;
   }
   case 3: {
     target1 = 0;
     target2 = 1;
-    target1 = 2;
+    target3 = 2;
     break;
   }
   }
