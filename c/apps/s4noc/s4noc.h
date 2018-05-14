@@ -14,6 +14,10 @@
 #define HANDSHAKE 4
 #endif
 
+#ifndef DELAY
+#define DELAY 10
+#endif
+
 #define S4NOC_ADDRESS 0xE8000000
 
 #define IN_DATA 0

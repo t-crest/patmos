@@ -11,10 +11,6 @@
 
 #include "s4noc.h"
 
-#ifndef DELAY
-#define DELAY 10
-#endif
-
 volatile _UNCACHED int started;
 volatile _UNCACHED int done;
 volatile _UNCACHED int result;
