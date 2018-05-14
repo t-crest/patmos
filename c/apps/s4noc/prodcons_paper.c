@@ -11,8 +11,6 @@
 
 #include "s4noc.h"
 
-#define DELAY 100
-
 #define SLOT_PRODU_TO_CONSU 0
 #define CONSUMER_CORE 7
 

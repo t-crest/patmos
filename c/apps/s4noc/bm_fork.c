@@ -9,9 +9,11 @@
 #include <machine/spm.h>
 #include "../../libcorethread/corethread.h"
 
-#include "s4noc.h"
-
+#ifndef DELAY
 #define DELAY 1000
+#endif
+
+#include "s4noc.h"
 
 #define PRODUCER_CORE 1
 #define FORK_CORE 8

@@ -22,8 +22,6 @@
 #define SLOT_INTER_TO_CONSU 1
 #define CONSUMER_CORE 8
 
-#define DELAY 1000
-
 volatile _UNCACHED int started_consumer;
 volatile _UNCACHED int started_intermediate;
 volatile _UNCACHED int done;

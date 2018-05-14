@@ -11,8 +11,6 @@
 
 #include "s4noc.h"
 
-#define DELAY 1500
-
 #define PRODUCER1_CORE 1
 #define PRODUCER2_CORE 4
 #define JOIN_CORE 8

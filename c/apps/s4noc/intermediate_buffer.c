@@ -9,11 +9,11 @@
 #include <machine/spm.h>
 #include "../../libcorethread/corethread.h"
 
-#include "s4noc.h"
-
 #ifndef DELAY
 #define DELAY 21
 #endif
+
+#include "s4noc.h"
 
 volatile _UNCACHED int started_consumer;
 volatile _UNCACHED int started_intermediate;
