@@ -247,6 +247,11 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     for (i <- (0 until nrCores)) {
       asynclock.io(i) <> cores(i).io.comSpm
     }
+  } else if (cmpDevice == 11) {
+    val caspm = Module(new cmp.CASPM(nrCores,32))
+    for (i <- (0 until nrCores)) {
+      caspm.io(i) <> cores(i).io.comSpm
+    }
   }
 
   for (i <- (0 until cores.length)) {

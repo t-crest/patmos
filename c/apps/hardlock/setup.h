@@ -1,7 +1,9 @@
 #ifndef _HARDLOCK_
 #ifndef _SSPM_
 #ifndef _ASYNCLOCK_
+#ifndef _CASPM_
 #define _HARDLOCK_
+#endif
 #endif
 #endif
 #endif
@@ -26,6 +28,13 @@
 #define __lock(lockid) lock(lockid);
 #define __unlock(lockid) unlock(lockid);
 #define _NAME "Asynclock"
+#endif
+
+#ifdef _CASPM_
+#include "caspm.h"
+#define __lock(lockid) 
+#define __unlock(lockid) 
+#define _NAME "CASPM"
 #endif
 
 #ifdef _SSPM_
