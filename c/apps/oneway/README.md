@@ -2,10 +2,8 @@
 
 These applications are used for the evaluation section of the following submitted paper:
 
-Martin and Rasmus: One-Way Shared Memory Stuff
-
-Which is an extension of the DATE paper.
-
+Martin Schoeberl and Rasmus Ulslev Pedersen, One-Way Memory, submitted to the
+Journal of Systems Architecture.
 
 We use the T-CREST multicore to evaluate the one-way shared memory.
 General build instructions of T-CREST in [Main README](../../../README.md).
