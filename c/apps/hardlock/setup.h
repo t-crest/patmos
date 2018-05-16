@@ -32,8 +32,8 @@
 
 #ifdef _CASPM_
 #include "caspm.h"
-#define __lock(lockid) 
-#define __unlock(lockid) 
+#define __lock(lockid) lock(lockid)
+#define __unlock(lockid) unlock(lockid)
 #define _NAME "CASPM"
 #endif
 
