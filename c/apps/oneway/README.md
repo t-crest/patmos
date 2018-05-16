@@ -35,7 +35,10 @@ Afterwards run:
 make app download APP=oneway 
 ```
 This compiles and downloads a simple test for the one-way shared memory.
-Change `MAIN` to the appropriate test.
+
+Further application examples are available at following repository:
+[One-way memory usecases](https://github.com/schoeberl/one-way-shared-memory/tree/master/usecases)
+
 
 To ensure that you have the exact version of T-CREST that we have used in the
 evaluation section of the paper, use the following `git` command to checkout that version:
