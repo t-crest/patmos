@@ -89,7 +89,7 @@ void producer(void* arg) {
 
   volatile _SPM int *s4noc = (volatile _SPM int *) (S4NOC_ADDRESS);
   int val = 0;
-  
+
   // Get started
   started_producer = 1;
 
@@ -102,24 +102,20 @@ void producer(void* arg) {
 
   for (int i=0; i<LEN/BUF_LEN; ++i) {
     for (int j=0; j<BUF_LEN; ++j) {
-      while (!s4noc[TX_FREE]) {;}
-      *dead_ptr = DELAY/2;
+      //while (!s4noc[TX_FREE]) {;}
+      *dead_ptr = DELAY;
       val = *dead_ptr;
       s4noc[SEND_SLOT_PRODU_TO_FORK] = 1;
-      *dead_ptr = DELAY/2;
-      val = *dead_ptr;
     }
   }
-  
+
   finished_producer = 1;
 
   while (end_flag==0) {
     while (!s4noc[TX_FREE]) {;}
-    *dead_ptr = DELAY/2;
+    *dead_ptr = DELAY;
     val = *dead_ptr;
     s4noc[SEND_SLOT_PRODU_TO_FORK] = 0;
-    *dead_ptr = DELAY/2;
-    val = *dead_ptr;
   }
 
   // Join threads
@@ -131,9 +127,9 @@ void producer(void* arg) {
 void fork(void* arg) {
 
   volatile _SPM int *s4noc = (volatile _SPM int *) (S4NOC_ADDRESS);
-  register int tmp; 
+  register int tmp;
   int val = 0;
-  
+
   // Get started
   started_fork=1;
 
@@ -147,7 +143,7 @@ void fork(void* arg) {
       s4noc[SEND_SLOT_FORK_TO_CONSU2] = tmp;
     }
   }
-  
+
   finished_fork=1;
 
   while (end_flag==0) {
@@ -156,7 +152,7 @@ void fork(void* arg) {
     while (!s4noc[TX_FREE]) {;}
     s4noc[SEND_SLOT_FORK_TO_CONSU2] = 0;
   }
-  
+
   // Join threads
   int ret = 0;
 	corethread_exit(&ret);
@@ -186,11 +182,11 @@ int main() {
   printf("  Total packets sent: %d\n", LEN);
   printf("  Buffer size: %d\n", BUF_LEN);
 
-  printf("Runnning test:\n");
+  printf("Running test:\n");
   corethread_create(CONSUMER1_CORE, &consumer1, NULL);
   while(started_consumer1 == 0) {;}
   printf("  Consumer-1 is ready.\n");
-  
+
   corethread_create(CONSUMER2_CORE, &consumer2, NULL);
   while(started_consumer2 == 0) {;}
   printf("  Consumer-2 is ready.\n");
@@ -201,11 +197,11 @@ int main() {
 
   corethread_create(PRODUCER_CORE, &producer, NULL);
   while(started_producer == 0) {;}
-  printf("  Producer has started.\n");
-  
+  printf("  Producer has started.\n  [...]\n");
+
   while(finished_producer == 0) {;}
   printf("  Producer has finished.\n");
-  
+
   while(finished_fork == 0) {;}
   printf("  Fork has finished.\n");
 
@@ -214,41 +210,26 @@ int main() {
 
   while(finished_consumer2 == 0) {;}
   printf("  Consumer-2 has finished.\n");
-   
+
   *dead_ptr = 8000000;
   val = *dead_ptr;
-  
+
   printf("Results Consumer-1: \n");
-  printf("  %d valid pakets out of of %d received.\n", result1, LEN); 
+  printf("  %d valid packets out of of %d received.\n", result1, LEN);
   printf("  Reception time of %d cycles -> %g cycles per received packet.\n", time1, 1. * time1/LEN);
-  
+
   printf("Results Consumer-2: \n");
-  printf("  %d valid pakets out of of %d received.\n", result2, LEN); 
+  printf("  %d valid packets out of of %d received.\n", result2, LEN);
   printf("  Reception time of %d cycles -> %g cycles per received packet.\n", time2, 1. * time2/LEN);
-  
+
   // Join threads
   int *retval;
   end_flag = 1;
   corethread_join(PRODUCER_CORE, (void **)&retval);
   corethread_join(FORK_CORE, (void **)&retval);
   corethread_join(CONSUMER1_CORE, (void **)&retval);
-  corethread_join(CONSUMER2_CORE, (void **)&retval);  
+  corethread_join(CONSUMER2_CORE, (void **)&retval);
 
   printf("End of program.\n");
-  return val;  
+  return val;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

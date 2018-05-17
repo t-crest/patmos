@@ -29,7 +29,6 @@ volatile _UNCACHED int finished_consumer;
 volatile _UNCACHED int end_flag;
 volatile _UNCACHED int result;
 volatile _UNCACHED int time;
-//volatile _UNCACHED int array[LEN];
 
 void consumer(void* arg) {
 
@@ -44,8 +43,6 @@ void consumer(void* arg) {
     for (int j=0; j<BUF_LEN; ++j) {
       while (!s4noc[RX_READY]) {;}
       sum += s4noc[IN_DATA];
-      //array[i*BUF_LEN + j] = s4noc[IN_DATA];
-      //array[i] = s4noc[IN_DATA];
     }
   }
   time = *timer_ptr - time;
@@ -62,7 +59,7 @@ void producer(void* arg) {
 
   volatile _SPM int *s4noc = (volatile _SPM int *) (S4NOC_ADDRESS);
   int val = 0;
-  
+
   // Get started
   started_producer = 1;
 
@@ -75,25 +72,20 @@ void producer(void* arg) {
 
   for (int i=0; i<LEN/BUF_LEN; ++i) {
     for (int j=0; j<BUF_LEN; ++j) {
-      while (!s4noc[TX_FREE]) {;}
-      *dead_ptr = DELAY/2;
+      //while (!s4noc[TX_FREE]) {;}
+      *dead_ptr = DELAY;
       val = *dead_ptr;
       s4noc[SEND_SLOT_PRODU_TO_INTER] = 1;
-      //s4noc[SEND_SLOT_PRODU_TO_INTER] = i*BUF_LEN + j;      
-      *dead_ptr = DELAY/2;
-      val = *dead_ptr;
     }
   }
-  
+
   finished_producer = 1;
 
   while (end_flag==0) {
     while (!s4noc[TX_FREE]) {;}
-    *dead_ptr = DELAY/2;
+    *dead_ptr = DELAY;
     val = *dead_ptr;
     s4noc[SEND_SLOT_PRODU_TO_INTER] = 0;
-    *dead_ptr = DELAY/2;
-    val = *dead_ptr;
   }
 
   // Join threads
@@ -106,25 +98,25 @@ void intermediate(void* arg) {
 
   volatile _SPM int *s4noc = (volatile _SPM int *) (S4NOC_ADDRESS);
   int val = 0;
-  
+
   // Get started
   started_intermediate=1;
 
   for (int i=0; i<LEN/BUF_LEN; ++i) {
     for (int j=0; j<BUF_LEN; ++j) {
       while (!s4noc[RX_READY]) {;}
-      while (!s4noc[TX_FREE]) {;}
+      //while (!s4noc[TX_FREE]) {;}//drop this?
       s4noc[SEND_SLOT_INTER_TO_CONSU] = s4noc[IN_DATA];
     }
   }
-  
+
   finished_intermediate=1;
 
   while (end_flag==0) {
     while (!s4noc[TX_FREE]) {;}
     s4noc[SEND_SLOT_INTER_TO_CONSU] = 0;
   }
-  
+
   // Join threads
   int ret = 0;
 	corethread_exit(&ret);
@@ -150,7 +142,7 @@ int main() {
   printf("  Total packets sent: %d\n", LEN);
   printf("  Buffer size: %d\n", BUF_LEN);
 
-  printf("Runnning test:\n");
+  printf("Running test:\n");
   corethread_create(CONSUMER_CORE, &consumer, NULL);
   while(started_consumer == 0) {;}
   printf("  Consumer is ready.\n");
@@ -161,31 +153,31 @@ int main() {
 
   corethread_create(PRODUCER_CORE, &producer, NULL);
   while(started_producer == 0) {;}
-  printf("  Producer has started.\n");
-  
+  printf("  Producer has started.\n  [...]\n");
+
   while(finished_producer == 0) {;}
   printf("  Producer has finished.\n");
-  
+
   while(finished_intermediate == 0) {;}
   printf("  Intermediate has finished.\n");
 
   while(finished_consumer == 0) {;}
   printf("  Consumer has finished.\n");
-    
+
   *dead_ptr = 8000000;
   val = *dead_ptr;
-  
+
   printf("Results: \n");
-  printf("  %d valid pakets out of of %d received.\n", result, LEN); 
+  printf("  %d valid packets out of of %d received.\n", result, LEN);
   printf("  Reception time of %d cycles -> %g cycles per received packet.\n", time, 1. * time/LEN);
-  
+
   // Join threads
   int *retval;
   end_flag = 1;
   corethread_join(PRODUCER_CORE, (void **)&retval);
   corethread_join(INTERMEDIATE_CORE, (void **)&retval);
   corethread_join(CONSUMER_CORE, (void **)&retval);
-  
+
   //for (int i=0; i<LEN/BUF_LEN; ++i) {
   //  for (int j=0; j<BUF_LEN; ++j) {
   //    printf("Array[%d] = %d;  ", i*BUF_LEN + j, array[i*BUF_LEN + j]);
@@ -193,20 +185,5 @@ int main() {
   // }
 
   printf("End of program.\n");
-  return val;  
+  return val;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

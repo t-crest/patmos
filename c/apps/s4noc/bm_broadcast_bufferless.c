@@ -9,10 +9,7 @@
 #include <machine/spm.h>
 #include "../../libcorethread/corethread.h"
 
-#define DELAY 10000
 #include "s4noc.h"
-
-
 
 #define PRODUCER_CORE 1
 #define FORK_CORE 8
@@ -20,7 +17,6 @@
 
 // Amount of consumers
 #define CONSUMERS 5
-#define CONSUMERS_send 5
 
 volatile _UNCACHED int SEND_SLOT_FORK_TO_CONSU[] = {0, 1, 5, 6, 8, 7};
 volatile _UNCACHED int CONSUMER_CORE[] =           {3, 4, 5, 6, 7, 2};
@@ -83,7 +79,7 @@ void producer(void* arg) {
 
   for (int i=0; i<LEN/BUF_LEN; ++i) {
     for (int j=0; j<BUF_LEN; ++j) {
-      while (!s4noc[TX_FREE]) {;}
+      //while (!s4noc[TX_FREE]) {;}
       *dead_ptr = DELAY;
       val = *dead_ptr;
       s4noc[SEND_SLOT_PRODU_TO_FORK] = 1;
@@ -118,8 +114,7 @@ void fork(void* arg) {
     for (int j=0; j<BUF_LEN; ++j) {
       while (!s4noc[RX_READY]) {;}
       tmp = s4noc[IN_DATA];
-      for (int i=0; i<CONSUMERS_send; ++i) {
-      //for (int i=CONSUMERS-1; i>=0; --i) {
+      for (int i=0; i<CONSUMERS; ++i) {
         while (!s4noc[TX_FREE]) {;}
         s4noc[SEND_SLOT_FORK_TO_CONSU[i]] = tmp;
       }
@@ -129,7 +124,7 @@ void fork(void* arg) {
   finished_fork=1;
 
   while (end_flag==0) {
-    for (int i=0; i<CONSUMERS_send; ++i) {
+    for (int i=0; i<CONSUMERS; ++i) {
       while (!s4noc[TX_FREE]) {;}
       s4noc[SEND_SLOT_FORK_TO_CONSU[i]] = 0;
     }
@@ -179,7 +174,7 @@ int main() {
 
   corethread_create(PRODUCER_CORE, &producer, NULL);
   while(started_producer == 0) {;}
-  printf("  Producer has started.\n");
+  printf("  Producer has started.\n  [...]\n");
 
   while(finished_producer == 0) {;}
   printf("  Producer has finished.\n");

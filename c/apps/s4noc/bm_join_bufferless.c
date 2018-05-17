@@ -24,7 +24,6 @@
 
 volatile _UNCACHED int started_producer1;
 volatile _UNCACHED int started_producer2;
-volatile _UNCACHED int sync_producer1;
 volatile _UNCACHED int started_join;
 volatile _UNCACHED int started_consumer;
 volatile _UNCACHED int finished_producer1;
@@ -36,6 +35,8 @@ volatile _UNCACHED int result;
 volatile _UNCACHED int time;
 volatile _UNCACHED int time1;
 volatile _UNCACHED int time2;
+volatile _UNCACHED int sync_valid;
+volatile _UNCACHED int sync_time;
 
 void consumer(void* arg) {
 
@@ -68,40 +69,34 @@ void producer1(void* arg) {
 
   volatile _SPM int *s4noc = (volatile _SPM int *) (S4NOC_ADDRESS);
   int val = 0;
-  
+
   // Get started
   started_producer1 = 1;
 
-  // Give the other threads some head start to be ready (0.1s)
-  *dead_ptr = 8000000;
-  val = *dead_ptr;
+  while(sync_valid == 0) {;}
+  register int sync_time_local = sync_time;
+  time1 = sync_time_local;
+  while(*timer_ptr < sync_time_local) {;}
 
-  // Get started
-  sync_producer1 = 1;
-  
   // Start timing
-  time1 = *timer_ptr;
+  //time1 = *timer_ptr;
 
   for (int i=0; i<LEN/BUF_LEN; ++i) {
     for (int j=0; j<BUF_LEN; ++j) {
-      while (!s4noc[TX_FREE]) {;}
-      *dead_ptr = DELAY/2;
+      //while (!s4noc[TX_FREE]) {;}
+      *dead_ptr = DELAY;
       val = *dead_ptr;
-      s4noc[SEND_SLOT_PRODU1_TO_JOIN] = 1;  
-      *dead_ptr = DELAY/2;
-      val = *dead_ptr;
+      s4noc[SEND_SLOT_PRODU1_TO_JOIN] = 1;
     }
   }
-  
+
   finished_producer1 = 1;
 
   while (end_flag==0) {
     while (!s4noc[TX_FREE]) {;}
-    *dead_ptr = DELAY/2;
+    *dead_ptr = DELAY;
     val = *dead_ptr;
     s4noc[SEND_SLOT_PRODU1_TO_JOIN] = 0;
-    *dead_ptr = DELAY/2;
-    val = *dead_ptr;
   }
 
   // Join threads
@@ -114,36 +109,34 @@ void producer2(void* arg) {
 
   volatile _SPM int *s4noc = (volatile _SPM int *) (S4NOC_ADDRESS);
   int val = 0;
-  
+
   // Get started
   started_producer2 = 1;
 
-  // Synchronizing as much as possible with producer 1
-  while(sync_producer1 == 0) {;}
+  while(sync_valid == 0) {;}
+  register int sync_time_local = sync_time;
+  time2 = sync_time_local;
+  while(*timer_ptr < sync_time_local) {;}
 
   // Start timing
-  time2 = *timer_ptr;
+  //time2 = *timer_ptr;
 
   for (int i=0; i<LEN/BUF_LEN; ++i) {
     for (int j=0; j<BUF_LEN; ++j) {
-      while (!s4noc[TX_FREE]) {;}
-      *dead_ptr = DELAY/2;
+      //while (!s4noc[TX_FREE]) {;}
+      *dead_ptr = DELAY;
       val = *dead_ptr;
-      s4noc[SEND_SLOT_PRODU2_TO_JOIN] = 2;  
-      *dead_ptr = DELAY/2;
-      val = *dead_ptr;
+      s4noc[SEND_SLOT_PRODU2_TO_JOIN] = 2;
     }
   }
-  
+
   finished_producer2 = 1;
 
   while (end_flag==0) {
     while (!s4noc[TX_FREE]) {;}
-    *dead_ptr = DELAY/2;
+    *dead_ptr = DELAY;
     val = *dead_ptr;
     s4noc[SEND_SLOT_PRODU2_TO_JOIN] = 0;
-    *dead_ptr = DELAY/2;
-    val = *dead_ptr;
   }
 
   // Join threads
@@ -158,7 +151,7 @@ void join(void* arg) {
   volatile _SPM int *s4noc = (volatile _SPM int *) (S4NOC_ADDRESS);
   register int tmp, tmp1, tmp2;
   int val = 0;
-  
+
   // Get started
   started_join=1;
 
@@ -176,14 +169,14 @@ void join(void* arg) {
       s4noc[SEND_SLOT_JOIN_TO_CONSU] = tmp;
     }
   }
-  
+
   finished_join=1;
 
   while (end_flag==0) {
     while (!s4noc[TX_FREE]) {;}
     s4noc[SEND_SLOT_JOIN_TO_CONSU] = 0;
   }
-  
+
   // Join threads
   int ret = 0;
 	corethread_exit(&ret);
@@ -199,13 +192,14 @@ int main() {
   result = 0;
   started_producer1 = 0;
   started_producer2 = 0;
-  sync_producer1 = 0;
   started_join = 0;
   started_consumer = 0;
   finished_producer1 = 0;
   finished_producer2 = 0;
   finished_join = 0;
   finished_consumer = 0;
+  sync_valid = 0;
+  sync_time = 0;
 
   printf("2-producers/join/consumer benchmark for the S4NOC paper:\n");
   printf("  Delay: %d\n", DELAY);
@@ -213,7 +207,7 @@ int main() {
   printf("  Total packets sent: %d\n", LEN);
   printf("  Buffer size: %d\n", BUF_LEN);
 
-  printf("Runnning test:\n");
+  printf("Running test:\n");
   corethread_create(CONSUMER_CORE, &consumer, NULL);
   while(started_consumer == 0) {;}
   printf("  Consumer is ready.\n");
@@ -225,31 +219,36 @@ int main() {
   corethread_create(PRODUCER2_CORE, &producer2, NULL);
   corethread_create(PRODUCER1_CORE, &producer1, NULL);
   while(started_producer1 == 0) {;}
-  printf("  Producer-1 has started.\n");  
-  
+  printf("  Producer-1 has started.\n");
+
   while(started_producer2 == 0) {;}
-  printf("  Producer-2 has started.\n");
-   
+  printf("  Producer-2 has started.\n  [...]\n");
+
+  sync_time = *timer_ptr + 80000000;
+  *dead_ptr = 800000;
+  val = *dead_ptr;
+  sync_valid = 1;
+
   while(finished_producer1 == 0) {;}
   printf("  Producer-1 has finished.\n");
-  
+
   while(finished_producer2 == 0) {;}
   printf("  Producer-2 has finished.\n");
-  
+
   while(finished_join == 0) {;}
   printf("  Join has finished.\n");
 
   while(finished_consumer == 0) {;}
   printf("  Consumer has finished.\n");
-    
+
   *dead_ptr = 8000000;
   val = *dead_ptr;
-  
+
   printf("Results: \n");
-  printf("  %d valid pakets out of of %d received.\n", result, LEN); 
+  printf("  %d valid packets out of of %d received.\n", result, LEN);
   printf("  Reception time of %d cycles -> %g cycles per received packet (from Producer-1).\n", time1, 1. * time1/LEN);
   printf("  Reception time of %d cycles -> %g cycles per received packet (from Producer-2).\n", time2, 1. * time2/LEN);
-  
+
   // Join threads
   int *retval;
   end_flag = 1;
@@ -259,6 +258,5 @@ int main() {
   corethread_join(CONSUMER_CORE, (void **)&retval);
 
   printf("End of program.\n");
-  return val;  
+  return val;
 }
-
