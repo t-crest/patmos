@@ -4,6 +4,9 @@ About this fork
 This is a fork of patmos created to make a pull request to add Load-Linked
 Store-Conditional scratchpad memory.
 
+The hardware files are in the `conc` package. Some C example programs are
+in the `llsc` app drectory. The new shared SPM is added with code 7.
+
 About Patmos
 ============
 
