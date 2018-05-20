@@ -32,7 +32,7 @@ const int NOC_MASTER = 0;
 #define SHARED_SPM (0xE8000000)
 volatile _SPM int* shared_addr = (volatile _SPM int *) (SHARED_SPM + 32);
 volatile _SPM int* sync_addr = (volatile _SPM int *) (SHARED_SPM + 64);
-volatile _SPM int* result_addr = (volatile _SPM int *) (SHARED_SPM + 1023);
+volatile _SPM int* result_addr = (volatile _SPM int *) (SHARED_SPM + 1024);
 
 /*
     This function writes A_VAL in the shared address, signals that to the
