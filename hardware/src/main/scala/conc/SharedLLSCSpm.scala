@@ -187,10 +187,10 @@ object SharedLLSCSpmTester {
         }
 
         // Write result is returned on data wires
-        // chiselMainTest(Array("--genHarness", "--test", "--backend", "c",
-        //         "--compile", "--vcd", "--targetDir", "generated"),
-        //     () => SharedLLSCSpm(GRANULARITY, 4, SIZE, true)) {
-        //         c => new SharedLLSCSpmTester(c, true)
-        // }
+        chiselMainTest(Array("--genHarness", "--test", "--backend", "c",
+                "--compile", "--vcd", "--targetDir", "generated"),
+            () => SharedLLSCSpm(GRANULARITY, 4, SIZE, true)) {
+                c => new SharedLLSCSpmTester(c, true)
+        }
     }
 }

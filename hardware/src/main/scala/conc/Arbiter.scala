@@ -25,6 +25,8 @@ class Arbiter(
     delay :Int = 1
 ) extends Module {
 
+    val NO_DELAY = delay == 0
+
     /*
       slave     : the OCp slave port, to be connected to the arbitrated master
       master    : the OCP master port, to be connected to te slave
@@ -36,11 +38,10 @@ class Arbiter(
         val core = UInt(OUTPUT, log2Up(nrCores))
     }
 
-    /*
-        This wastes one bit in case there is no delay and the waitingDva state
-        is not used, but otherwise its encoding would overlap with another state.
-    */
-    val waitingCmd :: waitingTurn :: waitingDva :: Nil = Enum(UInt(), 3)
+    // Saving one bit in state if there si no delay
+    val waitingCmd :: waitingTurn :: rest = Enum(UInt(), if (NO_DELAY) 2 else 3)
+    val waitingDva = if (NO_DELAY) UInt() else rest.head
+
     val state = RegInit(waitingCmd)
 
     // TODO: how to reset with a harmless IDLE command?
@@ -97,7 +98,7 @@ class Arbiter(
                     At synthesis time, switching to the appropriate state
                     depending on the delay
                 */
-                if (delay == 0) {
+                if (NO_DELAY) {
                     dvaRepl := OcpResp.DVA
                     state := waitingCmd
                 }
@@ -107,14 +108,17 @@ class Arbiter(
             }
         }
 
-        is (waitingDva) {
+        // this state does not exist without a delay
+        if (!NO_DELAY) {
+            is (waitingDva) {
 
-            // Only when the slave data are actually valid
-            when (dva) {
+                // Only when the slave data are actually valid
+                when (dva) {
 
-                // Sending va to the master and back to listening for commands
-                dvaRepl := OcpResp.DVA
-                state := waitingCmd
+                    // Sending va to the master and back to listening for commands
+                    dvaRepl := OcpResp.DVA
+                    state := waitingCmd
+                }
             }
         }
     }
