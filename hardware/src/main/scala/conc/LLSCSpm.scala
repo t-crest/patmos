@@ -150,7 +150,7 @@ class LLSCSpm(
 
     // The address of the result register, if not sending
     // the result when writing
-    val resultRegAddr = UInt(size - 1)
+    val resultRegAddr = UInt(size)
 
     //binary value of the SPM address
     val addrBits = log2Up(size / BYTES_PER_WORD)
