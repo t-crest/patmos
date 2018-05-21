@@ -20,8 +20,8 @@ import patmos.Constants._
 */
 class SharedLLSCSpm(
     granularity :Int,
-    nrCores: Int,
-    size: Int,
+    nrCores :Int,
+    size :Int,
     resultOnData :Boolean = false
 ) extends Module {
 
@@ -175,7 +175,7 @@ class SharedLLSCSpmTester(dut: SharedLLSCSpm, resultOnData :Boolean = false) ext
 
 object SharedLLSCSpmTester {
     val GRANULARITY = 32
-    val SIZE = 512
+    val SIZE = 1024
 
     def main(args: Array[String]): Unit = {
 

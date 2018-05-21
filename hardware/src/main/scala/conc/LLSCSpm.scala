@@ -239,14 +239,14 @@ class LLSCSpm(
 
     if (resultOnData) {
         // When sending the results on OCP data wires, the data should come
-        // from the memory on read commands and from the result register
+        // from the memory on read commands and from the data register
         // on writes
         io.slave.S.Data := Mux(cmdReg === OcpCmd.RD, rdData, dataReg)
     }
     else {
-        // When sending the results on OCP data wires, the data should come
-        // from the memory on read commands and from the result register
-        // on writes
+        // When not sending the results on OCP data wires, the data should
+        // come from the result register when its address was input in the
+        // previous cycle, from the memory otherwise
         io.slave.S.Data := Mux(hasReadResult, dataReg, rdData)
     }
 
@@ -285,7 +285,7 @@ class LLSCSpm(
                 dirtyBits.io.data := DIRTY
 
                 // When the store conditional result is returned on OCP data
-                // wires, writing to the result in the result register.
+                // wires, writing to the result in the data register.
                 // Otherwise, the corresponding bit in the result register is
                 // set for later reading
                 if (resultOnData) {
@@ -297,7 +297,7 @@ class LLSCSpm(
             }.otherwise {
 
                 // When the store conditional result is returned on OCP data
-                // wires, writing to the result in the result register.
+                // wires, writing to the result in the data register.
                 // Otherwise, the corresponding bit in the result register is
                 // reset for later reading
                 if (resultOnData) {
