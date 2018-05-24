@@ -252,6 +252,11 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     for (i <- (0 until nrCores)) {
       caspm.io(i) <> cores(i).io.comSpm
     }
+  } else if (cmpDevice == 12) {
+    val spm = conc.SharedLLSCSpm(64, nrCores, 1024)
+    for (i <- (0 until cores.length)) {
+      spm.io(i) <> cores(i).io.comSpm
+    }
   }
 
   for (i <- (0 until cores.length)) {

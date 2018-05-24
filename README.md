@@ -1,3 +1,12 @@
+About this fork
+============
+
+This is a fork of patmos created to make a pull request to add Load-Linked
+Store-Conditional scratchpad memory.
+
+The hardware files are in the `conc` package. Some C example programs are
+in the `llsc` app drectory. The new shared SPM is added with code 12.
+
 About Patmos
 ============
 
@@ -97,5 +106,3 @@ Known Issues
 - [ ] `patmos-llvm` currently does not compile with clang > 3.4 on Ubuntu 15.04.
       As a workaround, uninstall `clang`, install `clang-3.4` and create symlinks
       `clang` and `clang++` to `clang-3.4` and `clang++-3.4`.
-
-
