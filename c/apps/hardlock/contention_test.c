@@ -7,116 +7,98 @@
 #define WAIT 10
 #endif
 
-_UNCACHED int cpucnt = MAX_CORE_CNT;
+#define shared_lock() __lock(MAX_LCK_CNT-1)
+#define shared_unlock() __unlock(MAX_LCK_CNT-1)
+
 _UNCACHED int data[MAX_LCK_CNT];
-_UNCACHED int cnt1 = MAX_CNT;
-_UNCACHED int cnt2 = MAX_CNT;
-_UNCACHED int sync = 0;
+_UNCACHED int cnt = MAX_CNT;
 
-int _main()
+
+volatile _IODEV int *dead_ptr = (volatile _IODEV int *) PATMOS_IO_DEADLINE;
+
+void work(int lckcnt)
 {
-  int cpuid = get_cpuid();
-  int stop;
-  for(int i = 1; i <= MAX_LCK_CNT; i++)
+  while(1)
   {
-    __lock(0);
-    if(sync == cpucnt-1)
+    shared_lock();
+    if(cnt == 0)
     {
-      for (int j = 0; j < MAX_LCK_CNT; j++) {
-        data[j] = 0;
-      }
-      cnt1 = MAX_CNT;
-      cnt2 = MAX_CNT;
-    }
-    sync++;
-    __unlock(0);
-    while(sync < cpucnt) {asm("");}
-
-    if(cpuid == 0)
-      stop = TIMER_CLK_LOW;
-    while(1)
-    {
-      __lock(0);
-      if(cnt1 == 0)
-      {
-        __unlock(0);
-        while(cnt2 > 0) {asm("");}
-        break;
-      }
-      int _cnt = cnt1--;
-      __unlock(0);
-      int lckid = _cnt%i;
-
-      __lock(lckid);
-      data[lckid]++;
-      for(int j = 0; j < WAIT; j++)
-        asm("");
-      __unlock(lckid);
-
-      __lock(0);
-      if(cnt2 == 1)
-        sync = 0;
-      cnt2--;
-      __unlock(0);
+      shared_unlock();
+      break;
     }
 
-    if(cpuid == 0)
-    {
-      stop = TIMER_CLK_LOW - stop;
-      printf("Iteration with %d fields finished in %d cycles\n", i, stop);
-    }
+    int _cnt = --cnt;
+    
+    if(_cnt != 0)
+      shared_unlock();
 
-    int cnt = 0;
-    for (int j = 0; j < i; j++)
-      cnt += data[j];
- 
-    if(cnt != MAX_CNT)
-        return cnt;
+    int lckid = _cnt%lckcnt;
+
+    __lock(lckid);
+    *dead_ptr = WAIT;
+    data[lckid]++;
+    *dead_ptr;
+    __unlock(lckid);
+
+    if(_cnt == 0)
+      shared_unlock();
   }
-
-  return 0;
 }
 
-void worker_func(void* arg) {
-  int worker_param = *((int*)arg);
-  int ret = _main();
+void worker_init(void* arg) {
+  int lckcnt = *((int*)arg);
+  work(lckcnt);
+  int ret = 0;
   corethread_exit(&ret);
   return;
 }
 
 int main() {
 
-#ifdef _SSPM_
-  for(int i = 0; i < MAX_LCK_CNT; i++)
-    locks[i] = (volatile _SPM lock_t*) (LOWEST_SSPM_ADDRESS+(i*4));
-#endif
+  locks_init();
 
-  int threads[MAX_CORE_CNT];
-  cpucnt = MAX_CORE_CNT;
+  int cpucnt = MAX_CORE_CNT;
   if(get_cpucnt() < cpucnt)
     cpucnt = get_cpucnt();
 
-  printf("%d locks implemented using "_NAME" \n", MAX_LCK_CNT);
-  printf("%d iterations in each set\n", MAX_CNT);
-  printf("%d wait operations in each iteration\n", WAIT);
+  printf("%d locks/iterations implemented using "_NAME" \n", MAX_LCK_CNT);
+  printf("%d incrementations for each iteration\n", MAX_CNT);
+  printf("%d cycles critical section for each incrementation\n", WAIT);
   printf("Starting %d cores\n",cpucnt);
 
-  for(int i = 1; i < cpucnt; i++)
-  {
-    threads[i] = i;
-    int worker_param = 1;
-    corethread_create(threads[i],&worker_func,&worker_param);
+  for(int i = 1; i < MAX_LCK_CNT; i++) {
+
+    for (int j = 0; j < i; j++) {
+      data[j] = 0;
+    }
+    cnt = MAX_CNT;
+    
+    shared_lock();
+    for(int j = 1; j < cpucnt; j++)
+      corethread_create(j,&worker_init,&i);
+    shared_unlock();
+
+    int time = TIMER_CLK_LOW;
+    work(i);
+    time = TIMER_CLK_LOW - time;
+    
+    for (int j = 0; j < i; j++)
+      cnt += data[j];
+ 
+    if(cnt != MAX_CNT) {
+      printf("Iteration with %d fields failed.\nProper sum:%d\nCalulated sum:%d\n", i, MAX_CNT, cnt);
+      return cnt;
+    }
+
+    printf("Iteration with %d fields finished in %d cycles\n", i, time);
+
+    for(int j = 1; j < cpucnt; j++) {
+      void * res;
+      corethread_join(j, &res);
+    }
   }
 
-  int ret = _main();
-
-  for(int i = 1; i < cpucnt; i++)
-  {
-    void * res;
-    corethread_join(threads[i], &res);
-  }
-
-  return ret;
+  return 0;
 }
 
 

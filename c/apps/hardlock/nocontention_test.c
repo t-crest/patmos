@@ -1,7 +1,6 @@
 #include "setup.h"
 
 _UNCACHED int cpucnt = MAX_CORE_CNT;
-_UNCACHED char data[MAX_CORE_CNT];
 _UNCACHED int acquisitions_avg[MAX_CORE_CNT];
 _UNCACHED int acquisitions_max[MAX_CORE_CNT];
 _UNCACHED int acquisitions_min[MAX_CORE_CNT];
@@ -12,13 +11,14 @@ _UNCACHED int acquirels_avg[MAX_CORE_CNT];
 _UNCACHED int acquirels_max[MAX_CORE_CNT];
 _UNCACHED int acquirels_min[MAX_CORE_CNT];
 
+const int shift = 2;
+const int iter = 1 << shift;
+const int MIN_START = 10000;
+
 int _main()
 {
   int coreid = get_cpuid();
   int lckid = coreid % MAX_LCK_CNT;
-  const int shift = 2;
-  const int iter = 1 << shift;
-  const int MIN_START = 10000;
   int acquire = 0;
   int acquire_avg = 0;
   int acquire_max = 0;
@@ -63,13 +63,16 @@ int _main()
       acquire_min = acquire;
   }
 
+
   for(int i = 0; i < iter; i++)
   {
+    asm("");
     stop1 = TIMER_CLK_LOW;
     __lock(lckid);
     __unlock(lckid);
     stop2 = TIMER_CLK_LOW;
-
+    asm("");
+    asm("");
     acquirel = (stop2 - stop1) - 1;
     acquirel_avg += acquirel;
     if(acquirel > acquirel_max)
@@ -87,55 +90,6 @@ int _main()
   acquirels_avg[coreid] = acquirel_avg >> shift;
   acquirels_max[coreid] = acquirel_max;
   acquirels_min[coreid] = acquirel_min;
-  data[coreid] = 'F';
-  if(coreid == 0) {
-    for (int i = 0; i < cpucnt; i++) {
-      printf("Waiting for core %d\n", i);
-      while(data[i] != 'F') {
-        asm volatile("");
-      }
-    }
-    printf("Iterations: %d\n", iter);
-    printf("Acquisitions\n");
-    printf("Average:\n");
-    for (int i = 0; i < cpucnt; i++) {
-      printf("%d\n", acquisitions_avg[i]);
-    }
-    printf("Max:\n");
-    for (int i = 0; i < cpucnt; i++) {
-      printf("%d\n", acquisitions_max[i]);
-    }
-    printf("Min:\n");
-    for (int i = 0; i < cpucnt; i++) {
-      printf("%d\n", acquisitions_min[i]);
-    }
-    printf("Releases\n");
-    printf("Average:\n");
-    for (int i = 0; i < cpucnt; i++) {
-      printf("%d\n", releases_avg[i]);
-    }
-    printf("Max:\n");
-    for (int i = 0; i < cpucnt; i++) {
-      printf("%d\n", releases_max[i]);
-    }
-    printf("Min:\n");
-    for (int i = 0; i < cpucnt; i++) {
-      printf("%d\n", releases_min[i]);
-    }
-    printf("Acquisition and immediate releases:\n");
-    printf("Average:\n");
-    for (int i = 0; i < cpucnt; i++) {
-      printf("%d\n", acquirels_avg[i]);
-    }
-    printf("Max:\n");
-    for (int i = 0; i < cpucnt; i++) {
-      printf("%d\n", acquirels_max[i]);
-    }
-    printf("Min:\n");
-    for (int i = 0; i < cpucnt; i++) {
-      printf("%d\n", acquirels_min[i]);
-    }
-  }
   return 0;
 }
 
@@ -164,8 +118,50 @@ int main() {
   int ret = _main();
   for(int i = 1; i < cpucnt; i++)
   {
+    printf("Waiting for core %d\n", i);
     void * res;
     corethread_join(threads[i], &res);
+  }
+
+  printf("Iterations: %d\n", iter);
+  printf("Acquisitions\n");
+  printf("Average:\n");
+  for (int i = 0; i < cpucnt; i++) {
+    printf("%d\n", acquisitions_avg[i]);
+  }
+  printf("Max:\n");
+  for (int i = 0; i < cpucnt; i++) {
+    printf("%d\n", acquisitions_max[i]);
+  }
+  printf("Min:\n");
+  for (int i = 0; i < cpucnt; i++) {
+    printf("%d\n", acquisitions_min[i]);
+  }
+  printf("Releases\n");
+  printf("Average:\n");
+  for (int i = 0; i < cpucnt; i++) {
+    printf("%d\n", releases_avg[i]);
+  }
+  printf("Max:\n");
+  for (int i = 0; i < cpucnt; i++) {
+    printf("%d\n", releases_max[i]);
+  }
+  printf("Min:\n");
+  for (int i = 0; i < cpucnt; i++) {
+    printf("%d\n", releases_min[i]);
+  }
+  printf("Acquisition and immediate releases:\n");
+  printf("Average:\n");
+  for (int i = 0; i < cpucnt; i++) {
+    printf("%d\n", acquirels_avg[i]);
+  }
+  printf("Max:\n");
+  for (int i = 0; i < cpucnt; i++) {
+    printf("%d\n", acquirels_max[i]);
+  }
+  printf("Min:\n");
+  for (int i = 0; i < cpucnt; i++) {
+    printf("%d\n", acquirels_min[i]);
   }
   return ret;
 }
