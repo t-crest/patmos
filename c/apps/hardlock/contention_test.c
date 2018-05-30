@@ -21,6 +21,7 @@ void work(int lckcnt)
   while(1)
   {
     shared_lock();
+
     if(cnt == 0)
     {
       shared_unlock();
@@ -28,9 +29,8 @@ void work(int lckcnt)
     }
 
     int _cnt = --cnt;
-    
-    if(_cnt != 0)
-      shared_unlock();
+
+    shared_unlock();
 
     int lckid = _cnt%lckcnt;
 
@@ -40,8 +40,6 @@ void work(int lckcnt)
     *dead_ptr;
     __unlock(lckid);
 
-    if(_cnt == 0)
-      shared_unlock();
   }
 }
 
@@ -55,7 +53,7 @@ void worker_init(void* arg) {
 
 int main() {
 
-  locks_init();
+  LOCKS_INIT
 
   int cpucnt = MAX_CORE_CNT;
   if(get_cpucnt() < cpucnt)
@@ -63,10 +61,10 @@ int main() {
 
   printf("%d locks/iterations implemented using "_NAME" \n", MAX_LCK_CNT);
   printf("%d incrementations for each iteration\n", MAX_CNT);
-  printf("%d cycles critical section for each incrementation\n", WAIT);
+  printf("%d cycle critical section for each incrementation\n", WAIT);
   printf("Starting %d cores\n",cpucnt);
 
-  for(int i = 1; i < MAX_LCK_CNT; i++) {
+  for(int i = 1; i < MAX_LCK_CNT-1; i++) {
 
     for (int j = 0; j < i; j++) {
       data[j] = 0;
@@ -80,6 +78,10 @@ int main() {
 
     int time = TIMER_CLK_LOW;
     work(i);
+    for(int j = 1; j < cpucnt; j++) {
+      void * res;
+      corethread_join(j, &res);
+    }
     time = TIMER_CLK_LOW - time;
     
     for (int j = 0; j < i; j++)
@@ -92,10 +94,7 @@ int main() {
 
     printf("Iteration with %d fields finished in %d cycles\n", i, time);
 
-    for(int j = 1; j < cpucnt; j++) {
-      void * res;
-      corethread_join(j, &res);
-    }
+    
   }
 
   return 0;

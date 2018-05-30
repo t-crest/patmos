@@ -207,7 +207,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   println("Config cmp: " + cmpDevice)
   // This is a hack and workaround for CMP experiments
   if (cmpDevice == 0) {
-    val hardlock = Module(new cmp.HardlockOCPWrapper(() => new cmp.Hardlock(nrCores, nrCores)))
+    val hardlock = Module(new cmp.HardlockOCPWrapper(() => new cmp.Hardlock(nrCores, nrCores*2)))
     for (i <- (0 until nrCores)) {
       hardlock.io(i) <> cores(i).io.comSpm
     }
@@ -243,12 +243,12 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       s4noc.io(i) <> cores(i).io.comSpm
     }
   } else if (cmpDevice == 10) {
-    val asynclock = Module(new cmp.AsyncLock(nrCores,nrCores))
+    val asynclock = Module(new cmp.AsyncLock(nrCores,nrCores*2))
     for (i <- (0 until nrCores)) {
       asynclock.io(i) <> cores(i).io.comSpm
     }
   } else if (cmpDevice == 11) {
-    val caspm = Module(new cmp.CASPM(nrCores,nrCores*4))
+    val caspm = Module(new cmp.CASPM(nrCores,nrCores*8))
     for (i <- (0 until nrCores)) {
       caspm.io(i) <> cores(i).io.comSpm
     }
