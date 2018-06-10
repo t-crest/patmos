@@ -9,23 +9,23 @@ package cmp
 
 import Chisel._
 
-class AsyncArbiter2IO extends Bundle
+class AsyncArbiterIO extends Bundle
 {
   val ack = Bool(INPUT)
   val req = Bool(OUTPUT)
 
-  override def clone = new AsyncArbiter2IO().asInstanceOf[this.type]
+  override def clone = new AsyncArbiterIO().asInstanceOf[this.type]
 }
 
-class AsyncArbiterIO(cnt: Int) extends AsyncArbiter2IO
+class AsyncArbiterTreeIO(cnt: Int) extends AsyncArbiterIO
 {
-  val cores = Vec(cnt, new AsyncArbiter2IO().flip())
+  val cores = Vec(cnt, new AsyncArbiterIO().flip())
 
-  override def clone = new AsyncArbiterIO(cnt).asInstanceOf[this.type]
+  override def clone = new AsyncArbiterTreeIO(cnt).asInstanceOf[this.type]
 }
 
-class AsyncArbiter2BB() extends BlackBox {
-  val io = new AsyncArbiter2IO()
+class AsyncArbiterBB() extends BlackBox {
+  val io = new AsyncArbiterIO()
   {
     val req1 = Bool(INPUT)
     val req2 = Bool(INPUT)
@@ -34,7 +34,7 @@ class AsyncArbiter2BB() extends BlackBox {
   }
 
   // rename component
-  setModuleName("AsyncArbiter2")
+  setModuleName("AsyncArbiter")
 
   //renameClock(clock, "clk")
   //renameReset("rst")
@@ -47,31 +47,35 @@ class AsyncArbiter2BB() extends BlackBox {
   io.ack2.setName("ack2")
 }
 
-class AsyncArbiter(corecnt : Int) extends Module {
-  override val io = new AsyncArbiterIO(corecnt)
+abstract class AsyncArbiterBase(corecnt: Int) extends Module {
+  val io = new AsyncArbiterTreeIO(corecnt)
+}
 
-  val leafmutexes = (0 until math.ceil(corecnt/2).toInt).map(i =>
+class AsyncArbiterTree(corecnt : Int) extends AsyncArbiterBase(corecnt) {
+
+  val leafarbiters = (0 until math.ceil(corecnt/2).toInt).map(i =>
   {
-    val mutex = Module(new AsyncArbiter2BB())
+    val arbiter = Module(new AsyncArbiterBB())
     val idx = i*2
-    mutex.io.req1 := io.cores(idx).req
-    io.cores(idx).ack := mutex.io.ack1
+    arbiter.io.req1 := io.cores(idx).req
+    io.cores(idx).ack := arbiter.io.ack1
     if(idx < corecnt-1)
     {
-      mutex.io.req2 := io.cores(idx+1).req
-      io.cores(idx+1).ack := mutex.io.ack2
+      arbiter.io.req2 := io.cores(idx+1).req
+      io.cores(idx+1).ack := arbiter.io.ack2
     }
-    mutex
+    arbiter
   })
 
 
 
-  val genmutex = new ((IndexedSeq[AsyncArbiter2BB]) => AsyncArbiter2BB){
-    def apply(children:IndexedSeq[AsyncArbiter2BB]):AsyncArbiter2BB =
+  val genarbiter = new ((IndexedSeq[AsyncArbiterBB]) => AsyncArbiterBB){
+    def apply(children:IndexedSeq[AsyncArbiterBB]):AsyncArbiterBB =
     {
       val len = children.count(e => true)
+      println(len)
       if(len < 2)
-        children(0)
+        return children(0)
       val _children =
         if(len > 2)
         {
@@ -84,17 +88,17 @@ class AsyncArbiter(corecnt : Int) extends Module {
       val child1 = _children._1
       val child2 = _children._2
 
-      val parent = Module(new AsyncArbiter2BB())
+      val parent = Module(new AsyncArbiterBB())
 
       parent.io.req1 := child1.io.req
       child1.io.ack := parent.io.ack1
       parent.io.req2 := child2.io.req
       child2.io.ack := parent.io.ack2
-      parent
+      return parent
     }
   }
 
-  val par = genmutex(leafmutexes)
+  val par = genarbiter(leafarbiters)
 
   par.io.ack := io.ack
   io.req := par.io.req
