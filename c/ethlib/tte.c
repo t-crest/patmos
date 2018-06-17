@@ -41,14 +41,11 @@ unsigned char is_pcf(unsigned int addr){
 	return 0;
 }
 
-unsigned char tte_receive_log(unsigned int addr,unsigned long long r_pit[],unsigned long long p_pit[],
-  unsigned long long s_pit[],unsigned int int_pd[],unsigned long long trans_clk[],int i){
-	unsigned long long rec_start;
-	eth_mac_receive(addr, 0);
-	rec_start = get_cpu_cycles();
+unsigned char tte_receive_log(unsigned int addr,unsigned long long rec_start,unsigned long long r_pit[]/*,unsigned long long p_pit[],
+  unsigned long long s_pit[],unsigned int int_pd[],unsigned long long trans_clk[]*/,int i){
 	if(is_pcf(addr)){
 	  if((mem_iord_byte(addr + 28)) == 0x2){
-	    if(handle_integration_frame_log(addr,rec_start,r_pit,p_pit,s_pit,int_pd,trans_clk,i)){
+	    if(handle_integration_frame_log(addr,rec_start,r_pit/*,p_pit,s_pit,int_pd,trans_clk*/,i)){
               return 1;
             }
 	    else{
@@ -58,15 +55,10 @@ unsigned char tte_receive_log(unsigned int addr,unsigned long long r_pit[],unsig
 	} else if (is_tte(addr)){
 	  return 2;
         }
-        else{
-	  return 3;
-        }
+	return 3;
 }
 
-unsigned char tte_receive(unsigned int addr){ //0 for failed pcf, 1 for success pcf, 2 for tte, 3 for
-	unsigned long long rec_start;
-	eth_mac_receive(addr, 0);
-	rec_start = get_cpu_cycles();
+unsigned char tte_receive(unsigned int addr,unsigned long long rec_start){ //0 for failed pcf, 1 for success pcf, 2 for tte, 3 otherwise
 	if(is_pcf(addr)){
 	  if((mem_iord_byte(addr + 28)) == 0x2){
 	    if(handle_integration_frame(addr,rec_start)){
@@ -76,24 +68,23 @@ unsigned char tte_receive(unsigned int addr){ //0 for failed pcf, 1 for success 
               return 0;
             }
           }
+	  //what about other pcf's?
 	} else if (is_tte(addr)){
 	  return 2;
         }
-        else{
-	  return 3;
-        }
+	return 3;
 }
 
-int handle_integration_frame_log(unsigned int addr,unsigned long long rec_start,
-  unsigned long long r_pit[],unsigned long long p_pit[],unsigned long long s_pit[],
-  unsigned int int_pd[],unsigned long long trans_clk[],int i){
+int handle_integration_frame_log(unsigned int addr,unsigned long long receive_pit,
+  unsigned long long r_pit[]//,unsigned long long p_pit[],unsigned long long s_pit[],
+  /*unsigned int int_pd[],unsigned long long trans_clk[]*/,int i){
 	unsigned long long permanence_pit;
 	unsigned long long sched_rec_pit;
 	unsigned long long trans_clock; // weird 2^(-16) ns format
 	signed long long error;
 
-	receive_pit=get_cpu_cycles();
-	r_pit[i]=receive_pit;
+	//receive_pit=get_cpu_cycles();
+	//r_pit[i]=receive_pit;
 
 	trans_clock = mem_iord_byte(addr + 34);
 	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 35));
@@ -104,9 +95,9 @@ int handle_integration_frame_log(unsigned int addr,unsigned long long rec_start,
 	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 40));
 	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 41));
 	trans_clock = transClk_to_clk(trans_clock);
-	trans_clock += TTE_WIRE_DELAY + TTE_STATIC_RECIEVE_DELAY + (receive_pit-rec_start);
-
-	trans_clk[i] = trans_clock;
+	//trans_clock += (receive_pit-rec_start);
+	
+	//trans_clk[i] = trans_clock;
 
 	integration_cycle = mem_iord_byte(addr + 14);
 	integration_cycle = (integration_cycle << 8) | (mem_iord_byte(addr + 15));
@@ -114,27 +105,22 @@ int handle_integration_frame_log(unsigned int addr,unsigned long long rec_start,
 	integration_cycle = (integration_cycle << 8) | (mem_iord_byte(addr + 17));
 
 	permanence_pit = receive_pit + (TTE_MAX_TRANS_DELAY-trans_clock); 
+	//p_pit[i]=permanence_pit;
+
 	if(start_time==0){
 		start_time=permanence_pit-(2*TTE_MAX_TRANS_DELAY + TTE_COMP_DELAY);
 	}
 
 	sched_rec_pit = start_time + 2*TTE_MAX_TRANS_DELAY + TTE_COMP_DELAY;
-	s_pit[i]=sched_rec_pit;
-	p_pit[i]=permanence_pit;
+	//s_pit[i]=sched_rec_pit;
 
 	if(permanence_pit>(sched_rec_pit-TTE_PRECISION) &&
 	    permanence_pit<(sched_rec_pit+TTE_PRECISION)){
-		for(unsigned long long i=get_cpu_cycles();i<(sched_rec_pit+2*TTE_PRECISION);){
-		  i=get_cpu_cycles();
-		  //busy wait until we're out of clock correction delay (should do this differently?)
-		}
 
 		error=permanence_pit - sched_rec_pit;
-		integration_period = integration_period + error/4; //P 
-		integration_period = integration_period + error-prev_error; //D
-		prev_error=error;
-		int_pd[i] = integration_period;
-
+		r_pit[i]=error;
+		start_time = start_time+error;
+		//int_pd[i] = integration_period;
 
 		if(integration_cycle==0){
 		  schedplace=0;
@@ -145,19 +131,13 @@ int handle_integration_frame_log(unsigned int addr,unsigned long long rec_start,
 
 		return 1;
 	}
-	printf("out: %llu , %llu\n",
-		(sched_rec_pit-TTE_PRECISION),
-		(sched_rec_pit+TTE_PRECISION));
 	return 0;
 }
 
-int handle_integration_frame(unsigned int addr,unsigned long long rec_start){
+int handle_integration_frame(unsigned int addr,unsigned long long receive_pit){
 	unsigned long long permanence_pit;
 	unsigned long long sched_rec_pit;
 	unsigned long long trans_clock; // weird 2^(-16) ns format
-	signed long long error;
-
-	receive_pit=get_cpu_cycles();
 
 	trans_clock = mem_iord_byte(addr + 34);
 	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 35));
@@ -168,7 +148,6 @@ int handle_integration_frame(unsigned int addr,unsigned long long rec_start){
 	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 40));
 	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 41));
 	trans_clock = transClk_to_clk(trans_clock);
-	trans_clock += TTE_WIRE_DELAY + TTE_STATIC_RECIEVE_DELAY + (receive_pit-rec_start);
 
 	integration_cycle = mem_iord_byte(addr + 14);
 	integration_cycle = (integration_cycle << 8) | (mem_iord_byte(addr + 15));
@@ -176,6 +155,7 @@ int handle_integration_frame(unsigned int addr,unsigned long long rec_start){
 	integration_cycle = (integration_cycle << 8) | (mem_iord_byte(addr + 17));
 
 	permanence_pit = receive_pit + (TTE_MAX_TRANS_DELAY-trans_clock); 
+
 	if(start_time==0){
 		start_time=permanence_pit-(2*TTE_MAX_TRANS_DELAY + TTE_COMP_DELAY);
 	}
@@ -184,15 +164,8 @@ int handle_integration_frame(unsigned int addr,unsigned long long rec_start){
 
 	if(permanence_pit>(sched_rec_pit-TTE_PRECISION) &&
 	    permanence_pit<(sched_rec_pit+TTE_PRECISION)){
-		for(unsigned long long i=get_cpu_cycles();i<(sched_rec_pit+2*TTE_PRECISION);){
-		  i=get_cpu_cycles();
-		  //busy wait until we're out of clock correction delay (should do this differently?)
-		}
 
-		error=permanence_pit - sched_rec_pit;
-		integration_period = integration_period + error/4; //P 
-		integration_period = integration_period + error-prev_error; //D
-		prev_error=error;
+		start_time = start_time+(permanence_pit - sched_rec_pit);
 
 		if(integration_cycle==0){
 		  schedplace=0;
@@ -203,17 +176,18 @@ int handle_integration_frame(unsigned int addr,unsigned long long rec_start){
 
 		return 1;
 	}
-	printf("out: %llu , %llu\n",
-		(sched_rec_pit-TTE_PRECISION),
-		(sched_rec_pit+TTE_PRECISION));
 	return 0;
 }
 
 unsigned long long transClk_to_clk (unsigned long long transClk){
 	return (transClk/12)>> 16;
+        //return transClk*43>>9>>16;
+        //return transClk*683>>13>>16;
+        //return transClk*10923>>17>>16;
 }
 
 unsigned char is_tte(unsigned int addr){
+        #pragma loopbound min 0 max 4
 	for(int i=0;i<4;i++){
 	  if(mem_iord_byte(addr + i)!=CT_marker[i]){
 	    return 0;
@@ -228,9 +202,10 @@ void tte_initialize(unsigned int int_period, unsigned int cl_period, unsigned ch
 	for(int i=0;i<4;i++){
 	  CT_marker[i]=CT[i];
         }
-	eth_iowr(0x40, 0x1D000400);
-	eth_iowr(0x44, 0x00000289);
+	eth_iowr(0x40, 0x1D000400); //do we want the MAC to be initialized like this??
+	eth_iowr(0x44, 0x00000289); //do we even need a MAC??
 	eth_iowr(0x00, 0x0000A423); //exactly like eth_mac_initialize, but with pro-bit set and fullduplex
+	eth_iowr(0x08, 0x00000004); //generate interrupt on received frame (add option not to do this?)
 
 	VLarray = malloc(VLcount * sizeof(struct VL));
 	VLsize=VLcount;
@@ -288,12 +263,16 @@ void tte_generate_schedule(){
 	}
 }
 
-void tte_start_ticking(){
+void tte_start_ticking(char enable_int, void (int_handler)(void)){
 	tte_generate_schedule();
 
-	exc_register(16, &tte_clock_tick);
+	exc_register(17, &tte_clock_tick); //timer, note this is usually 16
+	if(enable_int){
+	  exc_register(16, int_handler); //ethmac interrupt, moved to 16 to have prio over timer
+	  intr_unmask(16);
+	}
 
-  	intr_unmask_all();
+	intr_unmask(17);
   	intr_clear_all_pending();
   	intr_enable();
 
@@ -301,12 +280,14 @@ void tte_start_ticking(){
 }
 
 void tte_prepare_header(unsigned int tx_addr, unsigned char VL[], unsigned char ethType[]){
+  #pragma loopbound min 4 max 4
   for(int i=0; i<4; i++){
     mem_iowr_byte(tx_addr + i, CT_marker[i]);
   }
   mem_iowr_byte(tx_addr + 4, VL[0]);
   mem_iowr_byte(tx_addr + 5, VL[1]);
 
+  #pragma loopbound min 6 max 6
   for(int i=6; i<12; i++){
     mem_iowr_byte(tx_addr + i, mac[i-6]);
   }
@@ -322,9 +303,39 @@ void tte_prepare_test_data(unsigned int tx_addr, unsigned char VL[], unsigned ch
 
   tte_prepare_header(tx_addr,VL,ethType);
 
+  #pragma loopbound min 0 max 1500
   for(int i=14; i<length; i++){
     mem_iowr_byte(tx_addr + i, data);
   }
+}
+
+void tte_prepare_pcf(unsigned int addr,unsigned char VL[],unsigned char type){
+	unsigned char pcfType[] = {0x89,0x1D};
+	tte_prepare_header(addr, VL, pcfType);
+	
+	//integration cycle
+	for(int i=14; i<18; i++){
+	  mem_iowr_byte(addr + i, 0x00);
+	}
+	//membership
+	for(int i=18; i<21; i++){
+	  mem_iowr_byte(addr + i, 0x00);
+	}
+	mem_iowr_byte(addr + 21, 0x02); //audioclient membership
+	//sync prio
+	mem_iowr_byte(addr+26, 0x01);
+	//sync domain
+	mem_iowr_byte(addr+27, 0x01);
+	//type
+	mem_iowr_byte(addr+28, type); //integration frame 0x02,coldstart 0x04, coldstart ack 0x08
+	//trans clock
+	for(int i=34; i<42; i++){
+	  mem_iowr_byte(addr + i, 0x00);
+	}
+	//filler?
+	for(int i=42; i<60; i++){
+	  mem_iowr_byte(addr + i, 0x00);
+	}
 }
 
 void tte_stop_ticking(){
@@ -345,33 +356,27 @@ char tte_schedule_send(unsigned int addr,unsigned int size,unsigned char i){
     }
     return 1;
   } 
-  return 0;
-  //printf("scheduling error: queue[%d]: %d\n",VLarray[i].addplace,VLarray[i].queue[VLarray[i].addplace]);
+  return 0; //scheduling error
 }
 
 void tte_send_data(unsigned char i){ 
   int tx_addr=VLarray[i].queue[VLarray[i].rmplace];
   VLarray[i].queue[VLarray[i].rmplace]=0;
-  mem_iowr_byte(tx_addr + 14,VLarray[i].rmplace);
   eth_mac_send(tx_addr, VLarray[i].sizeQueue[VLarray[i].rmplace]);
   return;
 }
 
 void tte_clock_tick(void) {
   exc_prologue();
-  
   timer_time += ((integration_period/100)*sched[schedplace]);
   int i=VLsched[schedplace];
   schedplace++;
-  if(schedplace==max_sched){
-    schedplace=0;
-  }
-  else{
+  if(schedplace<max_sched){ 
     arm_clock_timer(timer_time);
   }
   if(VLarray[i].queue[VLarray[i].rmplace]>0){
     tte_send_data(i);
-    VLarray[i].rmplace++;
+    VLarray[i].rmplace++; //perhaps the rmplace-updating should be done in tte_send?
     if(VLarray[i].rmplace==VLarray[i].max_queue){
       VLarray[i].rmplace=0;
     }

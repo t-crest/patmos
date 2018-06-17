@@ -334,6 +334,7 @@ void demo_mode(){
 	tte_prepare_test_data(0x5600,VL1,0x99,400);
 	tte_prepare_test_data(0x5C00,VL1,0x10,300);*/
 	for (int i =0; i<n;){
+          eth_mac_receive(rx_addr, 0);
 	  //reply=tte_receive(rx_addr);
 	  reply=tte_receive_log(rx_addr,r_pit,p_pit,s_pit,int_pd,trans_clk,i); //for logging
 	  if(reply==0){ //failed pcf

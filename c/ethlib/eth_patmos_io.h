@@ -67,6 +67,6 @@ void mem_iowr_byte(unsigned addr, unsigned data);
 unsigned mem_iord(int addr);
 
 // Write a byte in rx-tx buffer
-unsigned mem_iord_byte(unsigned addr);
+unsigned mem_iord_byte(unsigned addr) __attribute__((noinline));
 
 #endif

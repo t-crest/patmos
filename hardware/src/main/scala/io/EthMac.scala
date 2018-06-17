@@ -79,7 +79,13 @@ object EthMac extends DeviceObject {
       val mdc_pad_o     = Bits(OUTPUT, width = 1) // MII Management data clock (to PHY)
       val md_pad_o      = Bits(OUTPUT, width = 1) // MII data output (to I/O cell)
       val md_padoe_o    = Bits(OUTPUT, width = 1) // MII data output enable (to I/O cell)
+
+      val int_o         = Bits(OUTPUT, width = 1) // Interrupt output
     }
+  }
+
+  trait Intrs {
+    val ethMacIntrs = Vec.fill(1) { Bool(OUTPUT) }
   }
 }
 
@@ -113,6 +119,7 @@ class EthMacBB(extAddrWidth : Int = 32, dataWidth : Int = 32) extends BlackBox {
   io.ethMacPins.mdc_pad_o.setName("mdc_pad_o")
   io.ethMacPins.md_pad_o.setName("md_pad_o")
   io.ethMacPins.md_padoe_o.setName("md_padoe_o")
+  io.ethMacPins.int_o.setName("int_o")
 
   // set Verilog parameters
   setVerilogParameters("#(.BUFF_ADDR_WIDTH(16))")
@@ -130,10 +137,20 @@ class EthMacBB(extAddrWidth : Int = 32, dataWidth : Int = 32) extends BlackBox {
 }
 
 class EthMac(extAddrWidth : Int = 32, dataWidth : Int = 32) extends CoreDevice() {
-  override val io = new CoreDeviceIO() with EthMac.Pins
+  override val io = new CoreDeviceIO() with EthMac.Pins with EthMac.Intrs
+  val SyncReg = Reg(Bits(width = 1))
+  val IntReg = Reg(Bits(width = 1))
 
   val bb = Module(new EthMacBB(extAddrWidth, dataWidth))
   bb.io.M <> io.ocp.M
   bb.io.S <> io.ocp.S
   bb.io.ethMacPins <> io.ethMacPins
+
+  // Connection to pins
+  SyncReg := bb.io.ethMacPins.int_o 
+  //SyncReg := ~SyncReg
+  IntReg := SyncReg
+
+  // Generate interrupts on rising edges?
+  io.ethMacIntrs(0) := IntReg(0) === Bits("b0") && SyncReg(0) === Bits("b1")
 }

@@ -7,14 +7,16 @@
   <ExtMem size="2M" DevTypeRef="Sram16" />
 
   <IOs>
+	<IO DevTypeRef="Timer" offset="2" intrs="1,2"/>
 	<IO DevTypeRef="Uart" offset="8"/>
 	<IO DevTypeRef="Leds" offset="9"/>
-	<IO DevTypeRef="Keys" offset="10" intrs="2,3,4,5"/>
-	<IO DevTypeRef="EthMac" offset="13"/>
+	<IO DevTypeRef="Keys" offset="10" intrs="3,4,5,6"/>
+	<IO DevTypeRef="EthMac" offset="13" intrs="0"/> 
 	<IO DevTypeRef="Uart2" offset="14"/>
   </IOs>
 
   <Devs>
+	<Dev DevType="Timer" entity="Timer" iface="OcpCore" />
   	<Dev DevType="Uart" entity="Uart" iface="OcpCore">
   	  <params>
   		<param name="baudRate" value="115200"/>
