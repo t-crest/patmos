@@ -43,12 +43,34 @@
 
 #define N 2000
 
-unsigned int rx_addr = 0x000;
 unsigned char VL0[] = {0x0F,0xA1};
 unsigned char VL1[] = {0x0F,0xA2};
 
-int tte_loop(char reply,int i) __attribute__((noinline));
-int tte_loop(char reply,int i){
+//copied from rtc.h
+static unsigned long long get_cpu_cycles_cp(void) __attribute__((noinline));
+static unsigned long long get_cpu_cycles_cp(void) {
+  unsigned clo, chi;
+
+  // TODO this code is identical to libgloss/patmos/time.c, share code.
+
+  // Prevent the compiler from moving the read over other instructions 
+  // or into a call delay slot behind the call miss stall
+  asm volatile ("" : : : "memory");
+
+  _iodev_ptr_t hi_clock = (_iodev_ptr_t)(__PATMOS_TIMER_HICLK);
+  _iodev_ptr_t lo_clock = (_iodev_ptr_t)(__PATMOS_TIMER_LOCLK);
+
+  // Order is important here
+  clo = *lo_clock;
+  chi = *hi_clock;
+
+  asm volatile ("" : : : "memory");
+
+  return (((unsigned long long) chi) << 32) | clo;
+}
+
+int tte_loop(char reply,unsigned int rx_addr,int i) __attribute__((noinline));
+int tte_loop(char reply,unsigned int rx_addr,int i){
   int j=i;
   if(reply==0){ //failed pcf
     //printf("pcf out of schedule \n");
@@ -89,31 +111,48 @@ int tte_loop(char reply,int i){
 }
 
 int main(){
-  unsigned long long r_pit[N];  //for logging
-  unsigned long long p_pit[N];
-  unsigned long long s_pit[N];
-  unsigned int int_pd[N];
-  unsigned long long trans_clk[N];
+  signed long long error[N];  //for logging
+  static unsigned long long receive_point;
 
   unsigned char CT[] = {0xAB,0xAD,0xBA,0xBE};
   unsigned char reply;
+  unsigned int cur_RX = 0x000;
+  unsigned int ext_RX = 0x800;
+  unsigned int cur_RX_BD = 0x600;
+  unsigned int ext_RX_BD = 0x608;
 
   tte_initialize(0xC3500,200,CT,2); //0xC3500 = 10ms in clock cycles, cluster cycle is 20ms, CT, 2 virtual links
   tte_init_VL(0, 26,40); //VL 4001 starts at 2.6ms and has a period of 4ms
   tte_init_VL(1, 10,20); //VL 4002 starts at 1ms and has a period of 2ms
-  tte_start_ticking();
+  tte_start_ticking(0,0);
+  eth_iowr(0x04, 0x00000004); //clear receive frame bit in int_source
+  eth_iowr(cur_RX_BD+4, cur_RX); //set first receive buffer to store frame in 0x000
+  eth_iowr(cur_RX_BD, 0x0000C000); //set empty and IRQ and not wrap
+  eth_iowr(ext_RX_BD+4, ext_RX); //set second receive buffer to store frame in 0x800
+  eth_iowr(ext_RX_BD, 0x00006000); //set NOT empty, IRQ and wrap
   
   for (int i =0; i<N;){
-    eth_mac_receive(rx_addr, 0);
-    reply=tte_receive(rx_addr);
-    reply=tte_receive_log(rx_addr,r_pit,p_pit,s_pit,int_pd,trans_clk,i); //for logging
-    i=tte_loop(reply,i);
+    while ((eth_iord(0x04) & 0x4)==0){;};
+    receive_point = get_cpu_cycles_cp();
+    tte_clear_free_rx_buffer(ext_RX_BD); //enable receiving in other buffer
+
+    reply=tte_receive(cur_RX,receive_point);
+    reply=tte_receive_log(cur_RX,receive_point,error,i); //for logging
+
+    i=tte_loop(reply,cur_RX,i);
     tte_clock_tick(); //usually called by interrupt, but WCET analysis does not recognize this
+
+    unsigned int extra = cur_RX;
+    cur_RX = ext_RX;
+    ext_RX = extra;
+    extra = cur_RX_BD;
+    cur_RX_BD = ext_RX_BD;
+    ext_RX_BD = extra;
   }
   tte_stop_ticking();
 
   for (int i =0; i<N; i++){ //logging
-    printf("%llu %llu %llu %d %llu\n",r_pit[i],p_pit[i],s_pit[i],int_pd[i],trans_clk[i]);
+    printf("%lld\n",error[i]);
   }
 
   return 0;

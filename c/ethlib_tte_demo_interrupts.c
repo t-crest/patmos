@@ -52,11 +52,7 @@
 #define SLEEP (*((volatile _IODEV unsigned *)0xf0010010))
 
 unsigned int rx_addr = 0x000;
-unsigned long long r_pit[2000];  //for logging
-unsigned long long p_pit[2000];
-unsigned long long s_pit[2000];
-unsigned int int_pd[2000];
-unsigned long long trans_clk[2000];
+signed long long error[2000];  //for logging
 
 volatile char stop = 0;
 volatile int ite = 0;
@@ -68,7 +64,7 @@ void intr_handler(void) {
 
   //LEDS ^= 1;
   //putc('0', stderr);
-  volatile unsigned char reply = tte_receive_log(rx_addr,get_cpu_cycles(),r_pit,p_pit,s_pit,int_pd,trans_clk,ite);
+  volatile unsigned char reply = tte_receive_log(rx_addr,get_cpu_cycles(),error,ite);
   //char reply = 0;
   if(reply==0){ //failed pcf
     puts("0");
@@ -150,7 +146,7 @@ void demo_mode(){
 	printf("received tte: %d\n",tte);
 	printf("received eth: %d\n",eth); 
 	for (int i =0; i<=ite; i++){ //logging
-		printf("%llu %llu %llu %d %llu\n",r_pit[i],p_pit[i],s_pit[i],int_pd[i],trans_clk[i]);
+		printf("%lld",error[i]);
 	}
 	return;
 }

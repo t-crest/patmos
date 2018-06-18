@@ -7,21 +7,21 @@
 
 #define TTE_MAX_TRANS_DELAY 0x2A60 //0x638!! 0x13880 = 1ms 0x61A80 = 5ms  clock cycles at 80MHz (12.5 ns)
 #define TTE_COMP_DELAY 0x349 //clock cycles at 80MHz (12.5 ns)
-//#define TTE_PRECISION 0x33E//0x33E! // 0x61A80 = 5ms 0x13880 = 1ms
-#define TTE_PRECISION 0x67C
+#define TTE_PRECISION 0x33E//0x33E! // 0x61A80 = 5ms 0x13880 = 1ms
+//#define TTE_PRECISION 0x67C
 
 unsigned char is_pcf(unsigned int addr) __attribute__((noinline));
 
+void tte_clear_free_rx_buffer(unsigned int addr) __attribute__((noinline));
+
 unsigned char tte_receive(unsigned int addr,unsigned long long rec_start) __attribute__((noinline));
 
-unsigned char tte_receive_log(unsigned int addr,unsigned long long rec_start,unsigned long long r_pit[]/*,unsigned long long p_pit[],
-  unsigned long long s_pit[],unsigned int int_pd[],unsigned long long trans_clk[]*/,int i) __attribute__((noinline));
+unsigned char tte_receive_log(unsigned int addr,unsigned long long rec_start,signed long long error[],int i) __attribute__((noinline));
 
 int handle_integration_frame(unsigned int addr,unsigned long long rec_start) __attribute__((noinline));
 
 int handle_integration_frame_log(unsigned int addr,unsigned long long rec_start,
-  unsigned long long r_pit[]/*,unsigned long long p_pit[],unsigned long long s_pit[],
-  unsigned int int_pd[],unsigned long long trans_clk[]*/,int i) __attribute__((noinline));
+  signed long long error[],int i) __attribute__((noinline));
 
 unsigned char is_tte(unsigned int addr) __attribute__((noinline));
 

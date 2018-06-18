@@ -61,7 +61,7 @@ unsigned eth_iord(unsigned addr);
 void mem_iowr(unsigned addr, unsigned data);
 
 // Write a byte in rx-tx buffer
-void mem_iowr_byte(unsigned addr, unsigned data);
+void mem_iowr_byte(unsigned addr, unsigned data) __attribute__((noinline));
 
 // Read rx-tx buffer
 unsigned mem_iord(int addr);

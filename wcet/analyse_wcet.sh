@@ -22,7 +22,7 @@ CONFIG_PML=config_de2_115.pml
 
 # Functions to analyse
 #ENTRIES=audio_distortion
-ENTRIES="tte_loop tte_receive tte_receive_log handle_integration_frame handle_integration_frame_log tte_prepare_test_data tte_schedule_send tte_clock_tick tte_send_data mem_iord_byte"
+ENTRIES="tte_loop tte_receive tte_receive_log handle_integration_frame handle_integration_frame_log tte_prepare_test_data tte_schedule_send tte_clock_tick tte_send_data mem_iord_byte mem_iowr_byte get_cpu_cycles_cp tte_clear_free_rx_buffer"
 
 FILES="../c/ethlib_tte_wcet.c ../c/ethlib/tte.c ../c/ethlib/eth_mac_driver.c ../c/ethlib/eth_patmos_io.c"
 

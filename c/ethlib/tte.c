@@ -41,11 +41,16 @@ unsigned char is_pcf(unsigned int addr){
 	return 0;
 }
 
-unsigned char tte_receive_log(unsigned int addr,unsigned long long rec_start,unsigned long long r_pit[]/*,unsigned long long p_pit[],
-  unsigned long long s_pit[],unsigned int int_pd[],unsigned long long trans_clk[]*/,int i){
+void tte_clear_free_rx_buffer(unsigned int addr){
+	eth_iowr(0x04, 0x00000004);
+	unsigned cur_data = eth_iord(addr);
+    	eth_iowr(addr, cur_data | (1<<15));
+}
+
+unsigned char tte_receive_log(unsigned int addr,unsigned long long rec_start,signed long long error[],int i){
 	if(is_pcf(addr)){
 	  if((mem_iord_byte(addr + 28)) == 0x2){
-	    if(handle_integration_frame_log(addr,rec_start,r_pit/*,p_pit,s_pit,int_pd,trans_clk*/,i)){
+	    if(handle_integration_frame_log(addr,rec_start,error,i)){
               return 1;
             }
 	    else{
@@ -76,15 +81,11 @@ unsigned char tte_receive(unsigned int addr,unsigned long long rec_start){ //0 f
 }
 
 int handle_integration_frame_log(unsigned int addr,unsigned long long receive_pit,
-  unsigned long long r_pit[]//,unsigned long long p_pit[],unsigned long long s_pit[],
-  /*unsigned int int_pd[],unsigned long long trans_clk[]*/,int i){
+  signed long long error[],int i){
 	unsigned long long permanence_pit;
 	unsigned long long sched_rec_pit;
 	unsigned long long trans_clock; // weird 2^(-16) ns format
-	signed long long error;
-
-	//receive_pit=get_cpu_cycles();
-	//r_pit[i]=receive_pit;
+	signed long long err;
 
 	trans_clock = mem_iord_byte(addr + 34);
 	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 35));
@@ -95,9 +96,6 @@ int handle_integration_frame_log(unsigned int addr,unsigned long long receive_pi
 	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 40));
 	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 41));
 	trans_clock = transClk_to_clk(trans_clock);
-	//trans_clock += (receive_pit-rec_start);
-	
-	//trans_clk[i] = trans_clock;
 
 	integration_cycle = mem_iord_byte(addr + 14);
 	integration_cycle = (integration_cycle << 8) | (mem_iord_byte(addr + 15));
@@ -105,22 +103,19 @@ int handle_integration_frame_log(unsigned int addr,unsigned long long receive_pi
 	integration_cycle = (integration_cycle << 8) | (mem_iord_byte(addr + 17));
 
 	permanence_pit = receive_pit + (TTE_MAX_TRANS_DELAY-trans_clock); 
-	//p_pit[i]=permanence_pit;
 
 	if(start_time==0){
 		start_time=permanence_pit-(2*TTE_MAX_TRANS_DELAY + TTE_COMP_DELAY);
 	}
 
 	sched_rec_pit = start_time + 2*TTE_MAX_TRANS_DELAY + TTE_COMP_DELAY;
-	//s_pit[i]=sched_rec_pit;
 
 	if(permanence_pit>(sched_rec_pit-TTE_PRECISION) &&
 	    permanence_pit<(sched_rec_pit+TTE_PRECISION)){
 
-		error=permanence_pit - sched_rec_pit;
-		r_pit[i]=error;
-		start_time = start_time+error;
-		//int_pd[i] = integration_period;
+		err=permanence_pit - sched_rec_pit;
+		error[i]=err;
+		start_time = start_time+err;
 
 		if(integration_cycle==0){
 		  schedplace=0;
@@ -180,8 +175,8 @@ int handle_integration_frame(unsigned int addr,unsigned long long receive_pit){
 }
 
 unsigned long long transClk_to_clk (unsigned long long transClk){
-	return (transClk/12)>> 16;
-        //return transClk*43>>9>>16;
+	//return (transClk/12)>> 16;
+        return transClk*43>>9>>16;
         //return transClk*683>>13>>16;
         //return transClk*10923>>17>>16;
 }
@@ -314,10 +309,12 @@ void tte_prepare_pcf(unsigned int addr,unsigned char VL[],unsigned char type){
 	tte_prepare_header(addr, VL, pcfType);
 	
 	//integration cycle
+	#pragma loopbound min 4 max 4
 	for(int i=14; i<18; i++){
 	  mem_iowr_byte(addr + i, 0x00);
 	}
 	//membership
+	#pragma loopbound min 4 max 4
 	for(int i=18; i<21; i++){
 	  mem_iowr_byte(addr + i, 0x00);
 	}
@@ -329,10 +326,12 @@ void tte_prepare_pcf(unsigned int addr,unsigned char VL[],unsigned char type){
 	//type
 	mem_iowr_byte(addr+28, type); //integration frame 0x02,coldstart 0x04, coldstart ack 0x08
 	//trans clock
+	#pragma loopbound min 8 max 8
 	for(int i=34; i<42; i++){
 	  mem_iowr_byte(addr + i, 0x00);
 	}
 	//filler?
+	#pragma loopbound min 18 max 18
 	for(int i=42; i<60; i++){
 	  mem_iowr_byte(addr + i, 0x00);
 	}

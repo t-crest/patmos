@@ -51,7 +51,7 @@ void demo_mode() __attribute__((noinline));
 void demo_mode(){
 	int n = 2000;
 	
-	unsigned long long r_pit[n];  //for logging
+	signed long long error[n];  //for logging
 	unsigned long long p_pit[n];
 	unsigned long long s_pit[n];
 	//unsigned int int_pd[n];
@@ -90,13 +90,10 @@ void demo_mode(){
 	for (int i =0; i<n;){
 	  while ((eth_iord(0x04) & 0x4)==0){;};
 	  receive_point = get_cpu_cycles();
-	  //start receiving in other buffer
-	  eth_iowr(0x04, 0x00000004);
-	  unsigned cur_data = eth_iord(ext_RX_BD);
-    	  eth_iowr(ext_RX_BD, cur_data | (1<<15));
+	  tte_clear_free_rx_buffer(ext_RX_BD); //enable receiving in other buffer
 
 	  //reply=tte_receive(cur_RX,get_cpu_cycles());
-	  reply=tte_receive_log(cur_RX,receive_point,r_pit/*,p_pit,s_pit,int_pd,trans_clk*/,i); //for logging
+	  reply=tte_receive_log(cur_RX,receive_point,error,i); //for logging
 
 	  //reply=2;
 	  if(reply==0){ //failed pcf
@@ -156,7 +153,7 @@ void demo_mode(){
     	    tte_prepare_test_data(0x2000,VL0,0x04,1514); //sometimes causes receive delay?
             if(!tte_schedule_send(0x2000,1514,0)) sched_errors++; //sometimes causes receive delay?
 	    tte_schedule_send(0x2000,1514,0);
-	    r_pit[i]=get_cpu_cycles()-receive_point;
+	    error[i]=get_cpu_cycles()-receive_point;
 	  }
 	  else{ //incoming ethernet msg
 	    eth++;
@@ -175,8 +172,7 @@ void demo_mode(){
 	printf("received tte: %d\n",tte);
 	printf("received eth: %d\n",eth); 
 	for (int i =0; i<n; i++){ //logging
-		//printf("%llu %llu %llu %d %llu\n",r_pit[i],p_pit[i],s_pit[i],int_pd[i],trans_clk[i]);
-		printf("%lld %llu %llu\n",r_pit[i],p_pit[i],s_pit[i]);
+		printf("%lld %llu %llu\n",error[i],p_pit[i],s_pit[i]);
 	}
 	return;
 }
