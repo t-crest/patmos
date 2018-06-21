@@ -6,7 +6,7 @@ module imu_mpu(
                        // inputs:
                         address,
                         clk,                        
-                        reset_n,
+                        reset,
 
                        // outputs:
                         readdata_0,
@@ -37,7 +37,7 @@ output  [ 31: 0] readdata_9;  //For future
 
 input   [  1: 0] address;
 input            clk;
-input            reset_n;
+input            reset;
   
 output           scl_out;
 inout            sda_inout;
@@ -101,9 +101,9 @@ reg [15:0] data7;
 reg [111:0] big_data;
 
 
-always @(posedge clk or negedge reset_n)
+always @(posedge clk or posedge reset)
 begin
-if (reset_n == 0)
+if (reset == 1)
 begin
   state <= 0;
   clk_tick <= 0;
@@ -333,9 +333,9 @@ end
 
 
 
-always @(posedge clk or negedge reset_n)
+always @(posedge clk or posedge reset)
 begin
-  if (reset_n == 0)
+  if (reset == 1)
   begin
     
     running = 0;

@@ -61,7 +61,7 @@ class MpuSensorBB() extends BlackBox {
     setModuleName("imu_mpu")
     // rename signals
     renameClock(clock, "clk")
-    reset.setName("reset_n")
+    reset.setName("reset")
     //outputs
     io.readdata_0.setName("readdata_0")
     io.readdata_1.setName("readdata_1")
