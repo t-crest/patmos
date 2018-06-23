@@ -51,6 +51,10 @@
 #define ETH_BASE  ((volatile _IODEV unsigned *) (ETH_DEV_BASE + 0xF000))
 #define BUFF_BASE ((volatile _IODEV unsigned *) (ETH_DEV_BASE + 0x0000))
 
+#define ETH1_DEV_BASE    0xF00E0000
+#define ETH1_BASE  ((volatile _IODEV unsigned *) (ETH1_DEV_BASE + 0xF000))
+#define BUFF1_BASE ((volatile _IODEV unsigned *) (ETH1_DEV_BASE + 0x0000))
+
 // Write to ethernet controller
 void eth_iowr(unsigned addr,unsigned data);
 
@@ -68,5 +72,23 @@ unsigned mem_iord(int addr);
 
 // Write a byte in rx-tx buffer
 unsigned mem_iord_byte(unsigned addr) __attribute__((noinline));
+
+// Write to ethernet controller
+void eth_iowr1(unsigned addr,unsigned data);
+
+// Read ethernet controller
+unsigned eth_iord1(unsigned addr);
+
+// Write rx-tx buffer
+void mem_iowr1(unsigned addr, unsigned data);
+
+// Write a byte in rx-tx buffer
+void mem_iowr_byte1(unsigned addr, unsigned data) __attribute__((noinline));
+
+// Read rx-tx buffer
+unsigned mem_iord1(int addr);
+
+// Write a byte in rx-tx buffer
+unsigned mem_iord_byte1(unsigned addr) __attribute__((noinline));
 
 #endif

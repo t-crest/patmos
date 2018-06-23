@@ -41,6 +41,13 @@ unsigned char is_pcf(unsigned int addr){
 	return 0;
 }
 
+void tte_wait_for_message(unsigned long long * receive_point){
+	  while ((eth_iord(0x04) & 0x4)==0){
+	    *receive_point = *(_iodev_ptr_t)(__PATMOS_TIMER_LOCLK); //to avoid cache miss error
+	  };
+	  *receive_point = *(_iodev_ptr_t)(__PATMOS_TIMER_LOCLK);
+}
+
 void tte_clear_free_rx_buffer(unsigned int addr){
 	eth_iowr(0x04, 0x00000004);
 	unsigned cur_data = eth_iord(addr);
@@ -175,8 +182,8 @@ int handle_integration_frame(unsigned int addr,unsigned long long receive_pit){
 }
 
 unsigned long long transClk_to_clk (unsigned long long transClk){
-	//return (transClk/12)>> 16;
-        return transClk*43>>9>>16;
+	return (transClk/12)>> 16;
+        //return transClk*43>>9>>16;
         //return transClk*683>>13>>16;
         //return transClk*10923>>17>>16;
 }
