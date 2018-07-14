@@ -3,7 +3,7 @@
 -- Author: Luca Pezzarossa (lpez@dtu.dk)
 -- License: Simplified BSD License
 --
--- Ethernet controller VHDL top level
+-- copy of Ethernet controller VHDL top level with different name
 --
 
 library ieee;

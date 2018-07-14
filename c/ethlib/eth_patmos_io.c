@@ -82,7 +82,7 @@ unsigned mem_iord_byte(unsigned addr) {
     return (full_data & mask) >> shift_factor;
 }
 
-//similar functions for other ethernet controller
+// Similar functions for second ethernet controller (when present)
 // Write to ethernet controller
 void eth_iowr1(unsigned addr,unsigned data) {
     *(ETH1_BASE+(addr >> 2)) = data;

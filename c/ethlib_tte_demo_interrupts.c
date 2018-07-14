@@ -1,45 +1,11 @@
 /*
-   Copyright 2014 Technical University of Denmark, DTU Compute. 
-   All rights reserved.
-   
-   This file is part of the time-predictable VLIW processor Patmos.
+  Copyright 2018 Technical University of Denmark, DTU Compute.
+  All rights reserved.
 
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions are met:
+  TTEthernet test program for interrupt solution
 
-      1. Redistributions of source code must retain the above copyright notice,
-         this list of conditions and the following disclaimer.
-
-      2. Redistributions in binary form must reproduce the above copyright
-         notice, this list of conditions and the following disclaimer in the
-         documentation and/or other materials provided with the distribution.
-
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
-   OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-   OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
-   NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
-   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-   The views and conclusions contained in the software and documentation are
-   those of the authors and should not be interpreted as representing official
-   policies, either expressed or implied, of the copyright holder.
- */
-
-/* 
- * Main function for ethlib (ethernet library) demo
- * extended to test some initial TTE stuff
- * 
- * Authors: Luca Pezzarossa (lpez@dtu.dk)
- *          Jakob Kenn Toft
- *          Jesper Lønbæk
- *          Russell Barnes
- *          Maja Lund
- */
+  Author: Maja Lund (maja_lala@hotmail.com)
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,24 +14,26 @@
 #include "ethlib/eth_mac_driver.h"
 #include "ethlib/tte.h"
 
-#define LEDS (*((volatile _IODEV unsigned *)0xf0090000))
 #define SLEEP (*((volatile _IODEV unsigned *)0xf0010010))
 
 unsigned int rx_addr = 0x000;
 signed long long error[2000];  //for logging
+unsigned long long r_pit[2000]; //for logging
+static unsigned long long receive_point;
+
 
 volatile char stop = 0;
 volatile int ite = 0;
 volatile int tte=0;
+volatile int eth=0;
 
 void intr_handler(void) __attribute__((naked));
 void intr_handler(void) {
   exc_prologue();
 
-  //LEDS ^= 1;
-  //putc('0', stderr);
-  volatile unsigned char reply = tte_receive_log(rx_addr,get_cpu_cycles(),error,ite);
-  //char reply = 0;
+  receive_point = get_cpu_cycles();
+  volatile unsigned char reply = tte_receive_log(rx_addr,receive_point,error,ite);
+  r_pit[ite]=receive_point;
   if(reply==0){ //failed pcf
     puts("0");
     stop=1;
@@ -76,6 +44,9 @@ void intr_handler(void) {
   else if(reply==2){
     tte++;
   }
+  else if(reply==3){
+    eth++;
+  }
   if (!stop){
     eth_iowr(0x04, 0x00000004);
     eth_iowr(0x604, rx_addr);
@@ -85,7 +56,6 @@ void intr_handler(void) {
   exc_epilogue();
 }
 
-void demo_mode() __attribute__((noinline));
 void demo_mode(){
 	unsigned char CT[] = {0xAB,0xAD,0xBA,0xBE};
  	unsigned char VL0[] = {0x0F,0xA1};
@@ -94,59 +64,66 @@ void demo_mode(){
 	unsigned char send_i = 0;
 
 	int sched_errors=0;
-	int eth=0;
 	unsigned char reply;
 
-	tte_initialize(0xC3500,200,CT,2); //0xC3500 = 10ms in clock cycles, cluster cycle is 20ms, CT, 2 virtual links
-	tte_init_VL(0, 26,40); //VL 4001 starts at 2.6ms and has a period of 4ms
+	set_mac_address(0x1D000400,0x00000289);
+
+	//int_period = 10ms, cluster cycle=20ms, CT, 2 VLs sending, max_delay, comp_delay, precision(0x33E)
+	tte_initialize(100,200,CT,2,0x2A60,0x349,0x67C);
+	tte_init_VL(0, 8,40); //VL 4001 starts at 0.8ms and has a period of 4ms
 	tte_init_VL(1, 10,20); //VL 4002 starts at 1ms and has a period of 2ms
-	tte_start_ticking(1, &intr_handler);
+	tte_start_ticking(0,1, &intr_handler);
 	eth_iowr(0x04, 0x00000004);
 	eth_iowr(0x604, rx_addr);
 	eth_iowr(0x600, 0x0000E000);
 
 	volatile int local_ite=0;
 	while(local_ite<2000 && !stop){
-	  while (local_ite>=ite){;}
-	  if (local_ite>10000) printf("%d\n", local_ite); //black voodoo magic
+	  while (local_ite>=ite && !stop){;}
 	  local_ite=ite;
 	  if(local_ite%2==0){
-	    tte_prepare_test_data(0x2600,VL1,0x11,400);
-  	    if(!tte_schedule_send(0x2600,400,1)) sched_errors++;
-	    tte_prepare_test_data(0x2C00,VL1,0x22,300);
-	    if(!tte_schedule_send(0x2C00,300,1)) sched_errors++;
-	    tte_prepare_test_data(0x3200,VL1,0x33,800);
-	    if(!tte_schedule_send(0x3200,800,1)) sched_errors++;
-	    tte_prepare_test_data(0x3800,VL1,0x44,1514);
-	    if(!tte_schedule_send(0x3800,1514,1)) sched_errors++;
-	    tte_prepare_test_data(0x3E00,VL1,0x55,400);
-	    if(!tte_schedule_send(0x3E00,400,1)) sched_errors++;
-	    tte_prepare_test_data(0x4400,VL1,0x66,300);
+	    tte_prepare_test_data(0x2600,VL0,0xAA,400);
+  	    if(!tte_schedule_send(0x2600,400,0)) sched_errors++;
+	    tte_prepare_test_data(0x2C00,VL0,0xBB,300);
+	    if(!tte_schedule_send(0x2C00,300,0)) sched_errors++;
+	    tte_prepare_test_data(0x3200,VL0,0xCC,800);
+	    if(!tte_schedule_send(0x3200,800,0)) sched_errors++;
+	    tte_prepare_test_data(0x3800,VL0,0xDD,1514);
+	    if(!tte_schedule_send(0x3800,1514,0)) sched_errors++;
+	    tte_prepare_test_data(0x3E00,VL0,0xEE,400);
+	    if(!tte_schedule_send(0x3E00,400,0)) sched_errors++;
+	    tte_prepare_test_data(0x4400,VL1,0x11,300);
 	    if(!tte_schedule_send(0x4400,300,1)) sched_errors++;
-	    tte_prepare_test_data(0x4A00,VL1,0x77,800);
+	    tte_prepare_test_data(0x4A00,VL1,0x22,800);
 	    if(!tte_schedule_send(0x4A00,800,1)) sched_errors++;
-            tte_prepare_test_data(0x5000,VL1,0x88,1514);
+            tte_prepare_test_data(0x5000,VL1,0x33,1514);
 	    if(!tte_schedule_send(0x5000,1514,1)) sched_errors++;
-	    tte_prepare_test_data(0x5600,VL1,0x99,400);
+	    tte_prepare_test_data(0x5600,VL1,0x44,400);
 	    if(!tte_schedule_send(0x5600,400,1)) sched_errors++;
-	    tte_prepare_test_data(0x5C00,VL1,0x10,300);
+	    tte_prepare_test_data(0x5C00,VL1,0x55,300);
 	    if(!tte_schedule_send(0x5C00,300,1)) sched_errors++;
+	    tte_prepare_test_data(0x6200,VL1,0x66,300);
+	    if(!tte_schedule_send(0x6200,300,1)) sched_errors++;
+	    tte_prepare_test_data(0x6800,VL1,0x77,800);
+	    if(!tte_schedule_send(0x6800,800,1)) sched_errors++;
+            tte_prepare_test_data(0x6E00,VL1,0x88,1514);
+	    if(!tte_schedule_send(0x6E00,1514,1)) sched_errors++;
+	    tte_prepare_test_data(0x7400,VL1,0x99,400);
+	    if(!tte_schedule_send(0x7400,400,1)) sched_errors++;
+	    tte_prepare_test_data(0x7A00,VL1,0x10,300);
+	    if(!tte_schedule_send(0x7A00,300,1)) sched_errors++;
 	  }
-	  //printf("%d %d\n", ite,local_ite);
 	}
 	
 	stop=1;
 	tte_stop_ticking();
-	SLEEP=0;
 	intr_clear_all_pending();
-	unsigned long long int start_time = get_cpu_usecs();
-	while ((get_cpu_usecs()-start_time < 10000)){;};
 	printf("out local:%d ite:%d\n",local_ite,ite);
 	printf("sched errors: %d\n",sched_errors);
 	printf("received tte: %d\n",tte);
 	printf("received eth: %d\n",eth); 
 	for (int i =0; i<=ite; i++){ //logging
-		printf("%lld",error[i]);
+		printf("%lld %llu\n",error[i],r_pit[i]);
 	}
 	return;
 }

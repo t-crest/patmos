@@ -51,6 +51,7 @@
 #define ETH_BASE  ((volatile _IODEV unsigned *) (ETH_DEV_BASE + 0xF000))
 #define BUFF_BASE ((volatile _IODEV unsigned *) (ETH_DEV_BASE + 0x0000))
 
+// Base addresses of second Ethernet controller (when present)
 #define ETH1_DEV_BASE    0xF00E0000
 #define ETH1_BASE  ((volatile _IODEV unsigned *) (ETH1_DEV_BASE + 0xF000))
 #define BUFF1_BASE ((volatile _IODEV unsigned *) (ETH1_DEV_BASE + 0x0000))

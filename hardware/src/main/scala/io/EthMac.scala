@@ -151,6 +151,6 @@ class EthMac(extAddrWidth : Int = 32, dataWidth : Int = 32) extends CoreDevice()
   //SyncReg := ~SyncReg
   IntReg := SyncReg
 
-  // Generate interrupts on rising edges?
+  // Generate interrupts on rising edges
   io.ethMacIntrs(0) := IntReg(0) === Bits("b0") && SyncReg(0) === Bits("b1")
 }

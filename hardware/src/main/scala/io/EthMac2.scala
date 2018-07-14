@@ -31,10 +31,10 @@
  */
 
 /* Copy of EthMac interface for Patmos
- * Ugly workaround in order to have 2 Ethmac ports
+ * Ugly workaround in order to have 2 Ethmac ports 
  *
  * Author: Luca Pezzarossa (lpez@dtu.dk)
- *
+ *         
  */
 
 package io
@@ -151,6 +151,6 @@ class EthMac2(extAddrWidth : Int = 32, dataWidth : Int = 32) extends CoreDevice(
   //SyncReg := ~SyncReg
   IntReg := SyncReg
 
-  // Generate interrupts on rising edges?
+  // Generate interrupts on rising edges
   io.ethMac2Intrs(0) := IntReg(0) === Bits("b0") && SyncReg(0) === Bits("b1")
 }

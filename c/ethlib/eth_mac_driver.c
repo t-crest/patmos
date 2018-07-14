@@ -137,7 +137,7 @@ void set_mac_address(unsigned int my_mac0, unsigned int my_mac1) {
 unsigned long long get_mac_address() {
     unsigned long long my_mac;
     my_mac = eth_iord(0x44); // Getting MSB 2 byte
-    my_mac = (my_mac<<31) + eth_iord(0x40);
+    my_mac = (my_mac<<32) + eth_iord(0x40);
     return my_mac;
 }
 

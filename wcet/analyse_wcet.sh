@@ -3,6 +3,7 @@
 # Author: Stefan Hepp <stefan@stefant.org>
 #
 # Demo script for platin WCET analysis
+# modified by Maja Lund for WCET analysis of TTE library
 #
 # The -mserialize-roots option is optional, but makes the scripts run faster.
 # If you specify an export root, then the trace analysis must also use that

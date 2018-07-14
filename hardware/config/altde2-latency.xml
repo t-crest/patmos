@@ -1,5 +1,5 @@
 <patmos default="default.xml">
-  <description>configuration for DE2-115 board with Ethernet controller</description>
+  <description>configuration for DE2-115 board with 2 Ethernet controllers</description>
 
   <frequency Hz="80000000"/>
   <pipeline dual="false" />
@@ -7,16 +7,14 @@
   <ExtMem size="2M" DevTypeRef="Sram16" />
 
   <IOs>
-	<IO DevTypeRef="Timer" offset="2" intrs="1,2"/>
 	<IO DevTypeRef="Uart" offset="8"/>
 	<IO DevTypeRef="Leds" offset="9"/>
 	<IO DevTypeRef="Keys" offset="10" intrs="3,4,5,6"/>
-	<IO DevTypeRef="EthMac" offset="13" intrs="0"/> 
-	<IO DevTypeRef="EthMac2" offset="14" intrs="7"/>
+	<IO DevTypeRef="EthMac" offset="13" intrs="7"/> 
+	<IO DevTypeRef="EthMac2" offset="14" intrs="8"/>
   </IOs>
 
   <Devs>
-	<Dev DevType="Timer" entity="Timer" iface="OcpCore" />
   	<Dev DevType="Uart" entity="Uart" iface="OcpCore">
   	  <params>
   		<param name="baudRate" value="115200"/>

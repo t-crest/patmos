@@ -1,40 +1,11 @@
 /*
-   Copyright 2014 Technical University of Denmark, DTU Compute. 
-   All rights reserved.
-   
-   This file is part of the time-predictable VLIW processor Patmos.
+  Copyright 2018 Technical University of Denmark, DTU Compute.
+  All rights reserved.
 
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions are met:
+  TTEthernet test program for WCET analysis
 
-      1. Redistributions of source code must retain the above copyright notice,
-         this list of conditions and the following disclaimer.
-
-      2. Redistributions in binary form must reproduce the above copyright
-         notice, this list of conditions and the following disclaimer in the
-         documentation and/or other materials provided with the distribution.
-
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
-   OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-   OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
-   NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
-   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-   The views and conclusions contained in the software and documentation are
-   those of the authors and should not be interpreted as representing official
-   policies, either expressed or implied, of the copyright holder.
- */
-
-/* 
- * file that calls TTE functions for WCET analysis
- * 
- * Authors: Maja Lund
- */
+  Author: Maja Lund (maja_lala@hotmail.com)
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -121,10 +92,12 @@ int main(){
   unsigned int cur_RX_BD = 0x600;
   unsigned int ext_RX_BD = 0x608;
 
-  tte_initialize(0xC3500,200,CT,2); //0xC3500 = 10ms in clock cycles, cluster cycle is 20ms, CT, 2 virtual links
-  tte_init_VL(0, 26,40); //VL 4001 starts at 2.6ms and has a period of 4ms
+  set_mac_address(0x1D000400,0x00000289);
+
+  tte_initialize(100,200,CT,2,0x2A60,0x349,0x67C); 
+  tte_init_VL(0, 8,40); //VL 4001 starts at 0.8ms and has a period of 4ms
   tte_init_VL(1, 10,20); //VL 4002 starts at 1ms and has a period of 2ms
-  tte_start_ticking(0,0);
+  tte_start_ticking(0,0,0);
   eth_iowr(0x04, 0x00000004); //clear receive frame bit in int_source
   eth_iowr(cur_RX_BD+4, cur_RX); //set first receive buffer to store frame in 0x000
   eth_iowr(cur_RX_BD, 0x0000C000); //set empty and IRQ and not wrap

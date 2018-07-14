@@ -1,7 +1,20 @@
+/*
+  Copyright 2018 Technical University of Denmark, DTU Compute.
+  All rights reserved.
+
+  TTEthernet library
+
+  Author: Maja Lund (maja_lala@hotmail.com)
+*/
+
 #include "tte.h"
 
+unsigned int TTE_MAX_TRANS_DELAY;
+unsigned int TTE_COMP_DELAY;
+unsigned int TTE_PRECISION;
+
 unsigned int integration_period; //clock cycles at 80Mhz (12.5 ns)
-unsigned int integration_cycle; //integer
+unsigned int integration_cycle; 
 unsigned int cluster_period;
 static unsigned long long start_time; //clock cycles at 80MHz (12.5 ns)
 static unsigned long long timer_time; //clock cycles at 80MHz (12.5 ns)
@@ -10,9 +23,9 @@ static unsigned long long scheduled_pit; //clock cycles at 80MHz (12.5 ns)
 signed long long prev_error;
 unsigned char CT_marker[4];
 unsigned char max_sched;
-unsigned char mac[6] = {
-    0x02, 0x89, 0x1D, 0x00, 0x04, 0x00
-}; 
+unsigned char mac[6];
+unsigned long long send_times[2000];
+int send_time_i=0;
 
 struct VL{
    unsigned char max_queue;
@@ -31,6 +44,7 @@ unsigned int *VLsched;
 unsigned int startTick;
 unsigned char schedplace;
 void tte_clock_tick(void) __attribute__((naked));
+void tte_clock_tick_log(void) __attribute__((naked));
 
 unsigned char is_pcf(unsigned int addr){
 	unsigned type_1 = mem_iord_byte(addr + 12);
@@ -43,7 +57,7 @@ unsigned char is_pcf(unsigned int addr){
 
 void tte_wait_for_message(unsigned long long * receive_point){
 	  while ((eth_iord(0x04) & 0x4)==0){
-	    *receive_point = *(_iodev_ptr_t)(__PATMOS_TIMER_LOCLK); //to avoid cache miss error
+	    *receive_point = *(_iodev_ptr_t)(__PATMOS_TIMER_LOCLK); //to avoid delay error
 	  };
 	  *receive_point = *(_iodev_ptr_t)(__PATMOS_TIMER_LOCLK);
 }
@@ -72,7 +86,7 @@ unsigned char tte_receive_log(unsigned int addr,unsigned long long rec_start,sig
 
 unsigned char tte_receive(unsigned int addr,unsigned long long rec_start){ //0 for failed pcf, 1 for success pcf, 2 for tte, 3 otherwise
 	if(is_pcf(addr)){
-	  if((mem_iord_byte(addr + 28)) == 0x2){
+	  if((mem_iord_byte(addr + 28)) == 0x2){ //integration frame
 	    if(handle_integration_frame(addr,rec_start)){
 	      return 1;  	
 	    }
@@ -80,7 +94,7 @@ unsigned char tte_receive(unsigned int addr,unsigned long long rec_start){ //0 f
               return 0;
             }
           }
-	  //what about other pcf's?
+	  //other PCF types currently return 3
 	} else if (is_tte(addr)){
 	  return 2;
         }
@@ -91,7 +105,7 @@ int handle_integration_frame_log(unsigned int addr,unsigned long long receive_pi
   signed long long error[],int i){
 	unsigned long long permanence_pit;
 	unsigned long long sched_rec_pit;
-	unsigned long long trans_clock; // weird 2^(-16) ns format
+	unsigned long long trans_clock;
 	signed long long err;
 
 	trans_clock = mem_iord_byte(addr + 34);
@@ -126,12 +140,15 @@ int handle_integration_frame_log(unsigned int addr,unsigned long long receive_pi
 
 		if(integration_cycle==0){
 		  schedplace=0;
-		  timer_time = start_time+((integration_period/100)*startTick);
+		  timer_time = start_time+(CYCLES_PER_UNIT*startTick); 
 		  arm_clock_timer(timer_time);
 		}
 		start_time += integration_period;
 
 		return 1;
+	}
+	else{
+	    start_time = 0;
 	}
 	return 0;
 }
@@ -139,7 +156,7 @@ int handle_integration_frame_log(unsigned int addr,unsigned long long receive_pi
 int handle_integration_frame(unsigned int addr,unsigned long long receive_pit){
 	unsigned long long permanence_pit;
 	unsigned long long sched_rec_pit;
-	unsigned long long trans_clock; // weird 2^(-16) ns format
+	unsigned long long trans_clock;
 
 	trans_clock = mem_iord_byte(addr + 34);
 	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 35));
@@ -171,21 +188,21 @@ int handle_integration_frame(unsigned int addr,unsigned long long receive_pit){
 
 		if(integration_cycle==0){
 		  schedplace=0;
-		  timer_time = start_time+((integration_period/100)*startTick);
+		  timer_time = start_time+(CYCLES_PER_UNIT*startTick);
 		  arm_clock_timer(timer_time);
 		}
 		start_time += integration_period;
 
 		return 1;
 	}
+	else{
+	    start_time = 0;
+	}
 	return 0;
 }
 
 unsigned long long transClk_to_clk (unsigned long long transClk){
-	return (transClk/12)>> 16;
-        //return transClk*43>>9>>16;
-        //return transClk*683>>13>>16;
-        //return transClk*10923>>17>>16;
+        return ((transClk*10)>>16)*536871>>26; //*536871>>26 is almost equivalent to /125
 }
 
 unsigned char is_tte(unsigned int addr){
@@ -198,19 +215,28 @@ unsigned char is_tte(unsigned int addr){
 	return 1;
 }
 
-void tte_initialize(unsigned int int_period, unsigned int cl_period, unsigned char CT[], unsigned char VLcount){ 
-	integration_period=int_period;
+void tte_initialize(unsigned int int_period, unsigned int cl_period, unsigned char CT[], unsigned char VLcount,
+    unsigned int max_delay, unsigned int comp_delay, unsigned int precision){ 
+	integration_period=int_period*CYCLES_PER_UNIT;
 	cluster_period=cl_period;
 	for(int i=0;i<4;i++){
 	  CT_marker[i]=CT[i];
         }
-	eth_iowr(0x40, 0x1D000400); //do we want the MAC to be initialized like this??
-	eth_iowr(0x44, 0x00000289); //do we even need a MAC??
-	eth_iowr(0x00, 0x0000A423); //exactly like eth_mac_initialize, but with pro-bit set and fullduplex
-	eth_iowr(0x08, 0x00000004); //generate interrupt on received frame (add option not to do this?)
+	TTE_MAX_TRANS_DELAY = max_delay;
+	TTE_COMP_DELAY = comp_delay;
+	TTE_PRECISION = precision;
 
-	VLarray = malloc(VLcount * sizeof(struct VL));
-	VLsize=VLcount;
+	unsigned long long macAdd = get_mac_address();
+	for(int i=5;i>=0;i--){
+	  mac[i]=macAdd & 0xFF;
+	  macAdd = macAdd>>8;
+	}
+	eth_iowr(0x00, 0x0000A423); //like eth_mac_initialize, but with pro-bit set and fullduplex
+	eth_iowr(0x08, 0x00000004); //generate interrupt on received frame
+
+	VLarray = malloc((VLcount+1) * sizeof(struct VL));
+	VLsize=VLcount+1;	
+	tte_init_VL(VLcount, int_period, int_period); //dummy VL for incorporating PCF's in schedule
 	return;
 }
 
@@ -265,16 +291,26 @@ void tte_generate_schedule(){
 	}
 }
 
-void tte_start_ticking(char enable_int, void (int_handler)(void)){
+void tte_start_ticking(char log_sending,char enable_int, void (int_handler)(void)){
 	tte_generate_schedule();
-
-	exc_register(17, &tte_clock_tick); //timer, note this is usually 16
-	if(enable_int){
-	  exc_register(16, int_handler); //ethmac interrupt, moved to 16 to have prio over timer
-	  intr_unmask(16);
+	void (*timer_handler)(void);
+	if(log_sending){
+	  timer_handler=&tte_clock_tick_log;
+	}
+	else{
+	  timer_handler=&tte_clock_tick;
 	}
 
-	intr_unmask(17);
+	if(enable_int){
+	  exc_register(16, int_handler); //ethmac interrupt, moved to 16 to have prio over timer
+	  exc_register(17, timer_handler); //timer, note this is usually 16
+	  intr_unmask(16);
+	  intr_unmask(17);
+	}
+	else{
+	  exc_register(16, timer_handler); //timer
+	  intr_unmask(16);
+	}
   	intr_clear_all_pending();
   	intr_enable();
 
@@ -332,14 +368,9 @@ void tte_prepare_pcf(unsigned int addr,unsigned char VL[],unsigned char type){
 	mem_iowr_byte(addr+27, 0x01);
 	//type
 	mem_iowr_byte(addr+28, type); //integration frame 0x02,coldstart 0x04, coldstart ack 0x08
-	//trans clock
+	//transparent clock
 	#pragma loopbound min 8 max 8
 	for(int i=34; i<42; i++){
-	  mem_iowr_byte(addr + i, 0x00);
-	}
-	//filler?
-	#pragma loopbound min 18 max 18
-	for(int i=42; i<60; i++){
 	  mem_iowr_byte(addr + i, 0x00);
 	}
 }
@@ -369,23 +400,45 @@ void tte_send_data(unsigned char i){
   int tx_addr=VLarray[i].queue[VLarray[i].rmplace];
   VLarray[i].queue[VLarray[i].rmplace]=0;
   eth_mac_send(tx_addr, VLarray[i].sizeQueue[VLarray[i].rmplace]);
+  VLarray[i].rmplace++;
+  if(VLarray[i].rmplace==VLarray[i].max_queue){
+    VLarray[i].rmplace=0;
+  }
   return;
 }
 
 void tte_clock_tick(void) {
   exc_prologue();
-  timer_time += ((integration_period/100)*sched[schedplace]);
+  timer_time += (CYCLES_PER_UNIT*sched[schedplace]);
   int i=VLsched[schedplace];
   schedplace++;
   if(schedplace<max_sched){ 
+    if(VLsched[schedplace]==(VLsize-1)){
+      timer_time = start_time;
+    }
     arm_clock_timer(timer_time);
   }
   if(VLarray[i].queue[VLarray[i].rmplace]>0){
     tte_send_data(i);
-    VLarray[i].rmplace++; //perhaps the rmplace-updating should be done in tte_send?
-    if(VLarray[i].rmplace==VLarray[i].max_queue){
-      VLarray[i].rmplace=0;
+  }
+  exc_epilogue();
+}
+
+void tte_clock_tick_log(void) {
+  exc_prologue();
+  timer_time += (CYCLES_PER_UNIT*sched[schedplace]);
+  int i=VLsched[schedplace];
+  schedplace++;
+  if(schedplace<max_sched){ 
+    if(VLsched[schedplace]==(VLsize-1)){
+      timer_time = start_time;
     }
+    arm_clock_timer(timer_time);
+  }
+  if(VLarray[i].queue[VLarray[i].rmplace]>0){
+    send_times[send_time_i]=get_cpu_cycles();
+    send_time_i++;
+    tte_send_data(i);
   }
   exc_epilogue();
 }

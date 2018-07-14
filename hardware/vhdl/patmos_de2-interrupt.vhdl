@@ -7,7 +7,7 @@
 -- License: Simplified BSD License
 --
 
--- VHDL top level for Patmos in Chisel on Altera de2-115 board with two EthMac ethernet controllers
+-- VHDL top level for Patmos in Chisel on Altera de2-115 board with the EthMac ethernet controller having prioritized interrupts
 --
 -- Includes some 'magic' VHDL code to generate a reset after FPGA configuration.
 --
@@ -23,6 +23,8 @@ entity patmos_top is
         iKeysPins_key : in    std_logic_vector(3 downto 0);
         oUartPins_txd : out   std_logic;
         iUartPins_rxd : in    std_logic;
+        oUart2Pins_txd : out   std_logic;
+        iUart2Pins_rxd : in    std_logic;
         oSRAM_A       : out   std_logic_vector(19 downto 0);
         SRAM_DQ       : inout std_logic_vector(15 downto 0);
         oSRAM_CE_N    : out   std_logic;
@@ -52,30 +54,7 @@ entity patmos_top is
         ENET0_MDC     : out   std_logic; -- MII Management data clock (to PHY)
         ENET0_MDIO    : inout std_logic;
 
-        ENET0_RST_N   : out   std_logic;
-
-        --second PHY interface
-        -- Tx
-        ENET1_TX_CLK  : in    std_logic; -- Transmit clock (from PHY)
-        ENET1_TX_DATA : out   std_logic_vector(3 downto 0); -- Transmit nibble (to PHY)
-        ENET1_TX_EN   : out   std_logic; -- Transmit enable (to PHY)
-        ENET1_TX_ER   : out   std_logic; -- Transmit error (to PHY)
-
-        -- Rx
-        ENET1_RX_CLK  : in    std_logic; -- Receive clock (from PHY)
-        ENET1_RX_DATA : in    std_logic_vector(3 downto 0); -- Receive nibble (from PHY)
-        ENET1_RX_DV   : in    std_logic; -- Receive data valid (from PHY)
-        ENET1_RX_ER   : in    std_logic; -- Receive data error (from PHY)
-
-        -- Common Tx and Rx
-        ENET1_RX_COL  : in    std_logic; -- Collision (from PHY)
-        ENET1_RX_CRS  : in    std_logic; -- Carrier sense (from PHY)
-
-        -- MII Management interface
-        ENET1_MDC     : out   std_logic; -- MII Management data clock (to PHY)
-        ENET1_MDIO    : inout std_logic;
-
-        ENET1_RST_N   : out   std_logic
+        ENET0_RST_N   : out   std_logic
         );
 end entity patmos_top;
 
@@ -121,21 +100,6 @@ architecture rtl of patmos_top is
             io_ethMacPins_md_pad_o                : out   std_logic; -- MII data output (to I/O cell)
             io_ethMacPins_md_padoe_o              : out   std_logic; -- MII data output enable (to I/O cell)
 
-            io_ethMac2Pins_mtx_clk_pad_i           : in    std_logic; -- Transmit clock (from PHY)
-            io_ethMac2Pins_mtxd_pad_o              : out   std_logic_vector(3 downto 0); -- Transmit nibble (to PHY)
-            io_ethMac2Pins_mtxen_pad_o             : out   std_logic; -- Transmit enable (to PHY)
-            io_ethMac2Pins_mtxerr_pad_o            : out   std_logic; -- Transmit error (to PHY)
-            io_ethMac2Pins_mrx_clk_pad_i           : in    std_logic; -- Receive clock (from PHY)
-            io_ethMac2Pins_mrxd_pad_i              : in    std_logic_vector(3 downto 0); -- Receive nibble (from PHY)
-            io_ethMac2Pins_mrxdv_pad_i             : in    std_logic; -- Receive data valid (from PHY)
-            io_ethMac2Pins_mrxerr_pad_i            : in    std_logic; -- Receive data error (from PHY)
-            io_ethMac2Pins_mcoll_pad_i             : in    std_logic; -- Collision (from PHY)
-            io_ethMac2Pins_mcrs_pad_i              : in    std_logic; -- Carrier sense (from PHY)
-            io_ethMac2Pins_md_pad_i                : in    std_logic; -- MII data input (from I/O cell)
-            io_ethMac2Pins_mdc_pad_o               : out   std_logic; -- MII Management data clock (to PHY)
-            io_ethMac2Pins_md_pad_o                : out   std_logic; -- MII data output (to I/O cell)
-            io_ethMac2Pins_md_padoe_o              : out   std_logic; -- MII data output enable (to I/O cell)
-
             io_sramCtrlPins_ramOut_addr           : out std_logic_vector(19 downto 0);
             io_sramCtrlPins_ramOut_doutEna        : out std_logic;
             io_sramCtrlPins_ramIn_din             : in  std_logic_vector(15 downto 0);
@@ -144,7 +108,9 @@ architecture rtl of patmos_top is
             io_sramCtrlPins_ramOut_noe            : out std_logic;
             io_sramCtrlPins_ramOut_nwe            : out std_logic;
             io_sramCtrlPins_ramOut_nlb            : out std_logic;
-            io_sramCtrlPins_ramOut_nub            : out std_logic
+            io_sramCtrlPins_ramOut_nub            : out std_logic;
+            io_uart2Pins_tx                        : out std_logic;
+            io_uart2Pins_rx                        : in  std_logic
             );
     end component;
 
@@ -159,8 +125,6 @@ architecture rtl of patmos_top is
     -- signals for converting i o in io (MII)
     signal md_pad_o_int   : std_logic;
     signal md_padoe_o_int : std_logic;
-    signal md_pad_o_int2   : std_logic;
-    signal md_padoe_o_int2 : std_logic;
 
     -- for generation of internal reset
     signal int_res            : std_logic;
@@ -177,8 +141,6 @@ architecture rtl of patmos_top is
 begin
     ENET0_MDIO  <= md_pad_o_int when (md_padoe_o_int = '1') else 'Z';
     ENET0_RST_N <= not int_res;
-    ENET1_MDIO  <= md_pad_o_int2 when (md_padoe_o_int2 = '1') else 'Z';
-    ENET1_RST_N <= not int_res;
 
     pll_inst : entity work.pll generic map(
         input_freq  => pll_infreq,
@@ -241,22 +203,10 @@ begin
                            ENET0_MDC,
                            md_pad_o_int,
                            md_padoe_o_int,
-                           ENET1_TX_CLK,
-                           ENET1_TX_DATA,
-                           ENET1_TX_EN,
-                           ENET1_TX_ER,
-                           ENET1_RX_CLK,
-                           ENET1_RX_DATA,
-                           ENET1_RX_DV,
-                           ENET1_RX_ER,
-                           ENET1_RX_COL,
-                           ENET1_RX_CRS,
-                           ENET1_MDIO,
-                           ENET1_MDC,
-                           md_pad_o_int2,
-                           md_padoe_o_int2,
                            oSRAM_A, 
-                           sram_out_dout_ena, SRAM_DQ, sram_out_dout, oSRAM_CE_N, oSRAM_OE_N, oSRAM_WE_N, oSRAM_LB_N, oSRAM_UB_N
+                           sram_out_dout_ena, SRAM_DQ, sram_out_dout, oSRAM_CE_N, oSRAM_OE_N, oSRAM_WE_N, oSRAM_LB_N, oSRAM_UB_N,
+                           oUart2Pins_txd, 
+                           iUart2Pins_rxd
 
 );
 
