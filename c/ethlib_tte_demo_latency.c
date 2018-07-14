@@ -38,8 +38,8 @@ void demo_mode(){
 
 	set_mac_address(0x1D000400,0x00000289);
 
-	//int_period = 10ms, cluster cycle=20ms, CT, 1 VL sending, max_delay, comp_delay, precision(0x33E)
-	tte_initialize(100,200,CT,1,0x2A60,0x349,0x67C);
+	//int_period = 10ms, cluster cycle=20ms, CT, 1 VL sending, max_delay, comp_delay, precision
+	tte_initialize(100,200,CT,1,0x2A60,0x349,0x33E);
 
 	//initialize other ethmac
 	eth_iowr1(0x00, 0x0000A423);
