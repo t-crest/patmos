@@ -17,11 +17,21 @@ volatile _SPM int *readdata_5_ptr     	   = (volatile _SPM int *) 0xF00b0014;
 
 int main(){
 
-	int data=*readdata_0_ptr;
+	int data0= *readdata_0_ptr;
+	int data1= *readdata_1_ptr;
+	int data2= *readdata_2_ptr;
+	int data3= *readdata_3_ptr;
+	int data4= *readdata_4_ptr;
+	int data5= *readdata_5_ptr;
 
 	for(;;) {
  
-		printf("The Sensor value : %d \n", data);
+		printf("The Sensor 0 value : %d \n", data0);
+		printf("The Sensor 1 value : %d \n", data1);
+		printf("The Sensor 2 value : %d \n", data2);
+		printf("The Sensor 3 value : %d \n", data3);
+		printf("The Sensor 4 value : %d \n", data4);
+		printf("The Sensor 5 value : %d \n", data5);
 	}
 	
 

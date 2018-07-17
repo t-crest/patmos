@@ -32,8 +32,8 @@ entity patmos_top is
         oSRAM_UB_N : out std_logic;
     
 	-- I2C sensor interface
-        ompuSensorPins_scl_out  : out std_logic;
-	iompuSensorPins_sda_inout : inout std_logic
+        oMpuSensorPins_scl_out  : out std_logic;
+	ioMpuSensorPins_sda_inout : inout std_logic
 
     
 	);
@@ -76,9 +76,11 @@ architecture rtl of patmos_top is
             io_sramCtrlPins_ramOut_nlb : out std_logic;
             io_sramCtrlPins_ramOut_nub : out std_logic;
 
-	-- I2C sensor interface
-        io_mpuSensorPins_scl_out  : out std_logic;
-	io_mpuSensorPins_sda_inout : inout std_logic
+	  -- I2C sensor interface
+            io_mpuSensorPins_scl_out  	: out std_logic;
+	    io_mpuSensorPins_sda_in 	: in std_logic;
+	    io_mpuSensorPins_sda_out	: out std_logic;
+	    io_mpuSensorPins_we_out 	: out std_logic
 
 		);
 	end component;
@@ -96,9 +98,15 @@ architecture rtl of patmos_top is
 	signal res_reg1, res_reg2 : std_logic;
 	signal res_cnt            : unsigned(2 downto 0) := "000"; -- for the simulation
 
-    -- sram signals for tristate inout
-    signal sram_out_dout_ena : std_logic;
-    signal sram_out_dout : std_logic_vector(15 downto 0);
+    	-- sram signals for tristate inout
+    	signal sram_out_dout_ena : std_logic;
+    	signal sram_out_dout : std_logic_vector(15 downto 0);
+
+  	-- I2C signals for tristate inout
+  	signal smpuSensorPins_sda_in	: std_logic;
+  	signal smpuSensorPins_sda_out 	: std_logic;
+  	signal smpuSensorPins_we 	: std_logic;
+  	signal smpuSensorPins_sclk 	: std_logic;
 
 	attribute altera_attribute : string;
 	attribute altera_attribute of res_cnt : signal is "POWER_UP_LEVEL=LOW";
@@ -133,6 +141,24 @@ begin
 	end process;
 
 
+  --I2C tristate buffer control
+  process(smpuSensorPins_we, smpuSensorPins_sda_out, ioMpuSensorPins_sda_inout)
+  begin
+    if smpuSensorPins_we = '1' then
+      ioMpuSensorPins_sda_inout <= smpuSensorPins_sda_out;
+      --smpuSensorPins_sda_in <= '1';
+    else
+      ioMpuSensorPins_sda_inout <= 'Z';
+      --smpuSensorPins_sda_in <= ioMpuSensorPins_sda_inout;
+    end if;
+    smpuSensorPins_sda_in <= ioMpuSensorPins_sda_inout;
+
+  end process;
+
+   -- Not tristate
+    oMpuSensorPins_scl_out <= smpuSensorPins_sclk;
+    
+
     -- tristate output to ssram
     process(sram_out_dout_ena, sram_out_dout)
     begin
@@ -152,6 +178,6 @@ begin
            iKeysPins_key,
            oUartPins_txd, iUartPins_rxd,
            oSRAM_A, sram_out_dout_ena, SRAM_DQ, sram_out_dout, oSRAM_CE_N, oSRAM_OE_N, oSRAM_WE_N, oSRAM_LB_N, oSRAM_UB_N,
-        ompuSensorPins_scl_out, iompuSensorPins_sda_inout);
+        smpuSensorPins_sclk, smpuSensorPins_sda_in,smpuSensorPins_sda_out, smpuSensorPins_we );
 
 end architecture rtl;

@@ -27,8 +27,10 @@ object MpuSensor extends DeviceObject {
           // I2C pins
           val scl_out  = Bits(OUTPUT, width = 1)
           // val sda_inout  = Bits(OUTPUT, width = 1)  // this is an inout pin
-          val sda_inout  = Bits(INPUT, width = 1)
-          //val sda_out  = Bits(OUTPUT, width = 1)
+          //val sda_inout  = Bits(INPUT, width = 1)
+          val sda_out  = Bits(OUTPUT, width = 1)
+          val sda_in  = Bits(INPUT, width = 1)
+          val we_out = Bits (OUTPUT, 1)
       }
     }
 }
@@ -49,8 +51,10 @@ class MpuSensorIO() extends Bundle {
       // I2C pins
       val scl_out  = Bits(OUTPUT, width = 1)
       // val sda_inout  = Bits(OUTPUT, width = 1)  // this is an inout pin
-      val sda_inout  = Bits(INPUT, width = 1)
-      //val sda_out  = Bits(OUTPUT, width = 1)
+      //val sda_inout  = Bits(INPUT, width = 1)
+      val sda_out  = Bits(OUTPUT, width = 1)
+      val sda_in  = Bits(INPUT, width = 1)
+      val we_out  = Bits(OUTPUT, width = 1)
 
 }
 
@@ -77,8 +81,11 @@ class MpuSensorBB() extends BlackBox {
     //I2C
     io.scl_out.setName("scl_out")
     //io.mpuI2cPins.sda_inout.setName("sda_inout") //Inout
-    io.sda_inout.setName("sda_inout")  //In
-    //io.sda_out.setName("sda_inout")   //out
+    //io.sda_inout.setName("sda_inout")  //In
+    io.sda_out.setName("sda_out")   //out
+    io.sda_in.setName("sda_in")   //in
+    io.we_out.setName("we_out")
+
 
 }
 
@@ -99,8 +106,10 @@ class MpuSensor() extends CoreDevice() {
 
       // pin connection between the blackbox and the wrapper
       io.mpuSensorPins.scl_out := bb.io.scl_out
-      bb.io.sda_inout := io.mpuSensorPins.sda_inout
-      //io.mpuSensorPins.sda_out := bb.io.sda_out
+
+      bb.io.sda_in := io.mpuSensorPins.sda_in
+      io.mpuSensorPins.sda_out := bb.io.sda_out
+      io.mpuSensorPins.we_out := bb.io.we_out // enable for tristate
 
       // Address decoding for Reads
       when(io.ocp.M.Cmd === OcpCmd.RD) {

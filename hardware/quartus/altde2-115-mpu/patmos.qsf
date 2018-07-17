@@ -198,7 +198,7 @@ set_global_assignment -name VERILOG_MACRO "SYNTHESIS=<None>"
 set_global_assignment -name VHDL_FILE "../../vhdl/patmos_de2-115-mpu.vhdl"
 set_global_assignment -name VHDL_FILE ../../vhdl/altera/cyc2_pll.vhd
 set_global_assignment -name VERILOG_FILE ../../build/Patmos.v
-set_global_assignment -name VERILOG_FILE ../../src/main/scala/io/imu_mpu.v
+set_global_assignment -name VERILOG_FILE ../../src/main/scala/io/imu_mpu_v2.v
 
 # I2C MPU interface
 set_location_assignment PIN_AH23 -to iompuSensorPins_sda_inout
