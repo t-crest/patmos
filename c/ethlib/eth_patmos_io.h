@@ -66,13 +66,13 @@ unsigned eth_iord(unsigned addr);
 void mem_iowr(unsigned addr, unsigned data);
 
 // Write a byte in rx-tx buffer
-void mem_iowr_byte(unsigned addr, unsigned data) __attribute__((noinline));
+void mem_iowr_byte(unsigned addr, unsigned data);// __attribute__((noinline));
 
 // Read rx-tx buffer
 unsigned mem_iord(int addr);
 
 // Write a byte in rx-tx buffer
-unsigned mem_iord_byte(unsigned addr) __attribute__((noinline));
+unsigned mem_iord_byte(unsigned addr);// __attribute__((noinline));
 
 // Write to ethernet controller
 void eth_iowr1(unsigned addr,unsigned data);
@@ -84,12 +84,12 @@ unsigned eth_iord1(unsigned addr);
 void mem_iowr1(unsigned addr, unsigned data);
 
 // Write a byte in rx-tx buffer
-void mem_iowr_byte1(unsigned addr, unsigned data) __attribute__((noinline));
+void mem_iowr_byte1(unsigned addr, unsigned data);
 
 // Read rx-tx buffer
 unsigned mem_iord1(int addr);
 
 // Write a byte in rx-tx buffer
-unsigned mem_iord_byte1(unsigned addr) __attribute__((noinline));
+unsigned mem_iord_byte1(unsigned addr);
 
 #endif

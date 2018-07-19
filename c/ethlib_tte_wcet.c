@@ -16,69 +16,58 @@
 
 unsigned char VL0[] = {0x0F,0xA1};
 unsigned char VL1[] = {0x0F,0xA2};
+int sched_errors=0;
+int tte=0;
+unsigned long long r_pit[N];
 
-//copied from rtc.h
-static unsigned long long get_cpu_cycles_cp(void) __attribute__((noinline));
-static unsigned long long get_cpu_cycles_cp(void) {
-  unsigned clo, chi;
-
-  // TODO this code is identical to libgloss/patmos/time.c, share code.
-
-  // Prevent the compiler from moving the read over other instructions 
-  // or into a call delay slot behind the call miss stall
-  asm volatile ("" : : : "memory");
-
-  _iodev_ptr_t hi_clock = (_iodev_ptr_t)(__PATMOS_TIMER_HICLK);
-  _iodev_ptr_t lo_clock = (_iodev_ptr_t)(__PATMOS_TIMER_LOCLK);
-
-  // Order is important here
-  clo = *lo_clock;
-  chi = *hi_clock;
-
-  asm volatile ("" : : : "memory");
-
-  return (((unsigned long long) chi) << 32) | clo;
+void tte_code_int(int* i, unsigned long long* receive_point) __attribute__((noinline));
+void tte_code_int(int* i, unsigned long long* receive_point){
+  if((*i)%2==0){ //send the 10 allowed packets on VL1
+    tte_prepare_test_data(0x2600,VL1,0x11,400);
+    if(!tte_schedule_send(0x2600,400,1)) sched_errors++;
+    tte_prepare_test_data(0x2C00,VL1,0x22,300);
+    if(!tte_schedule_send(0x2C00,300,1)) sched_errors++;
+    tte_prepare_test_data(0x3200,VL1,0x33,800);
+    if(!tte_schedule_send(0x3200,800,1)) sched_errors++;
+    tte_prepare_test_data(0x3800,VL1,0x44,1514);
+    if(!tte_schedule_send(0x3800,1514,1)) sched_errors++;
+    tte_prepare_test_data(0x3E00,VL1,0x55,400);
+    if(!tte_schedule_send(0x3E00,400,1)) sched_errors++;
+    tte_prepare_test_data(0x4400,VL1,0x66,300);
+    if(!tte_schedule_send(0x4400,300,1)) sched_errors++;
+    tte_prepare_test_data(0x4A00,VL1,0x77,800);
+    if(!tte_schedule_send(0x4A00,800,1)) sched_errors++;
+    tte_prepare_test_data(0x5000,VL1,0x88,1514);
+    if(!tte_schedule_send(0x5000,1514,1)) sched_errors++;
+    tte_prepare_test_data(0x5600,VL1,0x99,400);
+    if(!tte_schedule_send(0x5600,400,1)) sched_errors++;
+    tte_prepare_test_data(0x5C00,VL1,0x10,300);
+    if(!tte_schedule_send(0x5C00,300,1)) sched_errors++;
+  }
+  r_pit[*i]=*receive_point;
+  (*i)++;
 }
 
-int tte_loop(char reply,unsigned int rx_addr,int i) __attribute__((noinline));
-int tte_loop(char reply,unsigned int rx_addr,int i){
-  int j=i;
-  if(reply==0){ //failed pcf
+void tte_code_tt(unsigned char* reply, unsigned int* rx_addr) __attribute__((noinline));
+void tte_code_tt(unsigned char* reply, unsigned int* rx_addr){
+    *reply=mem_iord_byte(*rx_addr+14);
+    tte_prepare_test_data(0x2000,VL0,*reply,1514);
+    if(!tte_schedule_send(0x2000,1514,0)) sched_errors++;
+    tte++;
+}
+
+
+void tte_loop(unsigned char* reply,unsigned int* rx_addr,int* i, unsigned long long* receive_point) __attribute__((noinline));
+void tte_loop(unsigned char* reply,unsigned int* rx_addr,int* i, unsigned long long* receive_point){
+  if(*reply==0){ //failed pcf
     //printf("pcf out of schedule \n");
-    j=N;
+    *i=N;
   }
-  else if(reply==1){ //successfull pcf
-    if(i>10){
-      if(i%2==0){ //send the 10 allowed packets on VL1
-	tte_prepare_test_data(0x2600,VL1,0x11,400);
-	tte_schedule_send(0x2600,400,1);
-	tte_prepare_test_data(0x2C00,VL1,0x22,300);
-	tte_schedule_send(0x2C00,300,1);
-	tte_prepare_test_data(0x3200,VL1,0x33,800);
-	tte_schedule_send(0x3200,800,1);
-	tte_prepare_test_data(0x3800,VL1,0x44,1514);
-	tte_schedule_send(0x3800,1514,1);
-	tte_prepare_test_data(0x3E00,VL1,0x55,400);
-	tte_schedule_send(0x3E00,400,1);
-	tte_prepare_test_data(0x4400,VL1,0x66,300);
-	tte_schedule_send(0x4400,300,1);
-	tte_prepare_test_data(0x4A00,VL1,0x77,800);
-	tte_schedule_send(0x4A00,800,1);
-        tte_prepare_test_data(0x5000,VL1,0x88,1514);
-	tte_schedule_send(0x5000,1514,1);
-	tte_prepare_test_data(0x5600,VL1,0x99,400);
-	tte_schedule_send(0x5600,400,1);
-	tte_prepare_test_data(0x5C00,VL1,0x10,300);
-	tte_schedule_send(0x5C00,300,1);
-      }
-    }
-    j++;
-  } else if (reply==2){ //incoming tte
-    reply=mem_iord_byte(rx_addr+14);
-    tte_prepare_test_data(0x800,VL0,reply,200);
-    tte_schedule_send(0x800,200,0);
+  else if(*reply==1){ //successfull pcf
+    tte_code_int(i,receive_point);
+  } else if (*reply==2){ //incoming tte
+    tte_code_tt(reply,rx_addr);
   }
-  return j;
 }
 
 int main(){
@@ -94,7 +83,7 @@ int main(){
 
   set_mac_address(0x1D000400,0x00000289);
 
-  tte_initialize(100,200,CT,2,0x2A60,0x349,0x67C); 
+  tte_initialize(100,200,CT,2,0x2A60,0xFA0,0x33E); 
   tte_init_VL(0, 8,40); //VL 4001 starts at 0.8ms and has a period of 4ms
   tte_init_VL(1, 10,20); //VL 4002 starts at 1ms and has a period of 2ms
   tte_start_ticking(0,0,0);
@@ -106,14 +95,15 @@ int main(){
   
   for (int i =0; i<N;){
     while ((eth_iord(0x04) & 0x4)==0){;};
-    receive_point = get_cpu_cycles_cp();
+    tte_wait_for_message(&receive_point);
     tte_clear_free_rx_buffer(ext_RX_BD); //enable receiving in other buffer
 
     reply=tte_receive(cur_RX,receive_point);
     reply=tte_receive_log(cur_RX,receive_point,error,i); //for logging
 
-    i=tte_loop(reply,cur_RX,i);
+    tte_loop(&reply,&cur_RX,&i,&receive_point);
     tte_clock_tick(); //usually called by interrupt, but WCET analysis does not recognize this
+    tte_clock_tick_log();
 
     unsigned int extra = cur_RX;
     cur_RX = ext_RX;

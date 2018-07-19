@@ -66,7 +66,7 @@ void demo_mode(){
 	set_mac_address(0x1D000400,0x00000289);
 
 	//int_period = 10ms, cluster cycle=20ms, CT, 2 VLs sending, max_delay, comp_delay, precision
-	tte_initialize(100,200,CT,2,0x2A60,0x349,0x67C);
+	tte_initialize(100,200,CT,2,0x2A60,0xFA0,0x67C);
 	tte_init_VL(0, 8,40); //VL 4001 starts at 0.8ms and has a period of 4ms
 	tte_init_VL(1, 10,20); //VL 4002 starts at 1ms and has a period of 2ms
 	tte_start_ticking(0,1, &intr_handler);
