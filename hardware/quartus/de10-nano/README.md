@@ -15,17 +15,27 @@ Probably add USB blaster permissions for: Bus 001 Device 005: ID 09fb:6810 Alter
 
 A TTL UART is connected to GPIO pins 1 and 2 of GPIO 0.
 
+```
 GND * *
     * *
     * *
     * *
     * *
 txd * * rxd (pin 1)
+```
 
 rxd and txd are from the Patmos view, therefore TTL UART rxd needs to
 be connected to txd and the other way around.
 
 FPGA configuration has to be done via Quartus (instead of make config).
+
+The on-chip memory is 512 KB (instead of typical 2 MB on the DE2-115).
+Therefore, the stack start needs to be set accordingly with following
+linker options, see an example in c/apps/de10-nano and build with:
+
+```
+make app APP=de10-nano download
+```
 
 ## TODO
 
