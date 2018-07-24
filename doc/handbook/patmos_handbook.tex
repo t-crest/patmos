@@ -435,7 +435,7 @@ A list of the most important make targets:
 \item[hwsim] execute the Patmos emulator
 \item[emulator] build the Chisel based C++ emulator
 \item[comp] compile a C program as loadable ELF binary
-\item[bootcomp] compile a C program as a bootable image
+\item[bootcomp] compile a C program as a bootable image \todo{This is probably outdated, needs to be checked}
 \item[gen] generate the Verilog code
 \item[synth] synthesize for an FPGA
 \item[config] configure the FPGA
@@ -502,9 +502,13 @@ make APP=hello_puts comp config download
 
 Here an example of the individual steps to build the blinking LED C
 hello world (on a different FPGA board):
+
+\todo{Following is probably old info and generates a large .dat file:
+make BOOTAPP=bootable-echo bootcomp gen}
+
 \begin{verbatim}
 make tools
-make BOOTAPP=bootable-echo bootcomp gen
+make BOOTAPP=bootable-echo gen
 make BOOTAPP=bootable-echo BOARD=bemicro synth
 make BOARD=bemicro BLASTER_TYPE=Arrow-USB-Blaster config
 \end{verbatim}
