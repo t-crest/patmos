@@ -34,7 +34,9 @@ const int shift = 10;
 const int iter = 1 << shift;
 const int MIN_START = 10000;
 
-void test(int coreid, int lckid, int rawlockid, int rawunlockid, volatile _SPM int * lockbase, pthread_mutex_t* mutex) {
+void test(int coreid, int lckid, int rawlockid, int rawunlockid, volatile _SPM int * lockbase, pthread_mutex_t _mutex) {
+
+  pthread_mutex_t* mutex = &_mutex;
 
   int acquire = 0;
   int acquire_avg = 0;
@@ -93,7 +95,7 @@ int _main()
   pthread_mutexattr_t dummy;
   pthread_mutex_t mutex;
   pthread_mutex_init(&mutex, &dummy);
-  test(coreid,lckid,0,0,0,&mutex);
+  test(coreid,lckid,0,0,0,mutex);
 #else
 #ifdef _HARDLOCK_
   const int rawlockid = (((lckid) << 1) + 1);
@@ -168,7 +170,3 @@ int main() {
   }
   return ret;
 }
-
-
-
-
