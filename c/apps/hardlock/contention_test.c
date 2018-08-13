@@ -18,7 +18,7 @@ _UNCACHED int _cntmax;
 
 volatile _IODEV int *dead_ptr = (volatile _IODEV int *) PATMOS_IO_DEADLINE;
 
-void processing(int lckcnt, int wait, int cnt)
+void test(int lckcnt, int wait, int cnt)
 {
   int cpuid = get_cpuid();
   int lckid = 0;
@@ -41,7 +41,7 @@ void processing(int lckcnt, int wait, int cnt)
 void worker_init(void* arg) {
   __lock(MAX_LCK_CNT-1);
   __unlock(MAX_LCK_CNT-1);
-  processing(_lckcnt,_wait,_cntmax);
+  test(_lckcnt,_wait,_cntmax);
   int ret = 0;
   corethread_exit(&ret);
   return;
@@ -83,7 +83,7 @@ int main() {
       int time = TIMER_CLK_LOW;
       __unlock(MAX_LCK_CNT-1);
 
-      processing(lckcnt,wait,MAX_CNT);
+      test(lckcnt,wait,MAX_CNT);
 
       for(int i = 1; i < cpucnt; i++) {
         void * res;

@@ -25,15 +25,12 @@ _UNCACHED int acquisitions_min[MAX_CORE_CNT];
 _UNCACHED int releases_avg[MAX_CORE_CNT];
 _UNCACHED int releases_max[MAX_CORE_CNT];
 _UNCACHED int releases_min[MAX_CORE_CNT];
-_UNCACHED int acquirels_avg[MAX_CORE_CNT];
-_UNCACHED int acquirels_max[MAX_CORE_CNT];
-_UNCACHED int acquirels_min[MAX_CORE_CNT];
 
 const int shift = 10;
 const int iter = 1 << shift;
 const int MIN_START = 10000;
 
-void acquirethenrelease(int coreid, int lckid, int rawlockid, int rawunlockid, volatile _SPM int * lockbase) {
+void test(int coreid, int lckid, int rawlockid, int rawunlockid, volatile _SPM int * lockbase) {
 
   int acquire = 0;
   int acquire_avg = 0;
@@ -84,61 +81,24 @@ void acquirethenrelease(int coreid, int lckid, int rawlockid, int rawunlockid, v
   releases_min[coreid] = release_min;
 }
 
-void acquireandrelease(int coreid, int lckid, int rawlockid, int rawunlockid, volatile _SPM int * lockbase) {
-
-  int acquirel = 0;
-  int acquirel_avg = 0;
-  int acquirel_max = 0;
-  int acquirel_min = MIN_START;
-
-  int stop1;
-  int stop2;
-
-
-  for(int i = 0; i < iter; i++)
-  {
-    asm("");
-    stop1 = TIMER_CLK_LOW;
-    ___lock(lckid);
-    ___unlock(lckid);
-    stop2 = TIMER_CLK_LOW;
-    asm("");
-
-    acquirel = (stop2 - stop1) - 1;
-    acquirel_avg += acquirel;
-    if(acquirel > acquirel_max)
-      acquirel_max = acquirel;
-    else if(acquirel < acquirel_min)
-      acquirel_min = acquirel;
-  }
-
-  acquirels_avg[coreid] = acquirel_avg >> shift;
-  acquirels_max[coreid] = acquirel_max;
-  acquirels_min[coreid] = acquirel_min;
-}
-
 int _main()
 {
   const int coreid = get_cpuid();
   const int lckid = coreid;
 
 #ifdef USE_PTHREAD_MUTEX
-  acquirethenrelease(coreid,lckid,0,0,0);
-  acquireandrelease(coreid,lckid,0,0,0);
+  test(coreid,lckid,0,0,0);
 #else
 #ifdef _HARDLOCK_
   const int rawlockid = (((lckid) << 1) + 1);
   const int rawunlockid = (((lckid) << 1) + 0);
-  acquirethenrelease(coreid,lckid,rawlockid,rawunlockid,HARDLOCK_BASE);
-  acquireandrelease(coreid,lckid,rawlockid,rawunlockid,HARDLOCK_BASE);
+  test(coreid,lckid,rawlockid,rawunlockid,HARDLOCK_BASE);
 #endif
 #ifdef _ASYNCLOCK_
-  acquirethenrelease(coreid,lckid,0,0,ASYNCLOCK_BASE+lckid);
-  acquireandrelease(coreid,lckid,0,0,ASYNCLOCK_BASE+lckid);
+  test(coreid,lckid,0,0,ASYNCLOCK_BASE+lckid);
 #endif
 #ifdef _CASPM_
-  acquirethenrelease(coreid,lckid,0,0,CASPM_BASE+lckid);
-  acquireandrelease(coreid,lckid,0,0,CASPM_BASE+lckid);
+  test(coreid,lckid,0,0,CASPM_BASE+lckid);
 #endif
 #endif
 
@@ -201,19 +161,6 @@ int main() {
   printf("Min:\n");
   for (int i = 0; i < cpucnt; i++) {
     printf("%d\n", releases_min[i]);
-  }
-  printf("Acquisition and immediate releases:\n");
-  printf("Average:\n");
-  for (int i = 0; i < cpucnt; i++) {
-    printf("%d\n", acquirels_avg[i]);
-  }
-  printf("Max:\n");
-  for (int i = 0; i < cpucnt; i++) {
-    printf("%d\n", acquirels_max[i]);
-  }
-  printf("Min:\n");
-  for (int i = 0; i < cpucnt; i++) {
-    printf("%d\n", acquirels_min[i]);
   }
   return ret;
 }
