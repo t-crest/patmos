@@ -22,6 +22,11 @@ void locks_init() {
 #define _lock(lockid) pthread_mutex_lock(((pthread_mutex_t*)&LOCKS)+lockid)
 #define _unlock(lockid) pthread_mutex_unlock(((pthread_mutex_t*)&LOCKS)+lockid)
 
+#else
+
+#define _lock(lockid) lock(lockid)
+#define _unlock(lockid) unlock(lockid)
+
 #endif
 
 #ifdef VALIDATION

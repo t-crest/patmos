@@ -34,20 +34,14 @@
 #else
 
 #ifdef _HARDLOCK_
-#define _lock(lockid) lock(lockid)
-#define _unlock(lockid) unlock(lockid)
 #define _NAME "Hardlock"
 #endif
 
 #ifdef _ASYNCLOCK_
-#define _lock(lockid) lock(lockid)
-#define _unlock(lockid) unlock(lockid)
 #define _NAME "Asynclock"
 #endif
 
 #ifdef _CASPM_
-#define _lock(lockid) lock(lockid)
-#define _unlock(lockid) unlock(lockid)
 #define _NAME "CASPM"
 #endif
 
