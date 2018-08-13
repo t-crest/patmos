@@ -1,7 +1,7 @@
 <patmos default="default.xml">
-  <description>configuration for DE2-115 board with SD card port in SPI mode</description>
+  <description>configuration for DE2-115 board connecting to MPU sensor via I2C interface</description>
 
-  <frequency Hz="80000000"/>
+  <frequency Hz="50000000"/>
 
   <ExtMem size="2M" DevTypeRef="Sram16" />
 

@@ -31,6 +31,7 @@ object MpuSensor extends DeviceObject {
           val sda_out  = Bits(OUTPUT, width = 1)
           val sda_in  = Bits(INPUT, width = 1)
           val we_out = Bits (OUTPUT, 1)
+          //val reset = Bits (INPUT,1)
       }
     }
 }
@@ -55,6 +56,7 @@ class MpuSensorIO() extends Bundle {
       val sda_out  = Bits(OUTPUT, width = 1)
       val sda_in  = Bits(INPUT, width = 1)
       val we_out  = Bits(OUTPUT, width = 1)
+      //val reset = Bits(INPUT,1)
 
 }
 
@@ -64,7 +66,8 @@ class MpuSensorBB() extends BlackBox {
     // rename component
     setModuleName("imu_mpu")
     // rename signals
-    renameClock(clock, "clk")
+    renameClock( "clk", "clk")
+    addClock(Driver.implicitClock)
     reset.setName("reset")
     //outputs
     io.readdata_0.setName("readdata_0")
@@ -85,6 +88,7 @@ class MpuSensorBB() extends BlackBox {
     io.sda_out.setName("sda_out")   //out
     io.sda_in.setName("sda_in")   //in
     io.we_out.setName("we_out")
+    //io.reset.setName("reset")
 
 
 }
@@ -150,6 +154,7 @@ class MpuSensor() extends CoreDevice() {
             // Reading from readdata_6 register
             is(Bits("b0110")) {
               ocpDataReg := bb.io.readdata_6
+              //ocpDataReg := UInt(101)
             }
 
             // Reading from readdata_7 register

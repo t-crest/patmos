@@ -19,6 +19,7 @@ use ieee.numeric_std.all;
 entity patmos_top is
 	port(
 		clk : in  std_logic;
+		reset : in std_logic;
 		oLedsPins_led : out std_logic_vector(8 downto 0);
 		iKeysPins_key : in std_logic_vector(3 downto 0);
 		oUartPins_txd : out std_logic;
@@ -34,6 +35,7 @@ entity patmos_top is
 	-- I2C sensor interface
         oMpuSensorPins_scl_out  : out std_logic;
 	ioMpuSensorPins_sda_inout : inout std_logic
+        --iMpuSensorPins_reset_in : in std_logic
 
     
 	);
@@ -81,6 +83,7 @@ architecture rtl of patmos_top is
 	    io_mpuSensorPins_sda_in 	: in std_logic;
 	    io_mpuSensorPins_sda_out	: out std_logic;
 	    io_mpuSensorPins_we_out 	: out std_logic
+            --io_mpuSensorPins_reset_in	: in std_logic
 
 		);
 	end component;
@@ -88,7 +91,7 @@ architecture rtl of patmos_top is
 	-- DE2-70: 50 MHz clock => 80 MHz
 	-- BeMicro: 16 MHz clock => 25.6 MHz
 	constant pll_infreq : real    := 50.0;
-	constant pll_mult   : natural := 8;
+	constant pll_mult   : natural := 5;
 	constant pll_div    : natural := 5;
 
 	signal clk_int : std_logic;
@@ -107,6 +110,7 @@ architecture rtl of patmos_top is
   	signal smpuSensorPins_sda_out 	: std_logic;
   	signal smpuSensorPins_we 	: std_logic;
   	signal smpuSensorPins_sclk 	: std_logic;
+        --signal smpuSensorPins_reset     : std_logic;
 
 	attribute altera_attribute : string;
 	attribute altera_attribute of res_cnt : signal is "POWER_UP_LEVEL=LOW";
@@ -144,19 +148,26 @@ begin
   --I2C tristate buffer control
   process(smpuSensorPins_we, smpuSensorPins_sda_out, ioMpuSensorPins_sda_inout)
   begin
-    if smpuSensorPins_we = '1' then
-      ioMpuSensorPins_sda_inout <= smpuSensorPins_sda_out;
+    if smpuSensorPins_we = '1' then -- when the tristate is enabled
+        if smpuSensorPins_sda_out = '1' then       
+	   ioMpuSensorPins_sda_inout <= 'Z';
+         else
+	   ioMpuSensorPins_sda_inout <= '0';
       --smpuSensorPins_sda_in <= '1';
+	 end if;
     else
       ioMpuSensorPins_sda_inout <= 'Z';
-      --smpuSensorPins_sda_in <= ioMpuSensorPins_sda_inout;
+      smpuSensorPins_sda_in <= ioMpuSensorPins_sda_inout;
     end if;
-    smpuSensorPins_sda_in <= ioMpuSensorPins_sda_inout;
+    --smpuSensorPins_sda_in <= ioMpuSensorPins_sda_inout;
 
   end process;
 
+
+
    -- Not tristate
     oMpuSensorPins_scl_out <= smpuSensorPins_sclk;
+    --smpuSensorPins_reset <= io_mpuSensorPins_reset_in;
     
 
     -- tristate output to ssram

@@ -40,7 +40,7 @@ input            clk;
 input            reset;
   
 output           scl_out;
-inout            sda_inout;
+inout          	 sda_inout;
 
 
 wire             clk_en;
