@@ -120,8 +120,7 @@ void acquireandrelease(int coreid, int lckid, int rawlockid, int rawunlockid, vo
 int _main()
 {
   const int coreid = get_cpuid();
-  const int lckid = coreid % MAX_LCK_CNT;
-
+  const int lckid = coreid;
 
 #ifdef USE_PTHREAD_MUTEX
   acquirethenrelease(coreid,lckid,0,0,0);

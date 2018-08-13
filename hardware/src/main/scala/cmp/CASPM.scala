@@ -23,7 +23,7 @@ class CASPM(corecnt: Int, size: Int) extends Module {
   val cnt = Reg(init = UInt(0, log2Up(corecnt)))
   cnt := Mux(precnt =/= cntmax, cnt, Mux(cnt === (corecnt-1).U, 0.U, cnt + 1.U))
 
-  val cmdRegs = Vec(corecnt, Reg(init = OcpCmd.IDLE))
+  val cmdRegs = Vec(corecnt, Reg(init = OcpCmd.RD))
   val addrRegs = Vec(corecnt, Reg(spm.io.M.Addr))
   val newvalRegs = Vec(corecnt, Reg(spm.io.M.Data))
   val bytenRegs = Vec(corecnt, Reg(spm.io.M.ByteEn))

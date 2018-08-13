@@ -1,51 +1,47 @@
 #include "setup.h"
 
 #ifndef MAX_CNT
-#define MAX_CNT 10000
+#define MAX_CNT 1000
 #endif
-#ifndef WAIT
-#define WAIT 10
+#ifndef MAX_WAIT
+#define MAX_WAIT 10000
 #endif
 
-#define shared_lock() __lock(MAX_LCK_CNT-1)
-#define shared_unlock() __unlock(MAX_LCK_CNT-1)
-
+#ifdef VALIDATION
 _UNCACHED int data[MAX_LCK_CNT];
-_UNCACHED int cnt = MAX_CNT;
+#endif
 
+
+_UNCACHED int _lckcnt;
+_UNCACHED int _wait;
+_UNCACHED int _cntmax;
 
 volatile _IODEV int *dead_ptr = (volatile _IODEV int *) PATMOS_IO_DEADLINE;
 
-void work(int lckcnt)
+void processing(int lckcnt, int wait, int cnt)
 {
-  while(1)
+  int cpuid = get_cpuid();
+  int lckid = 0;
+  for(int i = 0; i < cnt; i++)
   {
-    shared_lock();
-
-    if(cnt == 0)
-    {
-      shared_unlock();
-      break;
-    }
-
-    int _cnt = --cnt;
-
-    shared_unlock();
-
-    int lckid = _cnt%lckcnt;
-
     __lock(lckid);
-    *dead_ptr = WAIT;
+    *dead_ptr = wait;
+
+#ifdef VALIDATION
     data[lckid]++;
+#endif
+
     *dead_ptr;
     __unlock(lckid);
-
+    if(++lckid >= lckcnt)
+      lckid = 0;
   }
 }
 
 void worker_init(void* arg) {
-  int lckcnt = *((int*)arg);
-  work(lckcnt);
+  __lock(MAX_LCK_CNT-1);
+  __unlock(MAX_LCK_CNT-1);
+  processing(_lckcnt,_wait,_cntmax);
   int ret = 0;
   corethread_exit(&ret);
   return;
@@ -55,46 +51,59 @@ int main() {
 
   LOCKS_INIT
 
-  int cpucnt = MAX_CORE_CNT;
-  if(get_cpucnt() < cpucnt)
-    cpucnt = get_cpucnt();
+  int cpucnt = get_cpucnt();
+  if(MAX_CORE_CNT < cpucnt)
+    cpucnt = MAX_CORE_CNT;
+
+  const int summax = MAX_CNT*cpucnt;
 
   printf("%d locks/iterations implemented using "_NAME" \n", MAX_LCK_CNT);
-  printf("%d incrementations for each iteration\n", MAX_CNT);
-  printf("%d cycle critical section for each incrementation\n", WAIT);
+  printf("%d incrementations for each core for each iteration\n", MAX_CNT);
   printf("Starting %d cores\n",cpucnt);
+  for(int wait = 10; wait <= MAX_WAIT; wait *= 10) {
 
-  for(int i = 1; i < MAX_LCK_CNT-1; i++) {
+    printf("%d cycle critical section for each incrementation\n", wait);
 
-    for (int j = 0; j < i; j++) {
-      data[j] = 0;
+    for(int lckcnt = 1; lckcnt < MAX_LCK_CNT-1; lckcnt += 1) {
+#ifdef VALIDATION
+      for (int i = 0; i < lckcnt; i++) {
+        data[i] = 0;
+      }
+#endif
+
+      _lckcnt = lckcnt;
+      _wait = wait;
+      _cntmax = MAX_CNT;
+
+      __lock(MAX_LCK_CNT-1);
+
+      for(int i = 1; i < cpucnt; i++)
+        corethread_create(i,&worker_init,NULL);
+
+      int time = TIMER_CLK_LOW;
+      __unlock(MAX_LCK_CNT-1);
+
+      processing(lckcnt,wait,MAX_CNT);
+
+      for(int i = 1; i < cpucnt; i++) {
+        void * res;
+        corethread_join(i, &res);
+      }
+      time = TIMER_CLK_LOW - time;
+
+#ifdef VALIDATION
+      int sum = 0;
+      for (int i = 0; i < lckcnt; i++)
+        sum += data[i];
+
+      if(sum != summax) {
+        printf("Iteration with %d fields failed.\nProper sum:%d\nCalulated sum:%d\n", lckcnt, summax, sum);
+        return sum;
+      }
+#endif
+
+      printf("Iteration with %d fields finished in %d cycles\n", lckcnt, time);
     }
-    cnt = MAX_CNT;
-    
-    shared_lock();
-    for(int j = 1; j < cpucnt; j++)
-      corethread_create(j,&worker_init,&i);
-    shared_unlock();
-
-    int time = TIMER_CLK_LOW;
-    work(i);
-    for(int j = 1; j < cpucnt; j++) {
-      void * res;
-      corethread_join(j, &res);
-    }
-    time = TIMER_CLK_LOW - time;
-    
-    for (int j = 0; j < i; j++)
-      cnt += data[j];
- 
-    if(cnt != MAX_CNT) {
-      printf("Iteration with %d fields failed.\nProper sum:%d\nCalulated sum:%d\n", i, MAX_CNT, cnt);
-      return cnt;
-    }
-
-    printf("Iteration with %d fields finished in %d cycles\n", i, time);
-
-    
   }
 
   return 0;
