@@ -1,21 +1,25 @@
 #include "setup.h"
 
 #ifdef USE_PTHREAD_MUTEX
-#define ___lock(lckid) __lock(lckid)
-#define ___unlock(lckid) __unlock(lckid)
+
+#define _lock(lockid) pthread_mutex_lock(mutex)
+#define _unlock(lockid) pthread_mutex_unlock(mutex)
+
 #else
+
 #ifdef _HARDLOCK_
-#define ___lock(lckid) *lockbase = rawlockid
-#define ___unlock(lckid) *lockbase = rawunlockid
+#define _lock(lckid) *lockbase = rawlockid
+#define _unlock(lckid) *lockbase = rawunlockid
 #endif
 #ifdef _ASYNCLOCK_
-#define ___lock(lckid) *lockbase
-#define ___unlock(lckid) *lockbase = 0
+#define _lock(lckid) *lockbase
+#define _unlock(lckid) *lockbase = 0
 #endif
 #ifdef _CASPM_
-#define ___lock(lckid) set_exp_val(0); set_new_val(1); while(*lockbase != 0){asm("");}
-#define ___unlock(lckid) set_exp_val(1); set_new_val(0); while(*lockbase != 1){asm("");}
+#define _lock(lckid) set_exp_val(0); set_new_val(1); while(*lockbase != 0){asm("");}
+#define _unlock(lckid) set_exp_val(1); set_new_val(0); while(*lockbase != 1){asm("");}
 #endif
+
 #endif
 
 _UNCACHED int cpucnt = MAX_CORE_CNT;
@@ -30,7 +34,7 @@ const int shift = 10;
 const int iter = 1 << shift;
 const int MIN_START = 10000;
 
-void test(int coreid, int lckid, int rawlockid, int rawunlockid, volatile _SPM int * lockbase) {
+void test(int coreid, int lckid, int rawlockid, int rawunlockid, volatile _SPM int * lockbase, pthread_mutex_t* mutex) {
 
   int acquire = 0;
   int acquire_avg = 0;
@@ -49,9 +53,9 @@ void test(int coreid, int lckid, int rawlockid, int rawunlockid, volatile _SPM i
   {
     asm("");
     stop1 = TIMER_CLK_LOW;
-    ___lock(lckid);
+    _lock(lckid);
     stop2 = TIMER_CLK_LOW;
-    ___unlock(lckid);
+    _unlock(lckid);
     stop3 = TIMER_CLK_LOW;
     asm("");
 
@@ -70,7 +74,6 @@ void test(int coreid, int lckid, int rawlockid, int rawunlockid, volatile _SPM i
       release_max = release;
     else if(release < release_min)
       release_min = release;
-
   }
 
   acquisitions_avg[coreid] = acquire_avg >> shift;
@@ -87,18 +90,21 @@ int _main()
   const int lckid = coreid;
 
 #ifdef USE_PTHREAD_MUTEX
-  test(coreid,lckid,0,0,0);
+  pthread_mutexattr_t dummy;
+  pthread_mutex_t mutex;
+  pthread_mutex_init(&mutex, &dummy);
+  test(coreid,lckid,0,0,0,&mutex);
 #else
 #ifdef _HARDLOCK_
   const int rawlockid = (((lckid) << 1) + 1);
   const int rawunlockid = (((lckid) << 1) + 0);
-  test(coreid,lckid,rawlockid,rawunlockid,HARDLOCK_BASE);
+  test(coreid,lckid,rawlockid,rawunlockid,HARDLOCK_BASE,0);
 #endif
 #ifdef _ASYNCLOCK_
-  test(coreid,lckid,0,0,ASYNCLOCK_BASE+lckid);
+  test(coreid,lckid,0,0,ASYNCLOCK_BASE+lckid,0);
 #endif
 #ifdef _CASPM_
-  test(coreid,lckid,0,0,CASPM_BASE+lckid);
+  test(coreid,lckid,0,0,CASPM_BASE+lckid,0);
 #endif
 #endif
 
@@ -106,7 +112,6 @@ int _main()
 }
 
 void worker_func(void* arg) {
-  int worker_param = *((int*)arg);
   int ret = _main();
   corethread_exit(&ret);
   return;
@@ -123,8 +128,7 @@ int main() {
   for(int i = 1; i < cpucnt; i++)
   {
     threads[i] = i;
-    int worker_param = 1;
-    corethread_create(threads[i],&worker_func,&worker_param);
+    corethread_create(threads[i],&worker_func,NULL);
   }
 
   int ret = _main();

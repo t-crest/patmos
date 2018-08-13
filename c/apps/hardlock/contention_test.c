@@ -7,6 +7,23 @@
 #define MAX_WAIT 10000
 #endif
 
+#define shared_lock() _lock(MAX_LCK_CNT-2)
+#define shared_unlock() _unlock(MAX_LCK_CNT-2)
+
+#ifdef USE_PTHREAD_MUTEX
+_UNCACHED unsigned int LOCKS[MAX_LCK_CNT];
+
+void locks_init() {
+  pthread_mutexattr_t dummy;
+  for(int i = 0; i < MAX_LCK_CNT-1; i++)
+    pthread_mutex_init(((pthread_mutex_t*)&LOCKS)+i, &dummy);
+}
+
+#define _lock(lockid) pthread_mutex_lock(((pthread_mutex_t*)&LOCKS)+lockid)
+#define _unlock(lockid) pthread_mutex_unlock(((pthread_mutex_t*)&LOCKS)+lockid)
+
+#endif
+
 #ifdef VALIDATION
 _UNCACHED int data[MAX_LCK_CNT];
 #endif
@@ -24,7 +41,7 @@ void test(int lckcnt, int wait, int cnt)
   int lckid = 0;
   for(int i = 0; i < cnt; i++)
   {
-    __lock(lckid);
+    _lock(lckid);
     *dead_ptr = wait;
 
 #ifdef VALIDATION
@@ -32,15 +49,15 @@ void test(int lckcnt, int wait, int cnt)
 #endif
 
     *dead_ptr;
-    __unlock(lckid);
+    _unlock(lckid);
     if(++lckid >= lckcnt)
       lckid = 0;
   }
 }
 
 void worker_init(void* arg) {
-  __lock(MAX_LCK_CNT-1);
-  __unlock(MAX_LCK_CNT-1);
+  shared_lock();
+  shared_unlock();
   test(_lckcnt,_wait,_cntmax);
   int ret = 0;
   corethread_exit(&ret);
@@ -49,7 +66,11 @@ void worker_init(void* arg) {
 
 int main() {
 
-  LOCKS_INIT
+#ifdef USE_PTHREAD_MUTEX
+  locks_init();
+#endif
+
+
 
   int cpucnt = get_cpucnt();
   if(MAX_CORE_CNT < cpucnt)
@@ -64,7 +85,7 @@ int main() {
 
     printf("%d cycle critical section for each incrementation\n", wait);
 
-    for(int lckcnt = 1; lckcnt < MAX_LCK_CNT-1; lckcnt += 1) {
+    for(int lckcnt = 1; lckcnt < MAX_LCK_CNT-2; lckcnt += 1) {
 #ifdef VALIDATION
       for (int i = 0; i < lckcnt; i++) {
         data[i] = 0;
@@ -75,13 +96,13 @@ int main() {
       _wait = wait;
       _cntmax = MAX_CNT;
 
-      __lock(MAX_LCK_CNT-1);
+      shared_lock();
 
       for(int i = 1; i < cpucnt; i++)
         corethread_create(i,&worker_init,NULL);
 
       int time = TIMER_CLK_LOW;
-      __unlock(MAX_LCK_CNT-1);
+      shared_unlock();
 
       test(lckcnt,wait,MAX_CNT);
 

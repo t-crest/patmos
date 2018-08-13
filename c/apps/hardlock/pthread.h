@@ -109,25 +109,4 @@ int pthread_mutex_unlock(pthread_mutex_t *__mutex) {
   return 0;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #endif
