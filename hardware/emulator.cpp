@@ -176,6 +176,15 @@ static void emu_extmem(Patmos_t *c) {
 }
 #endif /* EXTMEM_SRAMCTRL */
 
+// For a version without external memory
+#ifndef EXTMEM_SSRAM32CTRL
+#ifndef EXTMEM_SRAMCTRL
+static void write_extmem(val_t address, val_t word) {}
+static void init_extmem(Patmos_t *c, bool random) {}
+static void emu_extmem(Patmos_t *c) {}
+#endif
+#endif
+
 #ifdef IO_CPUINFO
 static void emu_cpuinfo(Patmos_t *c) {
     c->Patmos__io_cpuInfoPins_id = 0;
@@ -877,3 +886,4 @@ int main (int argc, char* argv[]) {
   // Pass on return value from processor
   return c->Patmos_PatmosCore_decode_rf__rf.get(1).to_ulong();
 }
+
