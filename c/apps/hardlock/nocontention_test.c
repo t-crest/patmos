@@ -35,8 +35,18 @@ const int iter = 1 << shift;
 const int MIN_START = 10000;
 
 void test(int coreid, int lckid, int rawlockid, int rawunlockid, volatile _SPM int * lockbase, pthread_mutex_t _mutex) {
-
+#ifdef USE_PTHREAD_MUTEX
   pthread_mutex_t* mutex = &_mutex;
+#endif
+  asm("");
+  asm("");
+  asm("");
+  asm("");
+  asm("");
+  asm("");
+  asm("");
+  asm("");
+
 
   int acquire = 0;
   int acquire_avg = 0;
@@ -54,11 +64,17 @@ void test(int coreid, int lckid, int rawlockid, int rawunlockid, volatile _SPM i
   for(int i = 0; i < iter; i++)
   {
     asm("");
+    asm("");
+    asm("");
+    asm("");
     stop1 = TIMER_CLK_LOW;
     _lock(lckid);
     stop2 = TIMER_CLK_LOW;
     _unlock(lckid);
     stop3 = TIMER_CLK_LOW;
+    asm("");
+    asm("");
+    asm("");
     asm("");
 
     acquire = (stop2 - stop1) - 1;
