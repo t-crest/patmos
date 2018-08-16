@@ -1,6 +1,6 @@
-# DE10 Nano project for Patmos
+# DE10 Nano Configuration for Patmos
 
-Set the board variable BOARD=de10-nano (best done in a local config.mk)
+Set the board variable `BOARD=de10-nano` (best done in a local config.mk)
 
 Change switches for FPGA configuration to:
 
@@ -31,7 +31,14 @@ FPGA configuration has to be done via Quartus (instead of make config).
 
 The on-chip memory is 512 KB (instead of typical 2 MB on the DE2-115).
 Therefore, the stack start needs to be set accordingly with following
-linker options, see an example in c/apps/de10-nano and build with:
+linker options:
+
+```
+        -mpatmos-stack-base=0x080000 -mpatmos-shadow-stack-base=0x078000 \
+        -Xgold --defsym -Xgold __heap_end=0x070000
+```
+
+Best see in the example in c/apps/de10-nano. Compile and download that example with:
 
 ```
 make app APP=de10-nano download

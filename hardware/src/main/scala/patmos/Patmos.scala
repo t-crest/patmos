@@ -191,7 +191,6 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
   val io = Config.getPatmosIO()
 
-
   val nrCores = Config.getConfig.coreCount
 
   println("Config core count: " + nrCores)
@@ -207,7 +206,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   println("Config cmp: " + cmpDevice)
   // This is a hack and workaround for CMP experiments
   if (cmpDevice == 0) {
-    val hardlock = Module(new cmp.HardlockOCPWrapper(() => new cmp.Hardlock(nrCores, nrCores*2)))
+    val hardlock = Module(new cmp.HardlockOCPWrapper(() => new cmp.Hardlock(nrCores, nrCores * 2)))
     for (i <- (0 until nrCores)) {
       hardlock.io(i) <> cores(i).io.comSpm
     }
@@ -243,19 +242,15 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       s4noc.io(i) <> cores(i).io.comSpm
     }
   } else if (cmpDevice == 10) {
-    val asynclock = Module(new cmp.AsyncLock(nrCores,nrCores*2))
+    val asynclock = Module(new cmp.AsyncLock(nrCores, nrCores * 2))
     for (i <- (0 until nrCores)) {
       asynclock.io(i) <> cores(i).io.comSpm
     }
   } else if (cmpDevice == 11) {
-    val caspm = Module(new cmp.CASPM(nrCores,nrCores*8))
+    val caspm = Module(new cmp.CASPM(nrCores, nrCores * 8))
     for (i <- (0 until nrCores)) {
       caspm.io(i) <> cores(i).io.comSpm
     }
-  }
-
-  for (i <- (0 until cores.length)) {
-    memarbiter.io.master(i) <> cores(i).io.memPort
   }
 
   // Only core 0 gets its devices connected to pins
@@ -264,8 +259,19 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   // Connect memory controller
   val ramConf = Config.getConfig.ExtMem.ram
   val ramCtrl = Config.createDevice(ramConf).asInstanceOf[BurstDevice]
-  ramCtrl.io.ocp <> memarbiter.io.slave
+
   Config.connectIOPins(ramConf.name, io, ramCtrl.io)
+
+  // TODO: fix memory arbiter to have configurable memory timing.
+  // E.g., it does not work with on-chip main memory.
+  if (cores.length == 1) {
+    ramCtrl.io.ocp <> cores(0).io.memPort
+  } else {
+    for (i <- (0 until cores.length)) {
+      memarbiter.io.master(i) <> cores(i).io.memPort
+    }
+    ramCtrl.io.ocp <> memarbiter.io.slave
+  }
 
   // Print out the configuration
   Utility.printConfig(configFile)
