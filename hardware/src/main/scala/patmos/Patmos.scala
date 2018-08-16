@@ -195,8 +195,6 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
   println("Config core count: " + nrCores)
 
-  val memarbiter = Module(new ocp.TdmArbiterWrapper(nrCores, ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
-
   // Instantiate cores
   val cores = (0 until nrCores).map(i => Module(new PatmosCore(binFile, i, nrCores)))
 
@@ -267,6 +265,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   if (cores.length == 1) {
     ramCtrl.io.ocp <> cores(0).io.memPort
   } else {
+    val memarbiter = Module(new ocp.TdmArbiterWrapper(nrCores, ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
     for (i <- (0 until cores.length)) {
       memarbiter.io.master(i) <> cores(i).io.memPort
     }
