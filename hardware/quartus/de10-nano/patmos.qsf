@@ -28,8 +28,9 @@ set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
 
 set_global_assignment -name TOP_LEVEL_ENTITY patmos_top
-set_global_assignment -name VHDL_FILE "../../vhdl/patmos_ocmem.vhdl"
+set_global_assignment -name VHDL_FILE "../../vhdl/patmos_de10-nano.vhdl"
 #set_global_assignment -name VHDL_FILE ../../vhdl/altera/cyc2_pll.vhd
+set_global_assignment -name VERILOG_FILE ../../ext/aau/imu_mpu.v
 set_global_assignment -name VERILOG_FILE ../../build/Patmos.v
 
 set_global_assignment -name VERILOG_MACRO "SYNTHESIS=<None>"
@@ -55,6 +56,11 @@ set_location_assignment PIN_W15 -to oLedsPins_led[0]
 # GPIO 0, pins 1 and 2
 set_location_assignment PIN_V12 -to iUartPins_rxd
 set_location_assignment PIN_E8 -to oUartPins_txd
+
+# GPI 0, pins 31, 32, 33
+set_location_assignment PIN_AA18 -to oMpuScl
+set_location_assignment PIN_W14 -to ioMpuSda
+set_location_assignment PIN_Y18 -to oMpuAd0
 
 set_global_assignment -name LAST_QUARTUS_VERSION "16.1.0 Lite Edition"
 set_global_assignment -name RESERVE_ALL_UNUSED_PINS "AS INPUT TRI-STATED WITH WEAK PULL-UP"

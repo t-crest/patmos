@@ -1,4 +1,4 @@
-
+ 
 
 `timescale 1ns / 1ps
 
@@ -6,7 +6,7 @@ module imu_mpu(
                        // inputs:
                         address,
                         clk,                        
-                        reset,
+                        reset_n,
 
                        // outputs:
                         readdata_0,
@@ -37,10 +37,10 @@ output  [ 31: 0] readdata_9;  //For future
 
 input   [  1: 0] address;
 input            clk;
-input            reset;
+input            reset_n;
   
 output           scl_out;
-inout          	 sda_inout;
+inout            sda_inout;
 
 
 wire             clk_en;
@@ -101,9 +101,10 @@ reg [15:0] data7;
 reg [111:0] big_data;
 
 
-always @(posedge clk or posedge reset)
+always @(posedge clk or negedge reset_n)
 begin
-if (reset == 1)
+  readdata_9 <= 42;
+if (reset_n == 0)
 begin
   state <= 0;
   clk_tick <= 0;
@@ -333,9 +334,9 @@ end
 
 
 
-always @(posedge clk or posedge reset)
+always @(posedge clk or negedge reset_n)
 begin
-  if (reset == 1)
+  if (reset_n == 0)
   begin
     
     running = 0;

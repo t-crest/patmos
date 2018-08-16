@@ -13,15 +13,30 @@ Change switches for FPGA configuration to:
 
 Probably add USB blaster permissions for: Bus 001 Device 005: ID 09fb:6810 Altera and 09fb:6010
 
-A TTL UART is connected to GPIO pins 1 and 2 of GPIO 0.
+A TTL UART is connected to GPIO pins 1 and 2 of GPIO 0. The MPU sensor is connected to GND and 3.3 V and pins 31, 32, and 33. See below.
 
 ```
-GND * *
-    * *
-    * *
-    * *
-    * *
-txd * * rxd (pin 1)
+    40 * * 39
+       * *
+       * *
+       * *
+    34 * * 33 AD0
+SDA 32 * * 31 SCL
+GND 30 * * 29 3.3V
+       * *
+       * *
+       * *
+       * *
+       * *
+       * *
+       * *
+       * *
+GND 12 * * 11
+       * *
+       * *
+       * *
+     4 * *  3
+txd  2 * *  1 rxd (pin 1)
 ```
 
 rxd and txd are from the Patmos view, therefore TTL UART rxd needs to
