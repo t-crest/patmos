@@ -13,7 +13,7 @@ Change switches for FPGA configuration to:
 
 Probably add USB blaster permissions for: Bus 001 Device 005: ID 09fb:6810 Altera and 09fb:6010
 
-A TTL UART is connected to GPIO pins 1 and 2 of GPIO 0. The MPU sensor is connected to GND and 3.3 V and pins 31, 32, and 33. See below.
+A TTL UART is connected to GPIO pins 1 and 2 of GPIO 0. The MPU sensor is connected to GND and 3.3 V and pins 31, 32, and 33 (for the Verilog IMU component). See below.
 
 ```
     40 * * 39
@@ -59,9 +59,14 @@ Best see in the example in c/apps/de10-nano. Compile and download that example w
 make app APP=de10-nano download
 ```
 
+## Comments
+
+ * The I2C interface is an adaption of the [I2C Master](https://www.digikey.com/eewiki/pages/viewpage.action?pageId=10125324) from Digi-Key,
+   where further information on the interfacing can be found
+ * Register definitions in C for the MPU-6050 can be found at https://playground.arduino.cc/Main/MPU-6050
+
 ## TODO
 
- * Add Shibarchi's sensor interface
  * If needed add external memory (the ARM boot program needs to be changed to allow access to the memory from the FPGA fabric, Florian has the solution)
 
 
