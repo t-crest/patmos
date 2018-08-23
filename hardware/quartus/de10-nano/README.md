@@ -58,9 +58,13 @@ Best see in the example in c/apps/de10-nano. Compile and download that example w
 ```
 make app APP=de10-nano download
 ```
-
 This example uses the DTU controller to print our the values of the accelerometer, thermometer, and gyroscope.
 
+## Comments
+
+ * The I2C interface is an adaption of the [I2C Master](https://www.digikey.com/eewiki/pages/viewpage.action?pageId=10125324) from Digi-Key,
+   where further information on the interfacing can be found
+ * Register definitions in C for the MPU-6050 can be found at https://playground.arduino.cc/Main/MPU-6050
 
 ## TODO
 
