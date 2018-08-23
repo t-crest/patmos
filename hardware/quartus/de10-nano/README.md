@@ -17,7 +17,7 @@ A TTL UART is connected to GPIO pins 1 and 2 of GPIO 0. The MPU sensor is connec
 
 ```
 SCL 40 * * 39 SDA
-AD0    * *
+AD0 38 * *
        * *
        * *
     34 * * 33 AD0
@@ -58,7 +58,12 @@ Best see in the example in c/apps/de10-nano. Compile and download that example w
 ```
 make app APP=de10-nano download
 ```
-This example uses the DTU controller to print our the values of the accelerometer, thermometer, and gyroscope.
+
+This example uses the DTU controller to print our the values of the accelerometer, thermometer, and gyroscope. You can use the program that reads out from the AAU
+interface with:
+```
+make app APP=de10-nano MAIN=blinking download
+```
 
 ## Comments
 
@@ -68,8 +73,7 @@ This example uses the DTU controller to print our the values of the acceleromete
 
 ## TODO
 
- * Add Shibarchi's sensor interface
- * If needed add external memory (the ARM boot program needs to be changed to allow access to the memory from the FPGA fabric, Florian has the solution)
+ * If needed, add external memory (the ARM boot program needs to be changed to allow access to the memory from the FPGA fabric, Florian has the solution)
 
 
 
