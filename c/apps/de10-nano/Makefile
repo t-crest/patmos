@@ -1,3 +1,6 @@
+MAIN?=hello_MPU6050
+#MAIN?=blinking
+
 # This is the trivial Hello World example, distributed over two .c files
 
 LDFLAGS?= \
@@ -6,5 +9,5 @@ LDFLAGS?= \
         -Xgold --defsym -Xgold __heap_end=0x070000
 
 all:
-	patmos-clang -I ../.. -O2 $(LDFLAGS) *.c -o de10-nano.elf
+	patmos-clang -I ../.. -O2 $(LDFLAGS) $(MAIN).c -o de10-nano.elf
 

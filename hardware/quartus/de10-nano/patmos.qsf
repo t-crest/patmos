@@ -28,10 +28,7 @@ set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
 
 set_global_assignment -name TOP_LEVEL_ENTITY patmos_top
-set_global_assignment -name VHDL_FILE "../../vhdl/patmos_de10-nano.vhdl"
 #set_global_assignment -name VHDL_FILE ../../vhdl/altera/cyc2_pll.vhd
-set_global_assignment -name VERILOG_FILE ../../ext/aau/imu_mpu.v
-set_global_assignment -name VERILOG_FILE ../../build/Patmos.v
 
 set_global_assignment -name VERILOG_MACRO "SYNTHESIS=<None>"
 
@@ -62,10 +59,21 @@ set_location_assignment PIN_AA18 -to oMpuScl
 set_location_assignment PIN_W14 -to ioMpuSda
 set_location_assignment PIN_Y18 -to oMpuAd0
 
-set_global_assignment -name LAST_QUARTUS_VERSION "16.1.0 Lite Edition"
+set_global_assignment -name LAST_QUARTUS_VERSION "18.0.0 Lite Edition"
 set_global_assignment -name RESERVE_ALL_UNUSED_PINS "AS INPUT TRI-STATED WITH WEAK PULL-UP"
 
 set_global_assignment -name MIN_CORE_JUNCTION_TEMP "-40"
 set_global_assignment -name MAX_CORE_JUNCTION_TEMP 100
 set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to ioMpuSda
+set_global_assignment -name VHDL_FILE ../../vhdl/other/I2Ccontroller.vhd
+set_global_assignment -name VHDL_FILE "../../vhdl/patmos_de10-nano.vhdl"
+set_global_assignment -name VERILOG_FILE ../../ext/aau/imu_mpu.v
+set_global_assignment -name VERILOG_FILE ../../build/Patmos.v
+set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
+set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to i2c_scl
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to i2c_sda
+set_location_assignment PIN_AA11 -to i2c_scl
+set_location_assignment PIN_AA13 -to i2c_sda
+set_location_assignment PIN_AA26 -to ad0
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
