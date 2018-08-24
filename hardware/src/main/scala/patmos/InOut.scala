@@ -53,7 +53,7 @@ import io.CpuInfoCmp
 
 import java.lang.Integer
 
-class InOut(nr: Int, cnt: Int, cmpdevs: List[(CoreDeviceIO,Int,String)] = List.empty) extends Module {
+class InOut(nr: Int, cnt: Int) extends Module {
   val io = Config.getInOutIO()
 
   // Compute selects
@@ -174,11 +174,6 @@ class InOut(nr: Int, cnt: Int, cmpdevs: List[(CoreDeviceIO,Int,String)] = List.e
       Config.connectIntrPins(devConf, io, dev.io)
     }
   }
-  
-//  Does not work
-//  for (cmpdev <- cmpdevs) {
-//    connectDevice(cmpdev._1,cmpdev._2, cmpdev._3)
-//  }
 
   // The exception and memory management units are special and outside this unit
   io.excInOut.M := io.memInOut.M

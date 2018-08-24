@@ -13,7 +13,7 @@
 #include "../../libcorethread/corethread.h"
 
 #define CNT 4
-#define SHARED_SPM *((volatile _SPM int *) 0xE8000000)
+#define SHARED_SPM *((_iodev_ptr_t) PATMOS_IO_OWNSPM)
 
 // Shared data in main memory for the result
 volatile _UNCACHED static int ok;
@@ -21,7 +21,7 @@ volatile _UNCACHED static int ok;
 // The main function for the other threads on the another cores
 void work(void* arg) {
 
-  volatile _SPM int *sspm = (volatile _SPM int *) (0xE8000000);
+  _iodev_ptr_t sspm = (_iodev_ptr_t)PATMOS_IO_OWNSPM;
 
   int id = get_cpuid();
   for (int i=0; i<32; ++i) {
@@ -39,7 +39,7 @@ int main() {
 
   // Measure execution time with the clock cycle timer
   volatile _IODEV int *timer_ptr = (volatile _IODEV int *) (PATMOS_IO_TIMER+4);
-  volatile _SPM int *sspm = (volatile _SPM int *) (0xE8000000);
+  _iodev_ptr_t sspm = (_iodev_ptr_t) PATMOS_IO_OWNSPM;
 
   ok = 1;
 

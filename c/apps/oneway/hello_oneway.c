@@ -17,7 +17,7 @@
 // The main function for the other threads on the other cores
 void work(void* arg) {
 
-  volatile _SPM int *txMem = (volatile _SPM int *) (0xE8000000);
+  _iodev_ptr_t txMem = (_iodev_ptr_t) PATMOS_IO_ONEWAYMEM;
 
   int id = get_cpuid();
   for (int i=0; i<CNT; ++i) {
@@ -29,7 +29,7 @@ void work(void* arg) {
 
 int main() {
 
-  volatile _SPM int *rxMem = (volatile _SPM int *) (0xE8000000);
+  _iodev_ptr_t rxMem = (_iodev_ptr_t) PATMOS_IO_ONEWAYMEM;
 
   for (int i=1; i<get_cpucnt(); ++i) {
     corethread_create(i, &work, NULL); 
