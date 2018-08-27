@@ -34,7 +34,7 @@ const int shift = 10;
 const int iter = 1 << shift;
 const int MIN_START = 10000;
 
-void test(int coreid, int lckid, int rawlockid, int rawunlockid, volatile _SPM int * lockbase, pthread_mutex_t _mutex) {
+void test(int coreid, int lckid, int rawlockid, int rawunlockid, _iodev_ptr_t lockbase, pthread_mutex_t _mutex) {
 #ifdef USE_PTHREAD_MUTEX
   pthread_mutex_t* mutex = &_mutex;
 #endif

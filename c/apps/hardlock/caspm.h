@@ -2,7 +2,7 @@
 #define _CASPM_H_
 
 #include <machine/patmos.h>
-#define CASPM_BASE ((volatile _SPM int *) 0xE8000000)
+#define CASPM_BASE ((_iodev_ptr_t) PATMOS_IO_CASPM)
 
 #define set_exp_val(val) *CASPM_BASE = val
 #define set_new_val(val) *(CASPM_BASE+1) = val

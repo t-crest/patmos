@@ -18,7 +18,7 @@
 #define DELAY 10
 #endif
 
-#define S4NOC_ADDRESS 0xE8000000
+#define S4NOC_ADDRESS PATMOS_IO_S4NOC
 
 #define IN_DATA 0
 #define IN_SLOT 1

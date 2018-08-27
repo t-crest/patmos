@@ -31,7 +31,7 @@ int main() {
   volatile _IODEV int *dead_ptr = (volatile _IODEV int *) PATMOS_IO_DEADLINE;
   // Measure execution time with the clock cycle timer
   volatile _IODEV int *timer_ptr = (volatile _IODEV int *) (PATMOS_IO_TIMER+4);
-  volatile _SPM int *spm = (volatile _SPM int *) (0xE8000000);
+  _iodev_ptr_t spm = (_iodev_ptr_t) PATMOS_IO_OWNSPM;
 
   int start, end;
   int val;

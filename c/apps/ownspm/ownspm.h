@@ -16,6 +16,6 @@
 #define STATUS_LEN (STATUS_OFFSET*2) // no of status flags for buffer1
 #define FLAG_OFFSET STATUS_LEN
 
-volatile int _SPM *spm_ptr = ((volatile _SPM int *) 0xE8000000);
+_iodev_ptr_t spm_ptr = (_iodev_ptr_t) PATMOS_IO_OWNSPM;
 
 #define NEXT 0x10000/4 // SPMs are placed every 64 KB 

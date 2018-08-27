@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <machine/patmos.h>
-#include <machine/spm.h>
 #include "libcorethread/corethread.h"
 
 #include "pthread.h"
