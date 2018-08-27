@@ -13,7 +13,7 @@ Change switches for FPGA configuration to:
 
 Probably add USB blaster permissions for: Bus 001 Device 005: ID 09fb:6810 Altera and 09fb:6010
 
-A TTL UART is connected to GPIO pins 1 and 2 of GPIO 0. The MPU sensor is connected to GND and 3.3 V and pins 31, 32, and 33 for the AAU I2C interface or to GND, 3.3 V, and pins 38, 39, and 40 for the DTU I2C controller. See below.
+A TTL UART is connected to GPIO pins 1 and 2 of GPIO 0. The MPU sensor is connected to GND and 3.3 V and pins 31, 32, and 33 for the AAU I2C interface or to GND, 3.3 V, and pins 38, 39, and 40 for the DTU I2C controller. Pins 6 and 5 are for the second UART and pins 20 - 13 are for the actuators and propdrives. See below.
 
 ```
 SCL 40 * * 39 SDA
@@ -27,16 +27,16 @@ GND 30 * * 29 3.3V
        * *
        * *
        * *
-       * *
-       * *
-       * *
-       * *
+AC3 20 * * 19 PROP3
+AC2 18 * * 17 PROP2
+AC1 16 * * 15 PROP1
+AC0 14 * * 13 PROP0
 GND 12 * * 11
        * *
        * *
-       * *
+txd  6 * *  5 rxd UART2
      4 * *  3
-txd  2 * *  1 rxd (pin 1)
+txd  2 * *  1 rxd UART
 ```
 
 rxd and txd are from the Patmos view, therefore TTL UART rxd needs to
@@ -59,6 +59,12 @@ Best see in the example in c/apps/de10-nano. Compile and download that example w
 make app APP=de10-nano download
 ```
 This example uses the DTU controller to print our the values of the accelerometer, thermometer, and gyroscope.
+
+The acts_props_uart2 application provides the functions to interact with the actuators, propdrive, and to the second UART. N.B. only the second UART was tested. I have no way to test the actuators and propdrive. Compile and download that example with:
+
+```
+make app APP=de10-nano MAIN=acts_props_uart2 download
+```
 
 ## Comments
 

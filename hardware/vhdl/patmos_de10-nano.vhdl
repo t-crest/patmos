@@ -23,6 +23,9 @@ entity patmos_top is
         --UART
         oUartPins_txd : out   std_logic;
         iUartPins_rxd : in    std_logic;
+		  --Second UART (UART2)
+        oUart2Pins_txd : out   std_logic;
+        iUart2Pins_rxd : in    std_logic;
         -- AAU I2C interface
         oMpuScl       : out   std_logic;
         ioMpuSda      : inout std_logic;
@@ -30,7 +33,10 @@ entity patmos_top is
         -- I2C controller interface
         i2c_sda       : inout std_logic;
         i2c_scl       : inout std_logic;
-        ad0           : out   std_logic
+        ad0           : out   std_logic;
+		  -- Actuator and propdrive OUT
+		  actuator_out_port  : out   std_logic_vector(3 downto 0);
+		  propdrive_out_port  : out   std_logic_vector(3 downto 0)
     );
 end entity patmos_top;
 
@@ -70,6 +76,14 @@ architecture rtl of patmos_top is
             io_i2CInterfacePins_MByteEn : out std_logic_vector(3 downto 0);
             io_i2CInterfacePins_SResp   : in  std_logic_vector(1 downto 0);
             io_i2CInterfacePins_SData   : in  std_logic_vector(31 downto 0);
+				io_actuatorsPins_MCmd : out std_logic_vector(2 downto 0);
+            io_actuatorsPins_MAddr : out std_logic_vector(15 downto 0);
+            io_actuatorsPins_MData : out std_logic_vector(31 downto 0);
+            io_actuatorsPins_MByteEn : out std_logic_vector(3 downto 0);
+            io_actuatorsPins_SResp : in  std_logic_vector(1 downto 0);
+            io_actuatorsPins_SData : in  std_logic_vector(31 downto 0);
+            io_uart2Pins_tx : out std_logic;
+            io_uart2Pins_rx : in  std_logic;
             io_uartPins_tx              : out std_logic;
             io_uartPins_rx              : in  std_logic
         );
@@ -118,6 +132,31 @@ architecture rtl of patmos_top is
 
         );
 		  end component;
+		  
+		  component Actuators_PropDrive is
+	generic(
+		OCP_DATA_WIDTH : natural := 32;
+		OCP_ADDR_WIDTH : natural := 16;
+		ACTUATOR_NUMBER : natural := 4;
+	   PROPDRIVE_NUMBER : natural := 4
+	);
+	port(
+		clk        : in  std_logic;
+		reset        : in  std_logic;
+
+		-- OCP IN (slave)
+		MCmd       : in  std_logic_vector(2 downto 0);
+		MAddr      : in  std_logic_vector(OCP_ADDR_WIDTH - 1 downto 0);
+		MData      : in  std_logic_vector(OCP_DATA_WIDTH - 1 downto 0);
+		MByteEn    : in  std_logic_vector(3 downto 0);
+		SResp      : out std_logic_vector(1 downto 0);
+		SData      : out std_logic_vector(OCP_DATA_WIDTH - 1 downto 0);
+
+		-- Actuator and propdrive OUT
+		actuator_out_port  : out   std_logic_vector(ACTUATOR_NUMBER-1 downto 0);
+		propdrive_out_port  : out   std_logic_vector(PROPDRIVE_NUMBER-1 downto 0)
+	);
+end component;
 
         -- DE2-70: 50 MHz clock => 80 MHz
         -- BeMicro: 16 MHz clock => 25.6 MHz
@@ -149,6 +188,13 @@ architecture rtl of patmos_top is
         signal i2CInterfacePins_MByteEn : std_logic_vector(3 downto 0);
         signal i2CInterfacePins_SResp   : std_logic_vector(1 downto 0);
         signal i2CInterfacePins_SData   : std_logic_vector(31 downto 0);
+		  
+		   signal actuatorsPins_MCmd : std_logic_vector(2 downto 0);
+			signal actuatorsPins_MAddr : std_logic_vector(15 downto 0);
+			signal actuatorsPins_MData : std_logic_vector(31 downto 0);
+			signal actuatorsPins_MByteEn : std_logic_vector(3 downto 0);
+			signal actuatorsPins_SResp : std_logic_vector(1 downto 0);
+			signal actuatorsPins_SData : std_logic_vector(31 downto 0);
 
     begin
         --	pll_inst : entity work.pll generic map(
@@ -235,7 +281,15 @@ architecture rtl of patmos_top is
                 io_i2CInterfacePins_MData   => i2CInterfacePins_MData,
                 io_i2CInterfacePins_MByteEn => i2CInterfacePins_MByteEn,
                 io_i2CInterfacePins_SResp   => i2CInterfacePins_SResp,
-                io_i2CInterfacePins_SData   => i2CInterfacePins_SData,
+                io_i2CInterfacePins_SData   => i2CInterfacePins_SData,		 
+					 io_actuatorsPins_MCmd => actuatorsPins_MCmd,
+                io_actuatorsPins_MAddr => actuatorsPins_MAddr,
+					 io_actuatorsPins_MData => actuatorsPins_MData,
+					 io_actuatorsPins_MByteEn => actuatorsPins_MByteEn,
+					 io_actuatorsPins_SResp => actuatorsPins_SResp,
+					 io_actuatorsPins_SData => actuatorsPins_SData,
+					 io_uart2Pins_tx => oUart2Pins_txd,
+					 io_uart2Pins_rx => iUart2Pins_rxd,
                 io_uartPins_tx              => oUartPins_txd,
                 io_uartPins_rx              => iUartPins_rxd
             );
@@ -261,4 +315,26 @@ architecture rtl of patmos_top is
                 scl     => i2c_scl
             );
 
+		Actuators_PropDrive_inst_0 : Actuators_PropDrive 
+			generic map(
+				OCP_DATA_WIDTH => 32,
+				OCP_ADDR_WIDTH => 16,
+				ACTUATOR_NUMBER  => 4,
+				PROPDRIVE_NUMBER  => 4
+			)
+			port map(
+				clk  => clk, 
+				reset  => reset_int,
+				-- OCP IN (slave)
+				MCmd  => actuatorsPins_MCmd,
+				MAddr  => actuatorsPins_MAddr,
+				MData   => actuatorsPins_MData,
+				MByteEn  => actuatorsPins_MByteEn,
+				SResp  => actuatorsPins_SResp,
+				SData  => actuatorsPins_SData,
+				-- Actuator and propdrive OUT
+				actuator_out_port  => actuator_out_port,
+				propdrive_out_port  => propdrive_out_port
+			);
+				
     end architecture rtl;
