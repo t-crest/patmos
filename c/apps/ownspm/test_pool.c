@@ -16,16 +16,17 @@ void work(void* arg) {
   int id = get_cpuid();
   int spmid = (int)arg;
   
-  volatile int _SPM  *data_ptr = spm_base(spmid);
+  _iodev_ptr_t data_ptr = spm_base(spmid);
 
   for (int i=0; i<LEN; ++i) {
-    *(data_ptr++) = i; 
+    *(data_ptr+i) = i; 
   }
   
   corethread_exit((void *)spmid);
 }
 
 int main() {
+
 #ifdef DEBUG
   printf("Program Start\n");
 #endif
@@ -59,9 +60,9 @@ int main() {
     printf("SPMID:%d\n",spmid);
 #endif
 
-    volatile int _SPM  *data_ptr = spm_base(spmid);
+    _iodev_ptr_t data_ptr = spm_base(spmid);
     for (int j=0; j<LEN; ++j) {
-      int data = *(data_ptr++);
+      int data = *(data_ptr+j);
 #ifdef DEBUG
       printf("%d",data);
 #endif
