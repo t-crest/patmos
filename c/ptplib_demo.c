@@ -31,7 +31,7 @@
  */
 
 /*
-	Main function for ptplib (IEEE 1588v2 Precise-Time-Protocol) demo
+	Master demo file for ptplib (IEEE 1588v2 Precise-Time-Protocol) demo
 
 	Author: Eleftherios Kyriakakis 
 	Copyright: DTU, BSD License
@@ -50,10 +50,7 @@
 #include "ethlib/eth_mac_driver.h"
 #include "ethlib/ptp1588.h"
 
-#define PTP_SYNC_PERIOD 4000
-
-// #define PTP_MASTER
-#define PTP_SLAVE
+#define PTP_MASTER
 
 volatile _SPM int *uart_ptr = (volatile _SPM int *)	 0xF0080004;
 volatile _SPM int *led_ptr  = (volatile _SPM int *)  0xF0090000;
@@ -90,7 +87,7 @@ int checkForPacket(unsigned int expectedPacketType, unsigned int expectedUDPPort
 	unsigned short destination_port;
 	unsigned short source_port;
 	unsigned char source_ip[4];	
-	unsigned char ans;
+	signed char ans;
 	if(eth_mac_receive(rx_addr, timeout)){
 		packet_type = mac_packet_type(rx_addr);
 		destination_port = udp_get_destination_port(rx_addr);
@@ -100,38 +97,21 @@ int checkForPacket(unsigned int expectedPacketType, unsigned int expectedUDPPort
 		switch (packet_type) {
 		case 1:
 			ans = icmp_process_received(rx_addr, tx_addr);
-			if (ans == 0){
-				printf("\n- Notes:\n");
-				printf("  - ICMP packet not our IP or not a ping request, no actions performed.\n");
-			}else{
-				printf("\n- Notes:\n");
-				printf("  - Ping to our IP, replied.\n");
-			}
-			return 0;
+			return (ans==0) ? -1 : 1;
 		case 2:
 			if((destination_port==PTP_EVENT_PORT && source_port==PTP_EVENT_PORT) || (destination_port==PTP_GENERAL_PORT && source_port==PTP_GENERAL_PORT)){
-			// if(destination_port==expectedUDPPort && source_port==expectedUDPPort){
 				return ptpv2_handle_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC, source_ip);
 			} else {
-				printf("FAIL: Unexpected UDP port: %d : %d\n", destination_port, source_port);
-				return 0;
+				return -2;	
 			}
 		case 3:
 			ans = arp_process_received(rx_addr, tx_addr);
-			printf("\n- Notes:\n");
-			if (ans == 0){
-				printf("  - ARP request not to our IP, no actions performed.\n");
-			}else if(ans == 1){
-				printf("  - ARP request to our IP, replied.\n");
-			}
-			return 0;
+			return (ans==0) ? -3 : 3;
 		default:
-			printf("WARN: Unhandled PacketType (%d)\n", packet_type);
-			return 0;
+			return -4;
 		}
 	} else {
-		printf("FAIL: EthMacRX Timeout\n");
-		return 0;
+		return -5;
 	}
 }
 
@@ -139,53 +119,84 @@ void ptp_master_loop(int msgDelay){
 	unsigned short int seqId = 0;
 	unsigned int start_time = 0;
 	unsigned int elapsed_time = 0;
-	start_time = get_cpu_usecs();
+	signed char ans = 0;
+	//start_time = get_cpu_usecs();
+	start_time = get_rtc_usecs();
 	while(1){
 		//Count the time passed
-		elapsed_time = get_cpu_usecs()-start_time;
-		if (elapsed_time >= msgDelay){
-			printf("----Seq#%d----\n", seqId);
-			start_time = get_cpu_usecs();
+		//elapsed_time = get_cpu_usecs()-start_time;
+		elapsed_time = get_rtc_usecs()-start_time;
+		if(0xE == *key_ptr){
+			*led_ptr = 0x8;
+			RTC_TIME_NS = initNanoseconds;
+			RTC_TIME_SEC = initSeconds;
+			seqId = 0x0;
+			//start_time = get_cpu_usecs();
+			start_time = get_rtc_usecs();
+		} else if (elapsed_time >= msgDelay){
+			puts("----\n");
 			do {
 				//Send SYNQ
-				*led_ptr = 0x1;
+				*led_ptr = 0x0;
+				//printf("%.3fus\n", elapsed_time);
+				puts("i_MSG=0");
 				ptpv2_issue_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC, target_ip, seqId, PTP_SYNC_MSGTYPE, PTP_SYNC_CTRL, PTP_EVENT_PORT);
 
 				//Send FOLLOW_UP
-				*led_ptr = 0x2;
+				*led_ptr = 0x8;
+				puts("i_MSG=8");
 				ptpv2_issue_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC, target_ip, seqId, PTP_FOLLOW_MSGTYPE, PTP_FOLLOW_CTRL, PTP_GENERAL_PORT);
 
 				//WaitFor DELAY_REQ
-				// printf("WaitFor DELAY_REQ\n");
-			} while(!checkForPacket(2, PTP_EVENT_PORT, PTP_REQ_TIMEOUT));
-			*led_ptr = 0x4;
-			seqId++;
-		} else {
-			//TODO: Do something useful
-			if(0xE == *key_ptr){
-				*led_ptr = 0x8;
-				RTC_TIME_NS = initNanoseconds;
-				RTC_TIME_SEC = initSeconds;
-				seqId = 0x0;
+				ans = checkForPacket(2, PTP_EVENT_PORT, PTP_REQ_TIMEOUT);
+				*led_ptr = ans;
+			} while(ans <= 0);
+			if(ans == PTP_DLYREQ_MSGTYPE){
+				ptpv2_issue_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC, lastSlaveInfo.ip, ptpMsg.head.sequenceId, PTP_DLYRPLY_MSGTYPE, PTP_DLYRPLY_CTRL, PTP_GENERAL_PORT);
+				// puts("i_MSG=9");
+				*led_ptr = 0x9;
 			}
+			seqId++;
+			//start_time = get_cpu_usecs();
+			start_time = get_rtc_usecs();
 		}
 	}
 }
 
 void ptp_slave_loop(){
 	unsigned short int seqId = 0;
+	short int ans = 0;
 	while(1){
 		if(0xE == *key_ptr){
 			*led_ptr = 0xE;
 			RTC_TIME_NS = 0;
 			RTC_TIME_SEC = 0;
-		} else if(0xD == *key_ptr){
-			*led_ptr = 0xD;
 			RTC_CORRECTION_OFFSET = 0;
 		} else {
-			*led_ptr = checkForPacket(2, PTP_EVENT_PORT, PTP_RPLY_TIMEOUT);
-			printf("$offset\t%d\n", RTC_CORRECTION_OFFSET);
+			ans = checkForPacket(2, PTP_EVENT_PORT, 0);
+			*led_ptr = ans;
+			switch(ans){
+				case PTP_SYNC_MSGTYPE:
+					if((ptpMsg.head.flagField & FLAG_PTP_TWO_STEP_MASK) != FLAG_PTP_TWO_STEP_MASK){
+						ptpv2_issue_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC, lastMasterInfo.ip, ptpMsg.head.sequenceId, PTP_DLYREQ_MSGTYPE, PTP_DLYREQ_CTRL, PTP_EVENT_PORT);
+						*led_ptr = 0x1;
+						//puts("i_MSG=1");
+					}
+					break;
+				case PTP_FOLLOW_MSGTYPE:
+					ptpv2_issue_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC, lastMasterInfo.ip, ptpMsg.head.sequenceId, PTP_DLYREQ_MSGTYPE, PTP_DLYREQ_CTRL, PTP_EVENT_PORT);
+					//puts("i_MSG=1");
+					*led_ptr = 0x1;
+					break;
+				case PTP_DLYRPLY_MSGTYPE:
+					printf("#%u\t%d\t%d\n", ptpMsg.head.sequenceId, ptpTimeRecord.offsetSeconds, ptpTimeRecord.offsetNanoseconds);
+					break;
+				default:
+					puts("FAIL: EthMacRX Timeout or Unhandled");
+					break;
+			}
 		}
+		*led_ptr = 0x0;
 	}
 }
 
@@ -193,8 +204,7 @@ void ptp_slave_loop(){
 int main(int argc, char **argv){
 	*led_ptr = 0x7;
 
-	puts("PTPlib Demo Started\n");
-	puts("\n");
+	puts("PTPlib Demo Started");
 
 	//MAC controller settings
 	eth_iowr(0x40, 0xEEF0DA42);
@@ -206,9 +216,9 @@ int main(int argc, char **argv){
 	initSeconds = RTC_TIME_SEC;
 
 	//Test offset
-	RTC_CORRECTION_OFFSET = 4000000;
+	RTC_CORRECTION_OFFSET = 500000;
 	if(RTC_CORRECTION_OFFSET == 0 || RTC_CORRECTION_OFFSET == initNanoseconds){
-		printf("Error HW clock adjustment does not work");
+		puts("Error HW clock adjustment does not work");
 		return -1;
 	}
 	while(RTC_CORRECTION_OFFSET != 0){continue;}

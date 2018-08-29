@@ -12,10 +12,16 @@ class RTC(clockFreq: Int, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTi
     val periodIntr = Bool(OUTPUT)
   }
 
-  println("IEEE 1588 RTC instantiated with clockFrequency @ " + clockFreq + " MHz.")
-
   // Constants
-  val timeStep = 50.S
+  val secInNanoConst = 1000000000
+  val milliInNanoConst = 1000000
+  val microInNanoConst = 1000
+  val hundredNanoConst = 100
+  val fiftyNanoConst = 50
+  val prescaleConst = 2
+  val timeStepConst = prescaleConst*(1000/(clockFreq/1000000))+1
+
+  println("IEEE 1588 RTC instantiated with clockFrequency @ " + (clockFreq/1000000) + " MHz, prescaler:" + prescaleConst + " and timeStep=" + timeStepConst)
 
   // Register command
   val masterReg = Reg(next = io.ocp.M)
@@ -39,7 +45,7 @@ class RTC(clockFreq: Int, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTi
 
   // Clock engine
   tickReg := false.B
-  when(prescaleReg === 3.U){
+  when(prescaleReg === (prescaleConst-1).U){
     prescaleReg := 0.U
     tickReg := true.B
   }.otherwise{
@@ -52,29 +58,44 @@ class RTC(clockFreq: Int, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTi
   }
 
   //Update Nanoseconds
-  when(updateNsReg){
-   nsTickReg := timeReg(DATA_WIDTH-1, 0)
+  when(updateNsReg) {
+    nsTickReg := timeReg(DATA_WIDTH - 1, 0)
   }.elsewhen(tickReg){
-   when(nsTickReg >= (1000000000.U - (timeStep + correctionStepReg).asUInt())){
+   when(nsTickReg >= (1000000000.U - (timeStepConst.S + correctionStepReg).asUInt())){
      secTickReg := secTickReg + 1.U
-     nsTickReg := 0.U
+     nsTickReg := 0.U + (timeStepConst.S + correctionStepReg).asUInt()
    }.otherwise{
-     nsTickReg := nsTickReg + (timeStep + correctionStepReg).asUInt()
+     nsTickReg := nsTickReg + (timeStepConst.S + correctionStepReg).asUInt()
+     nsOffsetReg := nsOffsetReg + correctionStepReg // Always correct towards zero offset
    }
   }
 
   //Smooth Adjustment
-  when(tickReg) {
-    when(nsOffsetReg =/= 0.S) {
-      when(nsOffsetReg < 0.S) {
-        correctionStepReg := 1.S //If negative offset then move faster (lacking behind)
-      }.otherwise {
-        correctionStepReg := -1.S //If positive offset then move slower (running forward)
-      }
-      nsOffsetReg := nsOffsetReg + correctionStepReg //Correct towards zero
-    }.otherwise {
+  when(nsOffsetReg =/= 0.S) {
+    when(nsOffsetReg < -milliInNanoConst.S || nsOffsetReg > milliInNanoConst.S) {   //under/over -1ms
+      nsTickReg := (nsTickReg.toSInt() + nsOffsetReg).toUInt()
+      nsOffsetReg := 0.S
+    }.elsewhen(nsOffsetReg < -microInNanoConst.S && nsOffsetReg >= -milliInNanoConst.S) { //-1ms to 1us
+      correctionStepReg := 25.S
+    }.elsewhen(nsOffsetReg < -hundredNanoConst.S && nsOffsetReg >= -microInNanoConst.S) { //-1us to -100ns
+      correctionStepReg := 10.S
+    }.elsewhen(nsOffsetReg < -fiftyNanoConst.S && nsOffsetReg >= -hundredNanoConst.S) {   //-100ns to -50ns
+      correctionStepReg := 2.S
+    }.elsewhen(nsOffsetReg < 0.S && nsOffsetReg >= -fiftyNanoConst.S) {                 //-50ns to -1ns
+      correctionStepReg := 1.S
+    }.elsewhen(nsOffsetReg > 0.S && nsOffsetReg <= fiftyNanoConst.S){                   //1ns to 50ns
+      correctionStepReg := -1.S
+    }.elsewhen(nsOffsetReg > fiftyNanoConst.S && nsOffsetReg <= hundredNanoConst.S) {     //50ns to 100ns
+      correctionStepReg := -5.S
+    }.elsewhen(nsOffsetReg > hundredNanoConst.S && nsOffsetReg <= microInNanoConst.S) {   //100ns to 1us
+      correctionStepReg := -10.S
+    }.elsewhen(nsOffsetReg > microInNanoConst.S && nsOffsetReg <= milliInNanoConst.S) {   //1us to 1ms
+      correctionStepReg := -20.S
+    }.otherwise{
       correctionStepReg := 0.S
     }
+  }.otherwise {
+    correctionStepReg := 0.S
   }
 
   //Register current time when it is not being updated
@@ -82,10 +103,9 @@ class RTC(clockFreq: Int, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTi
     timeReg := secTickReg ## nsTickReg
   }
 
+  // Write response
   updateSecReg := false.B
   updateNsReg := false.B
-
-  // Write response
   when(masterReg.Cmd === OcpCmd.WR) {
     respReg := OcpResp.DVA
     when(masterReg.Addr(5, 4) === Bits("b00")) {
@@ -99,7 +119,7 @@ class RTC(clockFreq: Int, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTi
     }.elsewhen(masterReg.Addr(5, 4) === Bits("b01")) {
       periodSelReg := masterReg.Data
     }.elsewhen(masterReg.Addr(5, 4) === Bits("b10")) {
-      nsOffsetReg := masterReg.Data(nanoWidth-1, 0).asSInt()
+      nsOffsetReg := masterReg.Data.toSInt()
     }
   }
 
@@ -130,5 +150,3 @@ class RTC(clockFreq: Int, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTi
   io.ptpTimestamp := timeReg
 
 }
-
-

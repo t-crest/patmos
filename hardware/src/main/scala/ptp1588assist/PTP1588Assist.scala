@@ -73,20 +73,19 @@ class PTP1588Assist(addrWidth: Int = ADDR_WIDTH, dataWidth: Int = DATA_WIDTH, cl
     io.ocp.S.Data := 0.U
   }
 
-  // IO
-  io.ledPHY := tsuRx.io.listening | tsuTx.io.listening
-  io.ledSOF := tsuRx.io.sofValid | tsuTx.io.sofValid
-  io.ledEOF := tsuRx.io.eofValid | tsuTx.io.eofValid
-  io.ledSFD := tsuRx.io.sfdValid | tsuTx.io.sfdValid
-
   // Interrupts
   io.intrs := false.B
   io.intrs(0) := rtc.io.periodIntr
   io.intrs(1) := tsuRx.io.ptpValid
   io.intrs(2) := tsuTx.io.ptpValid
 
-  // [OPTIONAL] Hex Connectivity
-  // Decode hardware
+  // [OPTIONAL] Hex & Led Connectivity
+  // Led connections
+  io.ledPHY := tsuRx.io.listening | tsuTx.io.listening
+  io.ledSOF := tsuRx.io.sofValid | tsuTx.io.sofValid
+  io.ledEOF := tsuRx.io.eofValid | tsuTx.io.eofValid
+  io.ledSFD := tsuRx.io.sfdValid | tsuTx.io.sfdValid
+  // HEX Decode hardware
   def sevenSegBCDDecode(data : Bits, segmentPolarity: Int) : Bits = {
     val result = Bits(width = 7)
     result := Bits("b1000001")

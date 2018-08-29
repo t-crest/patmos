@@ -46,25 +46,40 @@
 ///////////////////////////////////////////////////////////////
 
 //This function sends an ethernet frame located at tx_addr and of length frame_length.
+__attribute__((noinline))
 void eth_mac_send(unsigned int tx_addr, unsigned int frame_length){
+    unsigned char done = 0;
+    unsigned char free = 0; 
+    //Wait until buffer is free 
+    _Pragma("loopbound min 0 max 1")
+	while (free==1){
+         free = (eth_iord(0x400) & 0x8000);
+    };
     eth_iowr(0x04, 0x00000001);
 	eth_iowr(0x404, tx_addr);
 	eth_iowr(0x400, ((frame_length<<16)|(0xF000)));
- 	while ((eth_iord(0x400) & 0x8000)==1){;}; //Wait until is is done
+    //Wait until is is done
+    _Pragma("loopbound min 0 max 1")
+    while (done==0){
+        done = (eth_iord(0x04) & 0x1);
+    }; 
 return;
 }
 
 //This function receive an ethernet frame and put it in rx_addr.
+__attribute__((noinline))
 int eth_mac_receive(unsigned int rx_addr, unsigned long long int timeout){
 	eth_iowr(0x04, 0x00000004);
 	eth_iowr(0x604, rx_addr);
 	eth_iowr(0x600, 0x0000E000);
 
 	if (timeout == 0){
+        _Pragma("loopbound min 0 max 1")
 		while ((eth_iord(0x04) & 0x4)==0){;};
 		return 1;
 	}else{
 		unsigned long long int start_time = get_cpu_usecs();
+        _Pragma("loopbound min 0 max 345")	
 		while (((eth_iord(0x04) & 0x4)==0) && (get_cpu_usecs()-start_time < timeout)){;};
 		if ((eth_iord(0x04) & 0x4)==0){
 			return 0;
