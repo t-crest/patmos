@@ -303,6 +303,10 @@ unsigned int get_rtc_usecs(){
 	return (unsigned int) (NS_TO_USEC * RTC_TIME_NS);
 }
 
+unsigned int get_rtc_secs(){
+	return (unsigned int) (RTC_TIME_SEC);
+}
+
 void print_bytes(unsigned char byte_buffer[], unsigned int len){
 	int i=0;
 	while (i < len)

@@ -221,6 +221,8 @@ int ptp_calc_one_way_delay(int t1, int t2, int t3, int t4);
 
 unsigned int get_rtc_usecs();
 
+unsigned int get_rtc_secs();
+
 void print_bytes(unsigned char byte_buffer[], unsigned int len);
 
 #endif
