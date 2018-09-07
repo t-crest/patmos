@@ -193,7 +193,7 @@ object Config {
                                  hasParent, defaultConf.coreCount)
 
       val cmpDevices = {
-        val set = ((node \ "cmps") \ "cmp").map(e => (e \ "@name").text).toSet
+        val set = ((node \ "CmpDevs") \ "CmpDev").map(e => (e \ "@name").text).toSet
         if(set.isEmpty) defaultConf.cmpDevices else set
       }
 
