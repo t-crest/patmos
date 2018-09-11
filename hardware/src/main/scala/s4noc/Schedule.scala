@@ -77,8 +77,11 @@ object Schedule {
     }
     var line = 0
     for (i <- 0 until len - 1) {
-      valid(i) = split(line)(i) != ' '
-      if (valid(i)) line += 1
+      // Need to think through this once more to check if correct
+      if (line < split.length) {
+        valid(i) = split(line)(i) != ' '
+        if (valid(i)) line += 1
+      }
     }
     println("Schedule is " + schedule.length + " clock cycles")
     (schedule, valid)
