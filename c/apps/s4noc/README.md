@@ -25,6 +25,20 @@ make test-all
 make test
 ```
 
+A standalone version of the S4NoC with simple traffic generators can be built
+with:
+
+```bash
+sbt "runMain s4noc.S4nocTrafficGen n"
+```
+
+where n is the number of cores (e.g., 4, 9, or 16).
+
+The generated Verilog file can be found in ```generated/S4nocTrafficGen.v```
+and can be synthesized to provide resource numbers and maximum
+clocking frequency. An example project for Quartus can be found in this
+[quartus](quartus) subfolder.
+
 ## Evaluation with T-CREST
 
 We use the T-CREST multicore to evaluate the network interface with the S4NOC.
