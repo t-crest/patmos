@@ -33,7 +33,8 @@ object Schedule {
       case 7 => ScheduleTable.FourtyNineNodes
       case 8 => ScheduleTable.SixtyFourNodes
       case 9 => ScheduleTable.EightyOneNodes
-      case _ => throw new Error("Currently only 2x2 up to 9x9 NoCs supported, you requested: "+n+"x"+n)
+      case 10 => ScheduleTable.OneHundredNodes
+      case _ => throw new Error("Currently only 2x2 up to 10x10 NoCs supported, you requested: "+n+"x"+n)
     }
 
     def port(c: Char) = {
