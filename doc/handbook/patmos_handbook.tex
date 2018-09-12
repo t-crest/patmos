@@ -232,15 +232,17 @@ patmos-clang hello.c
 pasim a.out
 \end{verbatim}
 
-However, this innocent examples is quite challenging for an embedded system:
-It needs a C compiler, an implementation of the standard C library, printf
-itself is a challenging function, the generated ELF file needs to be understood
-by a tool and the individual sections downloaded, and finally a terminal (often
-a serial line) needs to be available on the target, and your test PC needs to
-have a serial line as well and a terminal program needs to run.
+However, this innocent example is quite challenging for an embedded system. We will be needing:
+\begin{itemize}
+	\item A C compiler.
+	\item An implementation of the standard C library. \texttt{printf} itself is a challenging function.
+	\item A tool that understands the generated ELF file and can download the individual sections.
+	\item A terminal (often a serial line) available on the target.
+	\item A terminal program to run, as well as a serial line to be available on your test PC.
+\end{itemize}
 
 Therefore, we might start from a minimal assembler program and execute
-that in the simulator and emulator. From that base we can build up too
+that in the simulator and emulator. From that base we can build up to
 a multi-core version of Patmos that executes in an FPGA and bootstraps
 with programs loaded via a serial port.
 
