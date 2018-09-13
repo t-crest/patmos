@@ -30,30 +30,14 @@ class AauMpu() extends CoreDevice() {
   
   override val io = new CoreDeviceIO() with AauMpu.Pins
 
-  val freeRunningReg = Reg(init = UInt(0, 32))
-  val downCountReg = Reg(init = UInt(0, 32))
-  
-  freeRunningReg := freeRunningReg + UInt(1)
-  val downDone = downCountReg === UInt(0)
-  
-  when (!downDone) {
-    downCountReg := downCountReg - UInt(1)
-  }
-  when (io.ocp.M.Cmd === OcpCmd.WR) {
-    // no writing
-  }
-  
-  val timeOver = downDone
-  val stallReg = Reg(init = Bool(false))
-  
   // read data shall be in a register as used in the
   // following clock cycle
-  
   val dataReg = RegNext(io.aauMpuPins.data(io.ocp.M.Addr(5,2)))
   
   val respReg = Reg(init = OcpResp.NULL)
   respReg := OcpResp.NULL
-  
+
+  // Set DVA on a read or write
   when(io.ocp.M.Cmd === OcpCmd.RD || io.ocp.M.Cmd === OcpCmd.WR) {
     respReg := OcpResp.DVA
   }
