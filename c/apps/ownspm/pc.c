@@ -450,7 +450,7 @@ int main() {
          for %d words of bulk data\n   \
          and %d of buffer size\n", timeStamps[3]-timeStamps[0],DATA_LEN,BUFFER_SIZE);
   int cycles = timeStamps[3]-timeStamps[0];
-  printf(""_NAME": %d.%d cycles per word for %d words in %d words buffer\n",
+  printf("measure "_NAME": %d.%d cycles per word for %d words in %d words buffer\n",
     cycles/DATA_LEN, cycles*10/DATA_LEN%10, DATA_LEN, BUFFER_SIZE);
 
   printf("The sum is %d\n", sum);

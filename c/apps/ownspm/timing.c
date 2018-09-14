@@ -9,10 +9,20 @@
 #include <machine/patmos.h>
 #include <machine/spm.h>
 
+#include "setup.h"
+
 
 #include "../../libcorethread/corethread.h"
 
-//#define MULTIOWNER
+#ifndef _SSPM
+#ifndef _SPMPOOL
+#ifndef _OWN
+#ifndef _MAINMEM
+#define _MAINMEM
+#endif
+#endif
+#endif
+#endif
 
 unsigned _SPM *data_spm = SPM_BASE;
 
@@ -31,7 +41,18 @@ int main() {
   volatile _IODEV int *dead_ptr = (volatile _IODEV int *) PATMOS_IO_DEADLINE;
   // Measure execution time with the clock cycle timer
   volatile _IODEV int *timer_ptr = (volatile _IODEV int *) (PATMOS_IO_TIMER+4);
+
+#ifdef _SSPM
+  _iodev_ptr_t spm = (_iodev_ptr_t) PATMOS_IO_SPM;
+#endif
+#ifdef _OWN
   _iodev_ptr_t spm = (_iodev_ptr_t) PATMOS_IO_OWNSPM;
+#endif
+#ifdef _SPMPOOL
+  _iodev_ptr_t spm = (_iodev_ptr_t) PATMOS_IO_SPMPOOL;
+#define OWNERS 8
+  spm_sched_wr(0,(1 << OWNERS) - 1);
+#endif
 
   int start, end;
   int val;
@@ -39,10 +60,8 @@ int main() {
   int min = 10000;
   int max = 0;
 
-#ifdef MULTIOWNER
-#include "spmpool.h"
-#define OWNERS 4
-spm_sched_wr(0,(1 << OWNERS) - 1);
+#ifdef _SPMPOOL
+
 #endif
   // To avoid compiler optimizing all code away a result
   acc = 0;
