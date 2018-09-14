@@ -32,11 +32,11 @@ class S4nocTrafficGen(nrNodes: Int, txFifo: Int, rxFifo: Int) extends Module {
     s4noc.io.cpuPorts(i).wr := cntReg(0)
     s4noc.io.cpuPorts(i).rd := cntReg(1)
     // Have some registers before or reduce
-    outReg(i) := RegNext(s4noc.io.cpuPorts(i).rdData)
+    outReg(i) := RegNext(RegNext(RegNext(s4noc.io.cpuPorts(i).rdData)))
   }
 
   // Have some registers before hitting the output pins
-  io.data := RegNext(RegNext((outReg.reduce((x, y) => x | y))))
+  io.data := RegNext(RegNext(RegNext(RegNext((outReg.reduce((x, y) => x | y))))))
 }
 
 object S4nocTrafficGen extends App {
