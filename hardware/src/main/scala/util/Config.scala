@@ -34,7 +34,6 @@ package util
 
 import Chisel._
 import Node._
-
 import patmos._
 import io.CoreDevice
 import io.Device
@@ -43,6 +42,7 @@ import scala.tools.nsc.interpreter.IMain
 import scala.tools.nsc.Settings
 import java.io.DataInputStream
 import java.io.File
+
 
 /**
  * The configuration tool for Patmos.
@@ -56,7 +56,7 @@ abstract class Config {
   val frequency: Int
   val pipeCount: Int
   val coreCount: Int
-  val cmpDevice: Int // temporary id for different papers
+  val cmpDevices: Set[String]
   val burstLength: Int
   val writeCombine: Boolean
   val mmu: Boolean
@@ -192,10 +192,12 @@ object Config {
       val coreCount = getIntAttr(node, "cores", "@count",
                                  hasParent, defaultConf.coreCount)
 
-      val cmpDevice = getIntAttr(node, "cmp", "@device",
-                                 hasParent, 0)
+      val cmpDevices = {
+        val set = ((node \ "CmpDevs") \ "CmpDev").map(e => (e \ "@name").text).toSet
+        if(set.isEmpty) defaultConf.cmpDevices else set
+      }
 
-                                 val burstLength  = getIntAttr(node, "bus", "@burstLength",
+      val burstLength  = getIntAttr(node, "bus", "@burstLength",
                                     hasParent, defaultConf.burstLength)
       val writeCombine = getBooleanAttr(node, "bus", "@writeCombine",
                                         hasParent, defaultConf.writeCombine)
@@ -306,7 +308,7 @@ object Config {
     val frequency = 0
     val pipeCount = 0
     val coreCount = 0
-    val cmpDevice = 0
+    val cmpDevices = Set[String]()
     val burstLength = 0
     val writeCombine = false
     val mmu = false

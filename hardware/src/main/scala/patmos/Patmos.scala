@@ -9,22 +9,20 @@
 package patmos
 
 import Chisel._
-import Node._
-
-import scala.collection.mutable.HashMap
 import java.io.File
 
 import Constants._
-
 import util._
 import io._
 import datacache._
-import ocp._
+import ocp.{OcpCoreSlavePort, _}
+
+import scala.collection.immutable.Stream.Empty
 
 /**
  * Module for one Patmos core.
  */
-class PatmosCore(binFile: String, nr: Int, cnt: Int, cmpdevs: List[(CoreDeviceIO, Int, String)] = List.empty) extends Module {
+class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
 
   val io = Config.getPatmosCoreIO()
 
@@ -50,7 +48,7 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int, cmpdevs: List[(CoreDeviceIO
   val memory = Module(new Memory())
   val writeback = Module(new WriteBack())
   val exc = Module(new Exceptions())
-  val iocomp = Module(new InOut(nr, cnt, cmpdevs))
+  val iocomp = Module(new InOut(nr, cnt))
   val dcache = Module(new DataCache())
 
   //connect icache
@@ -200,54 +198,52 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
   // Forward ports to/from core
 
-  val cmpDevice = Config.getConfig.cmpDevice
-  println("Config cmp: " + cmpDevice)
-  // This is a hack and workaround for CMP experiments
-  if (cmpDevice == 0) {
-    val hardlock = Module(new cmp.HardlockOCPWrapper(() => new cmp.Hardlock(nrCores, nrCores * 2)))
-    for (i <- (0 until nrCores)) {
-      hardlock.io(i) <> cores(i).io.comSpm
+  val cmpDevices = Config.getConfig.cmpDevices
+  println("Config cmp: ")
+  val MAX_IO_DEVICES = 16
+  val cmpdevs = new Array[Module](MAX_IO_DEVICES)
+
+  for(dev <- cmpDevices) {
+    println(dev)
+    dev match {
+      // Address 0 reserved for Argo
+      case "Hardlock" => cmpdevs(1) = Module(new cmp.HardlockOCPWrapper(() => new cmp.Hardlock(nrCores, nrCores * 2)))
+      case "SharedSPM" => cmpdevs(2) = Module(new cmp.SharedSPM(nrCores, (nrCores-1)*2*1024))
+      case "OneWay" => cmpdevs(3) = Module(new cmp.OneWayOCPWrapper(nrCores))
+      case "TdmArbiter" => cmpdevs(4) = Module(new cmp.TdmArbiter(nrCores))
+      case "OwnSPM" => cmpdevs(5) = Module(new cmp.OwnSPM(nrCores, (nrCores-1)*2, 1024))
+      case "SPMPool" => cmpdevs(6) = Module(new cmp.SPMPool(nrCores, (nrCores-1)*2, 1024))
+      case "S4noc" => cmpdevs(7) = Module(new cmp.S4nocOCPWrapper(nrCores, 4, 4))
+      case "CASPM" => cmpdevs(8) = Module(new cmp.CASPM(nrCores, nrCores * 8))
+      case "AsyncLock" => cmpdevs(9) = Module(new cmp.AsyncLock(nrCores, nrCores * 2))
+      case _ =>
     }
-  } else if (cmpDevice == 1) {
-    val spm = Module(new cmp.SharedSPM(nrCores, 1024))
-    for (i <- (0 until nrCores)) {
-      spm.io(i) <> cores(i).io.comSpm
+  }
+
+  for (i <- (0 until nrCores)) {
+
+    // Dummy device for empty indexes
+    var dumio = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
+    dumio.S.Data := UInt(0)
+    val dumrespReg = Reg(init = OcpResp.NULL)
+    dumio.S.Resp := dumrespReg
+    dumrespReg := OcpResp.NULL
+    when(dumio.M.Cmd =/= OcpCmd.IDLE) {
+      dumrespReg := OcpResp.ERR
     }
-  } else if (cmpDevice == 2) {
-    val oneway = Module(new cmp.OneWayOCPWrapper(nrCores))
-    for (i <- (0 until nrCores)) {
-      oneway.io(i) <> cores(i).io.comSpm
-    }
-    // 3 and 4 are reserved for Oktay and Lefteris
-  } else if (cmpDevice == 3) {
-    val tdmArbiter = Module(new cmp.TdmArbiter(nrCores))
-    for (i <- (0 until nrCores)) {
-      tdmArbiter.io.slave(i) <> cores(i).io.comSpm
-    }
-  } else if (cmpDevice == 5) {
-    val ownspm = Module(new cmp.OwnSPM(nrCores, nrCores, 1024))
-    for (i <- (0 until nrCores)) {
-      ownspm.io(i) <> cores(i).io.comSpm
-    }
-  } else if (cmpDevice == 6) {
-    val spmpool = Module(new cmp.SPMPoolOCPWrapper(nrCores, nrCores, 256, 32))
-    for (i <- (0 until nrCores)) {
-      spmpool.io(i) <> cores(i).io.comSpm
-    }
-  } else if (cmpDevice == 7) {
-    val s4noc = Module(new cmp.S4nocOCPWrapper(nrCores, 4, 4))
-    for (i <- (0 until nrCores)) {
-      s4noc.io(i) <> cores(i).io.comSpm
-    }
-  } else if (cmpDevice == 10) {
-    val asynclock = Module(new cmp.AsyncLock(nrCores, nrCores * 2))
-    for (i <- (0 until nrCores)) {
-      asynclock.io(i) <> cores(i).io.comSpm
-    }
-  } else if (cmpDevice == 11) {
-    val caspm = Module(new cmp.CASPM(nrCores, nrCores * 8))
-    for (i <- (0 until nrCores)) {
-      caspm.io(i) <> cores(i).io.comSpm
+
+    val cmpdevios = Vec(cmpdevs.map(e => if(e == null) dumio else e.io.asInstanceOf[Vec[OcpCoreSlavePort]](i)))
+
+    var addr = cores(i).io.comSpm.M.Addr(ADDR_WIDTH-1-12, ADDR_WIDTH-1-12-util.log2Up(MAX_IO_DEVICES)+1)
+
+    val addrReg = Reg(init = addr)
+    addrReg := Mux(cores(i).io.comSpm.M.Cmd =/= OcpCmd.IDLE, addr, addrReg)
+
+    cores(i).io.comSpm.S := cmpdevios(addrReg).S
+
+    for(j <- 0 until cmpdevios.length) {
+      cmpdevios(j).M := cores(i).io.comSpm.M
+      cmpdevios(j).M.Cmd := Mux(addr === Bits(j), cores(i).io.comSpm.M.Cmd, OcpCmd.IDLE)
     }
   }
 

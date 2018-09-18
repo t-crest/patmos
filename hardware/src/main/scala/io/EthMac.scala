@@ -76,13 +76,13 @@ object EthMac extends DeviceObject {
     val ethMacPins = new Bundle() {
       // Tx
       val mtx_clk_pad_i = Bool(INPUT)  // Transmit clock (from PHY)
-      val mtxd_pad_o    = Bits(OUTPUT, width = 4) // Transmit nibble (to PHY)
+      val mtxd_pad_o    = Bits(OUTPUT, width = 4) // Transmit niethle (to PHY)
       val mtxen_pad_o   = Bits(OUTPUT, width = 1) // Transmit enable (to PHY)
       val mtxerr_pad_o  = Bits(OUTPUT, width = 1) // Transmit error (to PHY)
 
       // Rx
       val mrx_clk_pad_i = Bool(INPUT) // Receive clock (from PHY)
-      val mrxd_pad_i    = Bits(INPUT, width = 4) // Receive nibble (from PHY)
+      val mrxd_pad_i    = Bits(INPUT, width = 4) // Receive niethle (from PHY)
       val mrxdv_pad_i   = Bits(INPUT, width = 1) // Receive data valid (from PHY)
       val mrxerr_pad_i  = Bits(INPUT, width = 1) // Receive data error (from PHY)
 
@@ -97,11 +97,11 @@ object EthMac extends DeviceObject {
       val md_padoe_o    = Bits(OUTPUT, width = 1) // MII data output enable (to I/O cell)
 
       // PTP Debug Signals
-      val rtcDisp = Vec.fill(8) {Bits(OUTPUT, 7)}
       val ledPHY = Bits(OUTPUT, width=1)
       val ledSOF = Bits(OUTPUT, width=1)
       val ledEOF = Bits(OUTPUT, width=1)
       val ledSFD = Bits(OUTPUT, width=8)
+      // val rtcDisp = Vec.fill(8) {Bits(OUTPUT, 7)}
     }
   }
 
@@ -159,30 +159,30 @@ class EthMacBB(extAddrWidth : Int = 32, dataWidth : Int = 32) extends BlackBox {
 class EthMac(extAddrWidth: Int = 32, dataWidth: Int = 32, withPTP: Boolean = false, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTime: BigInt = 0L) extends CoreDevice() {
   override val io = new CoreDeviceIO() with EthMac.Pins with EthMac.Intrs
 
-  val bb = Module(new EthMacBB(extAddrWidth, dataWidth))
-  bb.io.ethMacPins <> io.ethMacPins
+  val eth = Module(new EthMacBB(extAddrWidth, dataWidth))
+  eth.io.ethMacPins <> io.ethMacPins
 
-  if(withPTP) {
-    val ptp = Module(new PTP1588Assist(addrWidth = extAddrWidth, dataWidth = dataWidth, secondsWidth = secondsWidth, nanoWidth = nanoWidth, initialTime = initialTime))
+  if(withPTP) {    
     println("EthMac w/ PTP1588 hardware (eth_addrWidth="+extAddrWidth+", ptp_addrWidth="+(extAddrWidth)+")")
+    val ptp = Module(new PTP1588Assist(addrWidth = extAddrWidth, dataWidth = dataWidth, secondsWidth = secondsWidth, nanoWidth = nanoWidth, initialTime = initialTime))
     val masterReg = Reg(next = io.ocp.M)
-    bb.io.M.Data := masterReg.Data
-    bb.io.M.ByteEn := masterReg.ByteEn
-    bb.io.M.Addr := masterReg.Addr
+    eth.io.M.Data := masterReg.Data
+    eth.io.M.ByteEn := masterReg.ByteEn
+    eth.io.M.Addr := masterReg.Addr
     ptp.io.ocp.M.Data := masterReg.Data
     ptp.io.ocp.M.ByteEn := masterReg.ByteEn
     ptp.io.ocp.M.Addr := masterReg.Addr
     //Arbitrate OCP master
     when(masterReg.Addr(15, 12) === Bits("hE")){
-      bb.io.M.Cmd := OcpCmd.IDLE
+      eth.io.M.Cmd := OcpCmd.IDLE
       ptp.io.ocp.M.Cmd := masterReg.Cmd   //PTP
     }.otherwise{
-      bb.io.M.Cmd := masterReg.Cmd        //EthMac
+      eth.io.M.Cmd := masterReg.Cmd       //EthMac
       ptp.io.ocp.M.Cmd := OcpCmd.IDLE
     }
     //Arbitrate OCP slave based on response
     val replyRegPTP = Reg(next = ptp.io.ocp.S)
-    val replyRegETH = Reg(next = bb.io.S)
+    val replyRegETH = Reg(next = eth.io.S)
     when(replyRegETH.Resp =/= OcpResp.NULL){
       io.ocp.S := replyRegETH             //ETH
     }.elsewhen(replyRegPTP.Resp =/= OcpResp.NULL){
@@ -197,25 +197,20 @@ class EthMac(extAddrWidth: Int = 32, dataWidth: Int = 32, withPTP: Boolean = fal
     ptp.io.ethMacRX.data := io.ethMacPins.mrxd_pad_i
     ptp.io.ethMacRX.dv := io.ethMacPins.mrxdv_pad_i
     ptp.io.ethMacRX.err := io.ethMacPins.mrxerr_pad_i
-    ptp.io.ethMacTX.clk := bb.io.ethMacPins.mtx_clk_pad_i
-    ptp.io.ethMacTX.data := bb.io.ethMacPins.mtxd_pad_o
-    ptp.io.ethMacTX.dv := bb.io.ethMacPins.mtxen_pad_o
-    ptp.io.ethMacTX.err := bb.io.ethMacPins.mtxerr_pad_o
+    ptp.io.ethMacTX.clk := eth.io.ethMacPins.mtx_clk_pad_i
+    ptp.io.ethMacTX.data := eth.io.ethMacPins.mtxd_pad_o
+    ptp.io.ethMacTX.dv := eth.io.ethMacPins.mtxen_pad_o
+    ptp.io.ethMacTX.err := eth.io.ethMacPins.mtxerr_pad_o
     io.ethMacIntrs := ptp.io.intrs
-    io.ethMacPins.rtcDisp := ptp.io.rtcHexDisp
     io.ethMacPins.ledPHY := ptp.io.ledPHY
     io.ethMacPins.ledSOF := ptp.io.ledSOF
     io.ethMacPins.ledEOF := ptp.io.ledEOF
     io.ethMacPins.ledSFD := ptp.io.ledSFD
   } else {
     println("EthMac (eth_addrWidth="+extAddrWidth+")")
-    bb.io.M <> io.ocp.M
-    bb.io.S <> io.ocp.S
+    eth.io.M <> io.ocp.M
+    eth.io.S <> io.ocp.S
     io.ethMacIntrs := false.B
-    io.ethMacPins.ledPHY := false.B
-    io.ethMacPins.ledSOF := false.B
-    io.ethMacPins.ledEOF := false.B
-    io.ethMacPins.ledSFD := false.B
   }
 }
 

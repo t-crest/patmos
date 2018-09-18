@@ -93,6 +93,16 @@ architecture rtl of patmos_top is
             io_keysPins_key                       : in  std_logic_vector(3 downto 0);
             io_uartPins_tx                        : out std_logic;
             io_uartPins_rx                        : in  std_logic;
+            io_uart2Pins_tx                       : out std_logic;
+            io_uart2Pins_rx                       : in  std_logic;
+            io_sevenSegmentDisplayPins_hexDisp_7  : out std_logic_vector(6 downto 0);
+            io_sevenSegmentDisplayPins_hexDisp_6  : out std_logic_vector(6 downto 0);
+            io_sevenSegmentDisplayPins_hexDisp_5  : out std_logic_vector(6 downto 0);
+            io_sevenSegmentDisplayPins_hexDisp_4  : out std_logic_vector(6 downto 0);
+            io_sevenSegmentDisplayPins_hexDisp_3  : out std_logic_vector(6 downto 0);
+            io_sevenSegmentDisplayPins_hexDisp_2  : out std_logic_vector(6 downto 0);
+            io_sevenSegmentDisplayPins_hexDisp_1  : out std_logic_vector(6 downto 0);
+            io_sevenSegmentDisplayPins_hexDisp_0  : out std_logic_vector(6 downto 0);
 
             io_ethMacPins_mtx_clk_pad_i           : in    std_logic; -- Transmit clock (from PHY)
             io_ethMacPins_mtxd_pad_o              : out   std_logic_vector(3 downto 0); -- Transmit nibble (to PHY)
@@ -108,14 +118,14 @@ architecture rtl of patmos_top is
             io_ethMacPins_mdc_pad_o               : out   std_logic; -- MII Management data clock (to PHY)
             io_ethMacPins_md_pad_o                : out   std_logic; -- MII data output (to I/O cell)
             io_ethMacPins_md_padoe_o              : out   std_logic; -- MII data output enable (to I/O cell)
-            io_ethMacPins_rtcDisp_7               : out std_logic_vector(6 downto 0);
-    		io_ethMacPins_rtcDisp_6               : out std_logic_vector(6 downto 0);
-    		io_ethMacPins_rtcDisp_5               : out std_logic_vector(6 downto 0);
-    		io_ethMacPins_rtcDisp_4               : out std_logic_vector(6 downto 0);
-    		io_ethMacPins_rtcDisp_3               : out std_logic_vector(6 downto 0);
-    		io_ethMacPins_rtcDisp_2               : out std_logic_vector(6 downto 0);
-    		io_ethMacPins_rtcDisp_1               : out std_logic_vector(6 downto 0);
-    		io_ethMacPins_rtcDisp_0               : out std_logic_vector(6 downto 0); 
+--            io_ethMacPins_rtcDisp_7               : out std_logic_vector(6 downto 0);
+--    		io_ethMacPins_rtcDisp_6               : out std_logic_vector(6 downto 0);
+--    		io_ethMacPins_rtcDisp_5               : out std_logic_vector(6 downto 0);
+--    		io_ethMacPins_rtcDisp_4               : out std_logic_vector(6 downto 0);
+--    		io_ethMacPins_rtcDisp_3               : out std_logic_vector(6 downto 0);
+--    		io_ethMacPins_rtcDisp_2               : out std_logic_vector(6 downto 0);
+--    		io_ethMacPins_rtcDisp_1               : out std_logic_vector(6 downto 0);
+--    		io_ethMacPins_rtcDisp_0               : out std_logic_vector(6 downto 0);
             io_ethMacPins_ledPHY                  : out   std_logic;
             io_ethMacPins_ledSOF                  : out   std_logic;
             io_ethMacPins_ledEOF                  : out   std_logic;
@@ -129,9 +139,7 @@ architecture rtl of patmos_top is
             io_sramCtrlPins_ramOut_noe            : out std_logic;
             io_sramCtrlPins_ramOut_nwe            : out std_logic;
             io_sramCtrlPins_ramOut_nlb            : out std_logic;
-            io_sramCtrlPins_ramOut_nub            : out std_logic;
-            io_uart2Pins_tx                        : out std_logic;
-            io_uart2Pins_rx                        : in  std_logic
+            io_sramCtrlPins_ramOut_nub            : out std_logic
             );
     end component;
 
@@ -201,46 +209,64 @@ begin
         end if;
     end process;
 
-    comp : Patmos port map(clk_int, int_res,
-                           open, open, open, open, open,
-                           (others => '0'), (others => '0'), '0',
-                           open, open, open, open,
-                           (others => '0'), (others => '0'),
-                           oLedsPins_led,
-                           iKeysPins_key,
-                           oUartPins_txd, 
-                           iUartPins_rxd,                           
-                           ENET0_TX_CLK,
-                           ENET0_TX_DATA,
-                           ENET0_TX_EN,
-                           ENET0_TX_ER,
-                           ENET0_RX_CLK,
-                           ENET0_RX_DATA,
-                           ENET0_RX_DV,
-                           ENET0_RX_ER,
-                           ENET0_RX_COL,
-                           ENET0_RX_CRS,
-                           ENET0_MDIO,
-                           ENET0_MDC,
-                           md_pad_o_int,
-                           md_padoe_o_int,
-                           osevenSegmentDisplayPins_hexDisp_7,
-                           osevenSegmentDisplayPins_hexDisp_6,
-                           osevenSegmentDisplayPins_hexDisp_5,
-                           osevenSegmentDisplayPins_hexDisp_4,
-                           osevenSegmentDisplayPins_hexDisp_3,
-                           osevenSegmentDisplayPins_hexDisp_2,
-                           osevenSegmentDisplayPins_hexDisp_1,
-                           osevenSegmentDisplayPins_hexDisp_0,
-                           oLedsPins_ledR(17),
-                           oLedsPins_ledR(16),
-                           oLedsPins_ledR(15),
-                           oLedsPins_ledR(7 downto 0),
-                           oSRAM_A, 
-                           sram_out_dout_ena, SRAM_DQ, sram_out_dout, oSRAM_CE_N, oSRAM_OE_N, oSRAM_WE_N, oSRAM_LB_N, oSRAM_UB_N,
-                           oUart2Pins_txd, 
-                           iUart2Pins_rxd
-
-);
+    patmos_inst : Patmos port map(
+        clk => clk_int, 
+        reset => int_res,
+        io_comConf_M_Cmd => open,
+        io_comConf_M_Addr => open,
+        io_comConf_M_Data => open,
+        io_comConf_M_ByteEn => open,
+        io_comConf_M_RespAccept => open,
+        io_comConf_S_Resp => (others => '0'),
+        io_comConf_S_Data => (others => '0'),
+        io_comConf_S_CmdAccept => '0',
+        io_comSpm_M_Cmd => open,
+        io_comSpm_M_Addr => open,
+        io_comSpm_M_Data => open,
+        io_comSpm_M_ByteEn => open,
+        io_comSpm_S_Resp => (others => '0'),
+        io_comSpm_S_Data => (others => '0'),
+        io_ledsPins_led => oLedsPins_led,
+        io_keysPins_key => iKeysPins_key,
+        io_uartPins_tx => oUartPins_txd, 
+        io_uartPins_rx => iUartPins_rxd,
+        io_uart2Pins_tx => oUart2Pins_txd,
+        io_uart2Pins_rx => iUart2Pins_rxd,                           
+        io_ethMacPins_mtx_clk_pad_i => ENET0_TX_CLK,
+        io_ethMacPins_mtxd_pad_o => ENET0_TX_DATA,
+        io_ethMacPins_mtxen_pad_o => ENET0_TX_EN,
+        io_ethMacPins_mtxerr_pad_o => ENET0_TX_ER,
+        io_ethMacPins_mrx_clk_pad_i => ENET0_RX_CLK,
+        io_ethMacPins_mrxd_pad_i => ENET0_RX_DATA,
+        io_ethMacPins_mrxdv_pad_i => ENET0_RX_DV,
+        io_ethMacPins_mrxerr_pad_i => ENET0_RX_ER,
+        io_ethMacPins_mcoll_pad_i => ENET0_RX_COL,
+        io_ethMacPins_mcrs_pad_i => ENET0_RX_CRS,
+        io_ethMacPins_md_pad_i => ENET0_MDIO,
+        io_ethMacPins_mdc_pad_o => ENET0_MDC,
+        io_ethMacPins_md_pad_o => md_pad_o_int,
+        io_ethMacPins_md_padoe_o => md_padoe_o_int,
+        io_sevenSegmentDisplayPins_hexDisp_7 => osevenSegmentDisplayPins_hexDisp_7,
+        io_sevenSegmentDisplayPins_hexDisp_6 => osevenSegmentDisplayPins_hexDisp_6,
+        io_sevenSegmentDisplayPins_hexDisp_5 => osevenSegmentDisplayPins_hexDisp_5,
+        io_sevenSegmentDisplayPins_hexDisp_4 => osevenSegmentDisplayPins_hexDisp_4,
+        io_sevenSegmentDisplayPins_hexDisp_3 => osevenSegmentDisplayPins_hexDisp_3,
+        io_sevenSegmentDisplayPins_hexDisp_2 => osevenSegmentDisplayPins_hexDisp_2,
+        io_sevenSegmentDisplayPins_hexDisp_1 => osevenSegmentDisplayPins_hexDisp_1,
+        io_sevenSegmentDisplayPins_hexDisp_0 => osevenSegmentDisplayPins_hexDisp_0,
+        io_ethMacPins_ledPHY => oLedsPins_ledR(17),
+        io_ethMacPins_ledSOF => oLedsPins_ledR(16),
+        io_ethMacPins_ledEOF => oLedsPins_ledR(15),
+        io_ethMacPins_ledSFD => oLedsPins_ledR(7 downto 0),
+        io_sramCtrlPins_ramOut_addr => oSRAM_A, 
+        io_sramCtrlPins_ramOut_doutEna => sram_out_dout_ena,
+        io_sramCtrlPins_ramIn_din => SRAM_DQ,
+        io_sramCtrlPins_ramOut_dout => sram_out_dout, 
+        io_sramCtrlPins_ramOut_nce => oSRAM_CE_N, 
+        io_sramCtrlPins_ramOut_noe => oSRAM_OE_N, 
+        io_sramCtrlPins_ramOut_nwe => oSRAM_WE_N, 
+        io_sramCtrlPins_ramOut_nlb => oSRAM_LB_N, 
+        io_sramCtrlPins_ramOut_nub => oSRAM_UB_N
+    );
 
 end architecture rtl;

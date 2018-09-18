@@ -4565,6 +4565,11 @@ Getting the Altera USB Blaster working on Ubuntu is a little bit brittle.
 Here a collection of tips collected from different places that helped me to
 get the USB Blaster running.
 
+The USB devices can be listed with
+\begin{verbatim}
+lsusb
+\end{verbatim}
+
 Add permissions to access the Altera USB Blaster by creating or editing \code{/etc/udev/rules.d/51-usbblaster.rules}:
 
 \begin{verbatim}
@@ -4573,6 +4578,18 @@ SUBSYSTEM=="usb",\
 ENV{DEVTYPE}=="usb_device",\
 ATTR{idVendor}=="09fb",\
 ATTR{idProduct}=="6001",\
+MODE="0666",\
+NAME="bus/usb/$env{BUSNUM}/$env{DEVNUM}",\
+RUN+="/bin/chmod 0666 %c"
+\end{verbatim}
+
+For the DE10 Nano board following rules are needed:
+
+\begin{verbatim}
+SUBSYSTEM=="usb",\
+ENV{DEVTYPE}=="usb_device",\
+ATTR{idVendor}=="09fb",\
+ATTR{idProduct}=="6810",\
 MODE="0666",\
 NAME="bus/usb/$env{BUSNUM}/$env{DEVNUM}",\
 RUN+="/bin/chmod 0666 %c"
@@ -4605,6 +4622,10 @@ $ jtagconfig
 \end{verbatim}
 
 Some more fixes might be needed (not on a recent try with Ubuntu 14.04):
+
+\begin{verbatim}
+jtagd --foreground --debug
+\end{verbatim}
 
 \begin{verbatim}
 sudo ln -s /lib/x86_64-linux-gnu/libudev.so.1 /usr/lib/libudev.so.0

@@ -46,6 +46,7 @@
 #include <math.h>
 #include "udp.h"
 
+//Hardware
 #define PTP_CHAN_VALID_TS_MASK 0x100
 #define PTP_CHAN_MSG_TYPE_MASK 0x0FF
 
@@ -65,6 +66,7 @@
 #define RTC_PERIOD_HI *((volatile _SPM unsigned int *) 0xF00DE814)
 #define RTC_CORRECTION_OFFSET *((volatile _SPM int *) 0xF00DE820)
 
+//Protocol types
 #define PTP_EVENT_PORT 319
 #define PTP_GENERAL_PORT 320
 
@@ -91,20 +93,32 @@
 #define FLAG_PTP_LI_59_MASK(value) (value & 0x0002)
 #define FLAG_PTP_LI_61_MASK(value) (value & 0x0001)
 
+//Addresses
 #define PTP_MULTICAST_MAC (unsigned char[6]) {0x01,0x00,0x5E,0x00,0x01,0x81}
 #define PTP_BROADCAST_MAC (unsigned char[6]) {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF}
 #define PTP_MULTICAST_IP (unsigned char[4]) {224,0,1,129}
 
-// Time in us
+//Time in us
+#define PTP_SYNC_PERIOD 500
 #define PTP_SYNC_TIMEOUT 0
-#define PTP_FOLLOW_DELAY 5000
-#define PTP_REQ_TIMEOUT 100000
-#define PTP_RPLY_TIMEOUT 1000000
+#define PTP_FOLLOW_DELAY 1000
+#define PTP_REQ_TIMEOUT 10000
+#define PTP_RPLY_TIMEOUT 10000
+#define NS_TO_SEC 0.000001f
+#define NS_TO_USEC 0.001f
+#define SEC_TO_USEC 1000000
+#define SEC_TO_HOUR 0.000277777778f
 
+//Thresholds
 #define PTP_NS_OFFSET_THRESHOLD 5000
 #define PTP_SEC_OFFSET_THRESHOLD 0
 
-#define NS_TO_SEC 0.000001
+//Constants & Options
+#define USE_HW_TIMESTAMP
+#define PTP_RATE_CONTROL 1
+#define PTP_CORRECTION_EN 1
+#define PTP_OFFSET_DRIFT_CORRECT (int) (PTP_SYNC_PERIOD*0.008f)
+
 
 typedef struct {
 	unsigned char transportSpec_msgType;
@@ -181,7 +195,7 @@ void ptpv2_intr_rx_handler(void) __attribute__((naked));
 void ptpv2_intr_tx_handler(void) __attribute__((naked));
 
 //Serializes a PTPv2 message structure into buffer byte array
-void ptpv2_serialize(PTPv2Msg msg, unsigned char buffer[]);
+int ptpv2_serialize(PTPv2Msg msg, unsigned char buffer[]);
 
 //Deserializes a buffer byte array to a PTPv2 message structure
 PTPv2Msg ptpv2_deserialize(unsigned char buffer[]);
@@ -192,6 +206,9 @@ int ptpv2_issue_msg(unsigned tx_addr, unsigned rx_addr, unsigned char destinatio
 //Handles a PTPv2 Message
 int ptpv2_handle_msg(unsigned tx_addr, unsigned rx_addr, unsigned char source_mac[6], unsigned char source_ip[4]);
 
+//Applies the correction mechanism based on the calculated offset and acceptable threshold value
+void ptp_correct_offset();
+
 //Calculates the offset from the master clock based on timestamps T1, T2
 int ptp_calc_offset(int t1, int t2, int delay);
 
@@ -201,6 +218,10 @@ int ptp_calc_one_way_delay(int t1, int t2, int t3, int t4);
 ///////////////////////////////////////////////////////////////
 //Help Functions
 ///////////////////////////////////////////////////////////////
+
+unsigned int get_rtc_usecs();
+
+unsigned int get_rtc_secs();
 
 void print_bytes(unsigned char byte_buffer[], unsigned int len);
 

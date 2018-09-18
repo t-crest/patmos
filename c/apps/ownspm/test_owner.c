@@ -25,7 +25,7 @@ volatile _UNCACHED static int owner;
 // The main function for the other threads on the another cores
 void work(void* arg) {
 
-  volatile _SPM int *sspm = (volatile _SPM int *) (0xE8000000);
+  _iodev_ptr_t sspm = (_iodev_ptr_t) PATMOS_IO_OWNSPM;
 
   int id = get_cpuid();
   while (id != owner)
@@ -52,7 +52,7 @@ void work(void* arg) {
 
 int main() {
 
-  volatile _SPM int *sspm = (volatile _SPM int *) (0xE8000000);
+  _iodev_ptr_t sspm = (_iodev_ptr_t) PATMOS_IO_OWNSPM;
 
   ok = 1;
   owner = 0; // start with myself

@@ -28,7 +28,13 @@ object Schedule {
       case 2 => ScheduleTable.FourNodes
       case 3 => ScheduleTable.NineNodes
       case 4 => ScheduleTable.SixTeenNodes
-      case _ => throw new Error("Currently only 2x2, 3x3, and 4x4 NoCs supported, you requested: "+n+"x"+n)
+      case 5 => ScheduleTable.TwentyFiveNodes
+      case 6 => ScheduleTable.ThirtySixNodes
+      case 7 => ScheduleTable.FourtyNineNodes
+      case 8 => ScheduleTable.SixtyFourNodes
+      case 9 => ScheduleTable.EightyOneNodes
+      case 10 => ScheduleTable.OneHundredNodes
+      case _ => throw new Error("Currently only 2x2 up to 10x10 NoCs supported, you requested: "+n+"x"+n)
     }
 
     def port(c: Char) = {
@@ -72,8 +78,11 @@ object Schedule {
     }
     var line = 0
     for (i <- 0 until len - 1) {
-      valid(i) = split(line)(i) != ' '
-      if (valid(i)) line += 1
+      // Need to think through this once more to check if correct
+      if (line < split.length) {
+        valid(i) = split(line)(i) != ' '
+        if (valid(i)) line += 1
+      }
     }
     println("Schedule is " + schedule.length + " clock cycles")
     (schedule, valid)

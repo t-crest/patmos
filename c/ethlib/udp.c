@@ -232,6 +232,7 @@ int udp_send(unsigned int tx_addr, unsigned int rx_addr, unsigned char destinati
 	return 1;
 }
 
+__attribute__((noinline))
 int udp_send_mac(unsigned int tx_addr, unsigned int rx_addr, unsigned char destination_mac[], unsigned char destination_ip[], unsigned short int source_port, unsigned short int destination_port, unsigned char data[], unsigned short int data_length, long long unsigned int timeout){
 	//Resolve the ip address
 	unsigned short int udp_length = data_length + 8;

@@ -2,8 +2,10 @@
 
 These applications are used for the evaluation section of the following paper:
 
+<!---
 Martin Schoeberl, Luca Pezzarossa, and Jens Sparso,
-A Simple Network Interface for a Simple Network-on-Chip, submitted to NOCS 2018.
+--->
+*Blind*, A Simple Network Interface for a Simple Network-on-Chip, *submitted to DATE 2019*
 
 ## Stand Alone Evaluation
 
@@ -24,6 +26,20 @@ or from your favorite Scala IDE (e.g., InelliJ or Eclipse) or from this folder w
 make test-all
 make test
 ```
+
+A standalone version of the S4NoC with simple traffic generators can be built
+with:
+
+```bash
+sbt "runMain s4noc.S4nocTrafficGen n"
+```
+
+where n is the number of cores (e.g., 4, 9, or 16).
+
+The generated Verilog file can be found in ```generated/S4nocTrafficGen.v```
+and can be synthesized to provide resource numbers and maximum
+clocking frequency. An example project for Quartus can be found in this
+[quartus](quartus) subfolder.
 
 ## Evaluation with T-CREST
 
@@ -79,7 +95,7 @@ To ensure that you have the exact version of T-CREST that we have used in the
 evaluation section of the paper, use the following `git` command to checkout that version:
 
 ```bash
-git checkout `git rev-list -n 1 --before="2018-05-23" master`
+git checkout `git rev-list -n 1 --before="2018-09-19" master`
 ```
 
 This can be done in all T-CREST repositories. However, it is most important
