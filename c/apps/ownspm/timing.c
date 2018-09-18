@@ -50,7 +50,7 @@ int main() {
 #endif
 #ifdef _SPMPOOL
   _iodev_ptr_t spm = (_iodev_ptr_t) PATMOS_IO_SPMPOOL;
-#define OWNERS 8
+#define OWNERS 4
   spm_sched_wr(0,(1 << OWNERS) - 1);
 #endif
 
@@ -60,9 +60,6 @@ int main() {
   int min = 10000;
   int max = 0;
 
-#ifdef _SPMPOOL
-
-#endif
   // To avoid compiler optimizing all code away a result
   acc = 0;
 
