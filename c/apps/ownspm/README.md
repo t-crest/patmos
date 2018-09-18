@@ -14,19 +14,20 @@ General build instructions of T-CREST in [Main README](../../../README.md).
 Before building the Patmos processor (hardware or emulator) add the following lines after `<frequency Hz="80000000"/>` in 
 [altde2-115.xml](../../../hardware/config/altde2-115.xml):
 ```
-<cores count="4" />
-<cmp device="n" />
+<cores count="8" />
 <pipeline dual="false" />
+  <CmpDevs>
+		<CmpDev name="SharedSPM" />
+		<CmpDev name="OwnSPM" />
+		<CmpDev name="SPMPool" />
+  </CmpDevs>
 ```
-
-where the cmp device is either `1` for the TDM arbitrated shared SPM,
-`5` for the SPMs with ownership, or `6` for the SPMs with multiple owners.
 
 The number of SPMs with ownership
 is currently configured to be the same as the number of processor cores.
-This can be changed in `Patmos.scala`.
-The individual SPMs are displaced every 64 KB, starting at the usual
-address that is used for all CMP device tests (`0xE8000000`).
+This can be changed in `Patmos.scala`. Note that `pc.c` requires
+the number of SPMs to be (number of cores - 1)*2.
+The individual SPMs are displaced every 4 KB.
 
 The C programs for the tests are found here, e.g., for the shared SPM: 
 [hello_spm.c](hello_spm.c)
@@ -42,7 +43,7 @@ Following test programs are available:
 
 For the evaluation section in the paper we have written a producer/consumer
 based synthetic benchmark: `pc.c`. It can be configured for the different
-versions of of the SPM. The default version uses main memory for the buffers.
+versions of the SPM. The default version uses main memory for the buffers.
 The configuration is via C based defines, which can also be passed to the
 compiler with command line arguments. E.g., compilation for the shared SPM
 is:
@@ -81,7 +82,7 @@ executed with the emulator as follows:
 patemu tmp/ownspm.elf
 ```
 
-## FPGA Based Tesing
+## FPGA Based Testing
 
 To run the tests on a DE2-115 board, first connect it, 
 and then from `t-crest/patmos` run 
@@ -107,7 +108,7 @@ To ensure that you have the exact version of T-CREST that we have used in the
 evaluation section of the paper, use the following `git` command to checkout that version:
 
 ```bash
-git checkout `git rev-list -n 1 --before="2018-04-05" master`
+git checkout `git rev-list -n 1 --before="2018-09-19" master`
 ```
 
 This can be done in all T-CREST repositories. However, it is most important
