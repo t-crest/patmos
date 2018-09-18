@@ -5,7 +5,7 @@ These applications are used for the evaluation section of the following paper:
 <!---
 Martin Schoeberl, Oktay Baris, Torur Biskopsto Strom, and Jens Sparso,
 --->
-*Blind*, Scratchpad Memories with Ownership, *submitted to CASES 2018*
+*Blind*, Scratchpad Memories with Ownership, *submitted to DATE 2019*
 
 
 We use the T-CREST multicore to evaluate the shared memory with ownership.
