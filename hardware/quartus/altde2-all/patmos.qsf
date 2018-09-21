@@ -102,6 +102,10 @@ set_location_assignment PIN_AF4 -to SRAM_DQ[1]
 set_location_assignment PIN_AH3 -to SRAM_DQ[0]
 set_location_assignment PIN_G12 -to iUartPins_rxd
 set_location_assignment PIN_G9 -to oUartPins_txd
+set_location_assignment PIN_AH23 -to iUart2Pins_rxd
+set_location_assignment PIN_AG26 -to oUart2Pins_txd
+set_location_assignment PIN_AF20 -to iUart3Pins_rxd
+set_location_assignment PIN_AH26 -to oUart3Pins_txd
 set_location_assignment PIN_F17 -to oLedsPins_led[8]
 set_location_assignment PIN_G21 -to oLedsPins_led[7]
 set_location_assignment PIN_G22 -to oLedsPins_led[6]
@@ -134,8 +138,6 @@ set_location_assignment PIN_A19 -to ENET0_TX_DATA[2]
 set_location_assignment PIN_B19 -to ENET0_TX_DATA[3]
 set_location_assignment PIN_A18 -to ENET0_TX_EN
 set_location_assignment PIN_B18 -to ENET0_TX_ER
-set_location_assignment PIN_AH23 -to iUart2Pins_rxd
-set_location_assignment PIN_AG26 -to oUart2Pins_txd
 set_location_assignment PIN_G18 -to osevenSegmentDisplayPins_hexDisp_0[0]
 set_location_assignment PIN_F22 -to osevenSegmentDisplayPins_hexDisp_0[1]
 set_location_assignment PIN_E17 -to osevenSegmentDisplayPins_hexDisp_0[2]
@@ -290,6 +292,8 @@ set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oUartPins_txd
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to iUartPins_rxd
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oUart2Pins_txd
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to iUart2Pins_rxd
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oUart3Pins_txd
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to iUart3Pins_rxd
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[15]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[14]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[13]
