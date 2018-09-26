@@ -50,7 +50,11 @@
 #include "ethlib/eth_mac_driver.h"
 #include "ethlib/ptp1588.h"
 
-#define PTP_MASTER
+#define INTRO_DURATION 16
+#define DISP_SYM_MASK 0x80
+
+// #define PTP_MASTER
+#define PTP_SLAVE
 
 volatile _SPM int *uart_ptr = (volatile _SPM int *)	 0xF0080004;
 volatile _SPM int *led_ptr  = (volatile _SPM int *)  0xF0090000;
@@ -80,6 +84,23 @@ void print_general_info(){
 	arp_table_print();
 	printf("\n");
 	return;
+}
+
+void printSegmentInt(uint base_addr, int number, int displayCount) {
+	volatile _IODEV uint *disp_ptr = (volatile _IODEV uint *) base_addr;
+	uint pos = 0;
+	uint byte_mask = 0x0000000F;
+	uint range = (number > 0) ? displayCount : displayCount-1;	//reserve one digit for '-' symbol
+	uint value = abs(number);
+	for(pos=0; pos < range; pos++) {
+		*disp_ptr = (uint)((value & byte_mask) >> (pos*4));
+		//printf("value %d at disp_addr %p with byte_mask %x\n", *disp_ptr, disp_ptr, byte_mask);
+		byte_mask = byte_mask << 4;
+		disp_ptr += 1;
+	}
+	if (number < 0) {
+		*disp_ptr = DISP_SYM_MASK | 0x3F;
+	}
 }
 
 int checkForPacket(unsigned int expectedPacketType, unsigned int expectedUDPPort, const unsigned int timeout){
@@ -135,22 +156,20 @@ void ptp_master_loop(int msgDelay){
 			start_time = get_rtc_usecs();
 		} else if (elapsed_time >= msgDelay){
 			puts("----\n");
-			do {
-				//Send SYNQ
-				*led_ptr = 0x0;
-				//printf("%.3fus\n", elapsed_time);
-				puts("i_MSG=0");
-				ptpv2_issue_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC, target_ip, seqId, PTP_SYNC_MSGTYPE, PTP_SYNC_CTRL, PTP_EVENT_PORT);
+			//Send SYNQ
+			*led_ptr = 0x0;
+			//printf("%.3fus\n", elapsed_time);
+			puts("i_MSG=0");
+			ptpv2_issue_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC, target_ip, seqId, PTP_SYNC_MSGTYPE, PTP_SYNC_CTRL, PTP_EVENT_PORT);
 
-				//Send FOLLOW_UP
-				*led_ptr = 0x8;
-				puts("i_MSG=8");
-				ptpv2_issue_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC, target_ip, seqId, PTP_FOLLOW_MSGTYPE, PTP_FOLLOW_CTRL, PTP_GENERAL_PORT);
+			//Send FOLLOW_UP
+			*led_ptr = 0x8;
+			puts("i_MSG=8");
+			ptpv2_issue_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC, target_ip, seqId, PTP_FOLLOW_MSGTYPE, PTP_FOLLOW_CTRL, PTP_GENERAL_PORT);
 
-				//WaitFor DELAY_REQ
-				ans = checkForPacket(2, PTP_EVENT_PORT, PTP_REQ_TIMEOUT);
-				*led_ptr = ans;
-			} while(ans <= 0);
+			//WaitFor DELAY_REQ
+			ans = checkForPacket(2, PTP_EVENT_PORT, PTP_REQ_TIMEOUT);
+			*led_ptr = ans;
 			if(ans == PTP_DLYREQ_MSGTYPE){
 				ptpv2_issue_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC, lastSlaveInfo.ip, ptpMsg.head.sequenceId, PTP_DLYRPLY_MSGTYPE, PTP_DLYRPLY_CTRL, PTP_GENERAL_PORT);
 				// puts("i_MSG=9");
@@ -159,6 +178,8 @@ void ptp_master_loop(int msgDelay){
 			seqId++;
 			//start_time = get_cpu_usecs();
 			start_time = get_rtc_usecs();
+		} else {
+			printSegmentInt(0xF00B0000, get_rtc_secs(), 8);
 		}
 	}
 }
@@ -195,6 +216,7 @@ void ptp_slave_loop(){
 					puts("FAIL: EthMacRX Timeout or Unhandled");
 					break;
 			}
+			printSegmentInt(0xF00B0000, get_rtc_secs(), 8);
 		}
 		*led_ptr = 0x0;
 	}
