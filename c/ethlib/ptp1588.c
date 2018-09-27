@@ -120,7 +120,6 @@ PTPv2Msg ptpv2_deserialize(unsigned char buffer[]){
 __attribute__((noinline))
 int ptpv2_issue_msg(unsigned tx_addr, unsigned rx_addr, unsigned char destination_mac[6], unsigned char destination_ip[4], unsigned seqId, unsigned msgType, unsigned ctrlField, unsigned short eventPort) {
 	unsigned short msgLen = msgType==PTP_DLYRPLY_MSGTYPE ? 54 : 44;
-	unsigned char *udp_data = malloc(msgLen*sizeof(char));
 	unsigned int timestampNanoseconds = 0;
 	unsigned int timestampSeconds = 0;
 	PTPv2Msg msg;
@@ -152,10 +151,7 @@ int ptpv2_issue_msg(unsigned tx_addr, unsigned rx_addr, unsigned char destinatio
 			msg.body.seconds = ptpTimeRecord.t4Seconds;
 			break; 
 	}
-	// ptpv2_serialize(msg, udp_data);
-	udp_data = (unsigned char*)&msg;
-	//printf("i_MSG=%02X to %u:%u:%u:%u\n", msg.head.transportSpec_msgType, destination_ip[0], destination_ip[1], destination_ip[2], destination_ip[3]);
-	udp_send_mac(tx_addr, rx_addr, destination_mac, destination_ip, eventPort, eventPort, udp_data, msgLen, 2000000);
+	udp_send_mac(tx_addr, rx_addr, destination_mac, destination_ip, eventPort, eventPort, (unsigned char*)&msg, msgLen, 2000000);
 	if(msgType==PTP_SYNC_MSGTYPE){
 		//Master
 		#ifdef USE_HW_TIMESTAMP
@@ -195,8 +191,7 @@ int ptpv2_handle_msg(unsigned tx_addr, unsigned rx_addr, unsigned char source_ma
 	unsigned int timestampNanoseconds = (unsigned) RTC_TIME_NS;
 	unsigned int timestampSeconds =  (unsigned) RTC_TIME_SEC;
 	#endif
-	udp_get_data(rx_addr, udp_data, udp_get_data_length(rx_addr));
-	memcpy(&ptpMsg, &udp_data, 54);
+	udp_get_data(rx_addr, (unsigned char*) &ptpMsg, udp_get_data_length(rx_addr));
 	switch(ptpMsg.head.transportSpec_msgType){
 	case PTP_SYNC_MSGTYPE:
 		//Exec by slave port
