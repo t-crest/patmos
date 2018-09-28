@@ -9,7 +9,7 @@ package s4noc
 import Chisel._
 
 class CpuPort() extends Bundle {
-  val addr = UInt(width = 6).asInput
+  val addr = UInt(width = 8).asInput
   val rdData = UInt(width = 32).asOutput
   val wrData = UInt(width = 32).asInput
   val rd = Bool().asInput
@@ -19,7 +19,7 @@ class CpuPort() extends Bundle {
 // This should be a generic for the FIFO
 class Entry extends Bundle {
   val data = UInt(width = 32).asOutput
-  val time = UInt(width = 6).asInput
+  val time = UInt(width = 8).asInput
 }
 
 class NetworkInterface[T <: Data](dim: Int, txFifo: Int, rxFifo: Int, dt: T) extends Module {

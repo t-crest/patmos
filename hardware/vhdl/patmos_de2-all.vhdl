@@ -34,6 +34,8 @@ entity patmos_top is
         iUartPins_rxd : in    std_logic;
         oUart2Pins_txd : out   std_logic;
         iUart2Pins_rxd : in    std_logic;
+        oUart3Pins_txd : out   std_logic;
+        iUart3Pins_rxd : in    std_logic;
         oSRAM_A       : out   std_logic_vector(19 downto 0);
         SRAM_DQ       : inout std_logic_vector(15 downto 0);
         oSRAM_CE_N    : out   std_logic;
@@ -95,6 +97,8 @@ architecture rtl of patmos_top is
             io_uartPins_rx                        : in  std_logic;
             io_uart2Pins_tx                       : out std_logic;
             io_uart2Pins_rx                       : in  std_logic;
+            io_uart3Pins_tx                       : out std_logic;
+            io_uart3Pins_rx                       : in  std_logic;
             io_sevenSegmentDisplayPins_hexDisp_7  : out std_logic_vector(6 downto 0);
             io_sevenSegmentDisplayPins_hexDisp_6  : out std_logic_vector(6 downto 0);
             io_sevenSegmentDisplayPins_hexDisp_5  : out std_logic_vector(6 downto 0);
@@ -231,7 +235,9 @@ begin
         io_uartPins_tx => oUartPins_txd, 
         io_uartPins_rx => iUartPins_rxd,
         io_uart2Pins_tx => oUart2Pins_txd,
-        io_uart2Pins_rx => iUart2Pins_rxd,                           
+        io_uart2Pins_rx => iUart2Pins_rxd,
+        io_uart3Pins_tx => oUart3Pins_txd,
+        io_uart3Pins_rx => iUart3Pins_rxd,                     
         io_ethMacPins_mtx_clk_pad_i => ENET0_TX_CLK,
         io_ethMacPins_mtxd_pad_o => ENET0_TX_DATA,
         io_ethMacPins_mtxen_pad_o => ENET0_TX_EN,
