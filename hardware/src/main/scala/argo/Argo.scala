@@ -72,10 +72,11 @@ class Argo(argoConf: ArgoConfig, wrapped: Boolean = false, emulateBB: Boolean = 
   }
 
   // Wire up SPM - NoC
+  argoNoc.io.supervisor := Bits("hF")
   for(i <- 0 until argoConf.CORES){
 		comSPMWrapper(i).spm.M := argoNoc.io.spmPorts(i).M
     argoNoc.io.spmPorts(i).S := comSPMWrapper(i).spm.S
-    argoNoc.io.supervisor := io(i).superMode
+    argoNoc.io.supervisor(i) := io(i).superMode(i)
   }
 
   val selReg = Vec.fill(argoConf.CORES){Reg(init = Bool(false))}
@@ -91,16 +92,17 @@ class Argo(argoConf: ArgoConfig, wrapped: Boolean = false, emulateBB: Boolean = 
 	// Wire up Patmos - NoC + SPM
 	for(i <- 0 until argoConf.CORES){
     
-    //CoreSlave to IOSlave bridging
+    //While not busy register a new master for NoC
     when(!busyReg(i)) {
       masterReg(i) := io(i).M
     }
+    //Is busy when command is RD/WR and address is for the NoC
     when((io(i).M.Cmd === OcpCmd.RD || io(i).M.Cmd === OcpCmd.WR) && io(i).M.Addr(27) === Bits("b0")) {
       busyReg(i) := Bool(true)
     }
+    //Not busy when the command has been accepted
     when(busyReg(i) && slaveReg(i).CmdAccept === Bits(1)) {
       busyReg(i) := Bool(false)
-      masterReg(i).Cmd := OcpCmd.IDLE
     }
 
     //Argo driving
@@ -108,10 +110,10 @@ class Argo(argoConf: ArgoConfig, wrapped: Boolean = false, emulateBB: Boolean = 
     argoNoc.io.ocpPorts(i).M.ByteEn := masterReg(i).ByteEn
     argoNoc.io.ocpPorts(i).M.Addr := masterReg(i).Addr
     argoNoc.io.ocpPorts(i).M.Cmd := Mux(masterReg(i).Addr(27) === Bits("b0"), masterReg(i).Cmd, OcpCmd.IDLE) //0xE000_0000
-    argoNoc.io.ocpPorts(i).M.RespAccept := (argoNoc.io.ocpPorts(i).S.Resp === OcpResp.DVA).toUInt
+    argoNoc.io.ocpPorts(i).M.RespAccept := (argoNoc.io.ocpPorts(i).S.Resp =/= OcpResp.NULL).toUInt //Accept all responses
     slaveReg(i).CmdAccept := argoNoc.io.ocpPorts(i).S.CmdAccept
 
-    //SPM driving
+    //SPM gets immediate access to io
     comSPMWrapper(i).ocp.M.Data := io(i).M.Data
     comSPMWrapper(i).ocp.M.ByteEn := io(i).M.ByteEn
     comSPMWrapper(i).ocp.M.Addr := io(i).M.Addr
@@ -124,6 +126,7 @@ class Argo(argoConf: ArgoConfig, wrapped: Boolean = false, emulateBB: Boolean = 
       selReg(i) := false.B
     }
 
+    //Mux responses
     dataReg(i) := Mux(selReg(i), comSPMWrapper(i).ocp.S.Data, argoNoc.io.ocpPorts(i).S.Data)
     respReg(i) := Mux(selReg(i), comSPMWrapper(i).ocp.S.Resp, argoNoc.io.ocpPorts(i).S.Resp)
 
@@ -135,6 +138,10 @@ class Argo(argoConf: ArgoConfig, wrapped: Boolean = false, emulateBB: Boolean = 
     // masterReg.S.Reset_n := Bits("b0")
 	}
 }
+
+/*
+ * Old Argo with comConf
+ */
 
 // class Argo(argoConf: ArgoConfig, wrapped: Boolean = false) extends Module {
 // 	val io = new Bundle() {

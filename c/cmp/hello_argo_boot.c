@@ -11,7 +11,6 @@
 */
 
 #include <machine/spm.h>
-#include <machine/exceptions.h>
 #include "include/bootable.h"
 #include "include/patio.h"
 #include "libnoc/noc.h"
@@ -34,74 +33,10 @@ const int NOC_MASTER = 0;
 
 #define LED ( *( ( volatile _IODEV unsigned * ) 0xF0090000 ) )
 
-void master() {
-	volatile _SPM char *spm_base = (volatile _SPM char *) NOC_SPM_BASE;
-	volatile _SPM char *spm_slave = spm_base+get_cpucnt()*16;
-
-	// message to be send
-    const char *msg_snd = "ABCD";
-
-	// put message to spm
-	int i;
-	for (i = 0; i < 4; i++) {
-		*(spm_base+i) = *(msg_snd+i);
-        LED |= i;
-	}
-
-    int statusLeds = LED;
-
-	// WRITE("M:msg=\n",8);
-	// WRITE(msg_snd,4);
-	// WRITE("\n",1);
-
-	// send message
-    LED = 0x0;
-	noc_write(1, spm_slave, spm_base, 4, 0); //4 bytes
-    LED = statusLeds;
-
-	// WRITE("M->Core#1",9);
-	// WRITE("\n",1);
-
-	// send message
-    LED = 0x0;
-	noc_write(2, spm_slave, spm_base, 4, 0); //4 bytes
-    LED = statusLeds;
-
-	// WRITE("M->Core#2",9);
-	// WRITE("\n",1);
-
-	// send message
-    LED = 0x0;
-	noc_write(3, spm_slave, spm_base, 4, 0); //4 bytes
-    LED = statusLeds;
-
-	// WRITE("M->Core#3",9);
-	// WRITE("\n",1);
-
-	return;
-}
-
-void slave() {
-	volatile _SPM char *spm_base = (volatile _SPM char *) NOC_SPM_BASE;
-	volatile _SPM char *spm_slave = spm_base+get_cpucnt()*16;
-
-	// initialize polling address to 0
-	*(spm_slave + 3) = 0;
-
-	// wait and poll until message arrives
-	while(*(spm_slave+3) == 0) {;}
-
-	return;
-}
-
-
-/*/////////////////////////////////////////////////////////////////////////
-// Main application
-/////////////////////////////////////////////////////////////////////////*/
-
 int main(void) __attribute__((noreturn));
-
 int main() {
+	volatile _SPM char *spm_base = (volatile _SPM char *) NOC_SPM_BASE;
+	volatile _SPM char *spm_slave = spm_base+get_cpucnt()*16;
 
 	if(get_cpuid()==NOC_MASTER) LED = 256;
 
@@ -116,49 +51,26 @@ int main() {
 		}
 	}
 	
-	if(get_cpuid()==NOC_MASTER) WRITE("spm_init = O\n", 14);
-
-	unsigned int tdmval = *NOC_TDM_BASE;
-	unsigned int schval = *NOC_SCHED_BASE;
-	unsigned int dmaval = *NOC_DMA_BASE;
+	if(i == get_cpucnt()*4 && get_cpuid()==NOC_MASTER)	LED = 128;
 
 	if(get_cpuid()==NOC_MASTER){
-		if(tdmval == 0x4000){
-			WRITE("tdmval = O\n", 12);
-		} else {
-			WRITE("tdmval = X\n", 12);
+		// message to be send
+		const char *msg_snd = "0123";
+		// put message to spm
+		int i;
+		for (i = 0; i < 4; i++) {
+			*(spm_base+i) = *(msg_snd+i);
 		}
-
-		if(schval == 0x2000){
-			WRITE("schval = O\n", 12);
-		} else {
-			WRITE("schval = X\n", 12);
-		}
-
-		if(dmaval == 0x0000){
-			WRITE("dmaval = O\n", 12);
-		} else {
-			WRITE("dmaval = X\n", 12);
-		}
+		noc_write(1, spm_slave, spm_base, 4, 0); //4 bytes
+		LED = 64;
+		// wait and poll
+		while(*(spm_slave+3) == 0) {;}
+		LED = 1;
+	} else {
+		// wait and poll until message arrives
+		while(*(spm_slave+3) == 0) {;}
+		noc_write(0, spm_slave, spm_slave, 4, 0);
 	}
-    
-	if(get_cpuid()==NOC_MASTER) LED = 128;
-
-	// noc_configure();
-	// noc_enable();
-
-    if(get_cpuid()==NOC_MASTER) LED = 64;
-
-	// if (get_cpuid() == NOC_MASTER) {
-    // 	master();
-	// } else {
-	// 	slave();
-	// }
-
-	if(get_cpuid()==NOC_MASTER) 
-		LED = 511;
-
-	// return 0;
 }
 
 
