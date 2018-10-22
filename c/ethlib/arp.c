@@ -264,7 +264,7 @@ int arp_resolve_ip(unsigned int rx_addr, unsigned int tx_addr, unsigned char tar
 		frame_length = arp_build_request(tx_addr, target_ip);
 		eth_mac_send(tx_addr, frame_length);
 		if (eth_mac_receive(rx_addr, 100000) == 1){
-			if (mac_packet_type(rx_addr) == 3){
+			if (mac_packet_type(rx_addr) == ARP){
 				if (arp_process_received(rx_addr, tx_addr) == 2){
 					//Something was inserted in the ARP table
 					unsigned char tmp_mac[6];

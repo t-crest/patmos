@@ -105,7 +105,7 @@ int icmp_process_received(unsigned int rx_addr, unsigned int tx_addr){
 		//Check if we are the destnation (IP)
 		unsigned char destination_ip[4];
 		ipv4_get_destination_ip(rx_addr, destination_ip);
-		if (ipv4_compare_ip(destination_ip, my_ip) == 1){
+		if (ipv4_compare_ip(destination_ip, my_ip) == ICMP){
 			unsigned int frame_length = icmp_build_ping_reply(rx_addr, tx_addr);
 			eth_mac_send(tx_addr, frame_length);
 			return 1;
