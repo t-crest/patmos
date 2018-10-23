@@ -269,16 +269,16 @@ int tcp_close(unsigned int tx_addr, unsigned int rx_addr, tcp_connection* conn){
 	printf("conn.status=[%s]->", tcpstatenames[conn->status]);
 	switch(conn->status){
 		case SYN_RCVD:
-			conn->status == FIN_WAIT_1;
+			conn->status = FIN_WAIT_1;
 			break;
 		case ESTABLISHED:
-			conn->status == FIN_WAIT_1;
+			conn->status = FIN_WAIT_1;
 			break;
 		case CLOSE_WAIT:
-			conn->status == LAST_ACK;
+			conn->status = LAST_ACK;
 			break;
 		default:
-			conn->status == CLOSED;
+			conn->status = CLOSED;
 			break;
 	}
 	printf("[%s]\n", tcpstatenames[conn->status]);
