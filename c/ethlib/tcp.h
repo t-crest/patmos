@@ -51,9 +51,9 @@
 #define TCP_SYN_RETRIES 5   //times
 #define TCP_SYNACK_RETRIES 5    //times
 
-enum tcpstate{CLOSED, LISTEN, SYN_SENT, SYN_RCVD, ESTABLISHED, PUSH, FIN_WAIT_1, FIN_WAIT_2, CLOSE_WAIT, CLOSING, LAST_ACK};
+enum tcpstate{CLOSED, LISTEN, SYN_SENT, SYN_RCVD, ESTABLISHED, PUSH, FIN_WAIT_1, FIN_WAIT_2, TIME_WAIT, CLOSE_WAIT, CLOSING, LAST_ACK};
 enum tcpstatus{UNEXPECTED=-1, UNHANDLED=0, HANDLED=1};
-enum tcpflags{FIN=0x1, SYN=0x2, PSH=0x8, ACK=0x10};
+enum tcpflags{FIN=0x1, SYN=0x2, RST=0x4, PSH=0x8, ACK=0x10};
 
 typedef struct {
     unsigned char dstMAC[6];
@@ -90,9 +90,9 @@ int tcp_verify_checksum(unsigned int pkt_addr);
  */
 void tcp_init_connection(tcp_connection *conn, unsigned char srcMAC[6], unsigned char dstMAC[6], unsigned char srcIP[4], unsigned char dstIP[4], unsigned short srcport, unsigned short dstport);
 int tcp_connect(unsigned int tx_addr, unsigned int rx_addr, tcp_connection* conn);
+int tcp_listen(unsigned int tx_addr, unsigned int rx_addr, tcp_connection* conn);
+int tcp_close(unsigned int tx_addr, unsigned int rx_addr, tcp_connection* conn);
 int tcp_push(unsigned int tx_addr, unsigned int rx_addr, tcp_connection* conn, unsigned char* data, unsigned int data_length);
 int tcp_handle(unsigned int tx_addr, unsigned int rx_addr, tcp_connection* conn, unsigned char* data, unsigned int data_length);
-int tcp_close(unsigned int tx_addr, unsigned int rx_addr, tcp_connection* conn);
-int tcp_read(unsigned int tx_addr, unsigned int rx_addr, tcp_connection* conn, unsigned char* data, unsigned int data_length);
 
 #endif

@@ -179,15 +179,6 @@ int tcp_send(unsigned int tx_addr, unsigned int rx_addr, tcp_connection conn, un
 	mem_iowr_byte(tx_addr + 51, (checksum & 0xFF));
 	//Ethernet send
 	eth_mac_send(tx_addr, frame_length);
-	//Info
-	puts("\n");
-	printf("tx.ip.frame_length = %d\n", frame_length);
-	printf("tx.tcp.dstport = %d\n", conn.dstport);
-	printf("tx.tcp.flags = %x\n", flags);
-	printf("tx.tcp.seq = %x\n", conn.seqNum);
-	printf("tx.tcp.tcp_length = %d\n", tcp_length);
-	printf("tx.tcp.data_length = %d\n", data_length);
-	printf("tx.tcp.checksum = %x\n", checksum);
 	return 1;
 }
 
@@ -259,36 +250,71 @@ int tcp_verify_checksum(unsigned int pkt_addr){
 
 int tcp_connect(unsigned int tx_addr, unsigned int rx_addr, tcp_connection* conn){
 	tcp_send(tx_addr, rx_addr, *conn, SYN, (unsigned char[]){'0'}, 0);
+	printf("conn.status=[%s]->", tcpstatenames[conn->status]);
 	conn->status = SYN_SENT;
+	printf("[%s]\n", tcpstatenames[conn->status]);
 	return 1;
 }
 
+int tcp_listen(unsigned int tx_addr, unsigned int rx_addr, tcp_connection* conn){
+	tcp_send(tx_addr, rx_addr, *conn, SYN, (unsigned char[]){'0'}, 0);
+	printf("conn.status=[%s]->", tcpstatenames[conn->status]);
+	conn->status = LISTEN;
+	printf("[%s]\n", tcpstatenames[conn->status]);
+	return 1;
+}
+
+int tcp_close(unsigned int tx_addr, unsigned int rx_addr, tcp_connection* conn){
+	tcp_send(tx_addr, rx_addr, *conn, FIN, (unsigned char[]){'0'}, 0);
+	printf("conn.status=[%s]->", tcpstatenames[conn->status]);
+	switch(conn->status){
+		case SYN_RCVD:
+			conn->status == FIN_WAIT_1;
+			break;
+		case ESTABLISHED:
+			conn->status == FIN_WAIT_1;
+			break;
+		case CLOSE_WAIT:
+			conn->status == LAST_ACK;
+			break;
+		default:
+			conn->status == CLOSED;
+			break;
+	}
+	printf("[%s]\n", tcpstatenames[conn->status]);
+	return 1;
+}
+
+__attribute__((noinline))
 int tcp_push(unsigned int tx_addr, unsigned int rx_addr, tcp_connection* conn, unsigned char* data, unsigned int data_length){
 	tcp_send(tx_addr, rx_addr, *conn, (PSH|ACK), data, data_length);
+	printf("conn.status=[%s]->", tcpstatenames[conn->status]);
 	conn->status = PUSH;
+	printf("[%s]\n", tcpstatenames[conn->status]);
 	return 1;
 }
 
+__attribute__((noinline))
 int tcp_handle(unsigned int tx_addr, unsigned int rx_addr, tcp_connection* conn, unsigned char* data, unsigned int data_length){
 	unsigned char resolved = 1;
 	unsigned char flags = tcp_get_flags(rx_addr);
 	unsigned seqNum = tcp_get_seqnum(rx_addr);
-	unsigned short rx_src_port = tcp_get_source_port(rx_addr);
+	unsigned short rx_dst_port = tcp_get_destination_port(rx_addr);
 	unsigned char tcp_hdr_length = tcp_get_header_length(rx_addr);
-	printf("rx.tcp.tcp_length = %d\n", tcp_hdr_length);
-	printf("rx.tcp.srcport = %d\n", rx_src_port);
-	printf("rx.tcp.flags = %x\n", flags);
-	printf("rx.tcp.seq = %x\n", seqNum);
-	printf("%s->", tcpstatenames[conn->status]);
-	if(rx_src_port == conn->dstport){
+	printf("conn.status=[%s]->", tcpstatenames[conn->status]);
+	if(rx_dst_port == conn->srcport){
 		switch(conn->status){
 			case CLOSED:
+				tcp_send(tx_addr, rx_addr, *conn, (RST|ACK), (unsigned char[]){'0'}, 0);
+				resolved = 1;
 				break;
 			case LISTEN:
 				if((flags & SYN)==SYN){
 					tcp_send(tx_addr, rx_addr, *conn, (SYN|ACK), (unsigned char[]){'0'}, 0);
 					conn->status = SYN_RCVD;
 					resolved = 0;
+				} else {
+					resolved = 1;
 				}
 				break;
 			case SYN_SENT:
@@ -298,12 +324,20 @@ int tcp_handle(unsigned int tx_addr, unsigned int rx_addr, tcp_connection* conn,
 					tcp_send(tx_addr, rx_addr, *conn, ACK, (unsigned char[]){'0'}, 0);
 					conn->status = ESTABLISHED;
 					resolved = 1;
+				} else if (flags==(SYN)){
+					tcp_send(tx_addr, rx_addr, *conn, (SYN|ACK), (unsigned char[]){'0'}, 0);
+					conn->status = SYN_RCVD;
+					resolved = 0;
+				} else {
+					resolved = 0;
 				}
 				break;
 			case SYN_RCVD:
 				if((flags & ACK)==ACK){
 					conn->status = ESTABLISHED;
 					resolved = 1;
+				} else {
+					resolved = 0;
 				}
 				break;
 			case ESTABLISHED:
@@ -314,7 +348,7 @@ int tcp_handle(unsigned int tx_addr, unsigned int rx_addr, tcp_connection* conn,
 				if((flags & FIN)==FIN){
 					conn->status = CLOSE_WAIT;
 					resolved = 0;
-				}
+				}					
 				tcp_send(tx_addr, rx_addr, *conn, ACK, (unsigned char[]){'0'}, 0);
 				break;
 			case PUSH:
@@ -322,21 +356,50 @@ int tcp_handle(unsigned int tx_addr, unsigned int rx_addr, tcp_connection* conn,
 					conn->status = ESTABLISHED;
 					resolved = 1;
 				} else {
-					tcp_send(tx_addr, rx_addr, *conn, (PSH|ACK), data, data_length);
 					resolved = 0;
 				}
+				break;
 			case FIN_WAIT_1:
+				if((flags & FIN)==FIN){
+					tcp_send(tx_addr, rx_addr, *conn, ACK, (unsigned char[]){'0'}, 0);
+					conn->status = CLOSING;
+					resolved = 0;
+				} else if((flags & FIN)==FIN && (flags & ACK)==ACK){
+					tcp_send(tx_addr, rx_addr, *conn, ACK, (unsigned char[]){'0'}, 0);
+					conn->status = TIME_WAIT;
+					resolved = 0;
+				} else if((flags & ACK)==ACK){
+					tcp_send(tx_addr, rx_addr, *conn, ACK, (unsigned char[]){'0'}, 0);
+					conn->status = FIN_WAIT_2;
+					resolved = 0;
+				} else {
+					resolved = 0;
+				}
 				break;
 			case FIN_WAIT_2:
+				if((flags & FIN)==FIN){
+					tcp_send(tx_addr, rx_addr, *conn, ACK, (unsigned char[]){'0'}, 0);
+					conn->status = CLOSING;
+					resolved = 0;
+				} else {
+					resolved = 0;
+				}
 				break;
 			case CLOSE_WAIT:
 				tcp_send(tx_addr, rx_addr, *conn, FIN, (unsigned char[]){'0'}, 0);
 				conn->status = LAST_ACK;
+				resolved = 0;
 				break;
 			case CLOSING:
+				resolved = 0;
+				break;
+			case TIME_WAIT:
+				conn->status = CLOSED;
+				resolved = 1;
 				break;
 			case LAST_ACK:
-				if((flags & ACK)==ACK){
+				if((flags & FIN)==FIN && (flags & ACK)==ACK){
+					tcp_send(tx_addr, rx_addr, *conn, ACK, (unsigned char[]){'0'}, 0);
 					conn->status = CLOSED;
 					resolved = 1;
 				} else {
@@ -346,7 +409,7 @@ int tcp_handle(unsigned int tx_addr, unsigned int rx_addr, tcp_connection* conn,
 			default:
 				break;
 		}
-		printf("%s\n", tcpstatenames[conn->status]);
+		printf("[%s]\n", tcpstatenames[conn->status]);
 	}
 	return resolved;
 }
