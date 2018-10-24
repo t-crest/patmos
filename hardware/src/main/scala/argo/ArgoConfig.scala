@@ -9,7 +9,6 @@ import util.Utility
 
 import ocp._
 
-
 abstract class ArgoConfig{
 	// NoC Dimensions
 	var N: Int

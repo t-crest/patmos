@@ -31,29 +31,25 @@ const int NOC_MASTER = 0;
 #define MP_CHAN_2_NUM_BUF 1
 #define MP_CHAN_2_MSG_SIZE MP_CHAN_SHORTS_AMOUNT * 2 // 2 shorts = 4 bytes
 
-#define LED ( *( ( volatile _IODEV unsigned * ) 0xF0090000 ) )
-
 int main(void) __attribute__((noreturn));
 int main() {
 	volatile _SPM char *spm_base = (volatile _SPM char *) NOC_SPM_BASE;
 	volatile _SPM char *spm_slave = spm_base+get_cpucnt()*16;
-
-	if(get_cpuid()==NOC_MASTER) LED = 256;
-
 	int i;
+
+	if(get_cpuid()==NOC_MASTER)	LEDS = 255;
+	noc_configure();
+	if(get_cpuid()==NOC_MASTER)	LEDS = 127;
+	noc_enable();
+	if(get_cpuid()==NOC_MASTER)	LEDS = 63;
+	
 	for(i = 0; i < get_cpucnt()*4; i++) {
 		*(NOC_SPM_BASE+i) = 0;
 		*(NOC_SPM_BASE+get_cpucnt()*4+i) = 0;
-		if(get_cpuid()==NOC_MASTER){
-			if(*(NOC_SPM_BASE+i) != 0 || *(NOC_SPM_BASE+get_cpucnt()*4+i) != 0){
-				WRITE("spm_init = X\n", 14);
-			}
-		}
 	}
-	
-	if(i == get_cpucnt()*4 && get_cpuid()==NOC_MASTER)	LED = 128;
 
 	if(get_cpuid()==NOC_MASTER){
+		LEDS = 31;
 		// message to be send
 		const char *msg_snd = "0123";
 		// put message to spm
@@ -61,16 +57,22 @@ int main() {
 		for (i = 0; i < 4; i++) {
 			*(spm_base+i) = *(msg_snd+i);
 		}
+		LEDS = 15;
+		WRITE("Sending: 0123\n", 14);
 		noc_write(1, spm_slave, spm_base, 4, 0); //4 bytes
-		LED = 64;
+		LEDS = 7;
 		// wait and poll
+		WRITE("Receiving...\n", 13);
 		while(*(spm_slave+3) == 0) {;}
-		LED = 1;
+		LEDS = 3;
+		WRITE(spm_slave, 14);
 	} else {
 		// wait and poll until message arrives
 		while(*(spm_slave+3) == 0) {;}
 		noc_write(0, spm_slave, spm_slave, 4, 0);
 	}
+	
+	if(get_cpuid()==NOC_MASTER)	LEDS = 1;
 }
 
 

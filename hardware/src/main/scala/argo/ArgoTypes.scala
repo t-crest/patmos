@@ -67,7 +67,6 @@ class SPMSlavePort(headerFieldWdith: Int, headerCtrlWidth: Int) extends Bundle {
   val S = new MemIFSlave().asOutput()
 }
 
-//Channels for bundled-data communication
 class ChannelForward(argoConf : ArgoConfig) extends Bundle {
   val req = Bool()
   val data = Bits(width = argoConf.LINK_WIDTH)

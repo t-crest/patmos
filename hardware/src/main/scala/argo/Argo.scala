@@ -139,44 +139,6 @@ class Argo(argoConf: ArgoConfig, wrapped: Boolean = false, emulateBB: Boolean = 
 	}
 }
 
-/*
- * Old Argo with comConf
- */
-
-// class Argo(argoConf: ArgoConfig, wrapped: Boolean = false) extends Module {
-// 	val io = new Bundle() {
-// 		val comConf = Vec.fill(argoConf.CORES){new OcpNISlavePort(ADDR_WIDTH, DATA_WIDTH)}
-// 		val comSpm = Vec.fill(argoConf.CORES){new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)}
-// 		val superMode = Bits(INPUT, argoConf.CORES)
-// 	}
-// 	println("Argo connecting "+ argoConf.CORES +" Patmos islands with configuration:")
-//   println("N=" + argoConf.N)
-//   println("M=" + argoConf.M)
-//   println("SPM_SIZE (Bytes)=" + argoConf.SPM_BYTES)
-
-//   // Generate Argo and COM-SPMs
-//   val argoNoc = Module(new ArgoNoC(argoConf, wrapped))
-//   val comSPMWrapper = Vec.fill(argoConf.CORES) {
-//     Module(new ComSpmWrapper(argoConf)).io
-//   }
-
-// 	// Wire up
-//   argoNoc.io.supervisor := io.superMode
-// 	for(i <- 0 until argoConf.CORES){
-//     // NoC - Patmos
-//     argoNoc.io.ocpPorts(i).M := io.comConf(i).M
-//     io.comConf(i).S := argoNoc.io.ocpPorts(i).S
-//     io.comConf(i).S.Flag := argoNoc.io.irq(2+i*2-1, i*2)
-//     io.comConf(i).S.Reset_n := Bits("b0")
-// 		// SPM - Patmos
-// 		comSPMWrapper(i).ocp.M := io.comSpm(i).M
-//     io.comSpm(i).S := comSPMWrapper(i).ocp.S
-// 		// SPM - NoC
-// 		comSPMWrapper(i).spm.M := argoNoc.io.spmPorts(i).M
-//     argoNoc.io.spmPorts(i).S := comSPMWrapper(i).spm.S
-// 	}
-// }
-
 object Argo {
 	def main(args: Array[String]): Unit = {
 		chiselMain(args, () => Module(new Argo(ArgoConfig.getConfig)))

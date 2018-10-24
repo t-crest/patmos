@@ -44,6 +44,11 @@ import Chisel._
 import ocp._
 import patmos.Constants._
 
+/**
+  * Dummy for ~/t-crest/argo/src/mem/com_spm_wrapper.vhd
+  * It emulates a single-port SPM for testing Patmos access
+  * @param argoConf
+  */
 class ComSpmDummy(argoConf: ArgoConfig) extends Module {
   val io = new Bundle(){
     val ocp = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)

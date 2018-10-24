@@ -7,7 +7,7 @@ import util._
 import ocp._
 import patmos._
 
-// Wrapper for generated noc_wrapper_2x2.vhd
+// Wrapper for an aegean generated noc_wrapper_2x2.vhd
 class NoCWrapper(argoConf: ArgoConfig) extends BlackBox {
   val io = new Bundle(){
     val irq = Bits(OUTPUT, width = 8)

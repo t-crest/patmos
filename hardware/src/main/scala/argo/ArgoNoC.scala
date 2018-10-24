@@ -37,7 +37,7 @@
  *
  */
  
- package argo
+package argo
 
 import Chisel._
 import ocp.OcpIOSlavePort
