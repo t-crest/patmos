@@ -47,9 +47,6 @@ set_global_assignment -name LAST_QUARTUS_VERSION "16.1.0 Lite Edition"
 set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
 set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
 set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 1
-set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
-set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
-set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
 set_global_assignment -name USE_CONFIGURATION_DEVICE ON
 set_global_assignment -name RESERVE_ALL_UNUSED_PINS "AS INPUT TRI-STATED"
 set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "3.3-V LVCMOS"
@@ -126,6 +123,44 @@ set_global_assignment -name VHDL_FILE "../../vhdl/patmos_de2-115.vhdl"
 set_global_assignment -name VHDL_FILE ../../vhdl/altera/cyc2_pll.vhd
 set_global_assignment -name VERILOG_FILE ../../build/Patmos.v
 
+set_global_assignment -name VHDL_FILE "../../../../aegean/build/default-altde2-115/ocp_config.vhd"
+set_global_assignment -name VHDL_FILE "../../../../aegean/../argo/src/ocp/ocp.vhd"
+set_global_assignment -name VHDL_FILE "../../../../aegean/../argo/src/util/math_util.vhd"
+set_global_assignment -name VHDL_FILE "../../../../argo/src/config_types.vhd"
+set_global_assignment -name VHDL_FILE "../../../../aegean/build/default-altde2-115/config.vhd"
+set_global_assignment -name VHDL_FILE "../../../../aegean/../argo/src/argo_types.vhd"
+set_global_assignment -name VHDL_FILE "../../../../aegean/../argo/src/noc_interface.vhd"
+set_global_assignment -name VHDL_FILE "../../../../aegean/../argo/src/mem/tdp_ram.vhd"
+set_global_assignment -name VHDL_FILE "../../../../aegean/../argo/src/mem/tdp_bram.vhd"
+set_global_assignment -name VHDL_FILE "../../../../aegean/../argo/src/ni/rx_unit.vhd"
+set_global_assignment -name VHDL_FILE "../../../../aegean/../argo/src/ni/irq_fifo.vhd"
+set_global_assignment -name VHDL_FILE "../../../../aegean/../argo/src/ni/config_bus.vhd"
+set_global_assignment -name VHDL_FILE "../../../../aegean/../argo/src/ni/spm_bus.vhd"
+set_global_assignment -name VHDL_FILE "../../../../aegean/../argo/src/ni/packet_manager.vhd"
+set_global_assignment -name VHDL_FILE "../../../../aegean/../argo/src/ni/schedule_table.vhd"
+set_global_assignment -name VHDL_FILE "../../../../aegean/../argo/src/ni/TDM_controller.vhd"
+set_global_assignment -name VHDL_FILE "../../../../aegean/../argo/src/ni/MC_controller.vhd"
+set_global_assignment -name VHDL_FILE "../../../../aegean/../argo/src/mem/com_spm.vhd"
+set_global_assignment -name VHDL_FILE "../../../../aegean/../argo/src/mem/com_spm_wrapper.vhd"
+set_global_assignment -name VHDL_FILE "../../../../aegean/../argo/src/ni/network_interface.vhd"
+set_global_assignment -name VHDL_FILE "../../../../aegean/../argo/src/routers/synchronous/xbar.vhd"
+set_global_assignment -name VHDL_FILE "../../../../aegean/../argo/src/routers/synchronous/hpu.vhd"
+set_global_assignment -name VHDL_FILE "../../../../aegean/../argo/src/routers/synchronous/router.vhd"
+set_global_assignment -name VHDL_FILE "../../../../aegean/../argo/src/noc/synchronous/noc_node.vhd"
+set_global_assignment -name VHDL_FILE "../../../../aegean/../argo/src/noc/synchronous/noc_node_wrapper.vhd"
+set_global_assignment -name VHDL_FILE "../../../../aegean/build/default-altde2-115/noc.vhd"
+set_global_assignment -name VHDL_FILE "../../../../aegean/build/default-altde2-115/noc_wrapper_2x2.vhd"
+
+set_global_assignment -name FITTER_EFFORT "STANDARD FIT"
+set_global_assignment -name OPTIMIZE_HOLD_TIMING "ALL PATHS"
+set_global_assignment -name OPTIMIZE_MULTI_CORNER_TIMING ON
+set_global_assignment -name PHYSICAL_SYNTHESIS_COMBO_LOGIC ON
+set_global_assignment -name SEED 6
+set_global_assignment -name VERILOG_MACRO "SYNTHESIS=<None>"
+
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
+set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[0]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[1]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[2]
@@ -183,7 +218,6 @@ set_instance_assignment -name IO_STANDARD "2.5 V" -to iKeysPins_key[2]
 set_instance_assignment -name IO_STANDARD "2.5 V" -to iKeysPins_key[1]
 set_instance_assignment -name IO_STANDARD "2.5 V" -to iKeysPins_key[0]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to clk
-
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:comp|SRamCtrl:ramCtrl|addrReg"
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:comp|SRamCtrl:ramCtrl|doutReg"
 set_instance_assignment -name FAST_OUTPUT_ENABLE_REGISTER ON -to "Patmos:comp|SRamCtrl:ramCtrl|doutEnaReg"
@@ -191,11 +225,5 @@ set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:comp|SRamCtrl:
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:comp|SRamCtrl:ramCtrl|nweReg"
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:comp|SRamCtrl:ramCtrl|nlbReg"
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:comp|SRamCtrl:ramCtrl|nubReg"
-set_global_assignment -name FITTER_EFFORT "STANDARD FIT"
-set_global_assignment -name OPTIMIZE_HOLD_TIMING "ALL PATHS"
-set_global_assignment -name OPTIMIZE_MULTI_CORNER_TIMING ON
-set_global_assignment -name PHYSICAL_SYNTHESIS_COMBO_LOGIC ON
-set_global_assignment -name SEED 6
-set_global_assignment -name VERILOG_MACRO "SYNTHESIS=<None>"
 
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

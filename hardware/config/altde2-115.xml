@@ -1,9 +1,15 @@
 <patmos default="default.xml">
   <description>default configuration for DE2-115 board</description>
 
-  <frequency Hz="80000000"/>
+  <frequency Hz="80000000"/>	
+	<pipeline dual="false" />
+	<cores count="4"/>
+	<CmpDevs>
+    <CmpDev name="Argo" />
+  </CmpDevs>
 
   <ExtMem size="2M" DevTypeRef="Sram16" />
+  <!-- <ExtMem size="500k" DevTypeRef="OCRam" /> -->
 
   <IOs>
 	<IO DevTypeRef="Uart" offset="8"/>
@@ -35,5 +41,10 @@
 		<param name="sramDataWidth" value="16" />
 	    </params>
 	</Dev>
+	<!-- <Dev DevType="OCRam" entity="OCRamCtrl" iface="OcpBurst">
+	  <params>
+	     <param name="addrWidth" value="19" />
+	  </params>
+	</Dev> -->
   </Devs>
 </patmos>
