@@ -248,8 +248,10 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       cmpdevios(j).M.Cmd := Mux(addr === Bits(j), cores(i).io.comSpm.M.Cmd, OcpCmd.IDLE)
     }
 
-    cmpdevios(0).asInstanceOf[OcpArgoSlavePort].superMode := Bits(0)
-    cmpdevios(0).asInstanceOf[OcpArgoSlavePort].superMode(i) := cores(i).io.superMode
+    if(cmpdevs(0) != null){
+      cmpdevios(0).asInstanceOf[OcpArgoSlavePort].superMode := Bits(0)
+      cmpdevios(0).asInstanceOf[OcpArgoSlavePort].superMode(i) := cores(i).io.superMode
+    }
   }
 
   // Only core 0 gets its devices connected to pins
