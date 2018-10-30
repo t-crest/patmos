@@ -97,6 +97,7 @@ object EthMac extends DeviceObject {
       val md_padoe_o    = Bits(OUTPUT, width = 1) // MII data output enable (to I/O cell)
 
       // PTP Debug Signals
+      val ptpPPS = Bits(OUTPUT, width=1)
       val ledPHY = Bits(OUTPUT, width=1)
       val ledSOF = Bits(OUTPUT, width=1)
       val ledEOF = Bits(OUTPUT, width=1)
@@ -202,6 +203,7 @@ class EthMac(extAddrWidth: Int = 32, dataWidth: Int = 32, withPTP: Boolean = fal
     ptp.io.ethMacTX.dv := eth.io.ethMacPins.mtxen_pad_o
     ptp.io.ethMacTX.err := eth.io.ethMacPins.mtxerr_pad_o
     io.ethMacIntrs := ptp.io.intrs
+    io.ethMacPins.ptpPPS := ptp.io.rtcPPS
     io.ethMacPins.ledPHY := ptp.io.ledPHY
     io.ethMacPins.ledSOF := ptp.io.ledSOF
     io.ethMacPins.ledEOF := ptp.io.ledEOF

@@ -12,6 +12,7 @@ class PTP1588Assist(addrWidth: Int = ADDR_WIDTH, dataWidth: Int = DATA_WIDTH, cl
     val ethMacRX = new MIIChannel().asInput()
     val ethMacTX = new MIIChannel().asInput()
     val intrs = Vec.fill(3){Bool(OUTPUT)}
+    val rtcPPS = Bool(OUTPUT)
     val rtcHexDisp = Vec.fill(8) {Bits(OUTPUT, 7)}
     val ledPHY = Bits(OUTPUT, width=1)
     val ledSOF = Bits(OUTPUT, width=1)
@@ -139,12 +140,10 @@ class PTP1588Assist(addrWidth: Int = ADDR_WIDTH, dataWidth: Int = DATA_WIDTH, cl
     }
   }
 
+  io.rtcPPS := rtc.io.pps
+
   // [OPTIONAL] Hex & Led Connectivity
   // Led connections
-  io.ledPHY := tsuRx.io.listening | tsuTx.io.listening
-  io.ledSOF := tsuRx.io.sofValid | tsuTx.io.sofValid
-  io.ledEOF := tsuRx.io.eofValid | tsuTx.io.eofValid
-  io.ledSFD := tsuRx.io.sfdValid | tsuTx.io.sfdValid
   val dispRegVec = RegInit(Vec.fill(8){Bits(0, width = 7)})
   dispRegVec(0) := sevenSegBCDDecode(rtc.io.ptpTimestamp(35, 32), segmentPolarity = 0)
   dispRegVec(1) := sevenSegBCDDecode(rtc.io.ptpTimestamp(39, 36), segmentPolarity = 0)
@@ -155,6 +154,10 @@ class PTP1588Assist(addrWidth: Int = ADDR_WIDTH, dataWidth: Int = DATA_WIDTH, cl
   dispRegVec(6) := sevenSegBCDDecode(rtc.io.ptpTimestamp(59, 56), segmentPolarity = 0)
   dispRegVec(7) := sevenSegBCDDecode(rtc.io.ptpTimestamp(63, 60), segmentPolarity = 0)
   io.rtcHexDisp := dispRegVec
+  io.ledPHY := tsuRx.io.listening | tsuTx.io.listening
+  io.ledSOF := tsuRx.io.sofValid | tsuTx.io.sofValid
+  io.ledEOF := tsuRx.io.eofValid | tsuTx.io.eofValid
+  io.ledSFD := tsuRx.io.sfdValid | tsuTx.io.sfdValid
 }
 
 object PTP1588Assist {
