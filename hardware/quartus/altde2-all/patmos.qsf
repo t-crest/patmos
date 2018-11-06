@@ -120,6 +120,7 @@ set_location_assignment PIN_R24 -to iKeysPins_key[3]
 set_location_assignment PIN_N21 -to iKeysPins_key[2]
 set_location_assignment PIN_M21 -to iKeysPins_key[1]
 set_location_assignment PIN_M23 -to iKeysPins_key[0]
+set_location_assignment PIN_AC15 -to oGpioPins_gpio_0[0]
 set_location_assignment PIN_C20 -to ENET0_MDC
 set_location_assignment PIN_B21 -to ENET0_MDIO
 set_location_assignment PIN_C19 -to ENET0_RST_N
