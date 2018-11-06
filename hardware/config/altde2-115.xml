@@ -2,11 +2,14 @@
   <description>default configuration for DE2-115 board</description>
 
   <frequency Hz="80000000"/>	
-	<pipeline dual="false" />
-	<cores count="4"/>
-	<CmpDevs>
-    <CmpDev name="Argo" />
+
+  <!-- Default is single core
+  <pipeline dual="false" />
+  <cores count="4"/>
+  <CmpDevs>
+  <CmpDev name="Argo" />
   </CmpDevs>
+  -->
 
   <ExtMem size="2M" DevTypeRef="Sram16" />
   <!-- <ExtMem size="500k" DevTypeRef="OCRam" /> -->
