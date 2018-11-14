@@ -86,14 +86,14 @@ void print_general_info(){
 	return;
 }
 
-void printSegmentInt(uint base_addr, int number, int displayCount) {
-	volatile _IODEV uint *disp_ptr = (volatile _IODEV uint *) base_addr;
-	uint pos = 0;
-	uint byte_mask = 0x0000000F;
-	uint range = (number > 0) ? displayCount : displayCount-1;	//reserve one digit for '-' symbol
-	uint value = abs(number);
+void printSegmentInt(unsigned base_addr, int number, int displayCount) {
+	volatile _IODEV unsigned *disp_ptr = (volatile _IODEV unsigned *) base_addr;
+	unsigned pos = 0;
+	unsigned byte_mask = 0x0000000F;
+	unsigned range = (number > 0) ? displayCount : displayCount-1;	//reserve one digit for '-' symbol
+	unsigned value = abs(number);
 	for(pos=0; pos < range; pos++) {
-		*disp_ptr = (uint)((value & byte_mask) >> (pos*4));
+		*disp_ptr = (unsigned)((value & byte_mask) >> (pos*4));
 		//printf("value %d at disp_addr %p with byte_mask %x\n", *disp_ptr, disp_ptr, byte_mask);
 		byte_mask = byte_mask << 4;
 		disp_ptr += 1;
@@ -104,7 +104,7 @@ void printSegmentInt(uint base_addr, int number, int displayCount) {
 }
 
 int checkForPacket(unsigned int expectedPacketType, unsigned int expectedUDPPort, const unsigned int timeout){
-	unsigned char packet_type;
+	enum ethtype packet_type;
 	unsigned short destination_port;
 	unsigned short source_port;
 	unsigned char source_ip[4];	
@@ -116,16 +116,16 @@ int checkForPacket(unsigned int expectedPacketType, unsigned int expectedUDPPort
 		ipv4_get_source_ip(rx_addr, source_ip);
 		//TODO: replace with dynamic function call provided by the user
 		switch (packet_type) {
-		case 1:
+		case ICMP:
 			ans = icmp_process_received(rx_addr, tx_addr);
 			return (ans==0) ? -1 : 1;
-		case 2:
+		case UDP:
 			if((destination_port==PTP_EVENT_PORT && source_port==PTP_EVENT_PORT) || (destination_port==PTP_GENERAL_PORT && source_port==PTP_GENERAL_PORT)){
 				return ptpv2_handle_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC, source_ip);
 			} else {
 				return -2;	
 			}
-		case 3:
+		case ARP:
 			ans = arp_process_received(rx_addr, tx_addr);
 			return (ans==0) ? -3 : 3;
 		default:

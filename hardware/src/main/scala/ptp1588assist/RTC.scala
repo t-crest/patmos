@@ -10,6 +10,7 @@ class RTC(clockFreq: Int, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTi
     val ocp = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
     val ptpTimestamp = UInt(OUTPUT, width = secondsWidth + nanoWidth)
     val periodIntr = Bool(OUTPUT)
+    val pps = Bool(OUTPUT)
   }
 
   // Constants
@@ -38,6 +39,8 @@ class RTC(clockFreq: Int, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTi
   val updateNsReg = Reg(init = false.B)
   val periodSelReg = Reg(init = UInt(secondsWidth + nanoWidth - 1, width = log2Up(secondsWidth + nanoWidth)))
 
+  val ppsReg = Reg(init = false.B)
+
   // Default response
   val respReg = Reg(init = OcpResp.NULL)
   respReg := OcpResp.NULL
@@ -62,11 +65,12 @@ class RTC(clockFreq: Int, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTi
     nsTickReg := timeReg(DATA_WIDTH - 1, 0)
   }.elsewhen(tickReg){
    when(nsTickReg >= (1000000000.U - (timeStepConst.S + correctionStepReg).asUInt())){
-     secTickReg := secTickReg + 1.U
-     nsTickReg := 0.U + (timeStepConst.S + correctionStepReg).asUInt()
+    secTickReg := secTickReg + 1.U
+    nsTickReg := 0.U + (timeStepConst.S + correctionStepReg).asUInt()
+    ppsReg := ~ppsReg
    }.otherwise{
-     nsTickReg := nsTickReg + (timeStepConst.S + correctionStepReg).asUInt()
-     nsOffsetReg := nsOffsetReg + correctionStepReg // Always correct towards zero offset
+    nsTickReg := nsTickReg + (timeStepConst.S + correctionStepReg).asUInt()
+    nsOffsetReg := nsOffsetReg + correctionStepReg // Always correct towards zero offset
    }
   }
 
@@ -148,5 +152,6 @@ class RTC(clockFreq: Int, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTi
 
   // Connections to PTP
   io.ptpTimestamp := timeReg
+  io.pps := ppsReg
 
 }

@@ -63,8 +63,10 @@ class InOut(nr: Int, cnt: Int) extends Module {
   val selISpm = !selIO & !selNI & io.memInOut.M.Addr(ISPM_ONE_BIT) === Bits(0x1)
   val selSpm = !selIO & !selNI & io.memInOut.M.Addr(ISPM_ONE_BIT) === Bits(0x0)
 
-  val selComConf = selNI & io.memInOut.M.Addr(ADDR_WIDTH-5) === Bits("b0")
-  val selComSpm  = selNI & io.memInOut.M.Addr(ADDR_WIDTH-5) === Bits("b1")
+  // val selComConf = selNI & io.memInOut.M.Addr(ADDR_WIDTH-5) === Bits("b0")
+  // val selComSpm  = selNI & io.memInOut.M.Addr(ADDR_WIDTH-5) === Bits("b1")
+  val selComConf = false.B
+  val selComSpm = selNI
 
   val MAX_IO_DEVICES : Int = 0x10
   val IO_DEVICE_OFFSET = 16 // Number of address bits for each IO device
