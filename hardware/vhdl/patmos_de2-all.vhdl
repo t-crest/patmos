@@ -19,6 +19,7 @@ use ieee.numeric_std.all;
 entity patmos_top is
     port(
         clk           : in    std_logic;
+        oPPS          : out   std_logic;
         oLedsPins_led : out   std_logic_vector(8 downto 0);
         oLedsPins_ledR : out  std_logic_vector(17 downto 0);
         iKeysPins_key : in    std_logic_vector(3 downto 0);
@@ -130,6 +131,7 @@ architecture rtl of patmos_top is
 --    		io_ethMacPins_rtcDisp_2               : out std_logic_vector(6 downto 0);
 --    		io_ethMacPins_rtcDisp_1               : out std_logic_vector(6 downto 0);
 --    		io_ethMacPins_rtcDisp_0               : out std_logic_vector(6 downto 0);
+            io_ethMacPins_ptpPPS                  : out   std_logic;
             io_ethMacPins_ledPHY                  : out   std_logic;
             io_ethMacPins_ledSOF                  : out   std_logic;
             io_ethMacPins_ledEOF                  : out   std_logic;
@@ -260,10 +262,12 @@ begin
         io_sevenSegmentDisplayPins_hexDisp_2 => osevenSegmentDisplayPins_hexDisp_2,
         io_sevenSegmentDisplayPins_hexDisp_1 => osevenSegmentDisplayPins_hexDisp_1,
         io_sevenSegmentDisplayPins_hexDisp_0 => osevenSegmentDisplayPins_hexDisp_0,
+        io_ethMacPins_ptpPPS => oPPS,
         io_ethMacPins_ledPHY => oLedsPins_ledR(17),
         io_ethMacPins_ledSOF => oLedsPins_ledR(16),
         io_ethMacPins_ledEOF => oLedsPins_ledR(15),
         io_ethMacPins_ledSFD => oLedsPins_ledR(7 downto 0),
+        
         io_sramCtrlPins_ramOut_addr => oSRAM_A, 
         io_sramCtrlPins_ramOut_doutEna => sram_out_dout_ena,
         io_sramCtrlPins_ramIn_din => SRAM_DQ,

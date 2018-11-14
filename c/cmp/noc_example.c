@@ -52,7 +52,7 @@ int main() {
   *(volatile int _SPM *) channel->write_buf = data;
   // send the buffer
   mp_send(channel, 0);
-  printf("Data sent\n");
+  printf("Data sent is: %d\n", data);
   printf("Returned data is: %d\n", field);
   int* res;
   corethread_join(core_id, (void *) &res );
