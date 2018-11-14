@@ -145,6 +145,8 @@ Errors : 0")
 test_asm(50 "Emitted: 216 bytes
 Errors : 0")
 
+test_asm(51 "Emitted: 72 bytes
+Errors : 0")
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # SIMULATOR TESTS
@@ -273,7 +275,6 @@ test_sim_lp(42 "   Blocks Not Spilled  :          6           6")
 
 test_sim(43 "r0 : 00000000   r1 : 00000001   r2 : 00000005")
 
-
 test_sim(44 "PRR: 00000011.*
 .*r1 : 00000008   r2 : 0000000c")
 
@@ -290,3 +291,4 @@ test_sim_scba(50 "Align .*spill.*:          2           2
    Align .*fill.*:          0           0
    Align .*free.*:          4           4")
 
+test_sim(51 "r1 : 00400000   r2 : 003ffffb   r3 : 00000005")
