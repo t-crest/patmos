@@ -51,10 +51,11 @@ class OcpArgoSlavePort(addrWidth : Int, dataWidth : Int, argoConf: ArgoConfig)
   val superMode = Bits(INPUT, argoConf.CORES)  
 }
 
-class Argo(argoConf: ArgoConfig, wrapped: Boolean = false, emulateBB: Boolean = false) extends Module {
-
+class Argo(nrCores: Int, wrapped: Boolean = false, emulateBB: Boolean = false) extends Module {
+  ArgoConfig.setCores(nrCores)
+  val argoConf = ArgoConfig.getConfig
   val io = Vec.fill(argoConf.CORES){new OcpArgoSlavePort(ADDR_WIDTH, DATA_WIDTH, argoConf)}
-	
+
   println("Connecting "+ argoConf.CORES +" Patmos islands with configuration:")
   println("N=" + argoConf.N)
   println("M=" + argoConf.M)
@@ -79,68 +80,72 @@ class Argo(argoConf: ArgoConfig, wrapped: Boolean = false, emulateBB: Boolean = 
     argoNoc.io.supervisor(i) := io(i).superMode(i)
   }
 
-  val selReg = Vec.fill(argoConf.CORES){Reg(init = Bool(false))}
-  val busyReg = Vec.fill(argoConf.CORES){Reg(init = Bool(false))}
   val masterReg = Vec.fill(argoConf.CORES){Reg(new OcpArgoSlavePort(ADDR_WIDTH, DATA_WIDTH, argoConf)).M}
-  val slaveReg = Vec.fill(argoConf.CORES){Reg(new OcpIOSlavePort(ADDR_WIDTH, DATA_WIDTH).S)}
+  val busyReg = Vec.fill(argoConf.CORES){Reg(init = Bool(false))}
+  val selSpmRplyReg = Vec.fill(argoConf.CORES){Reg(init = Bool(false))}
 
-  val mockupCmdAcceptReg = Vec.fill(argoConf.CORES){Reg(init = Bool(false))}
-
-  val dataReg = Vec.fill(argoConf.CORES){Reg(init = UInt(width = DATA_WIDTH))}
-  val respReg = Vec.fill(argoConf.CORES){Reg(init = OcpResp.NULL)}
+//  val dataSpmReg = Vec.fill(argoConf.CORES){Reg(init = UInt(width = DATA_WIDTH))}
+//  val respSpmReg = Vec.fill(argoConf.CORES){Reg(init = OcpResp.NULL)}
+//  val dataNoCReg = Vec.fill(argoConf.CORES){Reg(init = UInt(width = DATA_WIDTH))}
+//  val respNoCReg = Vec.fill(argoConf.CORES){Reg(init = OcpResp.NULL)}
 
 	// Wire up Patmos - NoC + SPM
 	for(i <- 0 until argoConf.CORES){
-    
+
     //While not busy register a new master for NoC
     when(!busyReg(i)) {
       masterReg(i) := io(i).M
     }
     //Is busy when command is RD/WR and address is for the NoC
     when((io(i).M.Cmd === OcpCmd.RD || io(i).M.Cmd === OcpCmd.WR) && io(i).M.Addr(27) === Bits("b0")) {
-      busyReg(i) := Bool(true)
+      busyReg(i) := true.B
     }
     //Not busy when the command has been accepted
-    when(busyReg(i) && slaveReg(i).CmdAccept === Bits(1)) {
-      busyReg(i) := Bool(false)
+    when(busyReg(i) && argoNoc.io.ocpPorts(i).S.CmdAccept === Bits(1)) {
+      busyReg(i) := false.B
     }
 
-    //Argo driving
+    //Argo NI communication
     argoNoc.io.ocpPorts(i).M.Data := masterReg(i).Data
     argoNoc.io.ocpPorts(i).M.ByteEn := masterReg(i).ByteEn
     argoNoc.io.ocpPorts(i).M.Addr := masterReg(i).Addr
-    argoNoc.io.ocpPorts(i).M.Cmd := Mux(masterReg(i).Addr(27) === Bits("b0"), masterReg(i).Cmd, OcpCmd.IDLE) //0xE000_0000
     argoNoc.io.ocpPorts(i).M.RespAccept := (argoNoc.io.ocpPorts(i).S.Resp =/= OcpResp.NULL).toUInt //Accept all responses
-    slaveReg(i).CmdAccept := argoNoc.io.ocpPorts(i).S.CmdAccept
+    argoNoc.io.ocpPorts(i).M.Cmd := Mux(masterReg(i).Addr(27) === Bits("b0"), masterReg(i).Cmd, OcpCmd.IDLE) //0xE000_0000
 
-    //SPM gets immediate access to io
+    //Argo SPM gets immediate access to io
     comSPMWrapper(i).ocp.M.Data := io(i).M.Data
     comSPMWrapper(i).ocp.M.ByteEn := io(i).M.ByteEn
     comSPMWrapper(i).ocp.M.Addr := io(i).M.Addr
     comSPMWrapper(i).ocp.M.Cmd := Mux(io(i).M.Addr(27) === Bits("b1"), io(i).M.Cmd, OcpCmd.IDLE) //0xE800_0000
 
-    //Selecting slave response
+    //Register slave resp/data
+    val respSpmReg = Reg(next = comSPMWrapper(i).ocp.S.Resp)
+    val respNoCReg = Reg(next = argoNoc.io.ocpPorts(i).S.Resp)
+    val dataSpmReg = RegEnable(updateData = comSPMWrapper(i).ocp.S.Data, enable = comSPMWrapper(i).ocp.S.Resp===OcpResp.DVA)
+    val dataNoCReg = Reg(next = argoNoc.io.ocpPorts(i).S.Data)
+
+    //Mux spm/noc to master
     when(io(i).M.Cmd =/= OcpCmd.IDLE && !busyReg(i)){
-      selReg(i) := io(i).M.Addr(27).toBool
-    } .elsewhen(respReg(i)===OcpResp.DVA){
-      selReg(i) := false.B
+      selSpmRplyReg(i) := io(i).M.Addr(27).toBool
+    } .elsewhen(respSpmReg === OcpResp.DVA || respNoCReg ===OcpResp.DVA){
+      selSpmRplyReg(i) := false.B
     }
 
-    //Mux responses
-    dataReg(i) := Mux(selReg(i), comSPMWrapper(i).ocp.S.Data, argoNoc.io.ocpPorts(i).S.Data)
-    respReg(i) := Mux(selReg(i), comSPMWrapper(i).ocp.S.Resp, argoNoc.io.ocpPorts(i).S.Resp)
+    io(i).S.Data := Mux(selSpmRplyReg(i), dataSpmReg, dataNoCReg)
+    io(i).S.Resp := Mux(selSpmRplyReg(i), respSpmReg, respNoCReg)
 
-    io(i).S.Data := dataReg(i)
-    io(i).S.Resp := respReg(i)
-    
     // NoC - Patmos
     // masterReg.S.Flag := argoNoc.io.irq(2+i*2-1, i*2)
     // masterReg.S.Reset_n := Bits("b0")
 	}
+
+  // Generate config.vhd
+  ArgoConfig.genConfigVHD(argoConf, "vhdl/argo/config.vhd")
 }
 
 object Argo {
 	def main(args: Array[String]): Unit = {
-		chiselMain(args, () => Module(new Argo(ArgoConfig.getConfig)))
+    chiselMain(Array[String]("--backend", "v", "--targetDir", "generated"),
+      () => Module(new Argo(4, false, false)))
 	}
 }

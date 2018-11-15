@@ -87,12 +87,12 @@ class OutputPort(argoConf: ArgoConfig) extends Bundle {
 }
 
 class NodeInterconnection(argoConf: ArgoConfig) extends Bundle {
-  val north_in = new RouterPort(argoConf)
-  val east_in = new RouterPort(argoConf)
-  val south_in = new RouterPort(argoConf)
-  val west_in = new RouterPort(argoConf)
-  val north_out = new OutputPort(argoConf)
-  val east_out = new OutputPort(argoConf)
-  val south_out = new OutputPort(argoConf)
-  val west_out = new OutputPort(argoConf)
+  val north_wire_in = Wire(init = UInt(0, width = argoConf.LINK_WIDTH))
+  val east_wire_in = Wire(init = UInt(0, width = argoConf.LINK_WIDTH))
+  val south_wire_in = Wire(init = UInt(0, width = argoConf.LINK_WIDTH))
+  val west_wire_in = Wire(init = UInt(0, width = argoConf.LINK_WIDTH))
+  val north_wire_out = Wire(init = UInt(0, width = argoConf.LINK_WIDTH))
+  val east_wire_out = Wire(init = UInt(0, width = argoConf.LINK_WIDTH))
+  val south_wire_out = Wire(init = UInt(0, width = argoConf.LINK_WIDTH))
+  val west_wire_out = Wire(init = UInt(0, width = argoConf.LINK_WIDTH))
 }

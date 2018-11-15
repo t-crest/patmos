@@ -1,12 +1,12 @@
 package argo
 
+import java.io.{File, PrintWriter}
+
 import Chisel._
 import Node._
-
 import patmos.Constants._
 import util.Config
 import util.Utility
-
 import ocp._
 
 abstract class ArgoConfig{
@@ -14,6 +14,7 @@ abstract class ArgoConfig{
 	var N: Int
 	var M: Int
 	def CORES : Int = N*M
+  var PRD_LENGTH: Int
 	// Topology
 	var topoType : String
   // General header packet constants and types
@@ -38,6 +39,7 @@ object ArgoConfig {
 		var N = 2
 		var M = 2
     var topoType = "bitorus"
+    var PRD_LENGTH = 8
 		var HEADER_ROUTE_WIDTH = 16
   	var HEADER_FIELD_WIDTH = 16
   	var HEADER_CTRL_WIDTH  = 2
@@ -56,7 +58,35 @@ object ArgoConfig {
   	conf.N = Math.sqrt(cores).toInt
   	conf.M = Math.sqrt(cores).toInt
   }
+
 	def setSPMSize(bytes: Int) : Unit = {
 		conf.SPM_IDX_SIZE = log2Down(bytes)
 	}
+
+	// Generators
+  def genConfigVHD(argoConf: ArgoConfig, filepath: String): Unit ={
+		new PrintWriter(new File(filepath),"UTF8"){
+      print("----------------------------\n" +
+        "--DO NOT MODIFY! This is an auto-generated file by " + this.getClass.getName + "\n"+
+        "----------------------------\n" +
+        "library ieee;\n" +
+        "use ieee.std_logic_1164.all;\n" +
+        "use work.config_types.all;\n\n" +
+        "package config is\n\n" +
+				"\tconstant SPM_ADDR_WIDTH : integer := " + argoConf.SPM_ADDR_WIDTH + ";\n" +
+				"\tconstant TARGET_ARCHITECTURE : ARCHITECTURES := FPGA;\n" +
+				"\tconstant TARGET_IMPLEMENTATION : IMPLEMENTATIONS := SYNC;\n" +
+				"\tconstant GATING_ENABLED : integer := 1;\n"+
+        "\tconstant N : integer := " + argoConf.N + "; -- Horizontal width\n" +
+        "\tconstant M : integer := " + argoConf.M + "; -- Vertical Height\n" +
+        "\tconstant NODES : integer := " + argoConf.CORES + ";\n" +
+        "\tconstant PRD_LENGTH : integer := "+ argoConf.PRD_LENGTH + "; -- The number of timeslots in one TDM period\n\n" +
+				"\tconstant PDELAY : time := 500 ps;\n" +
+				"\tconstant NA_HPERIOD : time := 5 ns;\n" +
+				"\tconstant P_HPERIOD : time := 5 ns;\n" +
+				"\tconstant SKEW : time := 0 ns;\n" +
+				"\tconstant delay : time := 0.3 ns;\n"+
+        "\nend package ; -- aegean_def")
+      close()}
+  }
 }

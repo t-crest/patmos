@@ -191,7 +191,6 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   val io = Config.getPatmosIO()
 
   val nrCores = Config.getConfig.coreCount
-  ArgoConfig.setCores(nrCores)
 
   println("Config core count: " + nrCores)
 
@@ -208,7 +207,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     println(dev)
     dev match {
       // Address 0 reserved for Argo
-      case "Argo" =>  cmpdevs(0) = Module(new argo.Argo(ArgoConfig.getConfig, wrapped=false, emulateBB=false)) 
+      case "Argo" =>  cmpdevs(0) = Module(new argo.Argo(nrCores, wrapped=true, emulateBB=false))
       case "Hardlock" => cmpdevs(1) = Module(new cmp.HardlockOCPWrapper(() => new cmp.Hardlock(nrCores, nrCores * 2)))
       case "SharedSPM" => cmpdevs(2) = Module(new cmp.SharedSPM(nrCores, (nrCores-1)*2*1024))
       case "OneWay" => cmpdevs(3) = Module(new cmp.OneWayOCPWrapper(nrCores))
@@ -248,7 +247,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       cmpdevios(j).M.Cmd := Mux(addr === Bits(j), cores(i).io.comSpm.M.Cmd, OcpCmd.IDLE)
     }
 
-    if(cmpdevs(0) != null){
+    if(cmpdevs(0) != null && cmpdevs(0).isInstanceOf[Argo]){
       cmpdevios(0).asInstanceOf[OcpArgoSlavePort].superMode := Bits(0)
       cmpdevios(0).asInstanceOf[OcpArgoSlavePort].superMode(i) := cores(i).io.superMode
     }

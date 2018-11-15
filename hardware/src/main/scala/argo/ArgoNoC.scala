@@ -59,7 +59,10 @@ class ArgoNoC(argoConf: ArgoConfig, wrapped: Boolean = false, emulateBB: Boolean
   //Interconnect
   if(!wrapped) {
     val masterRunWire = Bits(width=1)
-    val argoMesh = (0 until argoConf.M).map(j => (0 until argoConf.N).map(i => if (emulateBB) Module(new NoCNodeDummy(argoConf, i == 0 && j == 0)).io else Module(new NoCNodeWrapper(argoConf, i == 0 && j == 0)).io))
+    val argoNodes = (0 until argoConf.M).map(j =>
+      (0 until argoConf.N).map(i =>
+        if (emulateBB) Module(new NoCNodeDummy(argoConf, i == 0 && j == 0)).io else Module(new NoCNodeWrapper(argoConf, i == 0 && j == 0)).io))
+    val argoMesh = Vec.fill(argoConf.M){Vec.fill(argoConf.N){new NodeInterconnection(argoConf)}}
     /*
     * Nodes Port Interconnect
     *
@@ -73,42 +76,59 @@ class ArgoNoC(argoConf: ArgoConfig, wrapped: Boolean = false, emulateBB: Boolean
     *                     |
     *                     S
     */
-    println("o--Building Interconnect")
+    println("o--Instantiating Nodes")
+    masterRunWire := argoNodes(0)(0).masterRun
     for (i <- 0 until argoConf.M) {
       for (j <- 0 until argoConf.N) {
         //Linear index for mapping
         val index = (i * argoConf.N) + j
         println("|---Node #" + index + " @ (" + i + "," + j + ")")
         //Control Ports
-        argoMesh(i)(j).supervisor := io.supervisor(index)
-        argoMesh(i)(j).proc.M := io.ocpPorts(index).M
-        io.ocpPorts(index).S := argoMesh(i)(j).proc.S
-        io.spmPorts(index).M := argoMesh(i)(j).spm.M
-        argoMesh(i)(j).spm.S := io.spmPorts(index).S
-        masterRunWire := argoMesh(0)(0).masterRun
-        argoMesh(i)(j).run := masterRunWire
-        io.irq(2 + index * 2 - 1, index * 2) := argoMesh(i)(j).irq
-        //Interconnect
+        argoNodes(i)(j).supervisor := io.supervisor(index)
+        argoNodes(i)(j).proc.M := io.ocpPorts(index).M
+        io.ocpPorts(index).S := argoNodes(i)(j).proc.S
+        io.spmPorts(index).M := argoNodes(i)(j).spm.M
+        argoNodes(i)(j).spm.S := io.spmPorts(index).S
+        argoNodes(i)(j).run := masterRunWire
+        io.irq(2 + index * 2 - 1, index * 2) := argoNodes(i)(j).irq
+        argoNodes(i)(j).north_in.f.data := argoMesh(i)(j).north_wire_in
+        argoNodes(i)(j).south_in.f.data := argoMesh(i)(j).south_wire_in
+        argoNodes(i)(j).east_in.f.data := argoMesh(i)(j).east_wire_in
+        argoNodes(i)(j).west_in.f.data := argoMesh(i)(j).west_wire_in
+        argoMesh(i)(j).north_wire_out := argoNodes(i)(j).north_out.f.data
+        argoMesh(i)(j).south_wire_out := argoNodes(i)(j).south_out.f.data
+        argoMesh(i)(j).east_wire_out := argoNodes(i)(j).east_out.f.data
+        argoMesh(i)(j).west_wire_out := argoNodes(i)(j).west_out.f.data
+
+      }
+    }
+    println("o--Building Interconnect")
+    for (i <- 0 until argoConf.M) {
+      for (j <- 0 until argoConf.N) {
         if (i == 0) {
-          argoMesh(0)(j).south_in <> argoMesh(argoConf.M - 1)(j).north_out
-          argoMesh(argoConf.M - 1)(j).north_in <> argoMesh(0)(j).south_out
+          //wrap ns
+          argoMesh(0)(j).south_wire_in := argoMesh(argoConf.M - 1)(j).north_wire_out
+          argoMesh(argoConf.M - 1)(j).north_wire_in := argoMesh(0)(j).south_wire_out
         }
         if (j == 0) {
-          argoMesh(i)(0).east_in <> argoMesh(i)(argoConf.N - 1).west_out
-          argoMesh(i)(argoConf.N - 1).west_in <> argoMesh(i)(0).east_out
+          //wrap ew
+          argoMesh(i)(0).east_wire_in := argoMesh(i)(argoConf.N - 1).west_wire_out
+          argoMesh(i)(argoConf.N - 1).west_wire_in := argoMesh(i)(0).east_wire_out
         }
         if (i > 0) {
-          argoMesh(i)(j).south_in <> argoMesh(i - 1)(j).north_out
-          argoMesh(i - 1)(j).north_in <> argoMesh(i)(j).south_out
+          //ns
+          argoMesh(i)(j).south_wire_in := argoMesh(i - 1)(j).north_wire_out
+          argoMesh(i - 1)(j).north_wire_in := argoMesh(i)(j).south_wire_out
         }
         if (j > 0) {
-          argoMesh(i)(j).east_in <> argoMesh(i)(j - 1).west_out
-          argoMesh(i)(j - 1).west_in <> argoMesh(i)(j).east_out
+          //ew
+          argoMesh(i)(j).east_wire_in := argoMesh(i)(j - 1).west_wire_out
+          argoMesh(i)(j - 1).west_wire_in := argoMesh(i)(j).east_wire_out
         }
       }
     }
   } else {
-    println("o--Wrapping Interconnect")
+    println("o--Wrapping Nodes and Interconnect")
     val nocBB = Module(new NoCWrapper(argoConf))
     io.irq <> nocBB.io.irq
     io.supervisor <> nocBB.io.supervisor
