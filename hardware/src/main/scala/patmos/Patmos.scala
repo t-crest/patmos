@@ -207,7 +207,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     println(dev)
     dev match {
       // Address 0 reserved for Argo
-      case "Argo" =>  cmpdevs(0) = Module(new argo.Argo(nrCores, wrapped=true, emulateBB=false))
+      case "Argo" =>  cmpdevs(0) = Module(new argo.Argo(nrCores, wrapped=false, emulateBB=false))
       case "Hardlock" => cmpdevs(1) = Module(new cmp.HardlockOCPWrapper(() => new cmp.Hardlock(nrCores, nrCores * 2)))
       case "SharedSPM" => cmpdevs(2) = Module(new cmp.SharedSPM(nrCores, (nrCores-1)*2*1024))
       case "OneWay" => cmpdevs(3) = Module(new cmp.OneWayOCPWrapper(nrCores))
@@ -247,9 +247,13 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       cmpdevios(j).M.Cmd := Mux(addr === Bits(j), cores(i).io.comSpm.M.Cmd, OcpCmd.IDLE)
     }
 
+    // TODO: maybe a better way is for all interfaces to have the bits 'superMode' and 'flags'
+    // e.g., all IO devices should be possible to have interrupts
     if(cmpdevs(0) != null && cmpdevs(0).isInstanceOf[Argo]){
       cmpdevios(0).asInstanceOf[OcpArgoSlavePort].superMode := Bits(0)
       cmpdevios(0).asInstanceOf[OcpArgoSlavePort].superMode(i) := cores(i).io.superMode
+      cores(i).iocomp.io.intrs(NI_MSG_INTR) := cmpdevios(0).asInstanceOf[OcpArgoSlavePort].flag(0)
+      cores(i).iocomp.io.intrs(NI_EXT_INTR) := cmpdevios(0).asInstanceOf[OcpArgoSlavePort].flag(1)
     }
   }
 

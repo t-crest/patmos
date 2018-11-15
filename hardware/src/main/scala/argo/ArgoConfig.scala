@@ -14,7 +14,7 @@ abstract class ArgoConfig{
 	var N: Int
 	var M: Int
 	def CORES : Int = N*M
-  var PRD_LENGTH: Int
+  def PRD_LENGTH: Int = CORES*2
 	// Topology
 	var topoType : String
   // General header packet constants and types
@@ -39,7 +39,6 @@ object ArgoConfig {
 		var N = 2
 		var M = 2
     var topoType = "bitorus"
-    var PRD_LENGTH = 8
 		var HEADER_ROUTE_WIDTH = 16
   	var HEADER_FIELD_WIDTH = 16
   	var HEADER_CTRL_WIDTH  = 2
