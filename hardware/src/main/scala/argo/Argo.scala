@@ -49,7 +49,7 @@ import patmos._
 class OcpArgoSlavePort(addrWidth : Int, dataWidth : Int, argoConf: ArgoConfig) 
   extends OcpCoreSlavePort(addrWidth, dataWidth) {
   val superMode = Bits(INPUT, argoConf.CORES)
-  val flag = Bits(OUTPUT, 2)
+  val flags = Bits(OUTPUT, 2*argoConf.CORES)
 }
 
 class Argo(nrCores: Int, wrapped: Boolean = false, emulateBB: Boolean = false) extends Module {
@@ -136,7 +136,7 @@ class Argo(nrCores: Int, wrapped: Boolean = false, emulateBB: Boolean = false) e
     io(i).S.Resp := Mux(selSpmRplyReg(i), respSpmReg, respNoCReg)
 
     // NoC - Patmos
-     io(i).flag := argoNoc.io.irq(2+i*2-1, i*2)
+     io(i).flags := argoNoc.io.irq
 	}
 
   // Generate config.vhd

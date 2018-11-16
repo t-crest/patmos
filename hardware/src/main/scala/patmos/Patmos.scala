@@ -252,8 +252,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     if(cmpdevs(0) != null && cmpdevs(0).isInstanceOf[Argo]){
       cmpdevios(0).asInstanceOf[OcpArgoSlavePort].superMode := Bits(0)
       cmpdevios(0).asInstanceOf[OcpArgoSlavePort].superMode(i) := cores(i).io.superMode
-      cores(i).iocomp.io.intrs(NI_MSG_INTR) := cmpdevios(0).asInstanceOf[OcpArgoSlavePort].flag(0)
-      cores(i).iocomp.io.intrs(NI_EXT_INTR) := cmpdevios(0).asInstanceOf[OcpArgoSlavePort].flag(1)
+      cores(i).io.comConf.S.Flag := cmpdevios(0).asInstanceOf[OcpArgoSlavePort].flags
     }
   }
 
