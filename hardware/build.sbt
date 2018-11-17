@@ -10,10 +10,10 @@ libraryDependencies += scalaVersion("org.scala-lang" % "scala-compiler" % _).val
 
  libraryDependencies += "edu.berkeley.cs" %% "chisel" % "2.2.38"
 
-//resolvers ++= Seq(
-//  Resolver.sonatypeRepo("snapshots"),
-//  Resolver.sonatypeRepo("releases")
-//)
+resolvers ++= Seq(
+  Resolver.sonatypeRepo("snapshots"),
+  Resolver.sonatypeRepo("releases")
+)
 
 //libraryDependencies += "edu.berkeley.cs" %% "chisel3" % "3.1.2"
 //libraryDependencies += "edu.berkeley.cs" %% "chisel-iotesters" % "1.2.2"

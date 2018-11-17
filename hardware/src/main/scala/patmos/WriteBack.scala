@@ -8,9 +8,6 @@
 package patmos
 
 import Chisel._
-import Node._
-
-import Constants._
 
 class WriteBack() extends Module {
   val io = IO(new WriteBackIO())

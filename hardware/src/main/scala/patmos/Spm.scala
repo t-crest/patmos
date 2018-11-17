@@ -18,7 +18,6 @@
 package patmos
 
 import Chisel._
-import Node._
 
 import Constants._
 

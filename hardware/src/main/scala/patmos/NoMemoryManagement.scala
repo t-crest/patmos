@@ -8,11 +8,6 @@
 package patmos
 
 import Chisel._
-import Node._
-
-import Constants._
-
-import ocp._
 
 class NoMemoryManagement extends Module {
   val io = IO(new MMUIO())

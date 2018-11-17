@@ -18,8 +18,6 @@ import io.CoreDevice
 import io.CoreDeviceIO
 import io.CpuInfoCmp
 
-import java.lang.Integer
-
 class InOut(nr: Int, cnt: Int) extends Module {
   val io = IO(Config.getInOutIO())
 
