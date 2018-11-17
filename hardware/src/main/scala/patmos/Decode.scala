@@ -1,36 +1,4 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute.
-   All rights reserved.
-
-   This file is part of the time-predictable VLIW processor Patmos.
-
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions are met:
-
-      1. Redistributions of source code must retain the above copyright notice,
-         this list of conditions and the following disclaimer.
-
-      2. Redistributions in binary form must reproduce the above copyright
-         notice, this list of conditions and the following disclaimer in the
-         documentation and/or other materials provided with the distribution.
-
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
-   OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-   OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
-   NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
-   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-   The views and conclusions contained in the software and documentation are
-   those of the authors and should not be interpreted as representing official
-   policies, either expressed or implied, of the copyright holder.
- */
-
-/*
  * Decode stage of Patmos.
  *
  * Authors: Martin Schoeberl (martin@jopdesign.com)
@@ -40,12 +8,11 @@
 package patmos
 
 import Chisel._
-import Node._
 
 import Constants._
 
 class Decode() extends Module {
-  val io = new DecodeIO()
+  val io = IO(new DecodeIO())
 
   val rf = Module(new RegisterFile())
 
@@ -88,7 +55,7 @@ class Decode() extends Module {
     io.decex.rsData(3) := rf.io.rfRead.rsData(3)
   }
 
-  val decoded = Vec.fill(PIPE_COUNT) { Bool() }
+  val decoded = Vec(PIPE_COUNT, Bool())
   decoded.map(_ := Bool(false))
 
   // Decoding of dual-issue operations
@@ -99,11 +66,11 @@ class Decode() extends Module {
     val opc     = instr(6, 4)
     val isValid = if (i == 0) { Bool(true) } else { dual }
 
-    val immVal = Bits()
+    val immVal = Wire(Bits())
     // Default value for immediates
     immVal := Cat(Bits(0), instr(11, 0))
 
-   // ALU register
+    // ALU register
     io.decex.aluOp(i).func := instr(3, 0)
 
     // ALU immediate
@@ -191,13 +158,13 @@ class Decode() extends Module {
   val sttype = instr(18, 17)
   val stcfun = instr(21, 18)
 
-  val dest = Bits(width = REG_BITS)
-  val longImm = Bool()
+  val dest = Wire(Bits(width = REG_BITS))
+  val longImm = Wire(Bool())
 
-  val isMem = Bool()
-  val isStack = Bool()
+  val isMem = Wire(Bool())
+  val isStack = Wire(Bool())
 
-  val isSTC = Bool()
+  val isSTC = Wire(Bool())
   val stcImm = Cat(Bits(0), instr(17, 0), Bits("b00")).toUInt()
 
   // Long immediates set this
@@ -309,7 +276,7 @@ class Decode() extends Module {
     io.decex.nonDelayed := opcode === OPCODE_CFL_CFLRND
   }
 
-  val shamt = UInt()
+  val shamt = Wire(UInt())
   shamt := UInt(0)
   // load
   when(opcode === OPCODE_LDT) {

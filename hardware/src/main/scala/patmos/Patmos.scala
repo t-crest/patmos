@@ -25,7 +25,7 @@ import scala.collection.immutable.Stream.Empty
  */
 class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
 
-  val io = Config.getPatmosCoreIO()
+  val io = IO(Config.getPatmosCoreIO())
 
   val icache =
     if (ICACHE_SIZE <= 0)
@@ -94,7 +94,7 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
 
   // Merge OCP ports from data caches and method cache
   val burstBus = Module(new OcpBurstBus(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
-  val selICache = Bool()
+  val selICache = Wire(Bool())
   val burstJoin = if (ICACHE_TYPE == ICACHE_TYPE_METHOD) {
     // requests from D-cache and method cache never collide
     new OcpBurstJoin(icache.io.ocp_port, dcache.io.slave,
@@ -237,7 +237,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
     var addr = cores(i).io.comSpm.M.Addr(ADDR_WIDTH-1-12, ADDR_WIDTH-1-12-util.log2Up(MAX_IO_DEVICES)+1)
 
-    val addrReg = Reg(init = addr)
+    val addrReg = RegInit(addr)
     addrReg := Mux(cores(i).io.comSpm.M.Cmd =/= OcpCmd.IDLE, addr, addrReg)
 
     cores(i).io.comSpm.S := cmpdevios(addrReg).S

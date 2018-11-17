@@ -1,36 +1,4 @@
 /*
-   Copyright 2015 Technical University of Denmark, DTU Compute.
-   All rights reserved.
-
-   This file is part of the time-predictable VLIW processor Patmos.
-
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions are met:
-
-      1. Redistributions of source code must retain the above copyright notice,
-         this list of conditions and the following disclaimer.
-
-      2. Redistributions in binary form must reproduce the above copyright
-         notice, this list of conditions and the following disclaimer in the
-         documentation and/or other materials provided with the distribution.
-
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
-   OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-   OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
-   NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
-   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-   The views and conclusions contained in the software and documentation are
-   those of the authors and should not be interpreted as representing official
-   policies, either expressed or implied, of the copyright holder.
- */
-
-/*
  * A memory management unit for Patmos.
  *
  * Author: Wolfgang Puffitsch (wpuffitsch@gmail.com)
@@ -66,9 +34,9 @@ object MemoryManagement {
 import MemoryManagement._
 
 class MemoryManagement extends Module {
-  val io = new MMUIO()
+  val io = IO(new MMUIO())
 
-  val masterReg = Reg(next = io.ctrl.M)
+  val masterReg = RegNext(io.ctrl.M)
 
   def checked(action: => Unit) {
     when (io.superMode) (action) .otherwise { io.ctrl.S.Resp := OcpResp.ERR }
@@ -97,10 +65,10 @@ class MemoryManagement extends Module {
   }
 
   // Address translation
-  val virtReg = Reg(next = io.virt.M)
-  val execReg = Reg(next = io.exec)
+  val virtReg = RegNext(io.virt.M)
+  val execReg = RegNext(io.exec)
 
-  val segment = new Segment()
+  val segment = new Segment() // Wire of a Bundle?
   val info = segInfoVec(virtReg.Addr(ADDR_WIDTH-1, ADDR_WIDTH-SEG_BITS))
   val base = segBaseVec(virtReg.Addr(ADDR_WIDTH-1, ADDR_WIDTH-SEG_BITS))
   segment.perm   := info(ADDR_WIDTH-ALIGN_BITS-1, ADDR_WIDTH-ALIGN_BITS-PERM_BITS)
