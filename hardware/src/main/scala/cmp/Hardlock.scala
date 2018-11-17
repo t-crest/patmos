@@ -10,12 +10,9 @@
 package cmp
  
 import Chisel._
-import Node._
 
-import patmos._
 import patmos.Constants._
 import ocp._
-import io.CoreDeviceIO
 
 class HardlockIO(lckCnt : Int) extends Bundle {
   val sel = UInt(INPUT, log2Up(lckCnt))

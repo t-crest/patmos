@@ -1,34 +1,3 @@
-/*
-   Copyright 2013 Technical University of Denmark, DTU Compute.
-   All rights reserved.
-
-   This file is part of the time-predictable VLIW processor Patmos.
-
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions are met:
-
-      1. Redistributions of source code must retain the above copyright notice,
-         this list of conditions and the following disclaimer.
-
-      2. Redistributions in binary form must reproduce the above copyright
-         notice, this list of conditions and the following disclaimer in the
-         documentation and/or other materials provided with the distribution.
-
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
-   OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-   OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
-   NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
-   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-   The views and conclusions contained in the software and documentation are
-   those of the authors and should not be interpreted as representing official
-   policies, either expressed or implied, of the copyright holder.
- */
 
 /*
  Method Cache for Patmos
@@ -38,14 +7,9 @@
 package patmos
 
 import Chisel._
-import Node._
 import MConstants._
 import Constants._
 import ocp._
-
-import scala.collection.mutable.HashMap
-import scala.util.Random
-import scala.math
 
 /*
   Method cache constants only used internally
@@ -117,7 +81,7 @@ class MCacheMemIO extends Bundle() {
  MCache: Top Level Class for the Method Cache
  */
 class MCache() extends Module {
-  val io = new ICacheIO()
+  val io = IO(new ICacheIO())
   val ctrl = Module(new MCacheCtrl())
   val repl = Module(new MCacheReplFifo())
   //Use MCacheReplFifo2 for replacement with fixed block size
@@ -151,7 +115,7 @@ class MCache() extends Module {
  MCacheMem: On-Chip Even/Odd Memory
  */
 class MCacheMem() extends Module {
-  val io = new MCacheMemIO()
+  val io = IO(new MCacheMemIO())
 
   val mcacheEven = MemBlock(MCACHE_WORD_SIZE / 2, INSTR_WIDTH)
   val mcacheOdd = MemBlock(MCACHE_WORD_SIZE / 2, INSTR_WIDTH)
@@ -170,7 +134,7 @@ class MCacheMem() extends Module {
  A variable block size is used in this replacement.
  */
 class MCacheReplFifo() extends Module {
-  val io = new MCacheReplIO()
+  val io = IO(new MCacheReplIO())
 
   //tag field tables  for reading tag memory
   val addrVec = { Vec.fill(METHOD_COUNT) { Reg(Bits(width = ADDR_WIDTH)) }}
@@ -310,22 +274,22 @@ class MCacheReplFifo() extends Module {
  MCacheCtrl Class: Main Class of Method Cache, implements the State Machine and handles the R/W/Fetch of Cache and External Memory
  */
 class MCacheCtrl() extends Module {
-  val io = new MCacheCtrlIO()
+  val io = IO(new MCacheCtrlIO())
 
   //fsm state variables
   val idleState :: sizeState :: transferState :: errorState :: errorDecState :: errorExeState :: errorMemState :: Nil = Enum(UInt(), 7)
   val stateReg = Reg(init = idleState)
   //signals for method cache memory (repl)
-  val addrEven = Bits(width = ADDR_WIDTH)
-  val addrOdd = Bits(width = ADDR_WIDTH)
-  val wData = Bits(width = DATA_WIDTH)
-  val wTag = Bool() //signalizes the transfer of begin of a write
-  val wAddr = Bits(width = ADDR_WIDTH)
-  val wEna = Bool()
+  val addrEven = Wire(Bits(width = ADDR_WIDTH))
+  val addrOdd = Wire(Bits(width = ADDR_WIDTH))
+  val wData = Wire(Bits(width = DATA_WIDTH))
+  val wTag = Wire(Bool()) //signalizes the transfer of begin of a write
+  val wAddr = Wire(Bits(width = ADDR_WIDTH))
+  val wEna = Wire(Bool())
   //signals for external memory
   val ocpCmdReg = Reg(init = OcpCmd.IDLE)
   val ocpAddrReg = Reg(Bits(width = ADDR_WIDTH))
-  val fetchEna = Bool()
+  val fetchEna = Wire(Bool())
   val transferSizeReg = Reg(Bits(width = MCACHE_SIZE_WIDTH))
   val fetchCntReg = Reg(Bits(width = MCACHE_SIZE_WIDTH))
   val burstCntReg = Reg(UInt(width = log2Up(BURST_LENGTH)))

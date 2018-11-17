@@ -3,11 +3,7 @@ package argo
 import java.io.{File, PrintWriter}
 
 import Chisel._
-import Node._
 import patmos.Constants._
-import util.Config
-import util.Utility
-import ocp._
 
 abstract class ArgoConfig{
 	// NoC Dimensions
