@@ -23,7 +23,7 @@ import scala.collection.immutable.Stream.Empty
 /**
  * Module for one Patmos core.
  */
-class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
+class PatmosCore(binFile: String, nr: Int, cnt: Int, aegeanCompatible: Boolean) extends Module {
 
   val io = IO(Config.getPatmosCoreIO())
 
@@ -49,7 +49,7 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
   val memory = Module(new Memory())
   val writeback = Module(new WriteBack())
   val exc = Module(new Exceptions())
-  val iocomp = Module(new InOut(nr, cnt))
+  val iocomp = Module(new InOut(nr, cnt, aegeanCompatible))
   val dcache = Module(new DataCache())
 
   //connect icache
@@ -174,7 +174,7 @@ object PatmosCoreMain {
     Config.loadConfig(configFile)
     Config.minPcWidth = util.log2Up((new File(binFile)).length.toInt / 4)
     Config.datFile = datFile
-    chiselMain(chiselArgs, () => Module(new PatmosCore(binFile, 0, 0)))
+    chiselMain(chiselArgs, () => Module(new PatmosCore(binFile, 0, 0, true)))
     // Print out the configuration
     Utility.printConfig(configFile)
   }
@@ -192,10 +192,12 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
   val nrCores = Config.getConfig.coreCount
 
+  val aegeanMode = !Config.getConfig.cmpDevices.contains("Argo")
+
   println("Config core count: " + nrCores)
 
   // Instantiate cores
-  val cores = (0 until nrCores).map(i => Module(new PatmosCore(binFile, i, nrCores)))
+  val cores = (0 until nrCores).map(i => Module(new PatmosCore(binFile, i, nrCores, aegeanMode)))
 
   // Forward ports to/from core
   val cmpDevices = Config.getConfig.cmpDevices
