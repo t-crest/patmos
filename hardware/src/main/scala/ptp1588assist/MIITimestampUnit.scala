@@ -1,7 +1,6 @@
 package ptp1588assist
 
 import Chisel._
-import Node._
 import ocp._
 import patmos.Constants.{ADDR_WIDTH, DATA_WIDTH}
 

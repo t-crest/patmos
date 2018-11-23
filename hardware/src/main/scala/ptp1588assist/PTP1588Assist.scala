@@ -1,8 +1,6 @@
 package ptp1588assist
 
 import Chisel._
-import Node._
-import io._
 import ocp._
 import patmos.Constants._
 

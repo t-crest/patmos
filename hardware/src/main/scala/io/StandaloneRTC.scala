@@ -1,8 +1,6 @@
 package io
 
 import Chisel._
-import Node._
-import ocp._
 import patmos.Constants._
 import ptp1588assist.RTC
 

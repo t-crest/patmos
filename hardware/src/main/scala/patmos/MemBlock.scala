@@ -9,7 +9,6 @@
 package patmos
 
 import Chisel._
-import Node._
 
 object MemBlock {
   def apply(size : Int, width : Int, bypass : Boolean = true) = {

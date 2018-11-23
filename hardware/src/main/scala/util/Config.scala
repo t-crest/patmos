@@ -33,7 +33,6 @@
 package util
 
 import Chisel._
-import Node._
 import patmos._
 import io.CoreDevice
 import io.Device
