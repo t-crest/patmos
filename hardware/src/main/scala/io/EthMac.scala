@@ -78,12 +78,42 @@ object EthMac extends DeviceObject {
   }
 }
 
-class EthMacBB(extAddrWidth : Int = 32, dataWidth : Int = 32) extends BlackBox {
+class eth_controller_top(val extAddrWidth: Int, val dataWidth: Int) extends chisel3.experimental.ExtModule(Map("BUFF_ADDR_WIDTH" -> chisel3.core.IntParam(extAddrWidth))) {
+  val clk = IO(Input(Clock()))
+  val rst = IO(Input(Bool()))
+
+  val MCmd = IO(Output(UInt(3.W)))
+  val MAddr = IO(Output(UInt(extAddrWidth.W)))
+  val MData = IO(Output(UInt(dataWidth.W)))
+  val MByteEn = IO(Output(UInt(3.W)))
+
+  val SData = IO(Input(UInt(dataWidth.W)))
+  val Resp = IO(Input(UInt(2.W)))
+  
+  // mtx_clk_pad_i etc...
+}
+
+class EthMacBB(extAddrWidth : Int = 32, dataWidth : Int = 32) extends Module {
   val io = new OcpCoreSlavePort(extAddrWidth, dataWidth) with EthMac.Pins
+
+/*
   // rename component
   setModuleName("eth_controller_top")
+*/
 
+val bb = Module(new eth_controller_top(extAddrWidth=extAddrWidth, dataWidth=dataWidth))
   // rename signals
+
+  bb.clk := clock
+  bb.rst := reset
+
+  io.M.Cmd := bb.MCmd
+  io.M.Addr := bb.MAddr
+  io.M.Data := bb.MData
+  io.M.ByteEn := bb.MByteEn
+  bb.Resp := io.S.Resp
+  bb.SData := io.S.Data
+/*
   renameClock(clock, "clk")
   reset.setName("rst")
 
@@ -111,6 +141,7 @@ class EthMacBB(extAddrWidth : Int = 32, dataWidth : Int = 32) extends BlackBox {
 
   // set Verilog parameters
   setVerilogParameters("#(.BUFF_ADDR_WIDTH("+extAddrWidth+"))")
+*/
 
   // keep some sigals for emulation
   debug(io.M.Cmd)
