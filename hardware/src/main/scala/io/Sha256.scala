@@ -100,8 +100,8 @@ class Sha256() extends CoreDevice() {
   val msgRdData = msg(idxReg(log2Up(MSG_WORD_COUNT)-1, 0))
 
   // Helper signal for byte enables
-  val comb = Vec.fill(masterReg.ByteEn.getWidth()) { Bits(width = 8) }
-  for (i <- 0 until masterReg.ByteEn.getWidth()) {
+  val comb = Vec.fill(masterReg.ByteEn.getWidth) { Bits(width = 8) }
+  for (i <- 0 until masterReg.ByteEn.getWidth) {
     comb(i) := Bits(0)
   }
 
@@ -251,7 +251,7 @@ class Sha256() extends CoreDevice() {
       // Write data
       when (masterReg.Addr(7, 6) === Bits("b10")) {
         // Fill in data according to byte enables
-        for (i <- 0 until masterReg.ByteEn.getWidth()) {
+        for (i <- 0 until masterReg.ByteEn.getWidth) {
           comb(i) := Mux(masterReg.ByteEn(i) === Bits(1),
                          masterReg.Data(8*i+7, 8*i),
                          msgRdData(8*i+7, 8*i))

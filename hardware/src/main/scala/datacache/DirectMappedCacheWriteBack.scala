@@ -27,11 +27,11 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends Module {
 
   val addrBits = log2Up(size / BYTES_PER_WORD)
   val lineBits = log2Up(lineSize)
-  val dataWidth = io.master.M.Data.getWidth()
+  val dataWidth = io.master.M.Data.getWidth
   val burstLength = io.slave.burstLength
   val burstAddrBits = log2Up(burstLength)
   val byteAddrBits = log2Up(dataWidth/8)
-  val addrWidth = io.master.M.Addr.getWidth()
+  val addrWidth = io.master.M.Addr.getWidth
 
   val doingRead = Reg(Bool()) // are we reading or writing
   val coreWrDataReg = Reg(Bits(width = DATA_WIDTH)) // register for WR cmd data

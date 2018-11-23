@@ -19,14 +19,14 @@ object SPMPool {
 
   def roundRobinArbiter(reqs: UInt, continue: Bool = Bool(false)) = {
 
-    val curReg = Reg(UInt(width = log2Up(reqs.getWidth())))
+    val curReg = Reg(UInt(width = log2Up(reqs.getWidth)))
 
-    val hi = UInt(width = reqs.getWidth())
-    val lo = UInt(width = reqs.getWidth())
+    val hi = UInt(width = reqs.getWidth)
+    val lo = UInt(width = reqs.getWidth)
 
     lo := UInt(0)
     hi := UInt(0)
-    for (i <- 0 until reqs.getWidth()) {
+    for (i <- 0 until reqs.getWidth) {
       lo(i) := reqs(i) && (curReg >= UInt(i))
       hi(i) := reqs(i) && (curReg < UInt(i))
     }

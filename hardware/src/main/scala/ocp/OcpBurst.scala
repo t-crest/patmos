@@ -61,8 +61,8 @@ class OcpBurstSlavePort(addrWidth : Int, dataWidth : Int, burstLen : Int) extend
 
 // Bridge between word-oriented port and burst port
 class OcpBurstBridge(master : OcpCacheMasterPort, slave : OcpBurstSlavePort) {
-  val addrWidth = master.M.Addr.getWidth()
-  val dataWidth = master.M.Data.getWidth()
+  val addrWidth = master.M.Addr.getWidth
+  val dataWidth = master.M.Data.getWidth
   val burstLength = slave.burstLength
   val burstAddrBits = log2Up(burstLength)
 

@@ -56,9 +56,9 @@ class WriteCombineBuffer() extends Module {
   io.perf.hit := Bool(false)
   io.perf.miss := Bool(false)
 
-  val addrWidth = io.writeMaster.M.Addr.getWidth()
-  val dataWidth = io.writeMaster.M.Data.getWidth()
-  val byteEnWidth = io.writeMaster.M.ByteEn.getWidth()
+  val addrWidth = io.writeMaster.M.Addr.getWidth
+  val dataWidth = io.writeMaster.M.Data.getWidth
+  val byteEnWidth = io.writeMaster.M.ByteEn.getWidth
   val burstLength = io.readMaster.burstLength
   val burstAddrBits = log2Up(burstLength)
   val byteAddrBits = log2Up(dataWidth/8)
