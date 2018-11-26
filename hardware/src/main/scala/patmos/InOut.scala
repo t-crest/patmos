@@ -110,7 +110,7 @@ class InOut(nr: Int, cnt: Int, withComConf: Boolean) extends Module {
         validDeviceVec(off) := Bool(true)
         validDevices(off) = true;
       } else {
-        ChiselError.error("Can't assign multiple devices to the same offset. " +
+        throw new Error("Can't assign multiple devices to the same offset. " +
                           "Device " + name + " conflicting on offset " +
                           off.toString + ". ")
       }

@@ -29,7 +29,7 @@ class MemBlockIO(size : Int, width : Int) extends Bundle {
 
   def <= (ena : Bits, addr : Bits, data : Bits) = {
     // This memory supports only one write port
-    if (write) { ChiselError.error("Only one write port supported") }
+    if (write) { throw new Error("Only one write port supported") }
     write = true
 
     wrAddr := addr
@@ -39,7 +39,7 @@ class MemBlockIO(size : Int, width : Int) extends Bundle {
 
   def apply(addr : Bits) : Bits = {
     // This memory supports only one read port
-    if (read) { ChiselError.error("Only one read port supported") }
+    if (read) { throw new Error("Only one read port supported") }
     read = true
 
     rdAddr := addr
