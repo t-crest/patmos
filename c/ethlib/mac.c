@@ -41,9 +41,9 @@
 
 #include "mac.h"
 
-unsigned char my_mac[6] = {0x00, 0xFF, 0xEE, 0xF0, 0xDA, 0x42};
+unsigned char my_mac[6] = {0x00, 0x80, 0x6e, 0xF0, 0xDA, 0x42};
 
-enum ethtype mac_packet_type(unsigned int addr){
+enum protocol mac_packet_type(unsigned int addr){
 	if (mem_iord_byte(addr + 12) == 0x08){
 		unsigned char b = mem_iord_byte(addr + 13);
 		if(b == 0x00){//IP
@@ -62,8 +62,10 @@ enum ethtype mac_packet_type(unsigned int addr){
 		}else{
 			return UNSUPPORTED;
 		}
+	} else if(mem_iord_byte(addr + 12) == 0x88 && mem_iord_byte(addr + 13) == 0xF7){
+		return PTP;	
 	}
-	return 0;
+	return UNSUPPORTED;
 }
 
 //This function retrieves the mac of the sender

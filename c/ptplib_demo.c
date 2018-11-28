@@ -38,6 +38,7 @@
 */
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include <machine/patmos.h>
 #include <machine/exceptions.h>
 #include <machine/spm.h>
@@ -50,11 +51,9 @@
 #include "ethlib/eth_mac_driver.h"
 #include "ethlib/ptp1588.h"
 
-#define INTRO_DURATION 16
 #define DISP_SYM_MASK 0x80
-
-// #define PTP_MASTER
-#define PTP_SLAVE
+#define PTP_MASTER
+// #define PTP_SLAVE
 
 volatile _SPM int *uart_ptr = (volatile _SPM int *)	 0xF0080004;
 volatile _SPM int *led_ptr  = (volatile _SPM int *)  0xF0090000;
@@ -64,13 +63,6 @@ unsigned int rx_addr = 0x000;
 unsigned int tx_addr = 0x800;
 
 unsigned char multicastip[4] = {224, 0, 0, 255};
-
-#ifdef PTP_MASTER
-unsigned char target_ip[4] = {192, 168, 2, 1};
-#endif
-#ifdef PTP_SLAVE
-unsigned char target_ip[4] = {192, 168, 2, 50};
-#endif
 
 unsigned int initNanoseconds;
 unsigned int initSeconds;
@@ -86,6 +78,7 @@ void print_general_info(){
 	return;
 }
 
+
 void printSegmentInt(unsigned base_addr, int number, int displayCount) {
 	volatile _IODEV unsigned *disp_ptr = (volatile _IODEV unsigned *) base_addr;
 	unsigned pos = 0;
@@ -94,7 +87,6 @@ void printSegmentInt(unsigned base_addr, int number, int displayCount) {
 	unsigned value = abs(number);
 	for(pos=0; pos < range; pos++) {
 		*disp_ptr = (unsigned)((value & byte_mask) >> (pos*4));
-		//printf("value %d at disp_addr %p with byte_mask %x\n", *disp_ptr, disp_ptr, byte_mask);
 		byte_mask = byte_mask << 4;
 		disp_ptr += 1;
 	}
@@ -103,135 +95,128 @@ void printSegmentInt(unsigned base_addr, int number, int displayCount) {
 	}
 }
 
-int checkForPacket(unsigned int expectedPacketType, unsigned int expectedUDPPort, const unsigned int timeout){
-	enum ethtype packet_type;
-	unsigned short destination_port;
-	unsigned short source_port;
-	unsigned char source_ip[4];	
-	signed char ans;
+int checkForPacket(unsigned int expectedPacketType, const unsigned int timeout){
+	unsigned short dst_port;
+	unsigned short src_port;
 	if(eth_mac_receive(rx_addr, timeout)){
-		packet_type = mac_packet_type(rx_addr);
-		destination_port = udp_get_destination_port(rx_addr);
-		source_port = udp_get_source_port(rx_addr);
-		ipv4_get_source_ip(rx_addr, source_ip);
-		//TODO: replace with dynamic function call provided by the user
-		switch (packet_type) {
+		// printf("%d", mac_packet_type(rx_addr));
+		switch (mac_packet_type(rx_addr)) {
 		case ICMP:
-			ans = icmp_process_received(rx_addr, tx_addr);
-			return (ans==0) ? -1 : 1;
+			return (icmp_process_received(rx_addr, tx_addr)==0) ? -ICMP : ICMP;
 		case UDP:
-			if((destination_port==PTP_EVENT_PORT && source_port==PTP_EVENT_PORT) || (destination_port==PTP_GENERAL_PORT && source_port==PTP_GENERAL_PORT)){
-				return ptpv2_handle_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC, source_ip);
+			dst_port = udp_get_destination_port(rx_addr);
+			if((dst_port==PTP_EVENT_PORT) || (dst_port==PTP_GENERAL_PORT)){
+				return PTP;
 			} else {
-				return -2;	
+				return UDP;
 			}
 		case ARP:
-			ans = arp_process_received(rx_addr, tx_addr);
-			return (ans==0) ? -3 : 3;
+			return (arp_process_received(rx_addr, tx_addr)==0) ? -ARP : ARP;
 		default:
-			return -4;
+			return UNSUPPORTED;
 		}
 	} else {
-		return -5;
+		return UNSUPPORTED;
 	}
 }
 
-void ptp_master_loop(int msgDelay){
+void ptp_master_loop(unsigned period){
 	unsigned short int seqId = 0;
-	unsigned int start_time = 0;
-	unsigned int elapsed_time = 0;
+	unsigned long long start_time = 0;
+	unsigned char src_ip[4];
 	signed char ans = 0;
-	//start_time = get_cpu_usecs();
+	int syncInterval = (int) log2((int)period*USEC_TO_SEC);
+	printf("T_sync=%x\n", syncInterval);
 	start_time = get_rtc_usecs();
 	while(1){
-		//Count the time passed
-		//elapsed_time = get_cpu_usecs()-start_time;
-		elapsed_time = get_rtc_usecs()-start_time;
 		if(0xE == *key_ptr){
-			*led_ptr = 0x8;
+			*led_ptr = 0xE;
 			RTC_TIME_NS = initNanoseconds;
 			RTC_TIME_SEC = initSeconds;
 			seqId = 0x0;
-			//start_time = get_cpu_usecs();
-			start_time = get_rtc_usecs();
-		} else if (elapsed_time >= msgDelay){
-			puts("----\n");
+		} else if (0xD == *key_ptr){
+			*led_ptr = 0xD;
+			RTC_TIME_NS = 0;
+			RTC_TIME_SEC = 0;
+			return;
+		} else if (get_rtc_usecs()-start_time >= period){
+			printf("Seq# %u\n", seqId);
 			//Send SYNQ
-			*led_ptr = 0x0;
+			*led_ptr = PTP_SYNC_MSGTYPE;
 			//printf("%.3fus\n", elapsed_time);
-			puts("i_MSG=0");
-			ptpv2_issue_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC, target_ip, seqId, PTP_SYNC_MSGTYPE, PTP_SYNC_CTRL, PTP_EVENT_PORT);
-
+			puts("tx_SYNC");
+			ptpv2_issue_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC, lastSlaveInfo.ip, seqId, PTP_SYNC_MSGTYPE, syncInterval);
 			//Send FOLLOW_UP
-			*led_ptr = 0x8;
-			puts("i_MSG=8");
-			ptpv2_issue_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC, target_ip, seqId, PTP_FOLLOW_MSGTYPE, PTP_FOLLOW_CTRL, PTP_GENERAL_PORT);
-
-			//WaitFor DELAY_REQ
-			ans = checkForPacket(2, PTP_EVENT_PORT, PTP_REQ_TIMEOUT);
-			*led_ptr = ans;
-			if(ans == PTP_DLYREQ_MSGTYPE){
-				ptpv2_issue_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC, lastSlaveInfo.ip, ptpMsg.head.sequenceId, PTP_DLYRPLY_MSGTYPE, PTP_DLYRPLY_CTRL, PTP_GENERAL_PORT);
-				// puts("i_MSG=9");
-				*led_ptr = 0x9;
+			*led_ptr = PTP_FOLLOW_MSGTYPE;
+			puts("tx_FOLLOW");
+			ptpv2_issue_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC, lastSlaveInfo.ip, seqId, PTP_FOLLOW_MSGTYPE, syncInterval);
+			if(checkForPacket(2, PTP_REQ_TIMEOUT) == PTP){
+				ipv4_get_source_ip(rx_addr, src_ip);
+				if((ans = ptpv2_handle_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC, src_ip)) == PTP_DLYREQ_MSGTYPE){
+					*led_ptr = PTP_DLYREQ_MSGTYPE;
+					ptpv2_issue_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC, lastSlaveInfo.ip, rxPTPMsg.head.sequenceId, PTP_DLYRPLY_MSGTYPE, syncInterval);
+					*led_ptr = PTP_DLYRPLY_MSGTYPE;
+					seqId++;
+				}
 			}
-			seqId++;
-			//start_time = get_cpu_usecs();
 			start_time = get_rtc_usecs();
-		} else {
-			printSegmentInt(0xF00B0000, get_rtc_secs(), 8);
 		}
+		printSegmentInt(0xF00B0000, get_rtc_secs(), 8);
 	}
 }
 
-void ptp_slave_loop(){
+void ptp_slave_loop(unsigned period){
 	unsigned short int seqId = 0;
-	short int ans = 0;
+	unsigned char src_ip[4];
 	while(1){
 		if(0xE == *key_ptr){
 			*led_ptr = 0xE;
 			RTC_TIME_NS = 0;
 			RTC_TIME_SEC = 0;
 			RTC_CORRECTION_OFFSET = 0;
-		} else {
-			ans = checkForPacket(2, PTP_EVENT_PORT, 0);
-			*led_ptr = ans;
-			switch(ans){
-				case PTP_SYNC_MSGTYPE:
-					if((ptpMsg.head.flagField & FLAG_PTP_TWO_STEP_MASK) != FLAG_PTP_TWO_STEP_MASK){
-						ptpv2_issue_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC, lastMasterInfo.ip, ptpMsg.head.sequenceId, PTP_DLYREQ_MSGTYPE, PTP_DLYREQ_CTRL, PTP_EVENT_PORT);
-						*led_ptr = 0x1;
-						//puts("i_MSG=1");
-					}
-					break;
-				case PTP_FOLLOW_MSGTYPE:
-					ptpv2_issue_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC, lastMasterInfo.ip, ptpMsg.head.sequenceId, PTP_DLYREQ_MSGTYPE, PTP_DLYREQ_CTRL, PTP_EVENT_PORT);
-					//puts("i_MSG=1");
-					*led_ptr = 0x1;
-					break;
-				case PTP_DLYRPLY_MSGTYPE:
-					printf("#%u\t%d\t%d\n", ptpMsg.head.sequenceId, ptpTimeRecord.offsetSeconds, ptpTimeRecord.offsetNanoseconds);
-					break;
-				default:
-					puts("FAIL: EthMacRX Timeout or Unhandled");
-					break;
+		} else if (0xD == *key_ptr){
+			*led_ptr = 0xD;
+			RTC_TIME_NS = 0;
+			RTC_TIME_SEC = 0;
+			RTC_CORRECTION_OFFSET = 0;
+			return;
+		} else if(checkForPacket(2, PTP_SYNC_TIMEOUT) == PTP){
+			ipv4_get_source_ip(rx_addr, src_ip);
+			switch(ptpv2_handle_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC, src_ip)){
+			case PTP_SYNC_MSGTYPE:
+				if((rxPTPMsg.head.flagField & FLAG_PTP_TWO_STEP_MASK) != FLAG_PTP_TWO_STEP_MASK){
+					*led_ptr = PTP_SYNC_MSGTYPE;
+					ptpv2_issue_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC, lastMasterInfo.ip, rxPTPMsg.head.sequenceId, PTP_DLYREQ_MSGTYPE, ptpTimeRecord.syncInterval);
+					*led_ptr = PTP_DLYREQ_MSGTYPE;
+				}
+				break;
+			case PTP_FOLLOW_MSGTYPE:
+				*led_ptr = PTP_FOLLOW_MSGTYPE;
+				ptpv2_issue_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC, lastMasterInfo.ip, rxPTPMsg.head.sequenceId, PTP_DLYREQ_MSGTYPE, ptpTimeRecord.syncInterval);
+				*led_ptr = PTP_DLYREQ_MSGTYPE;
+				break;
+			case PTP_DLYRPLY_MSGTYPE:
+				*led_ptr = PTP_DLYRPLY_MSGTYPE;
+				printf("#%u\t%d\t%d\n", rxPTPMsg.head.sequenceId, ptpTimeRecord.offsetSeconds, ptpTimeRecord.offsetNanoseconds);
+				break;
+			case PTP_ANNOUNCE_MSGTYPE:
+				*led_ptr = PTP_ANNOUNCE_MSGTYPE;
+				break;
+			default:
+				*led_ptr = 0x100 | *led_ptr;
+				break;
 			}
-			printSegmentInt(0xF00B0000, get_rtc_secs(), 8);
 		}
-		*led_ptr = 0x0;
+		printSegmentInt(0xF00B0000, get_rtc_secs(), 8);
 	}
 }
 
-
 int main(int argc, char **argv){
-	*led_ptr = 0x7;
-
-	puts("PTPlib Demo Started");
+	*led_ptr = 0x1FF;
+	puts("\nHello, PTPlib Demo Started");
 
 	//MAC controller settings
-	eth_iowr(0x40, 0xEEF0DA42);
-	eth_iowr(0x44, 0x000000FF);
-	eth_iowr(0x00, 0x0000A423);
+	eth_mac_initialize();
 
 	//Keep initial time
 	initNanoseconds = RTC_TIME_NS;
@@ -248,25 +233,36 @@ int main(int argc, char **argv){
 	RTC_TIME_SEC = initSeconds;
 
 	//Demo
+	*led_ptr = 0x0;
 	#ifdef PTP_MASTER
-		ipv4_set_my_ip((unsigned char[4]){192, 168, 2, 50});
+		ipv4_set_my_ip((unsigned char[4]){192, 168, 2, 254});
 		arp_table_init();
 		puts("Mode Master Running\n");
-		arp_resolve_ip(rx_addr, tx_addr, target_ip, 200000);
 		print_general_info();
-		*led_ptr = 0x0;
-		ptp_master_loop(PTP_SYNC_PERIOD);
+		thisPortInfo = ptpv2_intialize_local_port(my_mac, (unsigned char[4]){192, 168, 2, 50}, 1);
+		int loop = 1;
+		int sel = 500;
+		while(loop){
+			puts("Enter a sync interval period in us (should be a power of two). Negative numbers terminate the program.");
+			scanf("%d", &sel);
+			if(sel > 0){
+				ptp_master_loop(sel);
+			} else {
+				loop = 0;
+			}
+		}
 		puts("\n");
 		puts("Exiting!");
 	#endif
 	#ifdef PTP_SLAVE
-		ipv4_set_my_ip((unsigned char[4]){192, 168, 2, 1});
+		srand((unsigned) get_cpu_usecs());
+		unsigned char rand_addr = rand()%253;
+		ipv4_set_my_ip((unsigned char[4]){192, 168, 2, rand_addr});
 		arp_table_init();
 		puts("Mode Slave Running\n");
-		arp_resolve_ip(rx_addr, tx_addr, target_ip, 200000);
 		print_general_info();
-		*led_ptr = 0x0;
-		ptp_slave_loop();
+		thisPortInfo = ptpv2_intialize_local_port(my_mac, (unsigned char[4]){192, 168, 2, rand_addr}, rand_addr);
+		ptp_slave_loop(0);
 		puts("\n");
 		puts("Exiting!");
 	#endif

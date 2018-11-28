@@ -38,120 +38,75 @@
 
 #include "ptp1588.h"
 
-void ptpv2_intr_tx_handler(void) {
-	exc_prologue();
-	unsigned char msgType = (unsigned char) (PTP_TXCHAN_STATUS & PTP_CHAN_MSG_TYPE_MASK);
-	printf("ptpv2_tx_intr_h(%x02X)\n", msgType);
-	if(msgType==PTP_SYNC_MSGTYPE){
-		//Master
-		#ifdef USE_HW_TIMESTAMP
-		ptpTimeRecord.t1Nanoseconds = (unsigned) PTP_TXCHAN_TIMESTAMP_NS;
-		ptpTimeRecord.t1Seconds = (unsigned) PTP_TXCHAN_TIMESTAMP_SEC;
-		#else
-		ptpTimeRecord.t1Nanoseconds = (unsigned) RTC_TIME_NS;
-		ptpTimeRecord.t1Seconds = (unsigned) RTC_TIME_SEC;
-		#endif
-	} else if(msgType==PTP_DLYREQ_MSGTYPE){
-		//Slave
-		#ifdef USE_HW_TIMESTAMP
-		ptpTimeRecord.t4Nanoseconds = (unsigned) PTP_TXCHAN_TIMESTAMP_NS;
-		ptpTimeRecord.t4Seconds = (unsigned) PTP_TXCHAN_TIMESTAMP_SEC;
-		#else
-		ptpTimeRecord.t4Nanoseconds = (unsigned) RTC_TIME_NS;
-		ptpTimeRecord.t4Seconds = (unsigned) RTC_TIME_SEC;
-		#endif
-	}
-	exc_epilogue();
+PTPPortInfo ptpv2_intialize_local_port(unsigned char mac[6], unsigned char ip[4], unsigned short portId){
+	PTPPortInfo newPort;
+	*(newPort.ip) = *(ip);
+	*(newPort.mac) = *(mac);
+	newPort.clockId[0] = mac[0];
+	newPort.clockId[1] = mac[1];
+	newPort.clockId[2] = mac[2];
+	newPort.clockId[3] = 0xff;
+	newPort.clockId[4] = 0xfe;
+	newPort.clockId[5] = mac[3];
+	newPort.clockId[6] = mac[4];
+	newPort.clockId[7] = mac[5];
+	newPort.id = portId;
+	return newPort;
 }
 
 __attribute__((noinline))
-int ptpv2_serialize(PTPv2Msg msg, unsigned char buffer[]){
-	//Head
-	memcpy(buffer, &msg.head.transportSpec_msgType, 1*sizeof(char));
-	memcpy(buffer+1, &msg.head.reserved_versionPTP, 1*sizeof(char));
-	memcpy(buffer+2, &msg.head.messageLength, 2*sizeof(char));
-	memcpy(buffer+4, &msg.head.domainNumber, 1*sizeof(char));
-	memcpy(buffer+5, &msg.head.reserved1, 1*sizeof(char));
-	memcpy(buffer+6, &msg.head.flagField, 2*sizeof(char));
-	memcpy(buffer+8, &msg.head.correctionField, 8*sizeof(char));
-	memcpy(buffer+16, &msg.head.reserved2, 4*sizeof(char));
-	memcpy(buffer+20, &msg.head.sourcePortIdentity, 10*sizeof(char));
-	memcpy(buffer+30, &msg.head.sequenceId, 2*sizeof(char));
-	memcpy(buffer+32, &msg.head.controlField, 1*sizeof(char));
-	memcpy(buffer+33, &msg.head.logMessageInterval, 1*sizeof(char));
-	//Body
-	memcpy(buffer+36, &msg.body.seconds, 4*sizeof(char));
-	memcpy(buffer+40, &msg.body.nanoseconds, 4*sizeof(char));
-    if((msg.head.transportSpec_msgType & 0x0F)==PTP_DLYRPLY_MSGTYPE){
-	    memcpy(buffer+44, &msg.body.portIdentity, 8*sizeof(char));
-	    memcpy(buffer+52, &msg.body.portId, 2*sizeof(char));
-    }
-	// print_bytes(buffer, 54);
-	return 1;
-}
-
-__attribute__((noinline))
-PTPv2Msg ptpv2_deserialize(unsigned char buffer[]){
-    PTPv2Msg msg;
-    //Head
-	memcpy(&msg.head.transportSpec_msgType, buffer, 1*sizeof(char));
-	memcpy(&msg.head.reserved_versionPTP, buffer+1, 1*sizeof(char));
-	memcpy(&msg.head.messageLength, buffer+2,  2*sizeof(char));
-	memcpy(&msg.head.domainNumber, buffer+4, 1*sizeof(char));
-	memcpy(&msg.head.reserved1, buffer+5, 1*sizeof(char));
-	memcpy(&msg.head.flagField, buffer+6, 2*sizeof(char));
-	memcpy(&msg.head.correctionField, buffer+8, 8*sizeof(char));
-	memcpy(&msg.head.reserved2, buffer+16, 4*sizeof(char));
-	memcpy(&msg.head.sourcePortIdentity, buffer+20, 10*sizeof(char));
-	memcpy(&msg.head.sequenceId, buffer+30, 2*sizeof(char));
-	memcpy(&msg.head.controlField, buffer+32, 1*sizeof(char));
-	memcpy(&msg.head.logMessageInterval, buffer+33, 1*sizeof(char));
-	//Body
-	memcpy(&msg.body.seconds, buffer+36, 4*sizeof(char));
-	memcpy(&msg.body.nanoseconds, buffer+40, 4*sizeof(char));
-    if((msg.head.transportSpec_msgType & 0x0F)==PTP_DLYRPLY_MSGTYPE){
-	    memcpy(&msg.body.portIdentity, buffer+44, 8*sizeof(char));
-	    memcpy(&msg.body.portId, buffer+52, 2*sizeof(char));
-    }
-	// print_bytes(buffer, 54);
-    return msg;
-}
-
-__attribute__((noinline))
-int ptpv2_issue_msg(unsigned tx_addr, unsigned rx_addr, unsigned char destination_mac[6], unsigned char destination_ip[4], unsigned seqId, unsigned msgType, unsigned ctrlField, unsigned short eventPort) {
-	unsigned short msgLen = msgType==PTP_DLYRPLY_MSGTYPE ? 54 : 44;
-	unsigned int timestampNanoseconds = 0;
-	unsigned int timestampSeconds = 0;
-	PTPv2Msg msg;
-	msg.head.transportSpec_msgType = msgType;
-	msg.head.reserved_versionPTP = 0x02;
-	msg.head.messageLength = msgLen;
-	msg.head.sequenceId = seqId;
-	msg.head.controlField = ctrlField;
-	msg.head.flagField |= FLAG_PTP_TWO_STEP_MASK;
+int ptpv2_issue_msg(unsigned tx_addr, unsigned rx_addr, unsigned char destination_mac[6], unsigned char destination_ip[4], unsigned seqId, unsigned msgType, unsigned char syncInterval) {
+	txPTPMsg.head.sequenceId = seqId;
+	txPTPMsg.head.transportSpec_msgType = msgType;
+	txPTPMsg.head.reserved_versionPTP = 0x02;
+	txPTPMsg.head.flagField |= FLAG_PTP_TWO_STEP_MASK;
+	txPTPMsg.head.correctionField = 0x0LL;
+	txPTPMsg.head.portIdentity[0] = thisPortInfo.clockId[0];
+	txPTPMsg.head.portIdentity[1] = thisPortInfo.clockId[1];
+	txPTPMsg.head.portIdentity[2] = thisPortInfo.clockId[2];
+	txPTPMsg.head.portIdentity[3] = thisPortInfo.clockId[3];
+	txPTPMsg.head.portIdentity[4] = thisPortInfo.clockId[4];
+	txPTPMsg.head.portIdentity[5] = thisPortInfo.clockId[5];
+	txPTPMsg.head.portIdentity[6] = thisPortInfo.clockId[6];
+	txPTPMsg.head.portIdentity[7] = thisPortInfo.clockId[7];
+	txPTPMsg.head.portId = thisPortInfo.id;
+	txPTPMsg.head.logMessageInterval = syncInterval;
 	switch(msgType){
 		case PTP_SYNC_MSGTYPE:
 			//Master
-			msg.body.nanoseconds = (unsigned)RTC_TIME_NS;
-			msg.body.seconds = (unsigned)RTC_TIME_SEC;
+			txPTPMsg.head.messageLength = 44;
+			txPTPMsg.head.controlField = PTP_SYNC_CTRL;
+			txPTPMsg.body.seconds = (unsigned)RTC_TIME_SEC & 0xFFFFFFFF;
+			txPTPMsg.body.nanoseconds = (unsigned)RTC_TIME_NS;
+			udp_send_mac(tx_addr, rx_addr, destination_mac, destination_ip, PTP_EVENT_PORT, PTP_EVENT_PORT, (unsigned char*)&txPTPMsg, 44, 0);
 			break;
 		case PTP_FOLLOW_MSGTYPE:
 			//Master
-			msg.body.nanoseconds = ptpTimeRecord.t1Nanoseconds;
-			msg.body.seconds = ptpTimeRecord.t1Seconds;
+			txPTPMsg.head.messageLength = 44;
+			txPTPMsg.head.controlField = PTP_FOLLOW_CTRL;
+			txPTPMsg.body.seconds = ptpTimeRecord.t1Seconds;
+			txPTPMsg.body.nanoseconds = ptpTimeRecord.t1Nanoseconds;
+			udp_send_mac(tx_addr, rx_addr, destination_mac, destination_ip, PTP_GENERAL_PORT, PTP_GENERAL_PORT, (unsigned char*)&txPTPMsg, 44, 0);
 			break;
 		case PTP_DLYREQ_MSGTYPE:
 			//Slave
-			msg.body.nanoseconds = (unsigned)RTC_TIME_NS;
-			msg.body.seconds = (unsigned)RTC_TIME_SEC;
+			txPTPMsg.head.messageLength = 44;
+			txPTPMsg.head.controlField = PTP_DLYREQ_CTRL;
+			txPTPMsg.body.seconds = (unsigned)RTC_TIME_SEC & 0xFFFFFFFF;
+			txPTPMsg.body.nanoseconds = (unsigned)RTC_TIME_NS;
+			udp_send_mac(tx_addr, rx_addr, destination_mac, destination_ip, PTP_EVENT_PORT, PTP_EVENT_PORT, (unsigned char*)&txPTPMsg, 44, 0);
 			break;
 		case PTP_DLYRPLY_MSGTYPE:
 			//Master
-			msg.body.nanoseconds = ptpTimeRecord.t4Nanoseconds;
-			msg.body.seconds = ptpTimeRecord.t4Seconds;
+			txPTPMsg.head.messageLength = 54;
+			txPTPMsg.head.controlField = PTP_DLYRPLY_CTRL;
+			*((unsigned long long*)txPTPMsg.body.requestingSourcePort) = *((unsigned long long*)rxPTPMsg.head.portIdentity);
+			txPTPMsg.body.requestingSourceId = rxPTPMsg.head.portId;
+			txPTPMsg.body.seconds = ptpTimeRecord.t4Seconds;
+			txPTPMsg.body.nanoseconds = ptpTimeRecord.t4Nanoseconds;
+			udp_send_mac(tx_addr, rx_addr, destination_mac, destination_ip, PTP_GENERAL_PORT, PTP_GENERAL_PORT, (unsigned char*)&txPTPMsg, 54, 0);
 			break; 
 	}
-	udp_send_mac(tx_addr, rx_addr, destination_mac, destination_ip, eventPort, eventPort, (unsigned char*)&msg, msgLen, 2000000);
 	if(msgType==PTP_SYNC_MSGTYPE){
 		//Master
 		#ifdef USE_HW_TIMESTAMP
@@ -180,8 +135,7 @@ int ptpv2_issue_msg(unsigned tx_addr, unsigned rx_addr, unsigned char destinatio
 
 __attribute__((noinline))
 int ptpv2_handle_msg(unsigned tx_addr, unsigned rx_addr, unsigned char source_mac[6], unsigned char source_ip[4]){
-	unsigned char udp_data[54] = {0};
-	signed char ans = 0;
+	signed char ans = -2;
 	#ifdef USE_HW_TIMESTAMP
 	_Pragma("loopbound min 0 max 1")	
 	while((PTP_RXCHAN_STATUS & PTP_CHAN_VALID_TS_MASK) != PTP_CHAN_VALID_TS_MASK){continue;}
@@ -191,13 +145,15 @@ int ptpv2_handle_msg(unsigned tx_addr, unsigned rx_addr, unsigned char source_ma
 	unsigned int timestampNanoseconds = (unsigned) RTC_TIME_NS;
 	unsigned int timestampSeconds =  (unsigned) RTC_TIME_SEC;
 	#endif
-	udp_get_data(rx_addr, (unsigned char*) &ptpMsg, udp_get_data_length(rx_addr));
-	switch(ptpMsg.head.transportSpec_msgType){
+	udp_get_data(rx_addr, (unsigned char*) &rxPTPMsg, udp_get_data_length(rx_addr));
+	switch(rxPTPMsg.head.transportSpec_msgType){
 	case PTP_SYNC_MSGTYPE:
 		//Exec by slave port
+		// ptpTimeRecord.syncInterval = (unsigned long long) (SEC_TO_NS * (timestampSeconds-ptpTimeRecord.t2Seconds)) + (timestampNanoseconds - ptpTimeRecord.t2Nanoseconds);
 		ptpTimeRecord.t2Nanoseconds = timestampNanoseconds;
 		ptpTimeRecord.t2Seconds = timestampSeconds;
-		if((ptpMsg.head.flagField & FLAG_PTP_TWO_STEP_MASK) != FLAG_PTP_TWO_STEP_MASK){
+		ptpTimeRecord.syncInterval = rxPTPMsg.head.logMessageInterval;
+		if((rxPTPMsg.head.flagField & FLAG_PTP_TWO_STEP_MASK) != FLAG_PTP_TWO_STEP_MASK){
 			// If single-step then store values as precise timestamp and issue DLYREQ
 			lastMasterInfo.ip[0] = source_ip[0];
 			lastMasterInfo.ip[1] = source_ip[1];
@@ -209,15 +165,16 @@ int ptpv2_handle_msg(unsigned tx_addr, unsigned rx_addr, unsigned char source_ma
 			lastMasterInfo.mac[3] = source_mac[3];
 			lastMasterInfo.mac[4] = source_mac[4];
 			lastMasterInfo.mac[5] = source_mac[5];
-			ptpTimeRecord.t1Nanoseconds = ptpMsg.body.nanoseconds;
-			ptpTimeRecord.t1Seconds = ptpMsg.body.seconds;
+			ptpTimeRecord.t1Nanoseconds = rxPTPMsg.body.nanoseconds;
+			ptpTimeRecord.t1Seconds = rxPTPMsg.body.seconds;
 		}
+		// printf("%04X %04X\n", rxPTPMsg.body.seconds, rxPTPMsg.body.nanoseconds);
 		ans = PTP_SYNC_MSGTYPE;
 		break;
 	case PTP_FOLLOW_MSGTYPE:
 		//Exec by slave port
-		ptpTimeRecord.t1Nanoseconds = ptpMsg.body.nanoseconds;
-		ptpTimeRecord.t1Seconds = ptpMsg.body.seconds;
+		ptpTimeRecord.t1Nanoseconds = rxPTPMsg.body.nanoseconds;
+		ptpTimeRecord.t1Seconds = rxPTPMsg.body.seconds;
 		lastMasterInfo.ip[0] = source_ip[0];
 		lastMasterInfo.ip[1] = source_ip[1];
 		lastMasterInfo.ip[2] = source_ip[2];
@@ -248,17 +205,19 @@ int ptpv2_handle_msg(unsigned tx_addr, unsigned rx_addr, unsigned char source_ma
 		break;
 	case PTP_DLYRPLY_MSGTYPE:
 		// Exec by slave port
-		ptpTimeRecord.t4Nanoseconds = ptpMsg.body.nanoseconds;
-		ptpTimeRecord.t4Seconds = ptpMsg.body.seconds;
-		ptpTimeRecord.delayNanoseconds = ptp_calc_one_way_delay(ptpTimeRecord.t1Nanoseconds, ptpTimeRecord.t2Nanoseconds, ptpTimeRecord.t3Nanoseconds, ptpTimeRecord.t4Nanoseconds);
-		ptpTimeRecord.offsetNanoseconds = ptp_calc_offset(ptpTimeRecord.t1Nanoseconds, ptpTimeRecord.t2Nanoseconds, ptpTimeRecord.delayNanoseconds);
-		ptpTimeRecord.delaySeconds = ptp_calc_one_way_delay(ptpTimeRecord.t1Seconds, ptpTimeRecord.t2Seconds, ptpTimeRecord.t3Seconds, ptpTimeRecord.t4Seconds);
-		ptpTimeRecord.offsetSeconds = ptp_calc_offset(ptpTimeRecord.t1Seconds, ptpTimeRecord.t2Seconds, ptpTimeRecord.delaySeconds);
-		ptp_correct_offset();
-		ans = PTP_DLYRPLY_MSGTYPE;
+		if(ptp_filter_clockport(rxPTPMsg.body.requestingSourcePort, rxPTPMsg.body.requestingSourceId, thisPortInfo.clockId, thisPortInfo.id)){
+			ptpTimeRecord.t4Nanoseconds = rxPTPMsg.body.nanoseconds;
+			ptpTimeRecord.t4Seconds = rxPTPMsg.body.seconds;
+			ptpTimeRecord.delayNanoseconds = ptp_calc_delay(ptpTimeRecord.t1Nanoseconds, ptpTimeRecord.t2Nanoseconds, ptpTimeRecord.t3Nanoseconds, ptpTimeRecord.t4Nanoseconds);
+			ptpTimeRecord.offsetNanoseconds = ptp_calc_offset(ptpTimeRecord.t1Nanoseconds, ptpTimeRecord.t2Nanoseconds, ptpTimeRecord.delayNanoseconds);
+			ptpTimeRecord.delaySeconds = ptp_calc_delay(ptpTimeRecord.t1Seconds, ptpTimeRecord.t2Seconds, ptpTimeRecord.t3Seconds, ptpTimeRecord.t4Seconds);
+			ptpTimeRecord.offsetSeconds = ptp_calc_offset(ptpTimeRecord.t1Seconds, ptpTimeRecord.t2Seconds, ptpTimeRecord.delaySeconds);
+			if (PTP_CORRECTION_EN == 1) ptp_correct_offset();
+			ans = PTP_DLYRPLY_MSGTYPE;
+		}
 		break;
 	default:
-		return -2;
+		return -PTP;
 		break;
 	}
 	return ans;
@@ -267,26 +226,24 @@ int ptpv2_handle_msg(unsigned tx_addr, unsigned rx_addr, unsigned char source_ma
 //Applies the correction mechanism based on the calculated offset and acceptable threshold value
 __attribute__((noinline))
 void ptp_correct_offset(){
-	//Calculation
-	if(PTP_RATE_CONTROL==0){
-		RTC_TIME_NS = (unsigned) ((int)RTC_TIME_NS - ptpTimeRecord.offsetNanoseconds);
+	if(PTP_RATE_CONTROL==0 || ptpTimeRecord.offsetNanoseconds > PTP_NS_OFFSET_THRESHOLD){
+		RTC_TIME_NS = (unsigned) (-(ptpTimeRecord.offsetNanoseconds) + (int)RTC_TIME_NS);
 	} else {
-		RTC_CORRECTION_OFFSET = ptpTimeRecord.offsetNanoseconds;
+		RTC_CORRECTION_OFFSET = (ptpTimeRecord.offsetNanoseconds);
 	}
 	if(ptpTimeRecord.offsetSeconds != 0){
-		RTC_TIME_SEC = (unsigned) ((int)RTC_TIME_SEC - ptpTimeRecord.offsetSeconds);
+		RTC_TIME_SEC = (unsigned) (-ptpTimeRecord.offsetSeconds + (int)RTC_TIME_SEC);
 	}
 }
 
+
 //Calculates the offset from the master clock based on timestamps T1, T2
-__attribute__((noinline))
 int ptp_calc_offset(int t1, int t2, int delay){
 	return t2-t1-delay;
 }
 
 //Calculates the delay from the master clock based on timestamps T1, T2, T3, T4
-__attribute__((noinline))
-int ptp_calc_one_way_delay(int t1, int t2, int t3, int t4){
+int ptp_calc_delay(int t1, int t2, int t3, int t4){
 	return (t2-t1+t4-t3)/2;
 }
 
@@ -294,8 +251,21 @@ int ptp_calc_one_way_delay(int t1, int t2, int t3, int t4){
 //Help Functions
 ///////////////////////////////////////////////////////////////
 
-unsigned int get_rtc_usecs(){
-	return (unsigned int) (NS_TO_USEC * RTC_TIME_NS);
+unsigned char ptp_filter_clockport(unsigned char sourceId[8], unsigned short sourcePortId, unsigned char matchId[8], unsigned short matchPortId){
+	unsigned char ans = sourceId[0] == matchId[0];
+	ans &= sourceId[1] == matchId[1];
+	ans &= sourceId[2] == matchId[2];
+	ans &= sourceId[3] == matchId[3];
+	ans &= sourceId[4] == matchId[4];
+	ans &= sourceId[5] == matchId[5];
+	ans &= sourceId[6] == matchId[6];
+	ans &= sourceId[7] == matchId[7];
+	ans &= sourcePortId == matchPortId;
+	return ans;
+}
+
+unsigned long long get_rtc_usecs(){
+	return (unsigned long long) (SEC_TO_USEC * RTC_TIME_SEC) + (NS_TO_USEC * RTC_TIME_NS);
 }
 
 unsigned int get_rtc_secs(){

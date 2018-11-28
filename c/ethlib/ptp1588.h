@@ -74,6 +74,7 @@
 #define PTP_FOLLOW_MSGTYPE 0x08
 #define PTP_DLYREQ_MSGTYPE 0x01
 #define PTP_DLYRPLY_MSGTYPE 0x09
+#define PTP_ANNOUNCE_MSGTYPE 0xb
 
 #define PTP_SYNC_CTRL 0x0
 #define PTP_FOLLOW_CTRL 0x2
@@ -99,26 +100,33 @@
 #define PTP_MULTICAST_IP (unsigned char[4]) {224,0,1,129}
 
 //Time in us
-#define PTP_SYNC_PERIOD 500
+#define PTP_SYNC_PERIOD 15625
 #define PTP_SYNC_TIMEOUT 0
 #define PTP_FOLLOW_DELAY 1000
 #define PTP_REQ_TIMEOUT 10000
 #define PTP_RPLY_TIMEOUT 10000
-#define NS_TO_SEC 0.000001f
-#define NS_TO_USEC 0.001f
+#define NS_TO_SEC 0.000000001
+#define NS_TO_USEC 0.001
+#define USEC_TO_NS 1000
+#define USEC_TO_SEC 0.000001
+#define SEC_TO_NS 1000000000
 #define SEC_TO_USEC 1000000
-#define SEC_TO_HOUR 0.000277777778f
+#define SEC_TO_HOUR 0.000277777778
 
 //Thresholds
-#define PTP_NS_OFFSET_THRESHOLD 5000
+#define PTP_NS_OFFSET_THRESHOLD 500000*USEC_TO_NS
 #define PTP_SEC_OFFSET_THRESHOLD 0
+
+//Drift
+#define DRIFT_RATE 9.82800f
+#define PTP_DRIFT_AMOUNT(syncInterval) (int) (syncInterval*DRIFT_RATE/SEC_TO_USEC)*USEC_TO_NS
 
 //Constants & Options
 #define USE_HW_TIMESTAMP
 #define PTP_RATE_CONTROL 1
 #define PTP_CORRECTION_EN 1
-#define PTP_OFFSET_DRIFT_CORRECT (int) (PTP_SYNC_PERIOD*0.008f)
 
+static const unsigned long long SYNC_INTERVAL_OPTIONS[] = {1000000, 500000, 250000, 125000, 62500, 31250, 15625, 7812, 3906, 1935, 976};
 
 typedef struct {
 	unsigned char transportSpec_msgType;
@@ -127,9 +135,10 @@ typedef struct {
 	unsigned char domainNumber;
 	unsigned char reserved1;
 	unsigned short flagField;
-	unsigned char correctionField[8];
+	unsigned long long correctionField;
 	unsigned int reserved2;
-	unsigned char sourcePortIdentity[10];
+	unsigned char portIdentity[8];
+	unsigned short portId;
 	unsigned short sequenceId;
 	unsigned char controlField;
 	unsigned char logMessageInterval;
@@ -138,8 +147,8 @@ typedef struct {
 typedef struct {
 	unsigned int seconds;
 	unsigned int nanoseconds;
-	unsigned char portIdentity[8];
-	unsigned short portId;
+  unsigned char requestingSourcePort[8];
+  unsigned short requestingSourceId;
 } PTPMsgBody;
 
 typedef struct {
@@ -147,21 +156,8 @@ typedef struct {
 	PTPMsgBody body;
 } PTPv2Msg;
 
-// typedef struct{
-//   int seconds;
-//   int nanoseconds;
-// } PTPTime;
-
-// typedef struct {
-//   PTPTime t1PreciseSync;
-//   PTPTime t2Sync;
-//   PTPTime t3PreciseDelReq;
-//   PTPTime t4DelReq;
-//   PTPTime offset;
-//   PTPTime delay;
-// } PTPv2TimeRecord;
-
 typedef struct {
+  unsigned char syncInterval;
   int offsetSeconds;
   int offsetNanoseconds;
   unsigned int t1Seconds;
@@ -179,29 +175,26 @@ typedef struct {
 typedef struct{
   unsigned char ip[4];
   unsigned char mac[6];
-} PTPAddrInfo;
+  unsigned char clockId[8];
+  unsigned short id;
+} PTPPortInfo;
 
-PTPv2Msg ptpMsg;
+PTPv2Msg txPTPMsg;
+PTPv2Msg rxPTPMsg;
 PTPv2TimeRecord ptpTimeRecord;
-PTPAddrInfo lastMasterInfo;
-PTPAddrInfo lastSlaveInfo;
+PTPPortInfo thisPortInfo;
+PTPPortInfo lastMasterInfo;
+PTPPortInfo lastSlaveInfo;
 
 ///////////////////////////////////////////////////////////////
 //Functions for PTP 1588 protocol
 ///////////////////////////////////////////////////////////////
 
-//Interrupts to register timestamps as soon as they happen
-void ptpv2_intr_rx_handler(void) __attribute__((naked));
-void ptpv2_intr_tx_handler(void) __attribute__((naked));
-
-//Serializes a PTPv2 message structure into buffer byte array
-int ptpv2_serialize(PTPv2Msg msg, unsigned char buffer[]);
-
-//Deserializes a buffer byte array to a PTPv2 message structure
-PTPv2Msg ptpv2_deserialize(unsigned char buffer[]);
+//Intialiaze PTP port
+PTPPortInfo ptpv2_intialize_local_port(unsigned char mac[6], unsigned char ip[4], unsigned short portId);
 
 //Issues a PTPv2 Message
-int ptpv2_issue_msg(unsigned tx_addr, unsigned rx_addr, unsigned char destination_mac[6], unsigned char destination_ip[4], unsigned seqId, unsigned msgType, unsigned ctrlField, unsigned short eventPort);
+int ptpv2_issue_msg(unsigned tx_addr, unsigned rx_addr, unsigned char destination_mac[6], unsigned char destination_ip[4], unsigned seqId, unsigned msgType, unsigned char syncInterval);
 
 //Handles a PTPv2 Message
 int ptpv2_handle_msg(unsigned tx_addr, unsigned rx_addr, unsigned char source_mac[6], unsigned char source_ip[4]);
@@ -213,13 +206,16 @@ void ptp_correct_offset();
 int ptp_calc_offset(int t1, int t2, int delay);
 
 //Calculates the delay from the master clock based on timestamps T1, T2, T3, T4
-int ptp_calc_one_way_delay(int t1, int t2, int t3, int t4);
+int ptp_calc_delay(int t1, int t2, int t3, int t4);
+
+//Returns 1 if the source clock port identity matches the filter identity 
+unsigned char ptp_filter_clockport(unsigned char sourceId[8], unsigned short sourcePortId, unsigned char matchId[8], unsigned short matchPortId);
 
 ///////////////////////////////////////////////////////////////
 //Help Functions
 ///////////////////////////////////////////////////////////////
 
-unsigned int get_rtc_usecs();
+unsigned long long get_rtc_usecs();
 
 unsigned int get_rtc_secs();
 

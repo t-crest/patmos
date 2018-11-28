@@ -39,7 +39,6 @@
 #define _TCP_H_
 
 #include <stdio.h>
-#include "eth_patmos_io.h"
 #include <machine/rtc.h>
 #include "arp.h"
 #include "ipv4.h"
@@ -47,15 +46,17 @@
 /*
  * TCP definitions
  */
-#define TCP_RETRY_INTERVAL 3600000 //us
 #define TCP_SYN_RETRIES 5   //times
 #define TCP_SYNACK_RETRIES 5    //times
 
-enum tcpstate{CLOSED, LISTEN, SYN_SENT, SYN_RCVD, ESTABLISHED, PUSH, FIN_WAIT_1, FIN_WAIT_2, TIME_WAIT, CLOSE_WAIT, CLOSING, LAST_ACK};
+enum tcpstate{CLOSED, LISTEN, SYN_SENT, SYN_RCVD, ESTABLISHED, FIN_WAIT_1, FIN_WAIT_2, TIME_WAIT, CLOSE_WAIT, CLOSING, LAST_ACK};
+
 enum tcpstatus{UNEXPECTED=-1, UNHANDLED=0, HANDLED=1};
 enum tcpflags{FIN=0x1, SYN=0x2, RST=0x4, PSH=0x8, ACK=0x10};
 
 typedef struct {
+    unsigned int eth_tx_addr; 
+    unsigned int eth_rx_addr;
     unsigned char dstMAC[6];
     unsigned char srcMAC[6];
     unsigned char srcIP[4];
@@ -66,6 +67,10 @@ typedef struct {
     unsigned int ackNum;
     enum tcpstate status;
     unsigned short int ipv4_id;
+    unsigned char* send_buffer;
+    unsigned short send_buffer_size;
+    unsigned char* recv_buffer;
+    unsigned short recv_buffer_size;
 } tcp_connection;
 
 /*
@@ -81,18 +86,19 @@ unsigned char tcp_get_flags(unsigned int pkt_addr);
 unsigned short tcp_get_checksum(unsigned int pkt_addr);
 unsigned short tcp_get_data_length(unsigned int pkt_addr);
 unsigned int tcp_get_data(unsigned int pkt_addr, unsigned char data[], unsigned int data_length);
-int tcp_send(unsigned int tx_addr, unsigned int rx_addr, tcp_connection conn, unsigned short flags, unsigned char data[], unsigned short data_length);
 unsigned short tcp_compute_checksum(unsigned int pkt_addr, unsigned short tcp_length, unsigned short data_length);
 int tcp_verify_checksum(unsigned int pkt_addr);
+int tcp_send(tcp_connection* conn, unsigned short flags, unsigned char data[], unsigned short data_length);
 
 /*
  * High-level TCP protocol functions
  */
-void tcp_init_connection(tcp_connection *conn, unsigned char srcMAC[6], unsigned char dstMAC[6], unsigned char srcIP[4], unsigned char dstIP[4], unsigned short srcport, unsigned short dstport);
-int tcp_connect(unsigned int tx_addr, unsigned int rx_addr, tcp_connection* conn);
-int tcp_listen(unsigned int tx_addr, unsigned int rx_addr, tcp_connection* conn);
-int tcp_close(unsigned int tx_addr, unsigned int rx_addr, tcp_connection* conn);
-int tcp_push(unsigned int tx_addr, unsigned int rx_addr, tcp_connection* conn, unsigned char* data, unsigned int data_length);
-int tcp_handle(unsigned int tx_addr, unsigned int rx_addr, tcp_connection* conn, unsigned char* data, unsigned int data_length);
+void tcp_init_connection(tcp_connection *conn, unsigned int eth_tx_addr, unsigned int eth_rx_addr, unsigned char srcMAC[6], unsigned char dstMAC[6], unsigned char srcIP[4], unsigned char dstIP[4], unsigned short srcport, unsigned short dstport, unsigned short send_buffer_size, unsigned short recv_buffer_size);
+int tcp_connect(tcp_connection* conn);
+int tcp_listen(tcp_connection* conn);
+int tcp_close(tcp_connection* conn);
+int tcp_push(tcp_connection* conn);
+int tcp_recv(tcp_connection* conn);
+int tcp_handle(tcp_connection* conn);
 
 #endif

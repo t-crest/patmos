@@ -83,15 +83,21 @@ unsigned short int udp_get_data_length(unsigned int pkt_addr){
 }
 
 //This function gets the data field of an UDP packet.
+__attribute__((noinline))
 unsigned char udp_get_data(unsigned int pkt_addr, unsigned char data[], unsigned int data_length){
-	if (data_length <= udp_get_data_length(pkt_addr)){	
-		for (int i = 0; i<data_length; i++){
-			data[i] = mem_iord_byte(pkt_addr + 42 + i);
-		}
-		return 1;
-	}else{
-		return 0;
-	}	
+	_Pragma("loopbound min 0 max 128")
+	for (int i = 0; i<data_length; i+=1){
+		data[i] = mem_iord_byte(pkt_addr + 42 + i);
+		// unsigned int temp = mem_iord(pkt_addr + 40 + 2 + i);
+		// *((unsigned int*) (data+i)) = temp;
+		// if(i > 0){
+		// 	data[i-2] = (temp >> 24);
+		// 	data[i-1] = (temp >> 16) & 0xFF;
+		// }
+		// data[i+0] = (temp >> 8) & 0xFF;
+		// data[i+1] = temp & 0xFF;
+	}
+	return 1;
 }
 
 ///////////////////////////////////////////////////////////////
@@ -99,6 +105,7 @@ unsigned char udp_get_data(unsigned int pkt_addr, unsigned char data[], unsigned
 ///////////////////////////////////////////////////////////////
 
 //This function comute and returns the UDP checksum. The function ignore the the field checksum.
+__attribute__((noinline))
 unsigned short int udp_compute_checksum(unsigned int pkt_addr){
 	unsigned short int udp_length;
 	unsigned short int corrected_length;
@@ -114,23 +121,29 @@ unsigned short int udp_compute_checksum(unsigned int pkt_addr){
 		mem_iowr_byte(pkt_addr + udp_length + 34, 0x00);
 	}
 	checksum = 0;
+	_Pragma("loopbound min 0 max 14")
 	for (int i = 0; i<corrected_length; i=i+2){
 		checksum = checksum + (mem_iord_byte(pkt_addr + 34 + i) << 8) + (mem_iord_byte(pkt_addr + 35 + i) & 0xFF);
 	}
 	checksum = checksum - (mem_iord_byte(pkt_addr + 40) << 8) + (mem_iord_byte(pkt_addr + 41) & 0xFF);
+	_Pragma("loopbound min 0 max 2")
 	for (int i = 0; i<4; i=i+2){
 		checksum = checksum + (mem_iord_byte(pkt_addr + 26 + i) << 8) + (mem_iord_byte(pkt_addr + 27 + i) & 0xFF);
 		checksum = checksum + (mem_iord_byte(pkt_addr + 30 + i) << 8) + (mem_iord_byte(pkt_addr + 31 + i) & 0xFF);
 	}
 	checksum = checksum + 0x0011 + udp_length;
-	while((checksum >> 16) != 0){
+	if ((checksum & 0xFFFF0000) > 0)
 		checksum = (checksum & 0xFFFF) + (checksum >> 16);
-	}
+	if ((checksum & 0xFFFF0000) > 0)
+		checksum = (checksum & 0xFFFF) + (checksum >> 16);
+	if ((checksum & 0xFFFF0000) > 0)
+		checksum = (checksum & 0xFFFF) + (checksum >> 16);
 	checksum = ((~checksum) & 0xFFFF);
 	return (unsigned short int) checksum;		
 }
 
 //This function compute and returns the UDP checksum. The function ignore the the field checksum.
+__attribute__((noinline))
 int udp_verify_checksum(unsigned int pkt_addr){
 	unsigned short int udp_length;
 	unsigned short int corrected_length;
@@ -146,17 +159,22 @@ int udp_verify_checksum(unsigned int pkt_addr){
 		mem_iowr_byte(pkt_addr + udp_length + 34, 0x00);
 	}
 	checksum = 0;
+	_Pragma("loopbound min 0 max 14")
 	for (int i = 0; i<corrected_length; i=i+2){
 		checksum = checksum + (mem_iord_byte(pkt_addr + 34 + i) << 8) + (mem_iord_byte(pkt_addr + 35 + i) & 0xFF);
 	}
+	_Pragma("loopbound min 0 max 2")
 	for (int i = 0; i<4; i=i+2){
 		checksum = checksum + (mem_iord_byte(pkt_addr + 26 + i) << 8) + (mem_iord_byte(pkt_addr + 27 + i) & 0xFF);
 		checksum = checksum + (mem_iord_byte(pkt_addr + 30 + i) << 8) + (mem_iord_byte(pkt_addr + 31 + i) & 0xFF);
 	}
 	checksum = checksum + 0x0011 + udp_length;
-	while((checksum >> 16) != 0){
+	if ((checksum & 0xFFFF0000) > 0)
 		checksum = (checksum & 0xFFFF) + (checksum >> 16);
-	}
+	if ((checksum & 0xFFFF0000) > 0)
+		checksum = (checksum & 0xFFFF) + (checksum >> 16);
+	if ((checksum & 0xFFFF0000) > 0)
+		checksum = (checksum & 0xFFFF) + (checksum >> 16);
 	checksum = ((~checksum) & 0xFFFF);
 	if (checksum == 0){
 		return 1;
@@ -166,7 +184,8 @@ int udp_verify_checksum(unsigned int pkt_addr){
 }
 
 //This function sends an UDP packet to the dstination IP.
-int udp_send(unsigned int tx_addr, unsigned int rx_addr, unsigned char destination_ip[], unsigned short int source_port, unsigned short int destination_port, unsigned char data[], unsigned short int data_length, long long unsigned int timeout){
+__attribute__((noinline))
+int udp_send(unsigned int tx_addr, unsigned int rx_addr, unsigned char destination_ip[], unsigned short source_port, unsigned short destination_port, unsigned char data[], unsigned short data_length, long long timeout){
 	//Resolve the ip address
 	unsigned char destination_mac[6];
 	if (arp_table_search(destination_ip, destination_mac) == 0){
@@ -179,117 +198,76 @@ int udp_send(unsigned int tx_addr, unsigned int rx_addr, unsigned char destinati
 	unsigned short int udp_length = data_length + 8;
 	unsigned short int ip_length = udp_length + 20;
 	unsigned short int frame_length = ip_length + 14;
-
 	//MAC addrs
-	for (int i=0; i<6; i++){
-		mem_iowr_byte(tx_addr + i, destination_mac[i]);//ETH header destination
-		mem_iowr_byte(tx_addr + 6 + i, my_mac[i]);//ETH header mymac
-	}
+	mem_iowr(tx_addr, (destination_mac[0] << 24) | (destination_mac[1] << 16) | (destination_mac[2] << 8) | destination_mac[3]);
+	mem_iowr(tx_addr + 4, (destination_mac[4] << 24) | (destination_mac[5] << 16) | (my_mac[0] << 8) | my_mac[1]);
+	mem_iowr(tx_addr + 8, (my_mac[2] << 24) | (my_mac[3] << 16) | (my_mac[4] << 8) | my_mac[5]);
 	//MAC type + IP version + IP type
 	mem_iowr(tx_addr + 12, 0x08004500);
-
-	mem_iowr_byte(tx_addr + 16, ip_length >> 8);
-	mem_iowr_byte(tx_addr + 17, ip_length & 0xFF);
-	//Identification
-	ipv4_id++;
-	mem_iowr_byte(tx_addr + 18, (ipv4_id >> 8));//Need to be changed
-	mem_iowr_byte(tx_addr + 19, (ipv4_id & 0xFF));//Need to be changed
+	//Length + Identification
+	mem_iowr(tx_addr + 16, (ip_length << 16) | (ipv4_id));
 	//Flags + TTL + Protocol
 	mem_iowr(tx_addr + 20, 0x40004011);
-	//Checksum
-	mem_iowr_byte(tx_addr + 24, 0x00);//Nobody cares about IP checksum
-	mem_iowr_byte(tx_addr + 25, 0x00);//Nobody cares about IP checksum
-	//IP addrs
-	for (int i=0; i<4; i++){
-		mem_iowr_byte(tx_addr + 26 + i, my_ip[i]);//Sender myip
-		mem_iowr_byte(tx_addr + 30 + i, destination_ip[i]);//Destination ip
-	}
-	//Source port
-	mem_iowr_byte(tx_addr + 34, source_port >> 8);
-	mem_iowr_byte(tx_addr + 35, source_port & 0xFF);
-	//Destination port
-	mem_iowr_byte(tx_addr + 36, destination_port >> 8);
-	mem_iowr_byte(tx_addr + 37, destination_port & 0xFF);
-	//UDP length
-	mem_iowr_byte(tx_addr + 38, udp_length >> 8);
-	mem_iowr_byte(tx_addr + 39, udp_length & 0xFF);
-	//UDP checksum = 0
-	mem_iowr_byte(tx_addr + 40, 0x00);
-	mem_iowr_byte(tx_addr + 41, 0x00);
-	//UDP data
-	for (int i=0; i<data_length; i++){
-		mem_iowr_byte(tx_addr + 42 + i, data[i]);//Sender myip
+	//IP addrs + Ports + UDP Length
+	mem_iowr(tx_addr + 24, (my_ip[0] << 8) | my_ip[1]);
+	mem_iowr(tx_addr + 28, (my_ip[2] << 24) | (my_ip[3] << 16) | (destination_ip[0] << 8) | destination_ip[1]);
+	mem_iowr(tx_addr + 32, (destination_ip[2] << 24) | (destination_ip[3] << 16) | source_port);
+	mem_iowr(tx_addr + 36, (destination_port << 16) | udp_length);
+	//UDP checksum +  datas
+	mem_iowr(tx_addr + 40, (data[0] << 8 | data[1]));
+	_Pragma("loopbound min 0 max 32")
+	for (int i=2; i<data_length; i+=4){
+		mem_iowr(tx_addr + 42 + i, (data[i+0] << 24) | (data[i+1] << 16) | (data[i+2] << 8) | data[i+3]);//Sender myip
 	}
 	//IPv4 checksum
 	unsigned short int checksum = ipv4_compute_checksum(tx_addr);
 	mem_iowr_byte(tx_addr + 24, (checksum >> 8));
 	mem_iowr_byte(tx_addr + 25, (checksum & 0xFF));
-	//UDP checksum
+	// UDP checksum
 	checksum = udp_compute_checksum(tx_addr);
 	mem_iowr_byte(tx_addr + 40, (checksum >> 8));
 	mem_iowr_byte(tx_addr + 41, (checksum & 0xFF));
 	eth_mac_send(tx_addr, frame_length);
+	ipv4_id+=0x10000;
 	return 1;
 }
 
 __attribute__((noinline))
-int udp_send_mac(unsigned int tx_addr, unsigned int rx_addr, unsigned char destination_mac[], unsigned char destination_ip[], unsigned short int source_port, unsigned short int destination_port, unsigned char data[], unsigned short int data_length, long long unsigned int timeout){
+int udp_send_mac(unsigned int tx_addr, unsigned int rx_addr, unsigned char destination_mac[], unsigned char destination_ip[], unsigned short source_port, unsigned short destination_port, unsigned char data[], unsigned short data_length, long long timeout){
 	//Resolve the ip address
-	unsigned short int udp_length = data_length + 8;
-	unsigned short int ip_length = udp_length + 20;
-	unsigned short int frame_length = ip_length + 14;
-
+	unsigned short udp_length = data_length + 8;
+	unsigned short ip_length = udp_length + 20;
+	unsigned short frame_length = ip_length + 14;
 	//MAC addrs
-	for (int i=0; i<6; i++){
-		mem_iowr_byte(tx_addr + i, destination_mac[i]);//ETH header destination
-		mem_iowr_byte(tx_addr + 6 + i, my_mac[i]);//ETH header mymac
-	}
+	mem_iowr(tx_addr, (destination_mac[0] << 24) | (destination_mac[1] << 16) | (destination_mac[2] << 8) | destination_mac[3]);
+	mem_iowr(tx_addr + 4, (destination_mac[4] << 24) | (destination_mac[5] << 16) | (my_mac[0] << 8) | my_mac[1]);
+	mem_iowr(tx_addr + 8, (my_mac[2] << 24) | (my_mac[3] << 16) | (my_mac[4] << 8) | my_mac[5]);
 	//MAC type + IP version + IP type
 	mem_iowr(tx_addr + 12, 0x08004500);
-
-	mem_iowr_byte(tx_addr + 16, ip_length >> 8);
-	mem_iowr_byte(tx_addr + 17, ip_length & 0xFF);
-	//Identification
-	ipv4_id++;
-	mem_iowr_byte(tx_addr + 18, (ipv4_id >> 8));//Need to be changed
-	mem_iowr_byte(tx_addr + 19, (ipv4_id & 0xFF));//Need to be changed
+	//Length + Identification
+	mem_iowr(tx_addr + 16, (ip_length << 16) | (ipv4_id));
 	//Flags + TTL + Protocol
 	mem_iowr(tx_addr + 20, 0x40004011);
-	//Checksum
-	mem_iowr_byte(tx_addr + 24, 0x00);//Nobody cares about IP checksum
-	mem_iowr_byte(tx_addr + 25, 0x00);//Nobody cares about IP checksum
-	//IP addrs
-	for (int i=0; i<4; i++){
-		mem_iowr_byte(tx_addr + 26 + i, my_ip[i]);//Sender myip
-		mem_iowr_byte(tx_addr + 30 + i, destination_ip[i]);//Destination ip
-	}
-	//Source port
-	mem_iowr_byte(tx_addr + 34, source_port >> 8);
-	mem_iowr_byte(tx_addr + 35, source_port & 0xFF);
-	//Destination port
-	mem_iowr_byte(tx_addr + 36, destination_port >> 8);
-	mem_iowr_byte(tx_addr + 37, destination_port & 0xFF);
-	//UDP length
-	mem_iowr_byte(tx_addr + 38, udp_length >> 8);
-	mem_iowr_byte(tx_addr + 39, udp_length & 0xFF);
-	//UDP checksum = 0
-	mem_iowr_byte(tx_addr + 40, 0x00);
-	mem_iowr_byte(tx_addr + 41, 0x00);
-	//UDP data
-	for (int i=0; i<data_length; i++){
-		mem_iowr_byte(tx_addr + 42 + i, data[i]);//Sender myip
+	//IP addrs + Ports + UDP Length
+	mem_iowr(tx_addr + 24, (my_ip[0] << 8) | my_ip[1]);
+	mem_iowr(tx_addr + 28, (my_ip[2] << 24) | (my_ip[3] << 16) | (destination_ip[0] << 8) | destination_ip[1]);
+	mem_iowr(tx_addr + 32, (destination_ip[2] << 24) | (destination_ip[3] << 16) | source_port);
+	mem_iowr(tx_addr + 36, (destination_port << 16) | udp_length);
+	//UDP checksum +  datas
+	mem_iowr(tx_addr + 40, 0x0000 | (data[0] << 8 | data[1]));
+	_Pragma("loopbound min 0 max 32")
+	for (int i=2; i<data_length; i+=4){
+		mem_iowr(tx_addr + 42 + i, (data[i+0] << 24) | (data[i+1] << 16) | (data[i+2] << 8) | data[i+3]);
 	}
 	//IPv4 checksum
 	unsigned short int checksum = ipv4_compute_checksum(tx_addr);
 	mem_iowr_byte(tx_addr + 24, (checksum >> 8));
 	mem_iowr_byte(tx_addr + 25, (checksum & 0xFF));
-	//UDP checksum
+	// UDP checksum
 	checksum = udp_compute_checksum(tx_addr);
 	mem_iowr_byte(tx_addr + 40, (checksum >> 8));
 	mem_iowr_byte(tx_addr + 41, (checksum & 0xFF));
 	eth_mac_send(tx_addr, frame_length);
+	ipv4_id+=0x10000;
 	return 1;
 }
-
-
-
