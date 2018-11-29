@@ -227,12 +227,13 @@ int ptpv2_handle_msg(unsigned tx_addr, unsigned rx_addr, unsigned char source_ma
 __attribute__((noinline))
 void ptp_correct_offset(){
 	if(PTP_RATE_CONTROL==0 || ptpTimeRecord.offsetNanoseconds > PTP_NS_OFFSET_THRESHOLD){
-		RTC_TIME_NS = (unsigned) (-(ptpTimeRecord.offsetNanoseconds) + (int)RTC_TIME_NS);
+		RTC_TIME_NS = (unsigned) (-(ptpTimeRecord.offsetNanoseconds) + (int)RTC_TIME_NS);	//reverse order to load time operand last
 	} else {
-		RTC_CORRECTION_OFFSET = (ptpTimeRecord.offsetNanoseconds);
+		float driftCompens = 0.0002455f * SYNC_INTERVAL_OPTIONS[-((signed char)ptpTimeRecord.syncInterval)] * USEC_TO_NS / 25;
+		RTC_CORRECTION_OFFSET = (int) (ptpTimeRecord.offsetNanoseconds - driftCompens);
 	}
 	if(ptpTimeRecord.offsetSeconds != 0){
-		RTC_TIME_SEC = (unsigned) (-ptpTimeRecord.offsetSeconds + (int)RTC_TIME_SEC);
+		RTC_TIME_SEC = (unsigned) (-ptpTimeRecord.offsetSeconds + (int)RTC_TIME_SEC);	//reverse order to load time operand last
 	}
 }
 

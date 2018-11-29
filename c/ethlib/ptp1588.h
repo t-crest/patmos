@@ -126,7 +126,7 @@
 #define PTP_RATE_CONTROL 1
 #define PTP_CORRECTION_EN 1
 
-static const unsigned long long SYNC_INTERVAL_OPTIONS[] = {1000000, 500000, 250000, 125000, 62500, 31250, 15625, 7812, 3906, 1935, 976};
+static const unsigned SYNC_INTERVAL_OPTIONS[] = {1000000, 500000, 250000, 125000, 62500, 31250, 15625, 7812, 3906, 1935, 976};
 
 typedef struct {
 	unsigned char transportSpec_msgType;

@@ -223,12 +223,8 @@ int main(int argc, char **argv){
 	initSeconds = RTC_TIME_SEC;
 
 	//Test offset
-	RTC_CORRECTION_OFFSET = 500000;
-	if(RTC_CORRECTION_OFFSET == 0 || RTC_CORRECTION_OFFSET == initNanoseconds){
-		puts("Error HW clock adjustment does not work");
-		return -1;
-	}
-	while(RTC_CORRECTION_OFFSET != 0){continue;}
+	RTC_CORRECTION_OFFSET = 0xFFFF;
+	while((*led_ptr=RTC_CORRECTION_OFFSET) != 0){continue;}
 	RTC_TIME_NS = initNanoseconds;
 	RTC_TIME_SEC = initSeconds;
 
