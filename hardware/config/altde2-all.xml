@@ -66,6 +66,7 @@
 				<param name="withPTP" value="true" />
 				<param name="secondsWidth" value="32"/>
 				<param name="nanoWidth" value="32"/>
+				<param name="timeStep" value="25"/>
 			</params>
 		</Dev>
     <Dev DevType="Gpio" entity="Gpio" iface="OcpCore">

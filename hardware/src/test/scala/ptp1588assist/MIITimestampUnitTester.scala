@@ -1,6 +1,7 @@
 package ptp1588assist
 
 import Chisel._
+import sys.process._
 
 class MIITimestampUnitTester(dut: MIITimestampUnit, ethernetFrame: EthernetFrame, testStages: Int, iterations: Int) extends Tester(dut){
 
@@ -247,9 +248,10 @@ class MIITimestampUnitTester(dut: MIITimestampUnit, ethernetFrame: EthernetFrame
 object MIITimestampUnitTester {
   def main(args: Array[String]): Unit = {
     chiselMainTest(Array("--genHarness", "--test", "--backend", "c",
-      "--compile", "--vcd", "--targetDir", "generated"),
+      "--compile", "--vcd", "--targetDir", "generated/"+this.getClass.getSimpleName.dropRight(1)),
       () => Module(new MIITimestampUnit(64))) {
       dut => new MIITimestampUnitTester(dut, ethernetFrame = EthernetTesting.mockupPTPEthFrameOverIpUDP, testStages = 7, iterations = 4)
     }
+    "gtkwave generated/"++this.getClass.getSimpleName.dropRight(1)+"/"+"MIITimestampUnit.vcd" !
   }
 }

@@ -23,6 +23,7 @@ entity patmos_top is
         oLedsPins_led : out   std_logic_vector(8 downto 0);
         oLedsPins_ledR : out  std_logic_vector(17 downto 0);
         iKeysPins_key : in    std_logic_vector(3 downto 0);
+        oGpioPins_gpio_0 : out std_logic_vector(0 downto 0);
         osevenSegmentDisplayPins_hexDisp_7 : out std_logic_vector(6 downto 0);
 		osevenSegmentDisplayPins_hexDisp_6 : out std_logic_vector(6 downto 0);
 		osevenSegmentDisplayPins_hexDisp_5 : out std_logic_vector(6 downto 0);
@@ -94,6 +95,7 @@ architecture rtl of patmos_top is
 
             io_ledsPins_led                       : out std_logic_vector(8 downto 0);
             io_keysPins_key                       : in  std_logic_vector(3 downto 0);
+            io_gpioPins_gpios_0                   : out std_logic_vector(0 downto 0);
             io_uartPins_tx                        : out std_logic;
             io_uartPins_rx                        : in  std_logic;
             io_uart2Pins_tx                       : out std_logic;
@@ -123,7 +125,7 @@ architecture rtl of patmos_top is
             io_ethMacPins_mdc_pad_o               : out   std_logic; -- MII Management data clock (to PHY)
             io_ethMacPins_md_pad_o                : out   std_logic; -- MII data output (to I/O cell)
             io_ethMacPins_md_padoe_o              : out   std_logic; -- MII data output enable (to I/O cell)
---            io_ethMacPins_rtcDisp_7               : out std_logic_vector(6 downto 0);
+--          io_ethMacPins_rtcDisp_7               : out std_logic_vector(6 downto 0);
 --    		io_ethMacPins_rtcDisp_6               : out std_logic_vector(6 downto 0);
 --    		io_ethMacPins_rtcDisp_5               : out std_logic_vector(6 downto 0);
 --    		io_ethMacPins_rtcDisp_4               : out std_logic_vector(6 downto 0);
@@ -132,10 +134,10 @@ architecture rtl of patmos_top is
 --    		io_ethMacPins_rtcDisp_1               : out std_logic_vector(6 downto 0);
 --    		io_ethMacPins_rtcDisp_0               : out std_logic_vector(6 downto 0);
             io_ethMacPins_ptpPPS                  : out   std_logic;
-            io_ethMacPins_ledPHY                  : out   std_logic;
-            io_ethMacPins_ledSOF                  : out   std_logic;
-            io_ethMacPins_ledEOF                  : out   std_logic;
-            io_ethMacPins_ledSFD                  : out   std_logic_vector(7 downto 0);
+            -- io_ethMacPins_ledPHY                  : out   std_logic;
+            -- io_ethMacPins_ledSOF                  : out   std_logic;
+            -- io_ethMacPins_ledEOF                  : out   std_logic;
+            -- io_ethMacPins_ledSFD                  : out   std_logic_vector(7 downto 0);
 
             io_sramCtrlPins_ramOut_addr           : out std_logic_vector(19 downto 0);
             io_sramCtrlPins_ramOut_doutEna        : out std_logic;
@@ -234,6 +236,7 @@ begin
         io_comSpm_S_Data => (others => '0'),
         io_ledsPins_led => oLedsPins_led,
         io_keysPins_key => iKeysPins_key,
+        io_gpioPins_gpios_0 => oGpioPins_gpio_0,
         io_uartPins_tx => oUartPins_txd, 
         io_uartPins_rx => iUartPins_rxd,
         io_uart2Pins_tx => oUart2Pins_txd,
@@ -263,10 +266,10 @@ begin
         io_sevenSegmentDisplayPins_hexDisp_1 => osevenSegmentDisplayPins_hexDisp_1,
         io_sevenSegmentDisplayPins_hexDisp_0 => osevenSegmentDisplayPins_hexDisp_0,
         io_ethMacPins_ptpPPS => oPPS,
-        io_ethMacPins_ledPHY => oLedsPins_ledR(17),
-        io_ethMacPins_ledSOF => oLedsPins_ledR(16),
-        io_ethMacPins_ledEOF => oLedsPins_ledR(15),
-        io_ethMacPins_ledSFD => oLedsPins_ledR(7 downto 0),
+        -- io_ethMacPins_ledPHY => oLedsPins_ledR(17),
+        -- io_ethMacPins_ledSOF => oLedsPins_ledR(16),
+        -- io_ethMacPins_ledEOF => oLedsPins_ledR(15),
+        -- io_ethMacPins_ledSFD => oLedsPins_ledR(7 downto 0),
         
         io_sramCtrlPins_ramOut_addr => oSRAM_A, 
         io_sramCtrlPins_ramOut_doutEna => sram_out_dout_ena,

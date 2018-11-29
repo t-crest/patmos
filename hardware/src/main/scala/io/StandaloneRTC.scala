@@ -35,7 +35,7 @@ object StandaloneRTC extends DeviceObject {
   }
 }
 
-class StandaloneRTC(secondsWidth: Int = 40, nanoWidth: Int = 24, initialTime: BigInt) extends CoreDevice() {
+class StandaloneRTC(secondsWidth: Int = 40, nanoWidth: Int = 24, initialTime: BigInt = 0L, timeStep: Int = 25) extends CoreDevice() {
   override val io = new CoreDeviceIO() with StandaloneRTC.Pins with StandaloneRTC.Intrs
 
   // Decode hardware
@@ -99,7 +99,7 @@ class StandaloneRTC(secondsWidth: Int = 40, nanoWidth: Int = 24, initialTime: Bi
     }
   }
 
-  val rtc = Module(new RTC(CLOCK_FREQ, secondsWidth, nanoWidth, initialTime))
+  val rtc = Module(new RTC(CLOCK_FREQ, secondsWidth, nanoWidth, initialTime, timeStep))
   rtc.io.ocp <> io.ocp
   io.periodIntr := rtc.io.periodIntr
 

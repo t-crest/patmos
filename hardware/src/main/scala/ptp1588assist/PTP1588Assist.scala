@@ -6,7 +6,7 @@ import io._
 import ocp._
 import patmos.Constants._
 
-class PTP1588Assist(addrWidth: Int = ADDR_WIDTH, dataWidth: Int = DATA_WIDTH, clockFreq: Int = CLOCK_FREQ, secondsWidth: Int = 40, nanoWidth: Int = 24, initialTime: BigInt = 0) extends Module{
+class PTP1588Assist(addrWidth: Int = ADDR_WIDTH, dataWidth: Int = DATA_WIDTH, clockFreq: Int = CLOCK_FREQ, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTime: BigInt = 0L, timeStep: Int = 25) extends Module{
   val io = new Bundle{
     val ocp = new OcpCoreSlavePort(addrWidth, dataWidth)
     val ethMacRX = new MIIChannel().asInput()
@@ -21,13 +21,13 @@ class PTP1588Assist(addrWidth: Int = ADDR_WIDTH, dataWidth: Int = DATA_WIDTH, cl
   }
 
   // Connections
-  val rtc = Module(new RTC(clockFreq, secondsWidth, nanoWidth, initialTime))
+  val rtc = Module(new RTC(clockFreq, secondsWidth, nanoWidth, initialTime, timeStep))
 
-  val tsuRx = Module(new MIITimestampUnit(64))
+  val tsuRx = Module(new MIITimestampUnit(secondsWidth+nanoWidth))
   tsuRx.io.miiChannel <> io.ethMacRX
   tsuRx.io.rtcTimestamp := rtc.io.ptpTimestamp
 
-  val tsuTx = Module(new MIITimestampUnit(64))
+  val tsuTx = Module(new MIITimestampUnit(secondsWidth+nanoWidth))
   tsuTx.io.miiChannel <> io.ethMacTX
   tsuTx.io.rtcTimestamp := rtc.io.ptpTimestamp
 
@@ -144,25 +144,25 @@ class PTP1588Assist(addrWidth: Int = ADDR_WIDTH, dataWidth: Int = DATA_WIDTH, cl
 
   // [OPTIONAL] Hex & Led Connectivity
   // Led connections
-  val dispRegVec = RegInit(Vec.fill(8){Bits(0, width = 7)})
-  dispRegVec(0) := sevenSegBCDDecode(rtc.io.ptpTimestamp(35, 32), segmentPolarity = 0)
-  dispRegVec(1) := sevenSegBCDDecode(rtc.io.ptpTimestamp(39, 36), segmentPolarity = 0)
-  dispRegVec(2) := sevenSegBCDDecode(rtc.io.ptpTimestamp(43, 40), segmentPolarity = 0)
-  dispRegVec(3) := sevenSegBCDDecode(rtc.io.ptpTimestamp(47, 44), segmentPolarity = 0)
-  dispRegVec(4) := sevenSegBCDDecode(rtc.io.ptpTimestamp(51, 48), segmentPolarity = 0)
-  dispRegVec(5) := sevenSegBCDDecode(rtc.io.ptpTimestamp(55, 52), segmentPolarity = 0)
-  dispRegVec(6) := sevenSegBCDDecode(rtc.io.ptpTimestamp(59, 56), segmentPolarity = 0)
-  dispRegVec(7) := sevenSegBCDDecode(rtc.io.ptpTimestamp(63, 60), segmentPolarity = 0)
-  io.rtcHexDisp := dispRegVec
-  io.ledPHY := tsuRx.io.listening | tsuTx.io.listening
-  io.ledSOF := tsuRx.io.sofValid | tsuTx.io.sofValid
-  io.ledEOF := tsuRx.io.eofValid | tsuTx.io.eofValid
-  io.ledSFD := tsuRx.io.sfdValid | tsuTx.io.sfdValid
+  // val dispRegVec = RegInit(Vec.fill(8){Bits(0, width = 7)})
+  // dispRegVec(0) := sevenSegBCDDecode(rtc.io.ptpTimestamp(35, 32), segmentPolarity = 0)
+  // dispRegVec(1) := sevenSegBCDDecode(rtc.io.ptpTimestamp(39, 36), segmentPolarity = 0)
+  // dispRegVec(2) := sevenSegBCDDecode(rtc.io.ptpTimestamp(43, 40), segmentPolarity = 0)
+  // dispRegVec(3) := sevenSegBCDDecode(rtc.io.ptpTimestamp(47, 44), segmentPolarity = 0)
+  // dispRegVec(4) := sevenSegBCDDecode(rtc.io.ptpTimestamp(51, 48), segmentPolarity = 0)
+  // dispRegVec(5) := sevenSegBCDDecode(rtc.io.ptpTimestamp(55, 52), segmentPolarity = 0)
+  // dispRegVec(6) := sevenSegBCDDecode(rtc.io.ptpTimestamp(59, 56), segmentPolarity = 0)
+  // dispRegVec(7) := sevenSegBCDDecode(rtc.io.ptpTimestamp(63, 60), segmentPolarity = 0)
+  // io.rtcHexDisp := dispRegVec
+  // io.ledPHY := tsuRx.io.listening | tsuTx.io.listening
+  // io.ledSOF := tsuRx.io.sofValid | tsuTx.io.sofValid
+  // io.ledEOF := tsuRx.io.eofValid | tsuTx.io.eofValid
+  // io.ledSFD := tsuRx.io.sfdValid | tsuTx.io.sfdValid
 }
 
 object PTP1588Assist {
   def main(args: Array[String]): Unit = {
-    chiselMain(Array[String]("--backend", "v", "--targetDir", "generated"),
+    chiselMain(Array[String]("--backend", "v", "--targetDir", "generated/PTP1588Assist"),
       () => Module(new PTP1588Assist(addrWidth=16, dataWidth=32, clockFreq = 80000000)))
   }
 }
