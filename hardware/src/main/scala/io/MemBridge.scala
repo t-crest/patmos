@@ -1,11 +1,7 @@
 package io
 
-import scala.math._
-
 import Chisel._
-import Node._
 import ocp._
-import patmos.Constants._
 
 object MemBridge extends DeviceObject {
     var ocpAddrWidth = 32

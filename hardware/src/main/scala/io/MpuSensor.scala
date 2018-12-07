@@ -11,7 +11,6 @@
 package io
 
 import Chisel._
-import Node._
 import ocp._
 
 object MpuSensor extends DeviceObject {

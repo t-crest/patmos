@@ -42,9 +42,6 @@
 package stackcache
 
 import Chisel._
-import Node._
-
-import scala.math
 
 import ocp._
 import patmos._

@@ -1,7 +1,6 @@
 package ptp1588assist
 
 import Chisel._
-import Node._
 
 /*
  *  Deserialize$inputWidth to M-bit parallel

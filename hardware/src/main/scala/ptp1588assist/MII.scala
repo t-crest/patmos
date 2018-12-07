@@ -1,7 +1,6 @@
 package ptp1588assist
 
 import Chisel._
-import Node._
 
 class MIIChannel extends Bundle{
   val clk = Bool(INPUT)

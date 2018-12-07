@@ -47,7 +47,7 @@ class DataCache extends Module {
     else if (DCACHE_ASSOC == 2 && DCACHE_REPL == CACHE_REPL_LRU && DCACHE_WRITETHROUGH)
       Module(new TwoWaySetAssociativeCache(DCACHE_SIZE, BURST_LENGTH*BYTES_PER_WORD))
     else {
-      ChiselError.error("Unsupported data cache configuration: "+
+      throw new Error("Unsupported data cache configuration: "+
                         "associativity "+DCACHE_ASSOC+
                         " with replacement policy \""+DCACHE_REPL+"\""+
                         " and write "+(if (DCACHE_WRITETHROUGH) "through" else "back"))

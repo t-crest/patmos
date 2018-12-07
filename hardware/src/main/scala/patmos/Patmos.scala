@@ -35,7 +35,7 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int, aegeanCompatible: Boolean) 
     else if (ICACHE_TYPE == ICACHE_TYPE_LINE && ICACHE_ASSOC == 1)
       Module(new ICache())
     else {
-      ChiselError.error("Unsupported instruction cache configuration:" +
+      throw new Error("Unsupported instruction cache configuration:" +
         " type \"" + ICACHE_TYPE + "\"" +
         " (must be \"" + ICACHE_TYPE_METHOD + "\" or \"" + ICACHE_TYPE_LINE + "\")" +
         " associativity " + ICACHE_ASSOC +
