@@ -39,6 +39,8 @@
 #include "tcp.h"
 #include <string.h> //memset
 
+#define DEBUG_PRINT
+
 /*
  * Low-level TCP protocol functions
  */
@@ -106,7 +108,7 @@ unsigned int tcp_get_data(unsigned int pkt_addr, unsigned char* data, unsigned i
 
 __attribute__((noinline))
 int tcp_send(tcp_connection *conn, unsigned short flags, unsigned char data[], unsigned short data_length){
-	unsigned short int tcp_length = data_length + 24;
+	unsigned short int tcp_length = data_length + 20;
 	unsigned short int ip_length = tcp_length + 20;
 	unsigned short int frame_length = ip_length + 14;
 
@@ -119,48 +121,22 @@ int tcp_send(tcp_connection *conn, unsigned short flags, unsigned char data[], u
 	//Length + Identification
 	mem_iowr(conn->eth_tx_addr + 16, (ip_length << 16) | (conn->ipv4_id));
 	//Flags + TTL + Protocol
-	mem_iowr(conn->eth_tx_addr + 20, 0x40004011);
-	//IP addrs
-	mem_iowr(conn->eth_tx_addr + 24, (my_ip[0] << 8) | my_ip[1]);
-	mem_iowr(conn->eth_tx_addr + 28, (my_ip[2] << 24) | (my_ip[3] << 16) | (conn->dstIP[0] << 8) | conn->dstIP[1]);
-	//TCP Source port
-	mem_iowr_byte(conn->eth_tx_addr + 34, conn->srcport >> 8);
-	mem_iowr_byte(conn->eth_tx_addr + 35, conn->srcport & 0xFF);
-	//TCP Destination port
-	mem_iowr_byte(conn->eth_tx_addr + 36, conn->dstport >> 8);
-	mem_iowr_byte(conn->eth_tx_addr + 37, conn->dstport & 0xFF);
-	//TCP Sequence number
-	mem_iowr_byte(conn->eth_tx_addr + 38, conn->seqNum >> 24);
-	mem_iowr_byte(conn->eth_tx_addr + 39, (conn->seqNum >> 16) & 0xFF);
-	mem_iowr_byte(conn->eth_tx_addr + 40, (conn->seqNum >> 8) & 0xFF);
-	mem_iowr_byte(conn->eth_tx_addr + 41, conn->seqNum & 0xFF);
-	//TCP Acknowledgment number
-	mem_iowr_byte(conn->eth_tx_addr + 42, conn->ackNum >> 24);
-	mem_iowr_byte(conn->eth_tx_addr + 43, (conn->ackNum >> 16) & 0xFF);
-	mem_iowr_byte(conn->eth_tx_addr + 44, (conn->ackNum >> 8) & 0xFF);
-	mem_iowr_byte(conn->eth_tx_addr + 45, conn->ackNum & 0xFF);
-	//TCP Length
-	mem_iowr_byte(conn->eth_tx_addr + 46, (tcp_length-data_length) << 2);
-	//TCP Flags
-	mem_iowr_byte(conn->eth_tx_addr + 47, (unsigned char)flags & 0xFF);
-	//TCP Window size
-	mem_iowr_byte(conn->eth_tx_addr + 48, 0x72);//Just 1KB
-	mem_iowr_byte(conn->eth_tx_addr + 49, 0x10);
-	//TCP Checksum
-	mem_iowr_byte(conn->eth_tx_addr + 50, 0x00);//Nobody cares about IP checksum
-	mem_iowr_byte(conn->eth_tx_addr + 51, 0x00);//Nobody cares about IP checksum
-	//TCP Urgent pointer
-	mem_iowr_byte(conn->eth_tx_addr + 52, 0x00);
-	mem_iowr_byte(conn->eth_tx_addr + 53, 0x00);
-	//TCP MSS [optional]
-	mem_iowr_byte(conn->eth_tx_addr + 54, 0x02);
-	mem_iowr_byte(conn->eth_tx_addr + 55, 0x04);
-	mem_iowr_byte(conn->eth_tx_addr + 56, 0x05);
-	mem_iowr_byte(conn->eth_tx_addr + 57, 0xb4);
-	//TCP data
-	_Pragma("loopbound min 0 max 64")
+	mem_iowr(conn->eth_tx_addr + 20, 0x40004006);
+	//IP addrs + Ports + TCP Length + seq + ack + flags
+	mem_iowr(conn->eth_tx_addr + 24, (conn->srcIP[0] << 8) | conn->srcIP[1]);
+	mem_iowr(conn->eth_tx_addr + 28, (conn->srcIP[2] << 24) | (conn->srcIP[3] << 16) | (conn->dstIP[0] << 8) | conn->dstIP[1]);
+	mem_iowr(conn->eth_tx_addr + 32, (conn->dstIP[2] << 24) | (conn->dstIP[3] << 16) | conn->srcport);
+	mem_iowr(conn->eth_tx_addr + 36, (conn->dstport << 16) | (conn->seqNum >> 24) << 8 | ((conn->seqNum >> 16) & 0xFF));
+	mem_iowr(conn->eth_tx_addr + 40, ((conn->seqNum >> 8) & 0xFF) << 24 | (conn->seqNum & 0xFF) << 16 | (conn->ackNum >> 24) << 8 | ((conn->ackNum >> 16) & 0xFF));
+	mem_iowr(conn->eth_tx_addr + 44, ((conn->ackNum >> 8) & 0xFF) << 24 | (conn->ackNum & 0xFF) << 16 | ((tcp_length-data_length) << 2) << 8 | ((unsigned char)flags & 0xFF));
+	//TCP Window size + Checksum 
+	mem_iowr(conn->eth_tx_addr + 48, 0x72 << 24 | 0x10 << 16 | 0x0000);
+	//TCP Urgent pointer + data[0,1]
+	mem_iowr(conn->eth_tx_addr + 52, 0x0000);
+	//TCP Data
+	_Pragma("loopbound min 0 max 30")
 	for (int i=0; i<data_length; i++){
-		mem_iowr_byte(conn->eth_tx_addr + 58 + i, data[i]);
+		mem_iowr_byte(conn->eth_tx_addr + 54 + i, data[i]);
 	}
 	//IPv4 checksum
 	unsigned short int checksum = ipv4_compute_checksum(conn->eth_tx_addr);
@@ -190,12 +166,12 @@ unsigned short tcp_compute_checksum(unsigned int pkt_addr, unsigned short tcp_le
 		mem_iowr_byte(pkt_addr + 34 + tcp_length , 0x00);
 	}
 	//Pseudo IP Header
-	_Pragma("loopbound min 2 max 2")
+	_Pragma("loopbound min 0 max 2")
 	for (i=0; i<4; i+=2){
 		hex = (mem_iord_byte(pkt_addr + 26 + i) << 8) + mem_iord_byte(pkt_addr + 26 + i + 1);
 		checksum += hex;
 	}
-	_Pragma("loopbound min 2 max 2")
+	_Pragma("loopbound min 0 max 2")
 	for (i=0; i<4; i+=2){
 		hex = (mem_iord_byte(pkt_addr + 30 + i) << 8) + mem_iord_byte(pkt_addr + 30 + i + 1);
 		checksum += hex;
@@ -252,12 +228,11 @@ void tcp_init_connection(tcp_connection *conn, unsigned int eth_tx_addr, unsigne
 	conn->recv_buffer_size = recv_buffer_size;
 }
 
+__attribute__((noinline))
 int tcp_connect(tcp_connection* conn){
-	if(tcp_send(conn, SYN, (unsigned char[]){'0'}, 0)){		
-		printf("conn.status=[%s]->", tcpstatenames[conn->status]);
+	if(tcp_send(conn, SYN, (unsigned char[]){'0'}, 1)){
 		conn->status = SYN_SENT;
-		printf("conn.status=[%s]\n", tcpstatenames[conn->status]);
-		if(eth_mac_receive_nb(conn->eth_rx_addr)){
+		if(eth_mac_receive(conn->eth_rx_addr, 1)){
 			if(mac_packet_type(conn->eth_rx_addr)==TCP) {
 				return tcp_handle(conn);
 			}
@@ -266,10 +241,11 @@ int tcp_connect(tcp_connection* conn){
 	return 0;
 }
 
+__attribute__((noinline))
 int tcp_listen(tcp_connection* conn){
-	if(tcp_send(conn, SYN, (unsigned char[]){'0'}, 0)){
+	if(tcp_send(conn, SYN, (unsigned char[]){'0'}, 1)){
 		conn->status = LISTEN;
-		if(eth_mac_receive_nb(conn->eth_rx_addr)){
+		if(eth_mac_receive(conn->eth_rx_addr, 1)){
 			if(mac_packet_type(conn->eth_rx_addr)==TCP) {
 				return tcp_handle(conn);
 			}
@@ -302,7 +278,7 @@ int tcp_close(tcp_connection* conn){
 			conn->status = CLOSED;
 			return 1;
 	}
-	if(eth_mac_receive_nb(conn->eth_rx_addr)){
+	if(eth_mac_receive(conn->eth_rx_addr, 1)){
 		if(mac_packet_type(conn->eth_rx_addr)==TCP) {
 			return tcp_handle(conn);
 		}
@@ -313,7 +289,7 @@ int tcp_close(tcp_connection* conn){
 __attribute__((noinline))
 int tcp_push(tcp_connection* conn){
 	tcp_send(conn, (PSH|ACK), conn->send_buffer, conn->send_buffer_size);
-	if(eth_mac_receive_nb(conn->eth_rx_addr)){
+	if(eth_mac_receive(conn->eth_rx_addr, 1)){
 		if(mac_packet_type(conn->eth_rx_addr)==TCP) {
 			if(tcp_get_destination_port(conn->eth_rx_addr)==conn->srcport && ((tcp_get_flags(conn->eth_rx_addr) & ACK)==ACK)){
 				return 1;
@@ -327,7 +303,7 @@ int tcp_push(tcp_connection* conn){
 
 __attribute__((noinline))
 int tcp_recv(tcp_connection* conn){
-	if(eth_mac_receive_nb(conn->eth_rx_addr)){
+	if(eth_mac_receive(conn->eth_rx_addr, 1)){
 		if(mac_packet_type(conn->eth_rx_addr)==TCP) {
 			if(tcp_get_destination_port(conn->eth_rx_addr)==conn->srcport && ((tcp_get_flags(conn->eth_rx_addr) & PSH)==PSH)){
 				conn->recv_buffer_size = tcp_get_data(conn->eth_rx_addr, conn->recv_buffer, conn->recv_buffer_size);
@@ -346,7 +322,9 @@ int tcp_handle(tcp_connection* conn){
 	unsigned seqNum = tcp_get_seqnum(conn->eth_rx_addr);
 	unsigned short rx_dst_port = tcp_get_destination_port(conn->eth_rx_addr);
 	unsigned char tcp_hdr_length = tcp_get_header_length(conn->eth_rx_addr);
-	// printf("rx.flags=[%x] | conn.status=[%s]->", flags, tcpstatenames[conn->status]);
+#ifdef DEBUG_PRINT
+	printf("rx.flags=[%x] | conn.status=[%s]->", flags, tcpstatenames[conn->status]);
+#endif
 	if(rx_dst_port == conn->srcport){
 		switch(conn->status){
 			case CLOSED:
@@ -447,7 +425,9 @@ int tcp_handle(tcp_connection* conn){
 			default:
 				break;
 		}
-		// printf("[%s]\n", tcpstatenames[conn->status]);
+#ifdef DEBUG_PRINT
+		printf("[%s]\n", tcpstatenames[conn->status]);
+#endif
 	}
 	return resolved;
 }

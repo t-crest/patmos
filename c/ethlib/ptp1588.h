@@ -102,9 +102,8 @@
 //Time in us
 #define PTP_SYNC_PERIOD 15625
 #define PTP_SYNC_TIMEOUT 0
-#define PTP_FOLLOW_DELAY 1000
-#define PTP_REQ_TIMEOUT 10000
-#define PTP_RPLY_TIMEOUT 10000
+#define PTP_REQ_TIMEOUT 1000
+#define PTP_RPLY_TIMEOUT 1000
 #define NS_TO_SEC 0.000000001
 #define NS_TO_USEC 0.001
 #define USEC_TO_NS 1000
@@ -118,6 +117,7 @@
 #define PTP_SEC_OFFSET_THRESHOLD 0
 
 //Drift
+#define WCET_COMPENSATION 787
 #define DRIFT_RATE 9.82800f
 #define PTP_DRIFT_AMOUNT(syncInterval) (int) (syncInterval*DRIFT_RATE/SEC_TO_USEC)*USEC_TO_NS
 
@@ -197,7 +197,7 @@ PTPPortInfo ptpv2_intialize_local_port(unsigned char mac[6], unsigned char ip[4]
 int ptpv2_issue_msg(unsigned tx_addr, unsigned rx_addr, unsigned char destination_mac[6], unsigned char destination_ip[4], unsigned seqId, unsigned msgType, unsigned char syncInterval);
 
 //Handles a PTPv2 Message
-int ptpv2_handle_msg(unsigned tx_addr, unsigned rx_addr, unsigned char source_mac[6], unsigned char source_ip[4]);
+int ptpv2_handle_msg(unsigned tx_addr, unsigned rx_addr, unsigned char source_mac[6]);
 
 //Applies the correction mechanism based on the calculated offset and acceptable threshold value
 void ptp_correct_offset();

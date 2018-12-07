@@ -43,7 +43,6 @@
 #include <machine/exceptions.h>
 #include <machine/spm.h>
 #include "ethlib/icmp.h"
-#include "ethlib/icmp.h"
 #include "ethlib/arp.h"
 #include "ethlib/mac.h"
 #include "ethlib/udp.h"
@@ -151,8 +150,7 @@ void ptp_master_loop(unsigned period){
 			puts("tx_FOLLOW");
 			ptpv2_issue_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC, lastSlaveInfo.ip, seqId, PTP_FOLLOW_MSGTYPE, syncInterval);
 			if(checkForPacket(2, PTP_REQ_TIMEOUT) == PTP){
-				ipv4_get_source_ip(rx_addr, src_ip);
-				if((ans = ptpv2_handle_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC, src_ip)) == PTP_DLYREQ_MSGTYPE){
+				if((ans = ptpv2_handle_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC)) == PTP_DLYREQ_MSGTYPE){
 					*led_ptr = PTP_DLYREQ_MSGTYPE;
 					ptpv2_issue_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC, lastSlaveInfo.ip, rxPTPMsg.head.sequenceId, PTP_DLYRPLY_MSGTYPE, syncInterval);
 					*led_ptr = PTP_DLYRPLY_MSGTYPE;
@@ -181,8 +179,7 @@ void ptp_slave_loop(unsigned period){
 			RTC_CORRECTION_OFFSET = 0;
 			return;
 		} else if(checkForPacket(2, PTP_SYNC_TIMEOUT) == PTP){
-			ipv4_get_source_ip(rx_addr, src_ip);
-			switch(ptpv2_handle_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC, src_ip)){
+			switch(ptpv2_handle_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC)){
 			case PTP_SYNC_MSGTYPE:
 				if((rxPTPMsg.head.flagField & FLAG_PTP_TWO_STEP_MASK) != FLAG_PTP_TWO_STEP_MASK){
 					*led_ptr = PTP_SYNC_MSGTYPE;

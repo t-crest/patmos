@@ -134,8 +134,9 @@ int ptpv2_issue_msg(unsigned tx_addr, unsigned rx_addr, unsigned char destinatio
 }
 
 __attribute__((noinline))
-int ptpv2_handle_msg(unsigned tx_addr, unsigned rx_addr, unsigned char source_mac[6], unsigned char source_ip[4]){
+int ptpv2_handle_msg(unsigned tx_addr, unsigned rx_addr, unsigned char source_mac[6]){
 	signed char ans = -2;
+	unsigned char source_ip[4];
 	#ifdef USE_HW_TIMESTAMP
 	_Pragma("loopbound min 0 max 1")	
 	while((PTP_RXCHAN_STATUS & PTP_CHAN_VALID_TS_MASK) != PTP_CHAN_VALID_TS_MASK){continue;}
@@ -145,6 +146,7 @@ int ptpv2_handle_msg(unsigned tx_addr, unsigned rx_addr, unsigned char source_ma
 	unsigned int timestampNanoseconds = (unsigned) RTC_TIME_NS;
 	unsigned int timestampSeconds =  (unsigned) RTC_TIME_SEC;
 	#endif
+	ipv4_get_source_ip(rx_addr, source_ip);
 	udp_get_data(rx_addr, (unsigned char*) &rxPTPMsg, udp_get_data_length(rx_addr));
 	switch(rxPTPMsg.head.transportSpec_msgType){
 	case PTP_SYNC_MSGTYPE:
@@ -226,8 +228,8 @@ int ptpv2_handle_msg(unsigned tx_addr, unsigned rx_addr, unsigned char source_ma
 //Applies the correction mechanism based on the calculated offset and acceptable threshold value
 __attribute__((noinline))
 void ptp_correct_offset(){
-	if(PTP_RATE_CONTROL==0 || ptpTimeRecord.offsetNanoseconds > PTP_NS_OFFSET_THRESHOLD){
-		RTC_TIME_NS = (unsigned) (-(ptpTimeRecord.offsetNanoseconds) + (int)RTC_TIME_NS);	//reverse order to load time operand last
+	if(PTP_RATE_CONTROL==0 || abs(ptpTimeRecord.offsetNanoseconds) > PTP_NS_OFFSET_THRESHOLD){
+		RTC_TIME_NS = (unsigned) (-(ptpTimeRecord.offsetNanoseconds) + WCET_COMPENSATION + (int)RTC_TIME_NS);	//reverse order to load time operand last
 	} else {
 		float driftCompens = 0.0002455f * SYNC_INTERVAL_OPTIONS[-((signed char)ptpTimeRecord.syncInterval)] * USEC_TO_NS / 25;
 		RTC_CORRECTION_OFFSET = (int) (ptpTimeRecord.offsetNanoseconds - driftCompens);
@@ -266,7 +268,7 @@ unsigned char ptp_filter_clockport(unsigned char sourceId[8], unsigned short sou
 }
 
 unsigned long long get_rtc_usecs(){
-	return (unsigned long long) (SEC_TO_USEC * RTC_TIME_SEC) + (NS_TO_USEC * RTC_TIME_NS);
+	return (unsigned long long) (SEC_TO_USEC * RTC_TIME_SEC) + (NS_TO_USEC * (RTC_TIME_NS & 0xFFFFFC00));
 }
 
 unsigned int get_rtc_secs(){

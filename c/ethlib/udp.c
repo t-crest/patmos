@@ -213,11 +213,11 @@ int udp_send(unsigned int tx_addr, unsigned int rx_addr, unsigned char destinati
 	mem_iowr(tx_addr + 28, (my_ip[2] << 24) | (my_ip[3] << 16) | (destination_ip[0] << 8) | destination_ip[1]);
 	mem_iowr(tx_addr + 32, (destination_ip[2] << 24) | (destination_ip[3] << 16) | source_port);
 	mem_iowr(tx_addr + 36, (destination_port << 16) | udp_length);
-	//UDP checksum +  datas
-	mem_iowr(tx_addr + 40, (data[0] << 8 | data[1]));
-	_Pragma("loopbound min 0 max 32")
-	for (int i=2; i<data_length; i+=4){
-		mem_iowr(tx_addr + 42 + i, (data[i+0] << 24) | (data[i+1] << 16) | (data[i+2] << 8) | data[i+3]);//Sender myip
+	mem_iowr(tx_addr + 40, 0x0000);
+	//UDP Data
+	_Pragma("loopbound min 0 max 64")
+	for (int i=0; i<data_length; i++){
+		mem_iowr_byte(tx_addr + 42 + i, data[i]);//Sender myip
 	}
 	//IPv4 checksum
 	unsigned short int checksum = ipv4_compute_checksum(tx_addr);
@@ -253,11 +253,11 @@ int udp_send_mac(unsigned int tx_addr, unsigned int rx_addr, unsigned char desti
 	mem_iowr(tx_addr + 28, (my_ip[2] << 24) | (my_ip[3] << 16) | (destination_ip[0] << 8) | destination_ip[1]);
 	mem_iowr(tx_addr + 32, (destination_ip[2] << 24) | (destination_ip[3] << 16) | source_port);
 	mem_iowr(tx_addr + 36, (destination_port << 16) | udp_length);
-	//UDP checksum +  datas
-	mem_iowr(tx_addr + 40, 0x0000 | (data[0] << 8 | data[1]));
-	_Pragma("loopbound min 0 max 32")
-	for (int i=2; i<data_length; i+=4){
-		mem_iowr(tx_addr + 42 + i, (data[i+0] << 24) | (data[i+1] << 16) | (data[i+2] << 8) | data[i+3]);
+	mem_iowr(tx_addr + 40, 0x0000);
+	//UDP Data
+	_Pragma("loopbound min 0 max 64")
+	for (int i=0; i<data_length; i++){
+		mem_iowr_byte(tx_addr + 42 + i, data[i]);//Sender myip
 	}
 	//IPv4 checksum
 	unsigned short int checksum = ipv4_compute_checksum(tx_addr);
