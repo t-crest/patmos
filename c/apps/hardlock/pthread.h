@@ -25,11 +25,9 @@ typedef struct {
 
 
 #ifndef _HARDLOCK_
-#ifndef _SSPM_
 #ifndef _ASYNCLOCK_
 #ifndef _CASPM_
 #define _HARDLOCK_
-#endif
 #endif
 #endif
 #endif
