@@ -6,46 +6,46 @@
 const int cnt_msk = 0xFF000000;
 const int ref_msk = 0x00FFFFFF;
 
-typedef _UNCACHED volatile struct node_t {
+typedef _UNCACHED volatile struct element_t {
 	volatile val_t val;
-	_UNCACHED volatile struct node_t * next;
+	_UNCACHED volatile struct element_t * next;
 	volatile char cnt;
-} node_t;
+} element_t;
 
-void push(head_t head, node_t * node)
+void push(top_t top, element_t * element)
 {
-	// Increment node cnt
-	int newcnt = (++(node->cnt)) << 24;
-	int oldhead;
-	int newhead;
+	// Increment element cnt
+	int newcnt = (++(element->cnt)) << 24;
+	int oldtop;
+	int newtop;
 	do
 	{
-		oldhead = caspm_read(head);
-		node->next = (node_t *)(oldhead & ref_msk);
-		// Combine the node cnt and pointer to create the new head		
-		newhead = newcnt | (int)node;
+		oldtop = caspm_read(top);
+		element->next = (element_t *)(oldtop & ref_msk);
+		// Combine the element cnt and pointer to create the new top		
+		newtop = newcnt | (int)element;
 	}
-	while(cas(head, oldhead, newhead) != oldhead);
+	while(cas(top, oldtop, newtop) != oldtop);
 }
 
-node_t * pop(head_t head)
+element_t * pop(top_t top)
 {
-	int newhead;
-	int oldhead;
-	node_t * node;
+	int newtop;
+	int oldtop;
+	element_t * element;
 	do
 	{
-		oldhead = caspm_read(head);
-		if (!oldhead)
+		oldtop = caspm_read(top);
+		if (!oldtop)
 			return 0;
-		// Get the old node reference from the head
-		node = (node_t *)(oldhead & ref_msk);
-		node_t * nextnode = node->next;
-		if(!nextnode)
-			newhead = 0;
+		// Get the old element reference from the top
+		element = (element_t *)(oldtop & ref_msk);
+		element_t * nextelement = element->next;
+		if(!nextelement)
+			newtop = 0;
 		else
-			newhead = (nextnode->cnt & cnt_msk) | ((int)nextnode & ref_msk);
+			newtop = (nextelement->cnt & cnt_msk) | ((int)nextelement & ref_msk);
 	}
-	while(cas(head, oldhead, newhead) != oldhead);
-	return node;
+	while(cas(top, oldtop, newtop) != oldtop);
+	return element;
 }

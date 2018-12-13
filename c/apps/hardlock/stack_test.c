@@ -14,33 +14,33 @@
 #ifndef ITERATIONS
 #define ITERATIONS 100
 #endif
-#define NODES_PER_CORE 2
+#define ELEMENTS_PER_CORE 2
 
-int test(head_t head)
+int test(top_t top)
 {
 	int ret = 0;
 	for(int i = 0; i < ITERATIONS; i++) {
-		node_t * node1 = pop(head);
-		if(!node1)
+		element_t * element1 = pop(top);
+		if(!element1)
 			return -1;
 		
-		node_t * node2 = pop(head);
-		if(!node2)
+		element_t * element2 = pop(top);
+		if(!element2)
 			return -1;
 		
-		push(head, node1);
-		push(head, node2);
+		push(top, element1);
+		push(top, element2);
 	}
 	return 0;
 }
 
 void worker_init(void* arg) {
-  int ret = test((head_t)arg);
+  int ret = test((top_t)arg);
   corethread_exit((void *)ret);
   return;
 }
 
-node_t nodes[128];
+element_t elements[128];
 
 int main()
 {
@@ -48,15 +48,15 @@ int main()
 	
 	printf("Using \n\tlock:%s\n\tcores:%d\n\titerations:%d\n",NAME,cpucnt,ITERATIONS);
 	
-	head_t head = (_iodev_ptr_t)PATMOS_IO_CASPM;
+	top_t top = (_iodev_ptr_t)PATMOS_IO_CASPM;
 
-	void * arg = (void *)head;
-	const int nodecnt = cpucnt*NODES_PER_CORE;
+	void * arg = (void *)top;
+	const int elementcnt = cpucnt*ELEMENTS_PER_CORE;
 	
-	// Push all nodes on the stack
-	for(int i = 0; i < nodecnt; i++) {
-		nodes[i].val = i;
-		push(head,&nodes[i]);
+	// Push all elements on the stack
+	for(int i = 0; i < elementcnt; i++) {
+		elements[i].val = i;
+		push(top,&elements[i]);
 	}
 	asm("nop");
 	int start = TIMER_CLK_LOW;
@@ -64,7 +64,7 @@ int main()
 	
 	for(int i = 1; i < cores; i++)
 		corethread_create(i,&worker_init,arg);
-	int res = test(head);
+	int res = test(top);
 	
 	for(int i = 1; i < cores; i++) {
 		void * _res;
@@ -78,16 +78,16 @@ int main()
 	
 	int sum = 0;
 	
-	for(int i = 0; i < nodecnt; i++) {
-		node_t * node = pop(head);
-		if(!node) {
-			printf("Only %d nodes on stack. Should be %d\n",i,nodecnt);
+	for(int i = 0; i < elementcnt; i++) {
+		element_t * element = pop(top);
+		if(!element) {
+			printf("Only %d elements on stack. Should be %d\n",i,elementcnt);
 			return -1;
 		}
-		sum += node->val;
+		sum += element->val;
 	}
 	
-	int expsum = ((cpucnt*NODES_PER_CORE)-1)*((cpucnt*NODES_PER_CORE)/2);
+	int expsum = ((cpucnt*ELEMENTS_PER_CORE)-1)*((cpucnt*ELEMENTS_PER_CORE)/2);
 	if(sum != expsum)
 		printf("Error with sum. Expected: %d Actual:%d\n",expsum,sum);
 	
