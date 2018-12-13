@@ -3,15 +3,17 @@
 
 #define TIMER_CLK_LOW *((volatile _IODEV int *) (PATMOS_IO_TIMER + 0x4))
 
-//#define _HARDLOCK_
-
 #ifdef _HARDLOCK_
+#define NAME "hardlock"
 #include "stack_hardlock.c"
 #else
+#define NAME "lock-free"
 #include "stack_lock_free.c"
 #endif
 
+#ifndef ITERATIONS
 #define ITERATIONS 100
+#endif
 #define NODES_PER_CORE 2
 
 int test(head_t head)
@@ -39,9 +41,13 @@ void worker_init(void* arg) {
 }
 
 node_t nodes[128];
+
 int main()
 {
 	int cpucnt = get_cpucnt();
+	
+	printf("Using \n\tlock:%s\n\tcores:%d\n\titerations:%d\n",NAME,cpucnt,ITERATIONS);
+	
 	head_t head = (_iodev_ptr_t)PATMOS_IO_CASPM;
 
 	void * arg = (void *)head;
