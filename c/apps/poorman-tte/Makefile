@@ -16,7 +16,6 @@ CFLAGS?=-target patmos-unknown-unknown-elf -O2 \
 wcet:
 	patmos-clang -O2 -D $(ROLE) $(CFLAGS) $(LIBETH)/*.c -mserialize=tpip.pml ttepwm.c -o ttepwm_$(ROLE).elf
 	platin wcet --disable-ait -i tpip.pml -b ttepwm_$(ROLE).elf -e $(ROLE_LOWER)_run
-	platin wcet --disable-ait -i tpip.pml -b ttepwm_$(ROLE).elf -e check_packet
 	platin wcet --disable-ait -i tpip.pml -b ttepwm_$(ROLE).elf -e exec_act_task
 	platin wcet --disable-ait -i tpip.pml -b ttepwm_$(ROLE).elf -e exec_daq_task
 	platin wcet --disable-ait -i tpip.pml -b ttepwm_$(ROLE).elf -e exec_sync_task

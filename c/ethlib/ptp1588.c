@@ -60,6 +60,7 @@ int ptpv2_issue_msg(unsigned tx_addr, unsigned rx_addr, unsigned char destinatio
 	txPTPMsg.head.transportSpec_msgType = msgType;
 	txPTPMsg.head.reserved_versionPTP = 0x02;
 	txPTPMsg.head.flagField |= FLAG_PTP_TWO_STEP_MASK;
+	txPTPMsg.head.flagField |= FLAG_PTP_UNICAST_MASK;
 	txPTPMsg.head.correctionField = 0x0LL;
 	txPTPMsg.head.portIdentity[0] = thisPortInfo.clockId[0];
 	txPTPMsg.head.portIdentity[1] = thisPortInfo.clockId[1];
@@ -228,14 +229,16 @@ int ptpv2_handle_msg(unsigned tx_addr, unsigned rx_addr, unsigned char source_ma
 //Applies the correction mechanism based on the calculated offset and acceptable threshold value
 __attribute__((noinline))
 void ptp_correct_offset(){
-	if(PTP_RATE_CONTROL==0 || abs(ptpTimeRecord.offsetNanoseconds) > PTP_NS_OFFSET_THRESHOLD){
-		RTC_TIME_NS = (unsigned) (-(ptpTimeRecord.offsetNanoseconds) + WCET_COMPENSATION + (int)RTC_TIME_NS);	//reverse order to load time operand last
-	} else {
-		float driftCompens = 0.0002455f * SYNC_INTERVAL_OPTIONS[-((signed char)ptpTimeRecord.syncInterval)] * USEC_TO_NS / 25;
-		RTC_CORRECTION_OFFSET = (int) (ptpTimeRecord.offsetNanoseconds - driftCompens);
-	}
 	if(ptpTimeRecord.offsetSeconds != 0){
 		RTC_TIME_SEC = (unsigned) (-ptpTimeRecord.offsetSeconds + (int)RTC_TIME_SEC);	//reverse order to load time operand last
+		RTC_TIME_NS = (unsigned) (-(ptpTimeRecord.offsetNanoseconds) + WCET_COMPENSATION + (int)RTC_TIME_NS);	//reverse order to load time operand last
+	} else {
+		if(PTP_RATE_CONTROL==0 || abs(ptpTimeRecord.offsetNanoseconds) > PTP_NS_OFFSET_THRESHOLD){
+			RTC_TIME_NS = (unsigned) (-(ptpTimeRecord.offsetNanoseconds) + WCET_COMPENSATION + (int)RTC_TIME_NS);	//reverse order to load time operand last
+		} else {
+			float driftCompens = 0.0002455f * SYNC_INTERVAL_OPTIONS[-((signed char)ptpTimeRecord.syncInterval)] * USEC_TO_NS / 25;
+			RTC_CORRECTION_OFFSET = (int) (ptpTimeRecord.offsetNanoseconds - driftCompens);
+		}
 	}
 }
 
@@ -268,7 +271,7 @@ unsigned char ptp_filter_clockport(unsigned char sourceId[8], unsigned short sou
 }
 
 unsigned long long get_rtc_usecs(){
-	return (unsigned long long) (SEC_TO_USEC * RTC_TIME_SEC) + (NS_TO_USEC * (RTC_TIME_NS & 0xFFFFFC00));
+	return (unsigned long long) (SEC_TO_USEC * RTC_TIME_SEC) + (NS_TO_USEC * (RTC_TIME_NS));
 }
 
 unsigned int get_rtc_secs(){

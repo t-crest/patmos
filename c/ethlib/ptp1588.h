@@ -84,7 +84,7 @@
 #define FLAG_PTP_SECURITY_MASK(value) (value & 0x8000)
 #define FLAG_PTP_PROF_SPEC_2_MASK(value) (value & 0x4000)
 #define FLAG_PTP_PROF_SPEC_1_MASK(value) (value & 0x2000)
-#define FLAG_PTP_UNICAST_MASK(value) (value & 0x0400)
+#define FLAG_PTP_UNICAST_MASK 0x400
 #define FLAG_PTP_TWO_STEP_MASK 0x0200
 #define FLAG_PTP_ALT_MASTER_MASK(value) (value & 0x0100)
 #define FLAG_FREQ_TRACE_MASK(value) (value & 0x0020)
