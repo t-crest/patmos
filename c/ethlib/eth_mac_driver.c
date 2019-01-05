@@ -47,24 +47,49 @@
 
 //This function sends an ethernet frame located at tx_addr and of length frame_length.
 void eth_mac_send(unsigned int tx_addr, unsigned int frame_length){
-	eth_iowr(0x04, 0x00000001);
+    unsigned char done = 0;
+    unsigned char free = 1; 
+    //Wait until buffer is free 
+    _Pragma("loopbound min 0 max 1")
+	while (free==1){
+         free = (eth_iord(0x400) & 0x8000);
+    };
+    eth_iowr(0x04, 0x00000001);
 	eth_iowr(0x404, tx_addr);
 	eth_iowr(0x400, ((frame_length<<16)|(0xF000)));
-//  	while ((eth_iord(0x04) & 0x1)==0){;}
+    //Wait until is is done
+    _Pragma("loopbound min 0 max 1")
+    while (done==0){
+        done = (eth_iord(0x04) & 0x1);
+    }; 
 return;
 }
 
+//This function sends an ethernet frame located at tx_addr and of length frame_length (NON-BLOCKING call).
+unsigned eth_mac_send_nb(unsigned int tx_addr, unsigned int frame_length){
+    if(eth_iord(0x400) & 0x8000){
+        return 0;
+    } else {
+        eth_iowr(0x04, 0x00000001);
+	    eth_iowr(0x404, tx_addr);
+	    eth_iowr(0x400, ((frame_length<<16)|(0xF000)));
+    }
+    return 1;
+}
+
 //This function receive an ethernet frame and put it in rx_addr.
-int eth_mac_receive(unsigned int rx_addr, unsigned long long int timeout){
+unsigned eth_mac_receive(unsigned int rx_addr, unsigned long long int timeout){
 	eth_iowr(0x04, 0x00000004);
 	eth_iowr(0x604, rx_addr);
 	eth_iowr(0x600, 0x0000E000);
 
 	if (timeout == 0){
+        _Pragma("loopbound min 0 max 80") //1us
 		while ((eth_iord(0x04) & 0x4)==0){;};
 		return 1;
 	}else{
 		unsigned long long int start_time = get_cpu_usecs();
+        _Pragma("loopbound min 0 max 80") //1us	
 		while (((eth_iord(0x04) & 0x4)==0) && (get_cpu_usecs()-start_time < timeout)){;};
 		if ((eth_iord(0x04) & 0x4)==0){
 			return 0;
@@ -74,11 +99,25 @@ int eth_mac_receive(unsigned int rx_addr, unsigned long long int timeout){
 	}
 }
 
+//This function receive an ethernet frame and put it in rx_addr (NON-BLOCKING call).
+unsigned eth_mac_receive_nb(unsigned int rx_addr){
+    unsigned ans = 0;
+    eth_iowr(0x04, 0x00000004);
+	eth_iowr(0x604, rx_addr);
+	eth_iowr(0x600, 0x0000E000);
+    if ((eth_iord(0x04) & 0x4)==0){
+        ans = 0;
+    }else{
+        ans = 1;
+    }
+    return ans;
+}
+
 //This function initilize the ethernet controller (only for the demo).
 void eth_mac_initialize(){ 
 	eth_iowr(0x40, 0xEEF0DA42);
 	eth_iowr(0x44, 0x000000FF);
-	eth_iowr(0x00, 0x0000A003);
+	eth_iowr(0x00, 0x0000A423);
 	return;
 }
 
@@ -219,7 +258,6 @@ unsigned get_rx_db_irq() {
     unsigned cur_data = eth_iord(cur_addr_rx_db);
     return (cur_data>>14) & 1;
 }
-
 
 /////////////////////
 // Help functions

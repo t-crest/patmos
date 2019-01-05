@@ -20,12 +20,12 @@ import ocp._
 
 class OwnSPM(nrCores: Int, nrSPMs: Int, size: Int) extends Module {
 
-  val io = Vec(nrCores, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))
+  val io = IO(Vec(nrCores, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)))
 
   val bits = log2Up(nrSPMs)
   println("OwnSPM: cnt = " + nrSPMs + " bits = " + bits)
 
-  val masters = Vec(nrSPMs, Vec(nrCores, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)))
+  val masters = Wire(Vec(nrSPMs, Vec(nrCores, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))))
   val spms = (0 until nrSPMs).map(i => Module(new Spm(size)))
   val cmdOutReg = Vec(nrCores, Reg(init = Bool(false)))
 
@@ -36,7 +36,7 @@ class OwnSPM(nrCores: Int, nrSPMs: Int, size: Int) extends Module {
       masters(s)(i).M.Data := UInt(0)
       masters(s)(i).M.Cmd := UInt(0)
       masters(s)(i).M.ByteEn := UInt(0)
-      when(io(i).M.Cmd =/= OcpCmd.IDLE && io(i).M.Addr(16 + bits - 1, 16) === UInt(s)) {
+      when(io(i).M.Cmd =/= OcpCmd.IDLE && io(i).M.Addr(12 + bits - 1, 12) === UInt(s)) {
         masters(s)(i).M := io(i).M
       }
     }
@@ -69,7 +69,7 @@ class OwnSPM(nrCores: Int, nrSPMs: Int, size: Int) extends Module {
     io(i).S.Data := UInt(0)
     io(i).S.Resp := OcpResp.NULL
     when(cmdOutReg(i)) {
-      io(i).S := muxes(i)(RegNext(io(i).M.Addr(16 + bits - 1, 16))).S
+      io(i).S := muxes(i)(RegNext(io(i).M.Addr(12 + bits - 1, 12))).S
     }
   }
 }

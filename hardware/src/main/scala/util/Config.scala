@@ -33,8 +33,6 @@
 package util
 
 import Chisel._
-import Node._
-
 import patmos._
 import io.CoreDevice
 import io.Device
@@ -43,6 +41,7 @@ import scala.tools.nsc.interpreter.IMain
 import scala.tools.nsc.Settings
 import java.io.DataInputStream
 import java.io.File
+
 
 /**
  * The configuration tool for Patmos.
@@ -56,7 +55,7 @@ abstract class Config {
   val frequency: Int
   val pipeCount: Int
   val coreCount: Int
-  val cmpDevice: Int // temporary id for different papers
+  val cmpDevices: Set[String]
   val burstLength: Int
   val writeCombine: Boolean
   val mmu: Boolean
@@ -192,10 +191,12 @@ object Config {
       val coreCount = getIntAttr(node, "cores", "@count",
                                  hasParent, defaultConf.coreCount)
 
-      val cmpDevice = getIntAttr(node, "cmp", "@device",
-                                 hasParent, 0)
+      val cmpDevices = {
+        val set = ((node \ "CmpDevs") \ "CmpDev").map(e => (e \ "@name").text).toSet
+        if(set.isEmpty) defaultConf.cmpDevices else set
+      }
 
-                                 val burstLength  = getIntAttr(node, "bus", "@burstLength",
+      val burstLength  = getIntAttr(node, "bus", "@burstLength",
                                     hasParent, defaultConf.burstLength)
       val writeCombine = getBooleanAttr(node, "bus", "@writeCombine",
                                         hasParent, defaultConf.writeCombine)
@@ -290,7 +291,7 @@ object Config {
         } else {
           intrsList.split(",").toList.map(_.trim.toInt)
         }
-        ChiselError.info("IO device "+key+": entity "+name+
+        println("IO device "+key+": entity "+name+
                          ", offset "+offset+", params "+params+
                          (if (!intrs.isEmpty) ", interrupts: "+intrs else ""))
         new DeviceConfig(name, params, offset, intrs)
@@ -306,7 +307,7 @@ object Config {
     val frequency = 0
     val pipeCount = 0
     val coreCount = 0
-    val cmpDevice = 0
+    val cmpDevices = Set[String]()
     val burstLength = 0
     val writeCombine = false
     val mmu = false
@@ -367,7 +368,7 @@ object Config {
               _ || _.getMethods.map(_.getName).contains(m.getName))
 
             if (!isInherited) {
-              ChiselError.error("Pins trait for IO device "+name+
+              throw new Error("Pins trait for IO device "+name+
                                 " cannot declare non-inherited member "+m.getName+
                                 ", only member "+methName+" allowed")
             }
@@ -375,7 +376,7 @@ object Config {
         }
         val meth = clazz.getMethods.find(_.getName == methName)
         if (meth == None) {
-          ChiselError.info("No pins for IO device "+name)
+          println("No pins for IO device "+name)
         } else {
           // retrieve pin bundles
           val outerPins = meth.get.invoke(clazz.cast(outer))
@@ -406,7 +407,7 @@ object Config {
             _ || _.getMethods.map(_.getName).contains(m.getName))
 
           if (!isInherited) {
-            ChiselError.error("Intrs trait for IO device "+name+
+            throw new Error("Intrs trait for IO device "+name+
                               " cannot declare non-inherited member "+m.getName+
                               ", only member "+methName+" allowed")
           }
@@ -414,11 +415,11 @@ object Config {
       }
       val meth = clazz.getMethods.find(_.getName == methName)
       if (meth == None) {
-        ChiselError.error("Interrupt pins not found for device "+name)
+        throw new Error("Interrupt pins not found for device "+name)
       } else {
         val intrPins = meth.get.invoke(clazz.cast(inner)).asInstanceOf[Vec[Bool]]
         if (intrPins.length != dev.intrs.length) {
-          ChiselError.error("Inconsistent interrupt counts for IO device "+name)
+          throw new Error("Inconsistent interrupt counts for IO device "+name)
         } else {
           for (i <- 0 until dev.intrs.length) {
             outer.intrs(dev.intrs(i)) := intrPins(i)

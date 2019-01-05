@@ -13,15 +13,15 @@ import s4noc._
  * Create and connect a n x n NoC.
  */
 class OneWayMem(n: Int, memSize: Int) extends Module {
-  val io = new Bundle {
+  val io = IO(new Bundle {
     // val dout = UInt(width = 32).asOutput
     val memPorts = Vec(n * n, new DualPort(memSize))
-  }
+  })
 
   // Dummy output keep hardware generated
-  val dout = Reg(next = Vec(n * n, UInt(width = 32)))
+  val dout = RegNext(Vec(n * n, UInt(width = 32)))
 
-  val net = Module(new Network(n))
+  val net = Module(new Network(n, UInt(width = 32)))
 
   for (i <- 0 until n * n) {
     // val node = Module(new DummyNode(i))

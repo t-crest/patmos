@@ -10,12 +10,9 @@
 package cmp
  
 import Chisel._
-import Node._
 
-import patmos._
 import patmos.Constants._
 import ocp._
-import io.CoreDeviceIO
 
 class HardlockIO(lckCnt : Int) extends Bundle {
   val sel = UInt(INPUT, log2Up(lckCnt))
@@ -32,7 +29,7 @@ abstract class AbstractHardlock(coreCnt : Int,lckCnt : Int) extends Module {
   override val io = Vec.fill(coreCnt){new HardlockIO(lckCnt)}
   
   
-  val queueReg = Vec.fill(lckCnt){Reg(init = Bits(0,coreCnt))}
+  val queueReg = Vec.fill(lckCnt){RegInit(UInt(0, coreCnt))}
   for (i <- 0 until lckCnt) {
     for (j <- 0 until coreCnt) {
       when(io(j).sel === UInt(i) && io(j).en === Bool(true)) {
@@ -41,7 +38,7 @@ abstract class AbstractHardlock(coreCnt : Int,lckCnt : Int) extends Module {
     }
   }
   
-  val curReg = Vec.fill(lckCnt){Reg(init = UInt(0,log2Up(coreCnt)))}	
+  val curReg = Vec.fill(lckCnt){RegInit(UInt(0, log2Up(coreCnt)))}
   
   val blocks = Vec.fill(coreCnt)(Bits(width = lckCnt))
   
@@ -76,15 +73,6 @@ class Hardlock(coreCnt : Int,lckCnt : Int) extends AbstractHardlock(coreCnt, lck
   }
 }
 
-class IncrementorHardlock(coreCnt : Int,lckCnt : Int) extends AbstractHardlock(coreCnt, lckCnt) {
-  // Counter
-  for (i <- 0 until lckCnt) {    
-    when(!queueReg(i)(curReg(i))) {
-      curReg(i) := curReg(i) + UInt(1)
-    }
-  }  
-}
-
 class HardlockOCPWrapper(hardlockgen: () => AbstractHardlock) extends Module {
   
   val hardlock = Module(hardlockgen())
@@ -116,55 +104,5 @@ class HardlockOCPWrapper(hardlockgen: () => AbstractHardlock) extends Module {
     }
       
     io(i).S.Data := UInt(0)
-  }
-}
-
-class HardlockTest(c: HardlockOCPWrapper) extends Tester(c) {
-  for(i <- 0 until c.hardlock.CoreCount) {
-    poke(c.io(i).M.Cmd, 1)
-    poke(c.io(i).M.Data,1)
-  }
-  step(1)
-  for(i <- 0 until c.hardlock.CoreCount) {
-    poke(c.io(i).M.Cmd, 0)
-    poke(c.io(i).M.Data,0)
-  }
-  var cnt = 0
-  while(cnt < 100) {
-    val id = cnt % c.hardlock.CoreCount
-    for(i <- 0 until c.hardlock.CoreCount)
-      peek(c.io(i).S.Resp)
-    peek(c.hardlock.queueReg(0))
-    peek(c.hardlock.curReg(0))
-    
-    poke(c.io(id).M.Cmd, 1)
-    poke(c.io(id).M.Data,0)
-    
-    step(1)
-    
-    for(i <- 0 until c.hardlock.CoreCount)
-      peek(c.io(i).S.Resp)
-    peek(c.hardlock.queueReg(0))
-    peek(c.hardlock.curReg(0))
-    
-    poke(c.io(id).M.Cmd, 0)
-    poke(c.io(id).M.Data,0)
-    
-    step(1)
-    
-    poke(c.io(id).M.Cmd, 1)
-    poke(c.io(id).M.Data,1)
-    
-    cnt += 1
-  }
-}
-
-object Hardlock {
-  def main(args: Array[String]): Unit = {
-
-    val hardlockargs = args.takeRight(2)
-    val corecnt = hardlockargs.head.toInt;
-    val lckcnt = hardlockargs.last.toInt;
-    chiselMainTest(args.dropRight(2), () => Module(new HardlockOCPWrapper(() => new Hardlock(corecnt,lckcnt)))) { f => new HardlockTest(f) }
   }
 }

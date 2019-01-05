@@ -13,11 +13,11 @@ class S4nocTester (dut: S4noc) extends Tester(dut) {
 
   def read(): Int = {
     poke(dut.io.cpuPorts(3).rd, 1)
-    poke(dut.io.cpuPorts(3).addr, 2)
+    poke(dut.io.cpuPorts(3).addr, 3)
     val status = peek(dut.io.cpuPorts(3).rdData)
     var ret = 0
     step(1)
-    if ((status & 0x02) == 2) {
+    if (status == 1) {
       poke(dut.io.cpuPorts(3).rd, 1)
       poke(dut.io.cpuPorts(3).addr, 0)
       ret = peek(dut.io.cpuPorts(3).rdData).toInt
@@ -49,7 +49,7 @@ object S4nocTester {
   def main(args: Array[String]): Unit = {
     chiselMainTest(Array("--genHarness", "--test", "--backend", "c",
       "--compile", "--vcd", "--targetDir", "generated"),
-      () => Module(new S4noc(4,4))) {
+      () => Module(new S4noc(4, 2, 2))) {
       c => new S4nocTester(c)
     }
   }

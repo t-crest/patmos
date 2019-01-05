@@ -2,9 +2,12 @@
 
 # Script to setup an Ubuntu 14.04 PC to communicate with Patmos through ethernet 
 
-if ! [[ "$1" == eth? ]]; then
-    echo "Missing or incorrect argument, eth need to be defined"
+if [ $# -lt 1 ]
+ then
+    echo "Missing or incorrect argument, interfaces needs to be defined"
     echo "ex: ./setup.sh eth0"
+    echo "Available interfaces are:"
+    ifconfig
 else
     iface=$1
     echo ""
@@ -13,7 +16,7 @@ else
     sudo service network-manager stop
     read -p "Plugin ethernet cable and hit enter"
 
-    ip="192.168.24.1"
+    ip="192.168.2.50"
     netmask="255.255.255.0"
     echo ""
     echo "Setting my ip address and netmask"

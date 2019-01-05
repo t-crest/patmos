@@ -1,36 +1,4 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute.
-   All rights reserved.
-
-   This file is part of the time-predictable VLIW processor Patmos.
-
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions are met:
-
-      1. Redistributions of source code must retain the above copyright notice,
-         this list of conditions and the following disclaimer.
-
-      2. Redistributions in binary form must reproduce the above copyright
-         notice, this list of conditions and the following disclaimer in the
-         documentation and/or other materials provided with the distribution.
-
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
-   OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-   OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
-   NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
-   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-   The views and conclusions contained in the software and documentation are
-   those of the authors and should not be interpreted as representing official
-   policies, either expressed or implied, of the copyright holder.
- */
-
-/*
  * Fetch stage of Patmos.
  *
  * Author: Martin Schoeberl (martin@jopdesign.com)
@@ -40,18 +8,17 @@
 package patmos
 
 import Chisel._
-import Node._
 
 import Constants._
 
 import util.Utility
 
 class Fetch(fileName : String) extends Module {
-  val io = new FetchIO()
+  val io = IO(new FetchIO())
 
-  val pcReg = Reg(init = UInt(1, PC_SIZE))
-  val addrEven = UInt()
-  val addrOdd = UInt()
+  val pcReg = RegInit(UInt(1, PC_SIZE))
+  val addrEven = Wire(UInt())
+  val addrOdd = Wire(UInt())
   val addrEvenReg = Reg(init = UInt(2, PC_SIZE), next = addrEven)
   val addrOddReg = Reg(init = UInt(1, PC_SIZE), next = addrOdd)
 
@@ -62,8 +29,8 @@ class Fetch(fileName : String) extends Module {
   val romEven = Vec(romGroups.map(_(0)).padTo(1 << romAddrBits, Bits(0)))
   val romOdd  = Vec(romGroups.map(_(1)).padTo(1 << romAddrBits, Bits(0)))
 
-  val instr_a_ispm = Bits()
-  val instr_b_ispm = Bits()
+  val instr_a_ispm = Wire(Bits())
+  val instr_b_ispm = Wire(Bits())
   instr_a_ispm := Bits(0)
   instr_b_ispm := Bits(0)
   
@@ -90,17 +57,17 @@ class Fetch(fileName : String) extends Module {
     val memOdd = MemBlock(1, INSTR_WIDTH, bypass = false)
   }
 
-  val selSpm = Reg(init = Bool(false))
-  val selCache = Reg(init = Bool(false))
+  val selSpm = RegInit(Bool(false))
+  val selCache = RegInit(Bool(false))
   when (io.ena) {
     selSpm := io.icachefe.memSel(1)
     selCache := io.icachefe.memSel(0)
   }
 
   //need to register these values to save them in  memory stage at call/return
-  val baseReg = Reg(init = UInt(0, width = ADDR_WIDTH))
-  val relBaseReg = Reg(init = UInt(1, width = MAX_OFF_WIDTH))
-  val relocReg = Reg(init = UInt(0, DATA_WIDTH))
+  val baseReg = RegInit(UInt(0, width = ADDR_WIDTH))
+  val relBaseReg = RegInit(UInt(1, width = MAX_OFF_WIDTH))
+  val relocReg = RegInit(UInt(0, DATA_WIDTH))
   when(io.ena) {
     baseReg := io.icachefe.base
     when (io.memfe.doCallRet) {
@@ -112,8 +79,8 @@ class Fetch(fileName : String) extends Module {
   //select even/odd from rom
   // For some weird reason, Quartus infers the ROM as memory block
   // only if the output is registered
-  val data_even = Reg(next = romEven(addrEven(romAddrBits, 1)))
-  val data_odd = Reg(next = romOdd(addrOdd(romAddrBits, 1)))
+  val data_even = RegNext(romEven(addrEven(romAddrBits, 1)))
+  val data_odd = RegNext(romOdd(addrOdd(romAddrBits, 1)))
   val instr_a_rom = Mux(pcReg(0) === Bits(0), data_even, data_odd)
   val instr_b_rom = Mux(pcReg(0) === Bits(0), data_odd, data_even)
 

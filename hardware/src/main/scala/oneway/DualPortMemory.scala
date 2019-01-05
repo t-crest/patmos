@@ -9,24 +9,24 @@ package oneway
 import Chisel._
 
 class Port(size: Int) extends Bundle {
-  val addr = UInt(width = log2Up(size)).asInput
-  val wrData = UInt(width = 32).asInput
-  val rdData = UInt(width = 32).asOutput
-  val wren = Bool().asInput
+  val addr = Input(UInt(width = log2Up(size)))
+  val wrData = Input(UInt(width = 32))
+  val rdData = Output(UInt(width = 32))
+  val wren = Input(Bool())
 }
 
 class DualPort(size: Int) extends Bundle {
-  val rdAddr = UInt(width = log2Up(size)).asInput
-  val wrAddr = UInt(width = log2Up(size)).asInput
-  val wrData = UInt(width = 32).asInput
-  val rdData = UInt(width = 32).asOutput
-  val wrEna = Bool().asInput
+  val rdAddr = Input(UInt(width = log2Up(size)))
+  val wrAddr = Input(UInt(width = log2Up(size)))
+  val wrData = Input(UInt(width = 32))
+  val rdData = Output(UInt(width = 32))
+  val wrEna = Input(Bool())
 }
 
 class DualPortMemory(size: Int) extends Module {
-  val io = new Bundle {
+  val io = IO(new Bundle {
     val port = new DualPort(size)
-  }
+  })
 
   val mem = Mem(UInt(width = 32), size, seqRead = true)
 
@@ -41,10 +41,10 @@ class DualPortMemory(size: Int) extends Module {
  * This true dual port memory generates registers.
  */
 class TrueDualPortMemory(size: Int) extends Module {
-  val io = new Bundle {
+  val io = IO(new Bundle {
     val portA = new Port(size)
     val portB = new Port(size)
-  }
+  })
 
   val mem = Mem(UInt(width = 32), size, seqRead = true)
 

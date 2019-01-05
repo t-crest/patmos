@@ -379,9 +379,14 @@ namespace patmos
             if (dst != r0) {
               for (unsigned int j = 0; j < NUM_SLOTS; j++) {
                 const instruction_t *ex_instr = Pipeline[SEX][j].I;
-
-                if (ex_instr && (ex_instr->get_src1_reg(Pipeline[SEX][j]) == dst ||
-                                ex_instr->get_src2_reg(Pipeline[SEX][j]) == dst))
+                if (  ex_instr && 
+                      // Either operand is the same as the source of the previous load instruction
+                      (ex_instr->get_src1_reg(Pipeline[SEX][j]) == dst ||
+                      ex_instr->get_src2_reg(Pipeline[SEX][j]) == dst) &&
+                      // The instruction is being executed (predicate is true)
+                      PRR.get(Pipeline[SEX][j].Pred).get() &&
+                      // The previous load instruction is being executed
+                      PRR.get(Pipeline[SMW][0].Pred).get())
                 {
                   simulation_exception_t::illegal("Use of load result without delay slot!");
                 }

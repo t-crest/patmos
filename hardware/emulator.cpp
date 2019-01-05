@@ -176,6 +176,15 @@ static void emu_extmem(Patmos_t *c) {
 }
 #endif /* EXTMEM_SRAMCTRL */
 
+// For a version without external memory
+#ifndef EXTMEM_SSRAM32CTRL
+#ifndef EXTMEM_SRAMCTRL
+static void write_extmem(val_t address, val_t word) {}
+static void init_extmem(Patmos_t *c, bool random) {}
+static void emu_extmem(Patmos_t *c) {}
+#endif
+#endif
+
 #ifdef IO_CPUINFO
 static void emu_cpuinfo(Patmos_t *c) {
     c->Patmos__io_cpuInfoPins_id = 0;
@@ -624,32 +633,6 @@ static void stat_icache(Patmos_t *c, bool halt) {
   }
 }
 
-static void print_sc_state(Patmos_t *c) {
-  // fill
-  if ((c->Patmos_PatmosCore_dcache_sc__stateReg.to_ulong() == 1) ||
-      (c->Patmos_PatmosCore_dcache_sc__stateReg.to_ulong() == 2)) {
-    if (c->Patmos_PatmosCore_dcache_sc__mb_wrEna.to_bool()) {
-      for (unsigned int i = 0; i < 4; i++) {
-        std::cerr << "f:" << (c->Patmos_PatmosCore_dcache_sc__transferAddrReg.to_ulong() + i - 4)
-                  << " > " << (((c->Patmos_PatmosCore_dcache_sc__mb_wrData.to_ulong() << (i*8)) >> 24) & 0xFF)
-                  << "\n";
-      }
-    }
-  }
-  // spill
-  else if ((c->Patmos_PatmosCore_dcache_sc__stateReg.to_ulong() == 3) ||
-           (c->Patmos_PatmosCore_dcache_sc__stateReg.to_ulong() == 4)) {
-    if (c->Patmos_PatmosCore_dcache_sc__io_toMemory_M_DataValid.to_bool() &&
-        c->Patmos_PatmosCore_dcache_sc__io_toMemory_M_DataByteEn.to_ulong()) {
-      for (unsigned int i = 0; i < 4; i++) {
-        std::cerr << "s:" << (c->Patmos_PatmosCore_dcache_sc__transferAddrReg.to_ulong() + i - 4)
-                  << " < " << (((c->Patmos_PatmosCore_dcache_sc__mb_rdData.to_ulong() << (i*8)) >> 24) & 0xFF)
-                  << "\n";
-      }
-    }
-  }
-}
-
 static void print_state(Patmos_t *c) {
   static unsigned int baseReg = 0;
   *out << ((baseReg + c->Patmos_PatmosCore_fetch__pcReg.to_ulong()) * 4 - c->Patmos_PatmosCore_fetch__relBaseReg.to_ulong() * 4) << " - ";
@@ -680,7 +663,6 @@ static void help(ostream &out) {
       << "  -l <N>        Stop after <N> cycles" << endl
       << "  -p            Print instruction cache statistics" << endl
       << "  -r            Print register values in each cycle" << endl
-      << "  -s            Trace stack cache spilling/filling" << endl
       << "  -v            Dump wave forms file \"Patmos.vcd\"" << endl
       #ifdef IO_UART
       << "  -I <file>     Read input for UART from file <file>" << endl
@@ -699,7 +681,6 @@ int main (int argc, char* argv[]) {
   bool print_stat = false;
   bool quiet = true;
   bool vcd = false;
-  bool sc_trace = false;
 
   #ifdef IO_KEYS
   bool keys = false;
@@ -715,7 +696,7 @@ int main (int argc, char* argv[]) {
   program_name = argv[0];
 
   // Parse command line arguments
-  while ((opt = getopt(argc, argv, "e:hikl:nprsvI:O:")) != -1) {
+  while ((opt = getopt(argc, argv, "e:hikl:nprvI:O:")) != -1) {
     switch (opt) {
     #ifdef IO_ETHMAC
     case 'e':
@@ -738,9 +719,6 @@ int main (int argc, char* argv[]) {
       break;
     case 'r':
       quiet = false;
-      break;
-    case 's':
-      sc_trace = true;
       break;
     case 'v':
       vcd = true;
@@ -849,9 +827,6 @@ int main (int argc, char* argv[]) {
     if (!quiet && c->Patmos_PatmosCore__enableReg.to_bool()) {
       print_state(c);
     }
-    if (sc_trace) {
-      print_sc_state(c);
-    }
 
     // Return to address 0 halts the execution after one more iteration
     if (halt) {
@@ -877,3 +852,4 @@ int main (int argc, char* argv[]) {
   // Pass on return value from processor
   return c->Patmos_PatmosCore_decode_rf__rf.get(1).to_ulong();
 }
+

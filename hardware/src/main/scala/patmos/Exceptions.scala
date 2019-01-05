@@ -1,36 +1,4 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute.
-   All rights reserved.
-
-   This file is part of the time-predictable VLIW processor Patmos.
-
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions are met:
-
-      1. Redistributions of source code must retain the above copyright notice,
-         this list of conditions and the following disclaimer.
-
-      2. Redistributions in binary form must reproduce the above copyright
-         notice, this list of conditions and the following disclaimer in the
-         documentation and/or other materials provided with the distribution.
-
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
-   OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-   OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
-   NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
-   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-   The views and conclusions contained in the software and documentation are
-   those of the authors and should not be interpreted as representing official
-   policies, either expressed or implied, of the copyright holder.
- */
-
-/*
  * Exceptions for Patmos.
  *
  * Author: Wolfgang Puffitsch (wpuffitsch@gmail.com)
@@ -40,27 +8,26 @@
 package patmos
 
 import Chisel._
-import Node._
 
 import Constants._
 
 import ocp._
 
 class Exceptions extends Module {
-  val io = new ExcIO()
+  val io = IO(new ExcIO())
 
   val EXC_ADDR_WIDTH = 8
 
-  val masterReg = Reg(next = io.ocp.M)
+  val masterReg = RegNext(io.ocp.M)
 
-  val statusReg = Reg(init = Bits(2, width = DATA_WIDTH))
+  val statusReg = RegInit(Bits(2, width = DATA_WIDTH))
   val maskReg   = Reg(Bits(width = DATA_WIDTH))
   val sourceReg = Reg(Bits(width = DATA_WIDTH))
 
   val intrEna = statusReg(0) === Bits(1)
   val superMode = statusReg(1) === Bits(1)
 
-  val localModeReg = Reg(init = Bool(false))
+  val localModeReg = RegInit(Bool(false))
 
   def checked(action: => Unit) {
     when (superMode) (action) .otherwise { io.ocp.S.Resp := OcpResp.ERR }
@@ -69,13 +36,13 @@ class Exceptions extends Module {
   val vec    = Mem(UInt(width = DATA_WIDTH), EXC_COUNT)
   val vecDup = Mem(UInt(width = DATA_WIDTH), EXC_COUNT)
 
-  val sleepReg = Reg(init = Bool(false))
+  val sleepReg = RegInit(Bool(false))
 
   // Latches for incoming exceptions and interrupts
-  val excPend     = Vec.fill(EXC_COUNT) { Bool() }
-  val excPendReg  = Vec.fill(EXC_COUNT) { Reg(init = Bool(false)) }
-  val intrPend    = Vec.fill(EXC_COUNT) { Bool() }
-  val intrPendReg = Vec.fill(EXC_COUNT) { Reg(init = Bool(false)) }
+  val excPend     = Vec(EXC_COUNT, Bool())
+  val excPendReg  = Vec(EXC_COUNT, RegInit(Bool(false)))
+  val intrPend    = Vec(EXC_COUNT, Bool())
+  val intrPendReg = Vec(EXC_COUNT, RegInit(Bool(false)))
   excPend := excPendReg
   intrPend := intrPendReg
 
@@ -162,7 +129,7 @@ class Exceptions extends Module {
 
   // Latch interrupt pins
   for (i <- 0 until INTR_COUNT) {
-    when(Reg(next = io.intrs(i))) {
+    when(RegNext(io.intrs(i))) {
       intrPend(16+i) := Bool(true)
     }
   }
@@ -181,8 +148,8 @@ class Exceptions extends Module {
   intrPendReg := intrPend
 
   // Compute next exception source
-  val src = Bits(width = EXC_SRC_BITS)
-  val srcReg = Reg(next = src)
+  val src = Wire(Bits(width = EXC_SRC_BITS))
+  val srcReg = RegNext(src)
   src := Bits(0)
   for (i <- (0 until EXC_COUNT).reverse) {
     when(intrPend(i) && (maskReg(i) === Bits(1))) { src := Bits(i) }
@@ -192,8 +159,8 @@ class Exceptions extends Module {
   }
 
   // Create signals to decode stage
-  val exc = Reg(next = excPend.toBits =/= Bits(0))
-  val intr = Reg(next = (intrPend.toBits & maskReg) =/= Bits(0))
+  val exc = RegNext(excPend.toBits =/= Bits(0))
+  val intr = RegNext((intrPend.toBits & maskReg) =/= Bits(0))
 
   io.excdec.exc   := exc
   io.excdec.intr  := intr && intrEna

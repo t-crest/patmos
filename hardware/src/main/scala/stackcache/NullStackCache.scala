@@ -41,7 +41,6 @@
 package stackcache
 
 import Chisel._
-import Node._
 
 import patmos._
 import patmos.Constants._

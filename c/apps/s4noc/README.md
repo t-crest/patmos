@@ -1,9 +1,8 @@
 # The S4NOC
 
-These applications are used for the evaluation section of the following submitted paper:
+These applications are used for the evaluation section of the following paper:
 
-Martin, Luca, and Jens, A Simple Network Interface for a Simple Network-on-Chip,
-submitted to NOCS 2018.
+Martin Schoeberl, Luca Pezzarossa, and Jens Sparso, A Simple Network Interface for a Simple Network-on-Chip, *submitted to ARCS 2019*
 
 ## Stand Alone Evaluation
 
@@ -16,12 +15,28 @@ The tests can run from within folder `patmos/hardware`, e.g.:
 	sbt "test:runMain s4noc.RouterTester"
 	sbt "test:runMain s4noc.NetworkTester"
 	sbt "test:runMain s4noc.NetworkCompare"
+	sbt "test:runMain s4noc.S4nocTester"
 
 or from your favorite Scala IDE (e.g., InelliJ or Eclipse) or from this folder with
 
 ```bash
 make test-all
+make test
 ```
+
+A standalone version of the S4NoC with simple traffic generators can be built
+with:
+
+```bash
+sbt "runMain s4noc.S4nocTrafficGen n"
+```
+
+where n is the number of cores (e.g., 4, 9, or 16 (maximum is 100)).
+
+The generated Verilog file can be found in ```generated/S4nocTrafficGen.v```
+and can be synthesized to provide resource numbers and maximum
+clocking frequency. An example project for Quartus can be found in this
+[quartus](quartus) subfolder.
 
 ## Evaluation with T-CREST
 
@@ -31,10 +46,15 @@ General build instructions of T-CREST in [Main README](../../../README.md).
 Before building the Patmos processor, add the following lines after `<frequency Hz="80000000"/>` in 
 [altde2-115.xml](../../../hardware/config/altde2-115.xml):
 ```
-<cores count="4" />
-<cmp device="7" />
+<cores count="9" />
 <pipeline dual="false" />
+
+<CmpDevs>
+  <CmpDev name="S4noc" />
+</CmpDevs>
 ```
+
+with cores count either 4 or 9. Use just 4 for running the emulator.
 
 A simple C program for a first test are found at 
 [hello_s4noc.c](hello_s4noc.c)
@@ -73,15 +93,13 @@ make app download APP=s4noc
 This compiles and downloads a simple test for the S4NOC"
 Change `MAIN` to the appropriate test.
 
-To ensure that you have the exact version of T-CREST that we have used in the
-evaluation section of the paper, use the following `git` command to checkout that version:
+Further test programs can be found in the ```c/app/s4noc``` folder.
+Various parameters can be set via COPTS and $defines for the compilation, e.g.,:
 
-```bash
-git checkout `git rev-list -n 1 --before="2018-05-02" master`
+```
+make app APP=s4noc MAIN=prodcons_flow COPTS="-D BUF_LEN=8 -D NR_CREDITS=4"
 ```
 
-This can be done in all T-CREST repositories. However, it is most important
-in `patmos`.
 
 ### Running out of Heap
 

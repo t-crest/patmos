@@ -1,36 +1,4 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute.
-   All rights reserved.
-
-   This file is part of the time-predictable VLIW processor Patmos.
-
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions are met:
-
-      1. Redistributions of source code must retain the above copyright notice,
-         this list of conditions and the following disclaimer.
-
-      2. Redistributions in binary form must reproduce the above copyright
-         notice, this list of conditions and the following disclaimer in the
-         documentation and/or other materials provided with the distribution.
-
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
-   OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-   OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
-   NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
-   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-   The views and conclusions contained in the software and documentation are
-   those of the authors and should not be interpreted as representing official
-   policies, either expressed or implied, of the copyright holder.
- */
-
-/*
  * Execution stage of Patmos.
  *
  * Authors: Martin Schoeberl (martin@jopdesign.com)
@@ -41,12 +9,11 @@
 package patmos
 
 import Chisel._
-import Node._
 
 import Constants._
 
 class Execute() extends Module {
-  val io = new ExecuteIO()
+  val io = IO(new ExecuteIO())
 
   val exReg = Reg(new DecEx())
   when(io.ena) {
@@ -57,8 +24,8 @@ class Execute() extends Module {
     }
   }
 
-  def alu(func: Bits, op1: UInt, op2: UInt): Bits = {
-    val result = UInt(width = DATA_WIDTH)
+  def alu(func: Bits, op1: UInt, op2: UInt): UInt = {
+    val result = Wire(UInt(width = DATA_WIDTH))
     val scaledOp1 = op1 << Mux(func === FUNC_SHADD2, UInt(2),
                                Mux(func === FUNC_SHADD, UInt(1),
                                    UInt(0)))
@@ -111,11 +78,11 @@ class Execute() extends Module {
   }
 
   // data forwarding
-  val fwReg  = Vec.fill(2*PIPE_COUNT) { Reg(Bits(width = 3)) }
-  val fwSrcReg  = Vec.fill(2*PIPE_COUNT) { Reg(UInt(width = log2Up(PIPE_COUNT))) }
-  val memResultDataReg = Vec.fill(PIPE_COUNT) { Reg(Bits(width = DATA_WIDTH)) }
-  val exResultDataReg  = Vec.fill(PIPE_COUNT) { Reg(Bits(width = DATA_WIDTH)) }
-  val op = Vec.fill(2*PIPE_COUNT) { Bits(width = DATA_WIDTH) }
+  val fwReg  = Vec(2*PIPE_COUNT, Reg(Bits(width = 3)))
+  val fwSrcReg  = Vec(2*PIPE_COUNT, Reg(UInt(width = log2Up(PIPE_COUNT))))
+  val memResultDataReg = Vec(PIPE_COUNT, Reg(Bits(width = DATA_WIDTH)))
+  val exResultDataReg  = Vec(PIPE_COUNT, Reg(Bits(width = DATA_WIDTH)))
+  val op = Vec(2*PIPE_COUNT, Bits(width = DATA_WIDTH))
 
   // precompute forwarding
   for (i <- 0 until 2*PIPE_COUNT) {
@@ -162,9 +129,9 @@ class Execute() extends Module {
   }
 
   // predicates
-  val predReg = Vec.fill(PRED_COUNT) { Reg(Bool()) }
+  val predReg = Vec(PRED_COUNT, Reg(Bool()))
 
-  val doExecute = Vec.fill(PIPE_COUNT) { Bool() }
+  val doExecute = Vec(PIPE_COUNT, Bool())
   for (i <- 0 until PIPE_COUNT) {
     doExecute(i) := Mux(io.flush, Bool(false),
                         predReg(exReg.pred(i)(PRED_BITS-1, 0)) ^ exReg.pred(i)(PRED_BITS))
@@ -224,7 +191,7 @@ class Execute() extends Module {
 
   // interface to the stack cache
   io.exsc.op := sc_OP_NONE
-  io.exsc.opData := UInt(0)
+  io.exsc.opData := 0.U
   io.exsc.opOff := Mux(exReg.immOp(0), exReg.immVal(0), op(0))
 
   // stack control instructions

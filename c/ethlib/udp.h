@@ -80,6 +80,9 @@ unsigned short int udp_compute_checksum(unsigned int pkt_addr);
 int udp_verify_checksum(unsigned int pkt_addr);
 
 //This function sends an UDP packet to the dstination IP.
-int udp_send(unsigned int tx_addr, unsigned int rx_addr, unsigned char destination_ip[], unsigned short int source_port, unsigned short int destination_port, unsigned char data[], unsigned short int data_length, long long unsigned int timeout);
+int udp_send(unsigned int tx_addr, unsigned int rx_addr, unsigned char destination_ip[], unsigned short source_port, unsigned short destination_port, unsigned char data[], unsigned short data_length, long long timeout);
+
+//This function sends an UDP packet to the destination IP and destination MAC.
+int udp_send_mac(unsigned int tx_addr, unsigned int rx_addr, unsigned char destination_mac[], unsigned char destination_ip[], unsigned short source_port, unsigned short destination_port, unsigned char data[], unsigned short data_length, long long timeout);
 
 #endif

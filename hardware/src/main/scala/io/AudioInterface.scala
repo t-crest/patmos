@@ -8,11 +8,8 @@
 package io
 
 import Chisel._
-import Node._
 
 import patmos.Constants._
-import util.Config
-import util.Utility
 
 import ocp._
 

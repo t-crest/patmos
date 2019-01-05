@@ -146,17 +146,21 @@ void ipv4_set_my_ip(unsigned char new_ip[]){
 	return;
 }
 
-//This function compute and returns the IP header checksum. The function ignore the the field checksum.
+//This function compute and returns the IP header checksum. The function ignore the field checksum.
 unsigned short int ipv4_compute_checksum(unsigned int pkt_addr){
 	unsigned int checksum;
 	checksum = 0;
+	_Pragma("loopbound min 0 max 10")
 	for (int i = 0; i<20; i=i+2){
 		checksum = checksum + (mem_iord_byte(pkt_addr + 14 + i) << 8) + (mem_iord_byte(pkt_addr + 15 + i) & 0xFF);
 	}
 	checksum = checksum - (mem_iord_byte(pkt_addr + 24) << 8) + (mem_iord_byte(pkt_addr + 25) & 0xFF);
-	while((checksum >> 16) != 0){
+	if ((checksum & 0xFFFF0000) > 0)
 		checksum = (checksum & 0xFFFF) + (checksum >> 16);
-	}
+	if ((checksum & 0xFFFF0000) > 0)
+		checksum = (checksum & 0xFFFF) + (checksum >> 16);
+	if ((checksum & 0xFFFF0000) > 0)
+		checksum = (checksum & 0xFFFF) + (checksum >> 16);
 	checksum = ((~checksum) & 0xFFFF);
 	return (unsigned short int) checksum;		
 }
@@ -165,12 +169,16 @@ unsigned short int ipv4_compute_checksum(unsigned int pkt_addr){
 int ipv4_verify_checksum(unsigned int pkt_addr){
 	unsigned int checksum;
 	checksum = 0;
+	_Pragma("loopbound min 0 max 10")
 	for (int i = 0; i<20; i=i+2){
 		checksum = checksum + (mem_iord_byte(pkt_addr + 14 + i) << 8) + (mem_iord_byte(pkt_addr + 15 + i) & 0xFF);
 	}
-	while((checksum >> 16) != 0){
+	if ((checksum & 0xFFFF0000) > 0)
 		checksum = (checksum & 0xFFFF) + (checksum >> 16);
-	}
+	if ((checksum & 0xFFFF0000) > 0)
+		checksum = (checksum & 0xFFFF) + (checksum >> 16);
+	if ((checksum & 0xFFFF0000) > 0)
+		checksum = (checksum & 0xFFFF) + (checksum >> 16);
 	checksum = ((~checksum) & 0xFFFF);
 	if (checksum == 0){
 		return 1;

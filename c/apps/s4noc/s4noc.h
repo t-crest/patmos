@@ -14,7 +14,11 @@
 #define HANDSHAKE 4
 #endif
 
-#define S4NOC_ADDRESS 0xE8000000
+#ifndef DELAY
+#define DELAY 10
+#endif
+
+#define S4NOC_ADDRESS PATMOS_IO_S4NOC
 
 #define IN_DATA 0
 #define IN_SLOT 1
@@ -33,3 +37,6 @@
 #endif
 
 volatile _IODEV int *timer_ptr = (volatile _IODEV int *) (PATMOS_IO_TIMER+4);
+volatile _IODEV int *dead_ptr = (volatile _IODEV int *) PATMOS_IO_DEADLINE;
+
+#define D_SPM_BASE 0x00000000

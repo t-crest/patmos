@@ -15,10 +15,10 @@ import s4noc._
  * Provide some data in dout to get synthesize results.
  */
 class DummyNode(n: Int) extends Module {
-  val io = new Bundle {
-    val local = new Channel()
+  val io = IO(new Bundle {
+    val local = new Channel(UInt(width = 32))
     val dout = UInt(width = 32).asOutput
-  }
+  })
   
   val regAccu = Reg(init=UInt(n, 32))
   regAccu := regAccu + io.local.in.data

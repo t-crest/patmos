@@ -72,7 +72,7 @@ void print_general_info(){
 
 void demo_mode(){
 	printf("\nDemo (rx, tx, LED, calculator)");
-	unsigned char packet_type;
+	enum ethtype packet_type;
 	unsigned char ans;
 	unsigned char target_ip[4];
 	unsigned char target_mac[6];
@@ -97,7 +97,7 @@ void demo_mode(){
 		eth_mac_receive(rx_addr, 0);
 		packet_type = mac_packet_type(rx_addr);
 		switch (packet_type) {
-		case 0:
+		case UNSUPPORTED:
 			printf("...packet #%d received!\n\n", i+1);
 			printf("Packet #%d info:\n", i+1);
 			printf("- Level 2 protocol: Ethernet\n");
@@ -105,7 +105,7 @@ void demo_mode(){
 			printf("\n- Notes:\n");
 			printf("  - No actions performed.\n");
 		break;
-		case 1:
+		case ICMP:
 			ans = icmp_process_received(rx_addr, tx_addr);
 			printf("...packet #%d received!\n\n", i+1);
 			printf("Packet #%d info:\n", i+1);
@@ -135,7 +135,7 @@ void demo_mode(){
 				printf("  - Ping to our IP, replied.\n");
 			}
 		break;
-		case 2:
+		case UDP:
 			printf("...packet #%d received!\n\n", i+1);
 			printf("Packet #%d info:\n", i+1);
 			printf("- Level 2 protocol: Ethernet\n");
@@ -232,7 +232,7 @@ void demo_mode(){
 				}
 			}						
 		break;
-		case 3:
+		case ARP:
 			ans = arp_process_received(rx_addr, tx_addr);
 			printf("...packet #%d received!\n\n", i+1);
 			printf("Packet #%d info:\n", i+1);

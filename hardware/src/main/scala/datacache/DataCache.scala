@@ -1,36 +1,4 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute.
-   All rights reserved.
-
-   This file is part of the time-predictable VLIW processor Patmos.
-
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions are met:
-
-      1. Redistributions of source code must retain the above copyright notice,
-         this list of conditions and the following disclaimer.
-
-      2. Redistributions in binary form must reproduce the above copyright
-         notice, this list of conditions and the following disclaimer in the
-         documentation and/or other materials provided with the distribution.
-
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
-   OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-   OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
-   NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
-   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-   The views and conclusions contained in the software and documentation are
-   those of the authors and should not be interpreted as representing official
-   policies, either expressed or implied, of the copyright holder.
- */
-
-/*
  * The data cache unit for Patmos
  *
  * Author: Wolfgang Puffitsch (wpuffitsch@gmail.com)
@@ -39,7 +7,6 @@
 package datacache
 
 import Chisel._
-import Node._
 
 
 import stackcache._
@@ -49,7 +16,7 @@ import patmos.Constants._
 import ocp._
 
 class DataCache extends Module {
-  val io = new Bundle {
+  val io = IO(new Bundle {
     val master = new OcpCacheSlavePort(ADDR_WIDTH, DATA_WIDTH)
     val slave = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
     val scIO = new StackCacheIO()
@@ -57,7 +24,7 @@ class DataCache extends Module {
     val dcPerf = new DataCachePerf()
     val scPerf = new StackCachePerf()
     val wcPerf = new WriteCombinePerf()
-  }
+  })
 
   // Register selects
   val selDC = Bool(DCACHE_SIZE > 0) && io.master.M.AddrSpace === OcpCache.DATA_CACHE
@@ -80,7 +47,7 @@ class DataCache extends Module {
     else if (DCACHE_ASSOC == 2 && DCACHE_REPL == CACHE_REPL_LRU && DCACHE_WRITETHROUGH)
       Module(new TwoWaySetAssociativeCache(DCACHE_SIZE, BURST_LENGTH*BYTES_PER_WORD))
     else {
-      ChiselError.error("Unsupported data cache configuration: "+
+      throw new Error("Unsupported data cache configuration: "+
                         "associativity "+DCACHE_ASSOC+
                         " with replacement policy \""+DCACHE_REPL+"\""+
                         " and write "+(if (DCACHE_WRITETHROUGH) "through" else "back"))

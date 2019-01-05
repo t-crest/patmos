@@ -41,33 +41,39 @@
 
 #include "mac.h"
 
-unsigned char my_mac[6] = {0x00, 0xFF, 0xEE, 0xF0, 0xDA, 0x42};
+unsigned char my_mac[6] = {0x00, 0x80, 0x6e, 0xF0, 0xDA, 0x42};
 
-///////////////////////////////////////////////////////////////
-//Function to decode packet type (for the demo)
-///////////////////////////////////////////////////////////////
-
-//This function returns 1 if ICMP, returns 2 if UDP, returns 3 if ARP, otherwise 0.
-unsigned char mac_packet_type(unsigned int addr){
-	
+enum protocol mac_packet_type(unsigned int addr){
 	if (mem_iord_byte(addr + 12) == 0x08){
 		unsigned char b = mem_iord_byte(addr + 13);
 		if(b == 0x00){//IP
 			b = mem_iord_byte(addr + 23);
 			if (b == 0x01){
-				return 1;//ICMP
+				return ICMP;//ICMP
 			}else if(b == 0x11){
-				return 2;//UDP
+				return UDP;//UDP
+			}else if(b == 0x06){
+				return TCP;//TCP
 			}else{
-				return 0;
+				return UNSUPPORTED;
 			}
 		}else if (b == 0x06){
-			return 3;//ARP
+			return ARP;//ARP
 		}else{
-			return 0;
+			return UNSUPPORTED;
 		}
+	} else if(mem_iord_byte(addr + 12) == 0x88 && mem_iord_byte(addr + 13) == 0xF7){
+		return PTP;	
 	}
-	return 0;
+	return UNSUPPORTED;
+}
+
+//This function retrieves the mac of the sender
+void mac_addr_sender(unsigned int rx_addr, unsigned char source_mac[]){
+	int i;
+	for (int i=0; i<6; i++){
+		source_mac[i] = mem_iord_byte(rx_addr + 6 + i);//ETH header mymac
+	}
 }
 
 ///////////////////////////////////////////////////////////////

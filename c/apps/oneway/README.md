@@ -2,10 +2,8 @@
 
 These applications are used for the evaluation section of the following submitted paper:
 
-Martin and Rasmus: One-Way Shared Memory Stuff
-
-Which is an extension of the DATE paper.
-
+Martin Schoeberl and Rasmus Ulslev Pedersen, One-Way Memory, submitted to the
+Journal of Systems Architecture.
 
 We use the T-CREST multicore to evaluate the one-way shared memory.
 General build instructions of T-CREST in [Main README](../../../README.md).
@@ -35,13 +33,16 @@ Afterwards run:
 make app download APP=oneway 
 ```
 This compiles and downloads a simple test for the one-way shared memory.
-Change `MAIN` to the appropriate test.
+
+Further application examples are available at following repository:
+[One-way memory usecases](https://github.com/schoeberl/one-way-shared-memory/tree/master/usecases)
+
 
 To ensure that you have the exact version of T-CREST that we have used in the
 evaluation section of the paper, use the following `git` command to checkout that version:
 
 ```bash
-git checkout `git rev-list -n 1 --before="2018-xx-xx" master`
+git checkout `git rev-list -n 1 --before="2018-05-17" master`
 ```
 
 This can be done in all T-CREST repositories. However, it is most important

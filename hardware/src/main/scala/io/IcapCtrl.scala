@@ -8,8 +8,6 @@
 package io
 
 import Chisel._
-import Node._
-import ocp._
 
 object IcapCtrl extends DeviceObject {
   var extAddrWidth = 32
