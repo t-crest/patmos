@@ -26,12 +26,13 @@ class XXXIO(lckCnt: Int) extends Bundle {
 // Maybe I should also use this functional approach, but not for a quick test now
 // class TwoWayOCPWrapper(hardlockgen: () => AbstractHardlock) extends Module {
 
-class TwoWayOCPWrapper(nrCores: Int) extends Module {
+class TwoWayOCPWrapper(nrCores: Int, memSizePrNI : Int) extends Module {
 
   val dim = math.sqrt(nrCores).toInt
   if (dim * dim != nrCores) throw new Error("Number of cores must be quadratic")
   // just start with four words
-  val size = 128 * nrCores
+  if (log2Down(memSizePrNI) != log2Up(memSizePrNI)) throw new Error("Memory per node must be an even power of 2")
+  val size = nrCores * memSizePrNI
   val twowaymem = Module(new twoway.TwoWayMem(dim, size))
 
   println("TwoWayMem")

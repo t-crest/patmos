@@ -219,7 +219,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       case "S4noc" => cmpdevs(7) = Module(new cmp.S4nocOCPWrapper(nrCores, 4, 4))
       case "CASPM" => cmpdevs(8) = Module(new cmp.CASPM(nrCores, nrCores * 8))
       case "AsyncLock" => cmpdevs(9) = Module(new cmp.AsyncLock(nrCores, nrCores * 2))
-      case "TwoWay" => cmpdevs(10) = Module(new cmp.TwoWayOCPWrapper(nrCores))
+      case "TwoWay" => cmpdevs(10) = Module(new cmp.TwoWayOCPWrapper(nrCores, 1024))
       case _ =>
     }
   }
