@@ -2,7 +2,7 @@
  * "I/O" module to access information about the CPU
  *
  * Authors: Wolfgang Puffitsch (wpuffitsch@gmail.com)
- * 					Torur Biskopsto Strom (torur.strom@gmail.com)
+ *          Torur Biskopsto Strom (torur.strom@gmail.com)
  *
  */
 

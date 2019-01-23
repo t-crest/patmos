@@ -19,7 +19,7 @@ import io.CoreDeviceIO
 import io.CpuInfoCmp
 
 class InOut(nr: Int, cnt: Int, withComConf: Boolean) extends Module {
-  val io = IO(Config.getInOutIO())
+  val io = IO(Config.getInOutIO(nr))
 
   // Compute selects
   val selIO = io.memInOut.M.Addr(ADDR_WIDTH-1, ADDR_WIDTH-4) === Bits("b1111")
@@ -132,8 +132,12 @@ class InOut(nr: Int, cnt: Int, withComConf: Boolean) extends Module {
   }
 
   for (devConf <- Config.getConfig.Devs) {
-    val dev = Config.createDevice(devConf).asInstanceOf[CoreDevice]
-    if(nr == 0 || dev.io.getClass().getInterfaces().forall(e => e.getSimpleName() != "Pins" || !e.getMethods().nonEmpty)) {
+    val clazz = 
+      try { Class.forName("io."+devConf.name+"$Pins") }
+      catch { case e: Exception => null}
+
+    if(nr == 0 || clazz == null || !clazz.getMethods.nonEmpty) {
+      val dev = Config.createDevice(devConf).asInstanceOf[CoreDevice]
       connectDevice(dev.io,devConf.offset,devConf.name)
       Config.connectIOPins(devConf.name, io, dev.io)
       Config.connectIntrPins(devConf, io, dev.io)
