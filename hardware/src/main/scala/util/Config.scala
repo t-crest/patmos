@@ -55,7 +55,10 @@ abstract class Config {
   val frequency: Int
   val pipeCount: Int
   val coreCount: Int
-  val cmpDevices: Set[String]
+
+
+  case class CmpDevConfig(name : String, size: Int)
+  val cmpDevices: Set[Config#CmpDevConfig]
   val burstLength: Int
   val writeCombine: Boolean
   val mmu: Boolean
@@ -191,10 +194,9 @@ object Config {
       val coreCount = getIntAttr(node, "cores", "@count",
                                  hasParent, defaultConf.coreCount)
 
-      val cmpDevices = {
-        val set = ((node \ "CmpDevs") \ "CmpDev").map(e => (e \ "@name").text).toSet
-        if(set.isEmpty) defaultConf.cmpDevices else set
-      }
+      val CmpDevNodes = ((node \ "CmpDevs") \ "CmpDev")
+      val cmpDevices : Set[Config#CmpDevConfig] =
+         CmpDevNodes.map(cmpDevFromXML(_)).toSet
 
       val burstLength  = getIntAttr(node, "bus", "@burstLength",
                                     hasParent, defaultConf.burstLength)
@@ -264,6 +266,16 @@ object Config {
         emuConfig.close();
       }
 
+      private def cmpDevFromXML(node: scala.xml.Node): CmpDevConfig = {
+        val name = (node \ "@name").text
+        val size = (node \ "@size").text
+        if(size.isEmpty){
+          new CmpDevConfig(name, -1)
+        } else {
+          new CmpDevConfig(name, size.toInt)
+        }
+      }
+
       private def devFromXML(node: scala.xml.Node, devs: scala.xml.NodeSeq,
                              needOffset: Boolean = true): DeviceConfig = {
         val key = find(node, "@DevTypeRef").text
@@ -307,7 +319,7 @@ object Config {
     val frequency = 0
     val pipeCount = 0
     val coreCount = 0
-    val cmpDevices = Set[String]()
+    val cmpDevices = Set[Config#CmpDevConfig]()
     val burstLength = 0
     val writeCombine = false
     val mmu = false
