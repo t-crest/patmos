@@ -1,6 +1,7 @@
 /*
-    This is a multicore program in which a producer-consumer task pair communicating
-    time-triggered  with single buffering
+    This is a multicore program in which a pipelined chain of tasks
+    communicate in a time-triggered fashion
+    using single buffering
 
     Author: Oktay Baris
     Copyright: DTU, BSD License
@@ -25,10 +26,12 @@ volatile _UNCACHED int debug_print_slave2[MEASUREMENT_SIZE]= {0};
 volatile _UNCACHED int debug_print_slave1_P[MEASUREMENT_SIZE]= {0}; //for period measurment
 volatile _UNCACHED int debug_print_slave2_P[MEASUREMENT_SIZE]= {0}; //for period mesurement
 //For printing data
-volatile _UNCACHED int debug_print_data[DATA_LEN+BUFFER_SIZE]= {0};
+volatile _UNCACHED int debug_print_data[DATA_LEN+BUFFER_SIZE*3]= {0};
 //For printing the overall latency
 volatile _UNCACHED int start_transm_slave1= 0;
 volatile _UNCACHED int stop_transm_slave2= 0;
+
+
 
 //Producer Core
 void producer(void *arg) {
@@ -59,7 +62,7 @@ void producer(void *arg) {
       volatile int _SPM *trigger_comm = ((volatile int _SPM *) NOC_SPM_COMP_BASE+3);
       volatile int _SPM *next_trigger_comm = ((volatile int _SPM *) NOC_SPM_COMP_BASE+4);
       // a pointer on the local SPM for handling the data manupulation locally 
-      volatile int _SPM *data_wr = ((volatile int _SPM *) NOC_SPM_COMP_BASE+MEASUREMENT_MEM_TRACE+5);
+      volatile int _SPM *data_wr = ((volatile int _SPM *) NOC_SPM_COMP_BASE+5);
   #endif
 
     #ifdef MEASUREMENT_MODE
@@ -79,7 +82,7 @@ void producer(void *arg) {
   qpd_t * chan1 = mp_create_qport(1, SOURCE, MP_CHAN_BUF_SIZE, MP_CHAN_NUM_BUF);
   mp_init_ports(); 
 
-  //remote address calculation at the receiver side
+  //remote address calculation at the receiver side for Channel 1
   int rmt_addr_offset = (chan1->buf_size + FLAG_SIZE) * chan1->send_ptr;
   volatile void _IODEV *calc_rmt_addr = &chan1->recv_addr[rmt_addr_offset];
 
@@ -95,13 +98,13 @@ void producer(void *arg) {
   //     
   ///////////////////////////////////////////////////////////////////////////////
 
-   //Sync the tasks by Busy waiting over a TDM counter value
+   //Sync the tasks by Busy waiting over a statically determined TDM counter value
    while( !( TDM_P_COUNTER >= SYNC_INIT ) ){ 
       ;
     }
 
    // read the clock counter to determine current instance of time
-   *next_trigger_comp = *timer_ptr + 7000 ; //7000cc to tolerate cache misses up to first triggereing point
+   *next_trigger_comp = *timer_ptr + 7000 ; //7000cc to tolerate cache misses up to first triggering point
    *next_trigger_comm = *next_trigger_comp + WCET_COMP ;
 
     #ifdef MEASUREMENT_MODE
@@ -123,19 +126,19 @@ void producer(void *arg) {
         ///////////////////////////////////////////////////////////////////////////////
         
         if(i==0){//for the first loop iteration
-              // computation   
+              // for computation   
               *trigger_comp = *next_trigger_comp;
               *next_trigger_comp += 6000;// a value large enough to deal with cache misses for the first period
-              // communication
+              // for communication
               *trigger_comm = *next_trigger_comm;
               *next_trigger_comm += 6000; // a value large enough to deal with cache misses for the first period
 
 
         }else{
-              //  computation 
+              // for computation 
               *trigger_comp = *next_trigger_comp;
               *next_trigger_comp += TRIGGER_PERIOD;
-              // communication
+              // for communication
               *trigger_comm = *next_trigger_comm;
               *next_trigger_comm += TRIGGER_PERIOD;
         }
@@ -147,15 +150,29 @@ void producer(void *arg) {
           ;
         }
 
+              #ifdef LATENCY_CALC_MODE
+                  if(i==1){//Start the latency calculation when the first message is sent
+                      *start_transmission = *timer_ptr; 
+                  }
+              #endif
+
               // to measure the computation triggering time
               #ifdef MEASUREMENT_MODE
+                  if(i==1){
+                    *start_transmission = *timer_ptr; 
+                  }
                  timeStamps_slave1[2+(i*5)+1] = *timer_ptr;  
                  timeStamps_slave1_P[2+(i*5)+1] = TDM_P_COUNTER;
               #endif
 
-              // Produce Data into the write buffer.
+              // Produce Data into the write buffer. 
               for (int j=0;j<MSG_SIZE;j++){
-                  *(volatile int _IODEV*)((int*)chan1->write_buf+j) = (i+1);
+
+                  for (int k=0;k<3;k++){
+                      // 3 MAC operations for every word in the message.
+                       *(volatile int _IODEV*)((int*)chan1->write_buf+j) += (j+1)*(k+1); 
+
+                  }
               }   
           
               #ifdef MEASUREMENT_MODE
@@ -171,24 +188,18 @@ void producer(void *arg) {
         while(  !( *timer_ptr >= *trigger_comm ) ) {
             ;
         }
-            #ifdef LATENCY_CALC_MODE
-                if(i==1){//Start the latency calculation when the first data is sent
-                  *start_transmission = *timer_ptr; 
-                }
-            #endif
 
             // to measure the communication triggering time
             #ifdef MEASUREMENT_MODE
-                if(i==1){
-                  *start_transmission = *timer_ptr; 
-                }
                timeStamps_slave1[2+(i*5)+3] = *timer_ptr;  
                timeStamps_slave1_P[2+(i*5)+3] = TDM_P_COUNTER;
             #endif
 
             //nonblocking write transaction, will fail if the DMA controller is not available.
-            // assuming that DMA available
+            // TTCom guarantees that DMA will be available via static analysis
+            
         	  noc_nbwrite( (id+1),calc_rmt_addr,chan1->write_buf,chan1->buf_size + FLAG_SIZE, 0);
+
 
             // to measure the latency of the code section of the communication 
             #ifdef MEASUREMENT_MODE
@@ -217,6 +228,194 @@ void producer(void *arg) {
         #endif
 
 }
+
+
+
+
+// intermediate Core
+void intermediate(void *arg) {
+
+  #ifdef MEASUREMENT_MODE
+      // recording timestamps locally in the data SPM 
+      volatile int _IODEV *timeStamps_slave2 = ((volatile int _IODEV *) NOC_SPM_COMP_BASE);
+      volatile int _IODEV *timeStamps_slave2_P = ((volatile int _IODEV *) NOC_SPM_COMP_BASE+MEASUREMENT_MEM_TRACE/2);
+      // local pointers for bookkeeping the computation time triggering instants
+      volatile int _IODEV *trigger_comp = ((volatile int _IODEV *) NOC_SPM_COMP_BASE+MEASUREMENT_MEM_TRACE+1);
+      volatile int _IODEV *next_trigger_comp = ((volatile int _IODEV *) NOC_SPM_COMP_BASE+MEASUREMENT_MEM_TRACE+2);
+      // local pointers for bookkeeping the communication time triggering instants
+      volatile int _IODEV *trigger_comm = ((volatile int _IODEV *) NOC_SPM_COMP_BASE+MEASUREMENT_MEM_TRACE+3);
+      volatile int _IODEV *next_trigger_comm = ((volatile int _IODEV *) NOC_SPM_COMP_BASE+MEASUREMENT_MEM_TRACE+4);
+      //To calculate overall latency for the bulk data communication
+      volatile int _SPM *stop_transmission = ((volatile int _SPM *) NOC_SPM_COMP_BASE+5);
+      // Data pointer to read buffer
+      volatile int _IODEV *data_rd = ((volatile int _IODEV *) NOC_SPM_COMP_BASE+MEASUREMENT_MEM_TRACE+6);
+  #endif
+
+  #ifdef LATENCY_CALC_MODE
+      //To calculate overall latency for the bulk data communication
+      volatile int _SPM *stop_transmission = ((volatile int _SPM *) NOC_SPM_COMP_BASE);
+      // local pointers for bookkeeping the computation time triggering instants
+      volatile int _SPM *trigger_comp = ((volatile int _SPM *) NOC_SPM_COMP_BASE+1);
+      volatile int _SPM *next_trigger_comp = ((volatile int _SPM *) NOC_SPM_COMP_BASE+2);
+      // local pointers for bookkeeping the communication time triggering instants
+      volatile int _SPM *trigger_comm = ((volatile int _SPM *) NOC_SPM_COMP_BASE+3);
+      volatile int _SPM *next_trigger_comm = ((volatile int _SPM *) NOC_SPM_COMP_BASE+4);
+      // Data pointer to read buffer
+      volatile int _SPM *data_rd = ((volatile int _SPM *) NOC_SPM_COMP_BASE+MEASUREMENT_MEM_TRACE+5);
+  #endif
+
+  #ifdef MEASUREMENT_MODE
+    timeStamps_slave2[0] = *timer_ptr; 
+    timeStamps_slave2_P[0] = TDM_P_COUNTER; 
+  #endif
+
+  int id = get_cpuid();
+  ///////////////////////////////////////////////////////////////////////////////
+  // -Channel declation at tranmitter side.  
+  // -buffer allocations
+  // -initial remote buffer address calculations 
+  // -no flow control is needed due to single buffering
+  ///////////////////////////////////////////////////////////////////////////////
+
+  // buffer allocation into SPM
+  qpd_t * chan1 = mp_create_qport(1, SINK, MP_CHAN_BUF_SIZE, MP_CHAN_NUM_BUF);
+
+  qpd_t * chan2 = mp_create_qport(2, SOURCE, MP_CHAN_BUF_SIZE, MP_CHAN_NUM_BUF);
+  mp_init_ports(); 
+
+  //remote address calculation at the receiver side for Channel 2
+  int rmt_addr_offset = (chan2->buf_size + FLAG_SIZE) * chan2->send_ptr;
+  volatile void _IODEV *calc_rmt_addr = &chan2->recv_addr[rmt_addr_offset];
+
+  ///////////////////////////////////////////////////////////////////////////////
+  // This section: 
+  //  1- syncronizes the tasks by looping around an initial value from TDM counter
+  //  2- after syncronization, the tasks take a mesurement from clock cycle counter 
+  //     to determine the current instance of time. The error margin between the tasks is 1-2 clock cycles,
+  //     that is considered as negligible.
+  //  3- adding a large enough offset value (in clock cycles) to to determine the initial triggering time instances for
+  //     computation and communication. The offset value is choosen big enough to toletate the cache misses for the 1st loop
+  //     iteration, thus, measurements in the 1st loop iteration are garbage
+  //     
+  ///////////////////////////////////////////////////////////////////////////////
+
+   //Sync the tasks by Busy waiting over a TDM counter value
+   while( !( TDM_P_COUNTER >= SYNC_INIT ) ){ //sync
+      ;
+   }
+
+   // read the clock counter to determine current instance of time
+   *next_trigger_comp = *timer_ptr + 7000 ; //7000cc to tolerate cache misses up to first triggereing point
+   *next_trigger_comm = *next_trigger_comp + WCET_COMP ;
+
+
+     #ifdef MEASUREMENT_MODE
+      timeStamps_slave2[1] = *timer_ptr; 
+      timeStamps_slave2_P[1] = TDM_P_COUNTER;
+     #endif
+
+  for(int i=0;i<LOOP_COUNT+2;i++){ 
+     // LOOP_COUNT+2 as the consumer should run one more period than the producer to get the last message sent 
+      // the first iteration in the loop is dedicated to warming up the cache
+      // therefore measurements in the first loop are not considered 
+
+      #ifdef MEASUREMENT_MODE
+         timeStamps_slave2[2+(i*5)+0] = *timer_ptr; 
+         timeStamps_slave2_P[2+(i*5)+0] = TDM_P_COUNTER;
+      #endif
+
+        ///////////////////////////////////////////////////////////////////////////////
+        // Bookkeeping for the triggering time instances
+        ///////////////////////////////////////////////////////////////////////////////
+        if(i==0){
+              // for Computation
+              *trigger_comp = *next_trigger_comp;
+              *next_trigger_comp += 6000;
+              // for communication
+              *trigger_comm = *next_trigger_comm;
+              *next_trigger_comm += 6000;
+
+        }else{
+              //  for computation 
+              *trigger_comp = *next_trigger_comp;
+              *next_trigger_comp += TRIGGER_PERIOD;
+              // for communication
+              *trigger_comm = *next_trigger_comm;
+              *next_trigger_comm += TRIGGER_PERIOD;
+        }
+
+      ///////////////////////////////////////////////////////////////////////////////
+      // Computation part of the Task. Data production/manipulation
+      ///////////////////////////////////////////////////////////////////////////////
+      
+      while( !( *timer_ptr >= *trigger_comp ) ){ 
+        ;
+      }     
+         
+            #ifdef MEASUREMENT_MODE
+                timeStamps_slave2[2+(i*5)+1] = *timer_ptr; 
+                timeStamps_slave2_P[2+(i*5)+1] = TDM_P_COUNTER;
+            #endif
+
+
+            // Read input buffers, Compute the data, write to output buffers 
+            // 3 MAC operations for every word in the message.
+            for (int j=0;j<MSG_SIZE;j++){
+
+                for (int k=0;k<3;k++){
+                   *(volatile int _IODEV*)((int*)chan2->write_buf+j) += (*(volatile int _IODEV*)((int*)chan1->read_buf+j))*(k+1); // 3 MAC
+
+                }
+    
+            }
+
+
+            #ifdef MEASUREMENT_MODE
+               timeStamps_slave2[2+(i*5)+2] = *timer_ptr;  
+               timeStamps_slave2_P[2+(i*5)+2] = TDM_P_COUNTER;
+            #endif
+        
+
+      ///////////////////////////////////////////////////////////////////////////////
+      // Communication  part of the Task. Perhaps for an actuator
+      ///////////////////////////////////////////////////////////////////////////////
+
+       while( !( *timer_ptr >= *trigger_comm) ){ 
+        ;
+      }
+            #ifdef MEASUREMENT_MODE
+               timeStamps_slave2[2+(i*5)+3] = *timer_ptr;  
+               timeStamps_slave2_P[2+(i*5)+3] = TDM_P_COUNTER;
+            #endif
+
+            //nonblocking write transaction, will fail if the DMA controller is not available.
+            // TTCom guarantees that DMA will be available via static analysis
+            
+            noc_nbwrite( (id+1),calc_rmt_addr,chan2->write_buf,chan2->buf_size + FLAG_SIZE, 0);
+
+            #ifdef MEASUREMENT_MODE
+               timeStamps_slave2[2+(i*5)+4] = *timer_ptr;  
+               timeStamps_slave2_P[2+(i*5)+4] = TDM_P_COUNTER;
+            #endif
+
+  }//for
+
+   ///////////////////////////////////////////////////////////////////////////////
+   //copy the measurement values from local memory to global main-mem for print debugging
+   ///////////////////////////////////////////////////////////////////////////////
+        #ifdef MEASUREMENT_MODE
+
+            for(int i=0;i<MEASUREMENT_SIZE;i++){
+                debug_print_slave2[i] = timeStamps_slave2[i];
+                debug_print_slave2_P[i] = timeStamps_slave2_P[i];
+            }
+        #endif
+
+}
+
+
+
+
 
 
 // Consumer Core
@@ -264,7 +463,7 @@ void consumer(void *arg) {
   ///////////////////////////////////////////////////////////////////////////////
 
   // buffer allocation into SPM
-  qpd_t * chan1 = mp_create_qport(1, SINK, MP_CHAN_BUF_SIZE, MP_CHAN_NUM_BUF);
+  qpd_t * chan2 = mp_create_qport(2, SINK, MP_CHAN_BUF_SIZE, MP_CHAN_NUM_BUF);
   mp_init_ports(); 
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -294,7 +493,7 @@ void consumer(void *arg) {
       timeStamps_slave2_P[1] = TDM_P_COUNTER;
      #endif
 
-  for(int i=0;i<LOOP_COUNT+2;i++){ 
+  for(int i=0;i<LOOP_COUNT+3;i++){ 
      // LOOP_COUNT+2 as the consumer should run one more period than the producer to get the last message sent 
       // the first iteration in the loop is dedicated to warming up the cache
       // therefore measurements in the first loop are not considered 
@@ -332,13 +531,13 @@ void consumer(void *arg) {
         ;
       }     //Stop the latency calculation when the last data is received
             #ifdef LATENCY_CALC_MODE
-                if(i==LOOP_COUNT+1){
+                if(i==LOOP_COUNT+2){
                   *stop_transmission = *timer_ptr; 
                 }
             #endif
          
             #ifdef MEASUREMENT_MODE
-                if(i==LOOP_COUNT+1){
+                if(i==LOOP_COUNT+2){
                   *stop_transmission = *timer_ptr; 
                 }
                 timeStamps_slave2[2+(i*5)+1] = *timer_ptr; 
@@ -349,9 +548,9 @@ void consumer(void *arg) {
       	  	for (int j=0;j<MSG_SIZE;j++){
 
               #ifdef DATA_CHECK_MODE
-      	  	      data_rd[j+i*MSG_SIZE] = *(volatile int _IODEV*)((int*)chan1->read_buf+j); // for printing
+      	  	      data_rd[j+i*MSG_SIZE] = *(volatile int _IODEV*)((int*)chan2->read_buf+j); // for printing
               #else
-                  data_rd[j] = *(volatile int _IODEV*)((int*)chan1->read_buf+j); 
+                  data_rd[j] = *(volatile int _IODEV*)((int*)chan2->read_buf+j); 
               #endif
 
       	  	}
@@ -374,7 +573,7 @@ void consumer(void *arg) {
                timeStamps_slave2_P[2+(i*5)+3] = TDM_P_COUNTER;
             #endif
 
-            // do something usefull here (Computation). 
+            // Pseudo work, (do nothing as it is a consumer)
 
             #ifdef MEASUREMENT_MODE
                timeStamps_slave2[2+(i*5)+4] = *timer_ptr;  
@@ -387,7 +586,7 @@ void consumer(void *arg) {
       //Print the received data for debuging
       ///////////////////////////////////////////////////////////////////////////////
         #ifdef DATA_CHECK_MODE
-            for(int i=0;i<(DATA_LEN+BUFFER_SIZE);i++){
+            for(int i=0;i<(DATA_LEN+BUFFER_SIZE*3);i++){
                 debug_print_data[i] = data_rd[i];
             }
         #endif
@@ -422,16 +621,14 @@ int main() {
   int id = get_cpuid();
   int cnt = get_cpucnt();
 
-  #ifdef MEASUREMENT_MODE
-    timeStamps_master[1] = *timer_ptr;
-    timeStamps_master_P[1] = TDM_P_COUNTER; 
-  #endif
 
     corethread_create(1, &producer, (void*)slave_param);
-    corethread_create(2, &consumer, (void*)slave_param);
+    corethread_create(2, &intermediate, (void*)slave_param);
+    corethread_create(3, &consumer, (void*)slave_param);
     
     corethread_join(1, (void*)slave_param);
     corethread_join(2, (void*)slave_param);
+    corethread_join(3, (void*)slave_param);
 
   //Print the measurements
   #ifdef MEASUREMENT_MODE
@@ -514,7 +711,7 @@ int main() {
   #ifdef DATA_CHECK_MODE
      printf("Data received at the Consumer Side: \n");
      printf("--------------------------\n");
-     for(int i=0;i<(DATA_LEN+BUFFER_SIZE);i++){
+     for(int i=0;i<(DATA_LEN+BUFFER_SIZE*3);i++){
         printf("Data at %d is: %d \n",i, debug_print_data[i]);     
      }
   #endif
@@ -522,7 +719,7 @@ int main() {
   #ifdef LATENCY_CALC_MODE
 
       printf("------Analitical Calculation of Latency --------------------\n");
-      int analitical_latency=(DATA_LEN/BUFFER_SIZE*TRIGGER_PERIOD)-WCET_COMP;
+      int analitical_latency=(((DATA_LEN/BUFFER_SIZE)+1)*TRIGGER_PERIOD);
       printf("The End-to-End Latency= %d/Clock Cycle, \
           for DATA_LEN=%d/words \
           and BUFFER_SIZE:%d/words \n", analitical_latency ,DATA_LEN, BUFFER_SIZE);// "-1" is use
