@@ -38,8 +38,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   // Write NOC
   val st = Schedule.getSchedule(n, false, nodeIndex)
   val scheduleLength = st._1.length
-  val writeNocTab = Vec(st._2.map(Bool(_)))
-  val timeslotToNode = Vec(st._3.map(UInt(_))) //Not sure but my hope is that this converts the array to a ROM, that can be used as a look
+  val timeslotToNode = Vec(st._3.map(UInt(_))) //Converts scala generated array to ROM
   
 
   // TDM counter - same counter is used for both NoCs
@@ -59,11 +58,6 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   
   val lowerAddr = UInt(width = blockAddrWidth)
   lowerAddr := io.memReq.in.address(blockAddrWidth, 0) // Block address
-
-  // writeNoc transmission, Can we write something?
-  //val valid = writeNocTab(regTdmCounter) // CHANGE HERE TO SAY IF WE ARE IN CORRECT SLOT
-  //val valid = writeNocTab && timeslotToNode(upperAddr) === regtdmCounter
-  //val valid = Bool()
 
   // TDM schedule starts one cycles later for read data delay
   val regDelay = RegNext(regTdmCounter, init=UInt(0))
@@ -101,7 +95,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   val delayData = Reg(init = UInt(0));
 
 
-  //Register to only have valid high to write network for one cycle.
+  //Register unsuring only having valid high to write network for one cycle.
   val transmitted = Reg(init = Bool(false))
   transmitted := transmitted
 
@@ -141,13 +135,12 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
       //When it is local it always takes a single cycle.
       notProcessed := Bool(false)
 
-      //io.memReq.out.valid := Bool(true)  //Change to register
       io.memPort.io.portA.addr := lowerAddr
 
       io.memPort.io.portA.wrData := io.memReq.in.data 
 
 
-      //Read request needs a one cycle delay. Also for write request.
+      //Read request needs one cycle delay. Also for write request.
       //Valid will go high next cycle, where the data will be stored/retrieved.
       
       delayValid := Bool(true)
@@ -192,7 +185,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
           }
         }
       }.otherwise{
-        //Write request
+        //Read request
 
         when((valid) && !transmitted ) {
           transmitted := Bool(true)
@@ -235,7 +228,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
           }
         }
       }.otherwise{
-        //Write request
+        //read request
 
         when((valid) && !transmitted ) {
           transmitted := Bool(true)
@@ -257,15 +250,15 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   val readbackValueDelayed = Reg(init= UInt(0,32))  // a 1-cycle buffer is needed on the read value for transmitting readback requests when a blank in the cycle has occured
   readbackValueDelayed := io.memPort.io.portB.rdData
 
-    val rbDelayArray = st._5
-  val rbDelayROM = Vec(rbDelayArray.map(UInt(_)))
+  val rbDelayArray = st._5
+  val rbDelayROM = Vec(rbDelayArray.map(SInt(_)))
   val nrOfFIFORegs = rbDelayArray.reduceLeft(_ max _) // finds the greates number in the array which corrosponds to the number of registers needed.
   val rbFIFO = RegInit(Vec(Seq.fill(nrOfFIFORegs)(new SingleChannel()))) // generate the rbFIFO
   val localValidTable = Vec(st._6.map(Bool(_)))//used to check wether an insertion should be preformed
   
 
   // TDM counter - 1 clk cycle delayed, such that the 1 cycle read time is accounded for, one cycle for the router to NI and one unknown...
-  val FIFOTdmCounter = Reg(init = UInt(scheduleLength - 3, log2Up(scheduleLength)))
+  val FIFOTdmCounter = Reg(init = UInt(scheduleLength - 2, log2Up(scheduleLength)))
   val endTDMFIFO = FIFOTdmCounter === UInt(scheduleLength - 1)
   FIFOTdmCounter := Mux(endTDMFIFO, UInt(0), FIFOTdmCounter + UInt(1))
   
@@ -299,83 +292,56 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   val shiftedTdmCounter = Reg(init = UInt(st._4, log2Up(scheduleLength)))
   val end2 = shiftedTdmCounter === UInt(scheduleLength - 1)
   shiftedTdmCounter := Mux(end2, UInt(0), shiftedTdmCounter + UInt(1))
-  
   val regShiftedTdmCounter = RegNext(shiftedTdmCounter, init=UInt(0))//This works for all route 2x2 and 3x3 and all route except the 4'th indexed ass 3 in 4x4
-  //val reg2ShiftedTdmCounter = RegNext(regShiftedTdmCounter, init=UInt(0))//this fixes 0->11 read but destroyed a lot of others
+  
+  shiftedTdmCounter := Mux(end2, UInt(0), shiftedTdmCounter + UInt(1))  
+  
+  
   //FIFO logic
+  rbFIFO(0).data := io.memPort.io.portB.rdData
+  rbFIFO(0).valid := gotValue
+  for(i <-1 until rbFIFO.length){ 
+    rbFIFO(i) := rbFIFO(i - 1)
+  }
   when(localValidTable(FIFOTdmCounter)){
-    rbFIFO(0).data := io.memPort.io.portB.rdData
-    rbFIFO(0).valid := gotValue // is set high when data is ready in from the memory
+    //rbFIFO(0).data := io.memPort.io.portB.rdData
+    //rbFIFO(0).valid := gotValue // is set high when data is ready in from the memory
     when(io.writeChannel.in.valid && !io.writeChannel.in.rw){ // if new data is available in the next cycle
       gotValue := Bool(true)
     }.otherwise{
       gotValue := Bool(false)
     }
-    for(i <-1 until rbFIFO.length){ 
+    /*for(i <-1 until rbFIFO.length){ 
       rbFIFO(i) := rbFIFO(i - 1)
-    }
+    }*/
+  }.otherwise{
+    gotValue := Bool(false)
   }
+
+
+  
   //Multiplexer that pics out the appropriate data in the FIFO for the readback network.
   var muxReadDataChannel = new SingleChannel()
+  //val gotValueRb = Wire(init = Bool(false))
+  val lookupvalue = rbDelayROM(regShiftedTdmCounter)
+  
+
   muxReadDataChannel.data := UInt(0)
   muxReadDataChannel.valid := Bool(false)
 
-  when(rbDelayROM(regShiftedTdmCounter) === UInt(0)){
+  when(lookupvalue === SInt(0)){
     muxReadDataChannel.data := io.memPort.io.portB.rdData
     muxReadDataChannel.valid := gotValue
-    when(io.writeChannel.in.valid && !io.writeChannel.in.rw){
-      gotValue := Bool(true)
-    }.otherwise{
-      gotValue := Bool(false)
-    }
+  }.elsewhen(lookupvalue === SInt(-1)){
+    muxReadDataChannel.data := io.memPort.io.portB.rdData
+    muxReadDataChannel.valid := Bool(false)
+    //gotValueRb := Bool(false)
   }.otherwise{
-    muxReadDataChannel := rbFIFO(rbDelayROM(regShiftedTdmCounter) - UInt(1) )
+
+    muxReadDataChannel := rbFIFO(UInt(lookupvalue) - UInt(1) )
+
   }
 
-
-
-  // After the first blank has been encountered in the schedule, all subsequent values must be delayed by
-  // a single clockcycle. This flag must be reset upon the end of the schedule
-  /*This should no longer be used
-  val readbackDelayFlag = Reg(init = Bool(false))
-  when(!readbackDelayFlag && !writeNocTab(shiftedTdmCounter)){
-    // the first blank has been encountered in the writeNocTab
-    readbackDelayFlag := Bool(true)
-  }
-  
-  when(shiftedTdmCounter === UInt(0) && readbackDelayFlag){
-    readbackDelayFlag := Bool(false)
-  }
-
-  // When readbackDelayFlag is set, we take the 1-cycle delayed input
-  val transmittedValue = Mux(readbackDelayFlag, readbackValueDelayed, io.memPort.io.portB.rdData)
-    
-  // If flag has been set, gotValid must be delayed once
-  
-  val gotValueDelayed = Reg(init = Bool(false))
-  gotValueDelayed := readbackDelayFlag & gotValue
-  val gotValueMux = Mux(readbackDelayFlag, gotValueDelayed, gotValue)
-
-  io.readBackChannel.out.valid := Bool(false)
-  when(gotValueMux){
-    // Transmit read value on readBack NoC - no validTab here, since the constant delay time of 
-    // accessing the memory is factored into the readBack schedule.
-
-    //Though, if the validtab is low, it needs to transmit in the next cycle.
-    when(readBackValid(regTdmCounter)){
-      io.readBackChannel.out.valid := gotValueMux
-      io.readBackChannel.out.data  := transmittedValue
-      when(io.writeChannel.in.valid && !io.writeChannel.in.rw ){
-        gotValue := Bool(true)
-      }otherwise{
-        gotValue := Bool(false)
-      }
-    }.otherwise{
-      io.memPort.io.portB.addr := RegNext(rxLowerAddr, init = UInt(0))
-    }
-  }
-  */
-  
  
   io.readBackChannel.out.valid := muxReadDataChannel.valid
   io.readBackChannel.out.data := muxReadDataChannel.data
