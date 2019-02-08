@@ -247,8 +247,7 @@ class TestSimultaniousReads(dut: TwoWayMem) extends Tester(dut) {
 }
 
 class TestExternalReadbackAll(dut: TwoWayMem) extends Tester(dut) {
-  val n = 16
-
+  val n = 6*6
   for (j <- 0 until n) {
     //Write 0 to all nodes
     poke(dut.io.nodearray(j).out.rw, 0)  
@@ -297,11 +296,11 @@ class TestExternalReadbackAll(dut: TwoWayMem) extends Tester(dut) {
 
 
       var counter = 0
-      while(peek(dut.io.nodearray(j).in.valid) == 0 && counter < 40){
+      while(peek(dut.io.nodearray(j).in.valid) == 0 && counter < 100){
         step(1)
         counter += 1
       }
-      if(counter == 40){
+      if(counter == 100){
         println(s"DID NOT RECEIVE")
       }
       expect(dut.io.nodearray(j).in.data, 0x2 + i)
@@ -320,8 +319,8 @@ object TwoWayMemTester {
   def main(args: Array[String]): Unit = {
     chiselMainTest(Array("--genHarness", "--test", "--backend", "c",
       "--compile", "--vcd", "--targetDir", "generated","--debug"),
-      () => Module(new TwoWayMem(4, 1024))) {
-        c => new TestExternalReadback(c)
+      () => Module(new TwoWayMem(6 , 4096))) {
+        c => new TestExternalReadbackAll(c)
 
       }
   }
