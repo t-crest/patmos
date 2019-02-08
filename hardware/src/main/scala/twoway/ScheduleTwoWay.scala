@@ -28,7 +28,13 @@ object Schedule {
         case 2 => ScheduleTable.FourNodes
         case 3 => ScheduleTable.NineNodes
         case 4 => ScheduleTable.SixTeenNodes
-        case _ => throw new Error("Currently only 2x2, 3x3, and 4x4 NoCs supported, you requested: "+n+"x"+n)
+        case 5 => ScheduleTable.TwentyFiveNodes
+        case 6 => ScheduleTable.ThirtySixNodes
+        case 7 => ScheduleTable.FourtyNineNodes
+        case 8 => ScheduleTable.SixtyFourNodes
+        case 9 => ScheduleTable.EightyOneNodes
+        case 10 => ScheduleTable.OneHundredNodes
+        case _ => throw new Error("Currently only op to 10x10, you requested: "+n+"x"+n)
       }
     
     def invertMap(c: Char) = { // map function from original to inverted schedule 
@@ -94,17 +100,10 @@ object Schedule {
       if (valid(i)) line += 1
     }
 
-    line = 0
-    var count = 0
-    for (i <- 0 until len) {
-      if (i < split(count).length() - 1) {
-        localValid(i) = false
-      } else {
-        if (split(count)(i) == 'l') {
-          localValid(i) = true
-          count += 1
-        } else {
-          localValid(i) = false
+    for (i <- 0 until split.length) {
+      for (j <- 0 until split(i).length) {
+        if (split(i)(j) == 'l'){
+          localValid(j) = true
         }
       }
     }
@@ -153,7 +152,7 @@ object Schedule {
       }
       timeSlotToNode(startNode) = timeSlot
     }
-
+    /*
     //The following generates a lookup table for the FIFO with look ahead used to answer read request in the correct timeslot
     var blankArray = new Array[Int](len)
     var blankCounter = 0
@@ -178,9 +177,39 @@ object Schedule {
       blankArray(blankArray.length - i - 2) -= counter
       counter -= 1
     }
+    */
+        //The following generates a lookup table for the reorder buffer register used to answer read request in the correct timeslot
+    var bufferLookup = new Array[Int](len)
+    var clockOffSet = split(0).length
+    var pathLength = 0
+    var cycleCounter = 0
+    
+    //here we generate the table but does not account for emptying the FIFO, in the last couple of timeslots
+    var done = true
+    for (i <- 0 until split.length) {
+      done = true
+      for (j <- cycleCounter until split(i).length){
+        if(done){
+          if(split(i)(j) == ' ' ){
+            bufferLookup(cycleCounter) = -1
+            cycleCounter += 1
+          }else{
+            pathLength = split(i).length - cycleCounter
+            bufferLookup(cycleCounter) = clockOffSet - pathLength
+            cycleCounter += 1
+            done = false
+          }
+        }
+      }  
+      
+    }
+    
+    for (i <- cycleCounter until split(split.length-1).length){
+      bufferLookup(i) = -1
+    }
 
 
-    (schedule, valid, timeSlotToNode, len-split(0).length()-1, blankArray, localValid)
+    (schedule, valid, timeSlotToNode, len-split(0).length()-1, bufferLookup, localValid)
   }
 
   /* A 2x2 schedule is as follows:
