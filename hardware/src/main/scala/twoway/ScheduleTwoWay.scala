@@ -97,7 +97,9 @@ object Schedule {
     var line = 0
     for (i <- 0 until len - 1) {
       valid(i) = split(line)(i) != ' '
-      if (valid(i)) line += 1
+      if (line != split.length-1){
+    	  if (valid(i)) line += 1        
+      }
     }
 
     for (i <- 0 until split.length) {
