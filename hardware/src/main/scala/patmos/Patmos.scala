@@ -192,7 +192,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
   val nrCores = Config.getConfig.coreCount
 
-  val aegeanMode = !Config.getConfig.cmpDevices.exists(dev =>  dev.name == "Argo")
+  val aegeanMode = !Config.getConfig.cmpDevices.contains("Argo")
 
   println("Config core count: " + nrCores)
 
@@ -206,8 +206,8 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   val cmpdevs = new Array[Module](MAX_IO_DEVICES)
   
   for(dev <- cmpDevices) {
-    println(dev.name)
-    dev.name match {
+    println(dev)
+    dev match {
       // Address 0 reserved for Argo
       case "Argo" =>  cmpdevs(0) = Module(new argo.Argo(nrCores, wrapped=false, emulateBB=false))
       case "Hardlock" => cmpdevs(1) = Module(new cmp.HardlockOCPWrapper(() => new cmp.Hardlock(nrCores, nrCores * 2)))
@@ -220,7 +220,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       case "CASPM" => cmpdevs(8) = Module(new cmp.CASPM(nrCores, nrCores * 8))
       case "AsyncLock" => cmpdevs(9) = Module(new cmp.AsyncLock(nrCores, nrCores * 2))
       case "UartCmp" => cmpdevs(10) = Module(new cmp.UartCmp(nrCores,CLOCK_FREQ,115200,16))
-      case "TwoWay" => cmpdevs(11) = Module(new cmp.TwoWayOCPWrapper(nrCores, dev.size))
+      case "TwoWay" => cmpdevs(11) = Module(new cmp.TwoWayOCPWrapper(nrCores, 1024))
       case _ =>
     }
   }
