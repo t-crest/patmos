@@ -1,4 +1,3 @@
-# A simple Hello World WCET analysis example
 MAIN?=mp_pc
 
 all:
@@ -16,8 +15,8 @@ wcet:
 	   ../../libcorethread/*.c \
 	   ../../libnoc/*.c \
 	   ../../libmp/*.c \
-	   ../../cmp/nocinit.c 
-	platin wcet -i $(MAIN).pml -b a.out -e foo2 --report
+	   ../../cmp/nocinit.c $(COPTS)
+	platin wcet -i $(MAIN).pml -b a.out -e wcetConsumerCompute --report
 
 
 clean:
@@ -29,7 +28,7 @@ clean:
 	- rm *.elf
 
 
-# Following comannds are optional/unused
+# Following commands are optional/unused
 
 show: all
 	platin wcet -i $(MAIN).pml -b a.out -e foo -o wcet.pml

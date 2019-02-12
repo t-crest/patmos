@@ -512,11 +512,29 @@ static void init_icache(Patmos_t *c, val_t entry) {
         c->Patmos_PatmosCore_1_fetch__pcReg = -1;
         c->Patmos_PatmosCore_1_icache_repl__hitReg = 0;
       #endif
-      #if CORE_COUNT==4
+      #if CORE_COUNT>2
         c->Patmos_PatmosCore_2_fetch__pcReg = -1;
         c->Patmos_PatmosCore_2_icache_repl__hitReg = 0;
+      #endif
+      #if CORE_COUNT>3
         c->Patmos_PatmosCore_3_fetch__pcReg = -1;
         c->Patmos_PatmosCore_3_icache_repl__hitReg = 0;
+      #endif
+      #if CORE_COUNT>4
+        c->Patmos_PatmosCore_4_fetch__pcReg = -1;
+        c->Patmos_PatmosCore_4_icache_repl__hitReg = 0;
+      #endif
+      #if CORE_COUNT>5
+        c->Patmos_PatmosCore_5_fetch__pcReg = -1;
+        c->Patmos_PatmosCore_5_icache_repl__hitReg = 0;
+      #endif
+      #if CORE_COUNT>6
+        c->Patmos_PatmosCore_6_fetch__pcReg = -1;
+        c->Patmos_PatmosCore_6_icache_repl__hitReg = 0;
+      #endif
+      #if CORE_COUNT>7
+        c->Patmos_PatmosCore_7_fetch__pcReg = -1;
+        c->Patmos_PatmosCore_7_icache_repl__hitReg = 0;
       #endif
       #endif /* ICACHE_METHOD */
       #ifdef ICACHE_LINE
@@ -533,15 +551,41 @@ static void init_icache(Patmos_t *c, val_t entry) {
         c->Patmos_PatmosCore_1_fetch__selCache = 1;
         c->Patmos_PatmosCore_1_icache_repl__selCacheReg = 1;
       #endif
-      #if CORE_COUNT==4
+      #if CORE_COUNT>2
         c->Patmos_PatmosCore_2_fetch__relBaseReg = 0;
         c->Patmos_PatmosCore_2_fetch__relocReg = (entry >> 2) - 1;
         c->Patmos_PatmosCore_2_fetch__selCache = 1;
         c->Patmos_PatmosCore_2_icache_repl__selCacheReg = 1;
+      #endif
+      #if CORE_COUNT>3
         c->Patmos_PatmosCore_3_fetch__relBaseReg = 0;
         c->Patmos_PatmosCore_3_fetch__relocReg = (entry >> 2) - 1;
         c->Patmos_PatmosCore_3_fetch__selCache = 1;
         c->Patmos_PatmosCore_3_icache_repl__selCacheReg = 1;
+      #endif
+      #if CORE_COUNT>4
+        c->Patmos_PatmosCore_4_fetch__relBaseReg = 0;
+        c->Patmos_PatmosCore_4_fetch__relocReg = (entry >> 2) - 1;
+        c->Patmos_PatmosCore_4_fetch__selCache = 1;
+        c->Patmos_PatmosCore_4_icache_repl__selCacheReg = 1;
+      #endif
+      #if CORE_COUNT>5
+        c->Patmos_PatmosCore_5_fetch__relBaseReg = 0;
+        c->Patmos_PatmosCore_5_fetch__relocReg = (entry >> 2) - 1;
+        c->Patmos_PatmosCore_5_fetch__selCache = 1;
+        c->Patmos_PatmosCore_5_icache_repl__selCacheReg = 1;
+      #endif
+      #if CORE_COUNT>6
+        c->Patmos_PatmosCore_6_fetch__relBaseReg = 0;
+        c->Patmos_PatmosCore_6_fetch__relocReg = (entry >> 2) - 1;
+        c->Patmos_PatmosCore_6_fetch__selCache = 1;
+        c->Patmos_PatmosCore_6_icache_repl__selCacheReg = 1;
+      #endif
+      #if CORE_COUNT>7
+        c->Patmos_PatmosCore_7_fetch__relBaseReg = 0;
+        c->Patmos_PatmosCore_7_fetch__relocReg = (entry >> 2) - 1;
+        c->Patmos_PatmosCore_7_fetch__selCache = 1;
+        c->Patmos_PatmosCore_7_icache_repl__selCacheReg = 1;
       #endif
     } else {
       // pcReg for ispm starts at entry point - ispm base
@@ -555,18 +599,46 @@ static void init_icache(Patmos_t *c, val_t entry) {
     #if CORE_COUNT>1
       c->Patmos_PatmosCore_1_icache_repl__callRetBaseReg = (entry >> 2);
     #endif
-    #if CORE_COUNT==4
+    #if CORE_COUNT>2
       c->Patmos_PatmosCore_2_icache_repl__callRetBaseReg = (entry >> 2);
+    #endif
+    #if CORE_COUNT>3
       c->Patmos_PatmosCore_3_icache_repl__callRetBaseReg = (entry >> 2);
+    #endif
+    #if CORE_COUNT>4
+      c->Patmos_PatmosCore_4_icache_repl__callRetBaseReg = (entry >> 2);
+    #endif
+    #if CORE_COUNT>5
+      c->Patmos_PatmosCore_5_icache_repl__callRetBaseReg = (entry >> 2);
+    #endif
+    #if CORE_COUNT>6
+      c->Patmos_PatmosCore_6_icache_repl__callRetBaseReg = (entry >> 2);
+    #endif
+    #if CORE_COUNT>7
+      c->Patmos_PatmosCore_7_icache_repl__callRetBaseReg = (entry >> 2);
     #endif
     #ifdef ICACHE_METHOD
     c->Patmos_PatmosCore_icache_ctrl__callRetBaseReg = (entry >> 2);
     #if CORE_COUNT>1
       c->Patmos_PatmosCore_1_icache_ctrl__callRetBaseReg = (entry >> 2);
     #endif
-    #if CORE_COUNT==4
+    #if CORE_COUNT>2
       c->Patmos_PatmosCore_2_icache_ctrl__callRetBaseReg = (entry >> 2);
+    #endif
+    #if CORE_COUNT>3
       c->Patmos_PatmosCore_3_icache_ctrl__callRetBaseReg = (entry >> 2);
+    #endif
+    #if CORE_COUNT>4
+      c->Patmos_PatmosCore_4_icache_ctrl__callRetBaseReg = (entry >> 2);
+    #endif
+    #if CORE_COUNT>5
+      c->Patmos_PatmosCore_5_icache_ctrl__callRetBaseReg = (entry >> 2);
+    #endif
+    #if CORE_COUNT>6
+      c->Patmos_PatmosCore_6_icache_ctrl__callRetBaseReg = (entry >> 2);
+    #endif
+    #if CORE_COUNT>7
+      c->Patmos_PatmosCore_7_icache_ctrl__callRetBaseReg = (entry >> 2);
     #endif
     #endif /* ICACHE_METHOD */
     #ifdef ICACHE_LINE

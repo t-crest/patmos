@@ -25,7 +25,7 @@ import scala.collection.immutable.Stream.Empty
  */
 class PatmosCore(binFile: String, nr: Int, cnt: Int, aegeanCompatible: Boolean) extends Module {
 
-  val io = IO(Config.getPatmosCoreIO())
+  val io = IO(Config.getPatmosCoreIO(nr))
 
   val icache =
     if (ICACHE_SIZE <= 0)
@@ -219,8 +219,15 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       case "S4noc" => cmpdevs(7) = Module(new cmp.S4nocOCPWrapper(nrCores, 4, 4))
       case "CASPM" => cmpdevs(8) = Module(new cmp.CASPM(nrCores, nrCores * 8))
       case "AsyncLock" => cmpdevs(9) = Module(new cmp.AsyncLock(nrCores, nrCores * 2))
-      case "TwoWay" => cmpdevs(10) = Module(new cmp.TwoWayOCPWrapper(nrCores, dev.size))
+      case "UartCmp" => cmpdevs(10) = Module(new cmp.UartCmp(nrCores,CLOCK_FREQ,115200,16))
+      case "TwoWay" => cmpdevs(11) = Module(new cmp.TwoWayOCPWrapper(nrCores, dev.size))
       case _ =>
+    }
+  }
+  
+  for(dev <- cmpdevs) {
+    if(dev != null) {
+      Config.connectIOPins(dev.getClass.getSimpleName, io, dev.io, "cmp.")
     }
   }
 
@@ -236,7 +243,15 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       dumrespReg := OcpResp.ERR
     }
 
-    val cmpdevios = Vec(cmpdevs.map(e => if(e == null) dumio else e.io.asInstanceOf[Vec[OcpCoreSlavePort]](i)))
+    val cmpdevios = Vec(cmpdevs.map(e => 
+      if(e == null)
+        dumio
+      else
+        e.io match {
+          case cmpio: cmp.CmpIO => cmpio.cores(i)
+          case _ => e.io.asInstanceOf[Vec[OcpCoreSlavePort]](i)
+        }
+      ))
 
     var addr = cores(i).io.comSpm.M.Addr(ADDR_WIDTH-1-12, ADDR_WIDTH-1-12-util.log2Up(MAX_IO_DEVICES)+1)
 
