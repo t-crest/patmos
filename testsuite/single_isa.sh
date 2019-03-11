@@ -8,6 +8,7 @@
 
 LOG_DIR="tmp"
 TEST="${1}"
+INSTALLDIR=../local
 
 mkdir -p "${LOG_DIR}"/`dirname ${TEST}`
 echo "${TEST}"
@@ -21,7 +22,7 @@ make isasim BOOTAPP="${TEST}" 1> "${LOG_DIR}/${TEST}.sim.out" 2> "${LOG_DIR}/${T
 echo "EXIT $?" >> "${LOG_DIR}/${TEST}.sim.out"
 
 # compare output
-java -cp install/lib/java/patmos-tools.jar util.CompareScala "${LOG_DIR}/${TEST}.sim.out" "${LOG_DIR}/${TEST}.emu.out" | \
+java -cp $INSTALLDIR/lib/java/patmos-tools.jar util.CompareScala "${LOG_DIR}/${TEST}.sim.out" "${LOG_DIR}/${TEST}.emu.out" | \
     tee "${LOG_DIR}/${TEST}.comptest.out" | sed -e 's/^\(\S\)/ \1/'
 
 # report failure or ok

@@ -12,7 +12,7 @@ General build instructions of T-CREST in [Main README](../../../README.md).
 Before building the Patmos processor (hardware or emulator) add the following lines after `<frequency Hz="80000000"/>` in 
 [altde2-115.xml](../../../hardware/config/altde2-115.xml):
 ```
-<cores count="8" />
+<cores count="4" />
 <pipeline dual="false" />
   <CmpDevs>
 		<CmpDev name="SharedSPM" />
@@ -54,6 +54,8 @@ The experiments can be execute on the Patmos emulator or with the real
 hardware on an FPGA board.
 
 ## Emulator Based Testing
+
+*Note that the emulator currently supports only a maximum of 4 cores.*
 
 To compile the emulator with the selected hardware configuration run
 

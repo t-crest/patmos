@@ -214,3 +214,29 @@ SSPM-memspm:
 
 SSPM-memspm-test:
 	$(SBT) "runMain sspm.memSPMTester"
+
+
+# ONEWAY make targets
+oneway:
+	$(SBT) "runMain oneway.OneWayMem"
+
+oneway_test:
+	$(SBT) "test:runMain oneway.OneWayMemTester"
+
+Network-test: 
+	$(SBT) "test:runMain s4noc.NetworkTester"
+
+
+# TWOWAY make targets
+twoway:
+	$(SBT) "runMain twoway.TwoWayMem"
+
+twoway_test:
+	$(SBT) "test:runMain twoway.TwoWayMemTester"
+
+twowayboard:
+	$(SBT) "runMain twoway.TwoWayBoard"
+
+twowayboard_test:
+	$(SBT) "test:runMain twoway.TwoWayBoardTester"
+

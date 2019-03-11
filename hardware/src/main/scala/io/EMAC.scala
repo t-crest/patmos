@@ -78,9 +78,9 @@ object EMAC extends DeviceObject {
 
   trait Pins {
     val eMACPins = new EMACPins()
-	// Remove "io_" prefix from connection
+    // Remove "io_" prefix from connection
     //val methods = classOf[EMACPins].getDeclaredMethods()
-	//methods.foreach{m => m.invoke(eMACPins).asInstanceOf[Chisel.Node].setName(m.getName())}
+    //methods.foreach{m => m.invoke(eMACPins).asInstanceOf[Chisel.Node].setName(m.getName())}
   }
 }
 
@@ -129,7 +129,7 @@ class EMAC() extends CoreDevice() {
       }
       .otherwise {
         respReg := OcpResp.DVA
-		dataRdReg := Cat(bb.io.tx_axis_fifo_tready,Bits(0,31))
+        dataRdReg := Cat(bb.io.tx_axis_fifo_tready,Bits(0,31))
       }
     }
   }
@@ -139,7 +139,7 @@ class EMAC() extends CoreDevice() {
   when(state === sRead) {
     state := sIdle
     respReg := OcpResp.DVA
-	dataRdReg := Cat(bb.io.rx_axis_fifo_tvalid,Cat(bb.io.rx_axis_fifo_tlast,Cat(Bits(0,22),bb.io.rx_axis_fifo_tdata)))
+    dataRdReg := Cat(bb.io.rx_axis_fifo_tvalid,Cat(bb.io.rx_axis_fifo_tlast,Cat(Bits(0,22),bb.io.rx_axis_fifo_tdata)))
   }
 
   // Connections to master
