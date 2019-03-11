@@ -583,46 +583,50 @@ can be overridden by providing a local \code{config.mk} that is included in the 
 
 \subsection{Multicore Patmos}
 
-A multicore Patmos with shared external memory and the network-on-chip Argo is configured via
-the Aegean framework. Aegean is a collection of Python scripts that read in XML based configuration
-description (e.g., topology, network connections, processor types,...). Aegean generates the Chisel based
-components (Partmos, memory arbitration tree, and memory controller), generates the VHDL top-level
-to connect them with the VHDL based NoC, synthesizes the hardware, may compile the application for the
-individual cores, configures the FPGA, and may download the application.
+A multicore Patmos with shared external memory can be configured by changing the
+configuration file (e.g., \code{hardware/config/altde2-115.xml}) the \code{cores count}
+to the number of cores requested. Common configurations for the DE2-115 board are 4
+or 9 cores.
 
-The default platform can be built from within Aegean with:
+For the multicore configuration there are several multicore devices available, e.g.,
+several network-on-chips, shared on-chip memories, and a locking unit.
+The most important device is the Argo NoC. To enable it uncomment following lines
+in the configuration file:
 
 \begin{verbatim}
-make platform
-make synth
+  <pipeline dual="false" />
+  <cores count="4"/>
+  <CmpDevs>
+  <CmpDev name="Argo" />
+  </CmpDevs>
 \end{verbatim}
+
+
+For the Argo NoC a schedule needs to be generated. This is done from within the
+aegean repository with:
+
+\begin{verbatim}
+make noc-sched
+\end{verbatim}
+
+This generates a C file, \code{nocinit.c}, containing the NoC schedule that is
+loaded into the network interfaces during booting.
 
 The default platform is a 4-core multicore for the DE2-115 FPGA board.
 To use the 9 core version set \code{AEGEAN\_PLATFORM} to \code{altde2-115-9core}.
-The FPGA is configured from within the \code{aegean} directory with:
 
-\begin{verbatim}
-make config
-\end{verbatim}
+The synthesize, compilation, and download of the application is done as usual in
+the \code{patmos} directory.
 
-The compilation and download of the application is then best done within
-the \code{patmos} directory with:
-
-\begin{verbatim}
-make APP=hello_puts comp download
-\end{verbatim}
-
-This application is the same single core \emph{Hello World} application that
-we used in Section~\ref{sec:elf:files}. However, here we just compiled the
-application and downloaded it via the serial port. We synthesized and configured
-the FPGA from within the Aegean project for the multi-core version.
 
 \todo{We shall have here three simple hello world applications: (1) just plain shared memory 4 cores saying hello - DONE -,
 (2) a CMP program that uses shared memory, and (3) a simple NoC setup.}
 
 Figure~\ref{fig:cmp:hello} shows the embedded \emph{Hello World} example
-executing code on two cores and each core blinking its own LED (Each core
+executing code on two cores and each core blinking its own LED (each core
 is connected to one of the LEDs).
+\textbf{FIXME: In the current version this does NOT work anymore as all LEDs are now
+connected to a single core and not distributed to the cores.}
 
 \begin{lstlisting}[float,caption={A multicore blinking LED (\code{c/cmp/cmp\_example.c}) \label{fig:cmp:hello}}]
 /*
@@ -685,9 +689,9 @@ Core 0 sends a message containing an integer. Core 1 receives this data
 and write a modified version into the shared field \code{field}, which
 is then read by core 0.
 
-\begin{lstlisting}[float,caption={Message passing on the Argo NoC\label{fig:cmp:argo}}]
+\begin{lstlisting}[float,caption={Message passing on the Argo NoC (\code{c/cmp/noc\_example.c})\label{fig:cmp:argo}}]
 /*
-    This is minimal demonstration how to use the Argo NoC
+    This is a minimal demonstration how to use the Argo NoC
     with one message passing channel from core 0 to core 1.
     The value is returned via a shared variable in main memory.
 
@@ -790,8 +794,8 @@ only. Furthermore, each software change needs a new synthesize run. A better app
 to build a platform that contains a bootloader (similar to the single core version) and some
 startup code to synchronize the program start with the other cores.
 
-
-
+Note that the usage of Aegean to generate and compile multicore versions of
+Patmos is deprecated.
 
 %[2014-02-28 17:24:08 ] Stefan Hepp: #include <machine/patmos.h>
 %[2014-02-28 17:24:22 ] Stefan Hepp: zu finden in patmos-newlib/newlib/libc/machine/patmos/machine/patmos.h

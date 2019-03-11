@@ -1,5 +1,5 @@
 /*
-    This is minimal demonstration how to use the Argo NoC
+    This is a minimal demonstration how to use the Argo NoC
     with one message passing channel from core 0 to core 1.
     The value is returned via a shared variable in main memory.
 
