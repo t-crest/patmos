@@ -82,3 +82,45 @@ unsigned mem_iord_byte(unsigned addr) {
     return (full_data & mask) >> shift_factor;
 }
 
+// Similar functions for second ethernet controller (when present)
+// Write to ethernet controller
+void eth_iowr1(unsigned addr,unsigned data) {
+    *(ETH1_BASE+(addr >> 2)) = data;
+    return;
+}      
+
+// Read ethernet controller
+unsigned eth_iord1(unsigned addr) {
+    return *(ETH1_BASE+(addr>>2));
+}      
+
+// Write rx-tx buffer
+void mem_iowr1(unsigned addr, unsigned data) {
+    *(BUFF1_BASE+(addr>>2)) = data;
+    return;
+}
+
+// Write a byte in rx-tx buffer
+void mem_iowr1_byte(unsigned addr, unsigned data) {
+    unsigned previous_data = *(BUFF1_BASE+(addr>>2));
+    unsigned shift_factor = (24 - (8 * (addr & 0x03)));
+    unsigned mask = ~(0x000000FF << shift_factor);
+    data = (0x000000FF & data) << shift_factor;
+    data = (previous_data & mask) + data;
+    *(BUFF1_BASE+(addr>>2)) = data;
+    return;
+}
+
+// Read rx-tx buffer
+unsigned mem_iord1(int addr) {
+    return *(BUFF1_BASE+(addr>>2));
+}
+
+// Write a byte in rx-tx buffer
+unsigned mem_iord_byte1(unsigned addr) {
+    unsigned full_data = *(BUFF1_BASE+(addr>>2));
+    unsigned shift_factor = (24 - (8 * (addr & 0x03)));
+    unsigned mask = 0x000000FF << shift_factor;
+    return (full_data & mask) >> shift_factor;
+}
+
