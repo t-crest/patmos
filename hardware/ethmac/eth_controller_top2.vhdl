@@ -3,15 +3,14 @@
 -- Author: Luca Pezzarossa (lpez@dtu.dk)
 -- License: Simplified BSD License
 --
--- Ethernet controller VHDL top level
+-- copy of Ethernet controller VHDL top level with different name
 --
 
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
-use std.textio.all;
 
-entity eth_controller_top is
+entity eth_controller_top2 is
 	generic(
 		BUFF_ADDR_WIDTH : natural --byte based (2^(BUFF_ADDR_WIDTH) = # of bytes)
 	);
@@ -52,9 +51,9 @@ entity eth_controller_top is
 
 		int_o         : out std_logic   -- Interrupt output
 	);
-end eth_controller_top;
+end eth_controller_top2;
 
-architecture rtl of eth_controller_top is
+architecture rtl of eth_controller_top2 is
 	component eth_top is
 		port(
 			wb_clk_i      : in  std_logic; -- WISHBONE clock
@@ -168,8 +167,8 @@ architecture rtl of eth_controller_top is
 	signal wb_b_err_o  : std_logic;
 
 begin
-	MCmd_b <= "000" when (MAddr(BUFF_ADDR_WIDTH-1 downto 12) = (BUFF_ADDR_WIDTH-1 downto 12=>'1')) else MCmd;	--control buffer, 15th bit is reserved for PTP
-	MCmd_r <= "000" when (MAddr(BUFF_ADDR_WIDTH-1 downto 12) /= (BUFF_ADDR_WIDTH-1 downto 12=>'1')) else MCmd;	--control registers, 15th bit is reserved for PTP
+	MCmd_b <= "000" when (MAddr(15 downto 12) = "1111") else MCmd;
+	MCmd_r <= "000" when (MAddr(15 downto 12) /= "1111") else MCmd;
 	SResp  <= SResp_r when (mux_sel = '1') else SResp_b;
 	SData  <= SData_r when (mux_sel = '1') else SData_b;
 
@@ -236,7 +235,7 @@ begin
 		end if;
 	end process;
 
-	eth_top_comp_0 : eth_top port map(
+	eth_top_comp_1 : eth_top port map(
 			wb_clk_i                                   => clk, -- : in std_logic;-- WISHBONE clock
 			wb_rst_i                                   => rst, -- : in std_logic;-- WISHBONE reset
 
@@ -287,7 +286,7 @@ begin
 			int_o                                      => int_o
 		);
 
-	rx_tx_buffer_comp_0 : rx_tx_buffer
+	rx_tx_buffer_comp_1 : rx_tx_buffer
 		generic map(
 			ADDR_WIDTH => (BUFF_ADDR_WIDTH - 2)
 		)

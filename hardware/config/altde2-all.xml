@@ -10,9 +10,13 @@
 	<IO DevTypeRef="Uart" offset="8"/>
 	<IO DevTypeRef="Leds" offset="9"/>
 	<IO DevTypeRef="Keys" offset="10" intrs="2,3,4,5"/>
+<<<<<<< HEAD
 	<IO DevTypeRef="SevenSegmentDisplay" offset="11"/>
 	<IO DevTypeRef="Gpio" offset="12"/>
 	<IO DevTypeRef="EthMac" offset="13" intrs="6,7,8"/>
+=======
+	<IO DevTypeRef="EthMac" offset="13" intrs="6"/> 
+>>>>>>> be89f3aceb0afb553f6ce424a031de30100242f3
 	<IO DevTypeRef="Uart2" offset="14"/>
 	<IO DevTypeRef="Uart3" offset="15"/>
   </IOs>
