@@ -4,6 +4,10 @@ hardware/project
 hardware/target
 hardware/build
 hardware/generated
+hardware/.idea/
+hardware/modelsim/work/
+hardware/quartus/**/incremental_db
+hardware/quartus/**/db/
 tools/c/build
 tools/java/build
 tools/scripts/build
@@ -11,16 +15,19 @@ tmp/
 simulator/build
 install/
 doc/c_doc
-hardware/modelsim/work/
-
-hardware/quartus/altde2-115/db
-hardware/quartus/altde2-115/incremental_db
-hardware/quartus/altde2-115-mc
+.vscode
 
 *_summary.xml
 *_usage.xml
 *_pn.xml
-
+*.ipr
+*.iws
+*.gtkw
+*.jvmopts
+*.sptopts
+*.sof
+*.qws
+*.done
 *.fdb_latexmk
 *.pof
 *.sld
@@ -60,6 +67,7 @@ hardware/quartus/altde2-115-mc
 *.out
 *.tmp
 *.jdi
+*.fst*
 
 # Ignore Vivado journal files
 vivado*.jou
@@ -76,3 +84,7 @@ doc/**/*.synctex.gz
 
 # Ignore KDevelop project files
 *.kdev4
+
+# Ignore Aegean generated files
+hardware/emulator_config.h
+hardware/vhdl/argo/config.vhd
