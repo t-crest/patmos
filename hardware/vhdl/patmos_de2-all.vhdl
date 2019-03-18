@@ -19,7 +19,8 @@ use ieee.numeric_std.all;
 entity patmos_top is
     port(
         clk           : in    std_logic;
-        oPPS          : out   std_logic;
+        oEthPPS          : out   std_logic;
+        oEth2PPS          : out   std_logic;
         oLedsPins_led : out   std_logic_vector(8 downto 0);
         oLedsPins_ledR : out  std_logic_vector(17 downto 0);
         iKeysPins_key : in    std_logic_vector(3 downto 0);
@@ -34,10 +35,10 @@ entity patmos_top is
 		osevenSegmentDisplayPins_hexDisp_0 : out std_logic_vector(6 downto 0);
         oUartPins_txd : out   std_logic;
         iUartPins_rxd : in    std_logic;
-        oUart2Pins_txd : out   std_logic;
-        iUart2Pins_rxd : in    std_logic;
-        oUart3Pins_txd : out   std_logic;
-        iUart3Pins_rxd : in    std_logic;
+        -- oUart2Pins_txd : out   std_logic;
+        -- iUart2Pins_rxd : in    std_logic;
+        -- oUart3Pins_txd : out   std_logic;
+        -- iUart3Pins_rxd : in    std_logic;
         oSRAM_A       : out   std_logic_vector(19 downto 0);
         SRAM_DQ       : inout std_logic_vector(15 downto 0);
         oSRAM_CE_N    : out   std_logic;
@@ -46,7 +47,7 @@ entity patmos_top is
         oSRAM_LB_N    : out   std_logic;
         oSRAM_UB_N    : out   std_logic;
 
-        --PHY interface
+        --first PHY interface
         -- Tx
         ENET0_TX_CLK  : in    std_logic; -- Transmit clock (from PHY)
         ENET0_TX_DATA : out   std_logic_vector(3 downto 0); -- Transmit nibble (to PHY)
@@ -67,7 +68,30 @@ entity patmos_top is
         ENET0_MDC     : out   std_logic; -- MII Management data clock (to PHY)
         ENET0_MDIO    : inout std_logic;
 
-        ENET0_RST_N   : out   std_logic
+        ENET0_RST_N   : out   std_logic;
+
+        --second PHY interface
+        -- Tx
+        ENET1_TX_CLK  : in    std_logic; -- Transmit clock (from PHY)
+        ENET1_TX_DATA : out   std_logic_vector(3 downto 0); -- Transmit nibble (to PHY)
+        ENET1_TX_EN   : out   std_logic; -- Transmit enable (to PHY)
+        ENET1_TX_ER   : out   std_logic; -- Transmit error (to PHY)
+
+        -- Rx
+        ENET1_RX_CLK  : in    std_logic; -- Receive clock (from PHY)
+        ENET1_RX_DATA : in    std_logic_vector(3 downto 0); -- Receive nibble (from PHY)
+        ENET1_RX_DV   : in    std_logic; -- Receive data valid (from PHY)
+        ENET1_RX_ER   : in    std_logic; -- Receive data error (from PHY)
+
+        -- Common Tx and Rx
+        ENET1_RX_COL  : in    std_logic; -- Collision (from PHY)
+        ENET1_RX_CRS  : in    std_logic; -- Carrier sense (from PHY)
+
+        -- MII Management interface
+        ENET1_MDC     : out   std_logic; -- MII Management data clock (to PHY)
+        ENET1_MDIO    : inout std_logic;
+
+        ENET1_RST_N   : out   std_logic
         );
 end entity patmos_top;
 
@@ -98,10 +122,10 @@ architecture rtl of patmos_top is
             io_gpioPins_gpios_0                   : out std_logic_vector(0 downto 0);
             io_uartPins_tx                        : out std_logic;
             io_uartPins_rx                        : in  std_logic;
-            io_uart2Pins_tx                       : out std_logic;
-            io_uart2Pins_rx                       : in  std_logic;
-            io_uart3Pins_tx                       : out std_logic;
-            io_uart3Pins_rx                       : in  std_logic;
+            -- io_uart2Pins_tx                       : out std_logic;
+            -- io_uart2Pins_rx                       : in  std_logic;
+            -- io_uart3Pins_tx                       : out std_logic;
+            -- io_uart3Pins_rx                       : in  std_logic;
             io_sevenSegmentDisplayPins_hexDisp_7  : out std_logic_vector(6 downto 0);
             io_sevenSegmentDisplayPins_hexDisp_6  : out std_logic_vector(6 downto 0);
             io_sevenSegmentDisplayPins_hexDisp_5  : out std_logic_vector(6 downto 0);
@@ -125,19 +149,23 @@ architecture rtl of patmos_top is
             io_ethMacPins_mdc_pad_o               : out   std_logic; -- MII Management data clock (to PHY)
             io_ethMacPins_md_pad_o                : out   std_logic; -- MII data output (to I/O cell)
             io_ethMacPins_md_padoe_o              : out   std_logic; -- MII data output enable (to I/O cell)
---          io_ethMacPins_rtcDisp_7               : out std_logic_vector(6 downto 0);
---    		io_ethMacPins_rtcDisp_6               : out std_logic_vector(6 downto 0);
---    		io_ethMacPins_rtcDisp_5               : out std_logic_vector(6 downto 0);
---    		io_ethMacPins_rtcDisp_4               : out std_logic_vector(6 downto 0);
---    		io_ethMacPins_rtcDisp_3               : out std_logic_vector(6 downto 0);
---    		io_ethMacPins_rtcDisp_2               : out std_logic_vector(6 downto 0);
---    		io_ethMacPins_rtcDisp_1               : out std_logic_vector(6 downto 0);
---    		io_ethMacPins_rtcDisp_0               : out std_logic_vector(6 downto 0);
             io_ethMacPins_ptpPPS                  : out   std_logic;
-            -- io_ethMacPins_ledPHY                  : out   std_logic;
-            -- io_ethMacPins_ledSOF                  : out   std_logic;
-            -- io_ethMacPins_ledEOF                  : out   std_logic;
-            -- io_ethMacPins_ledSFD                  : out   std_logic_vector(7 downto 0);
+
+            io_ethMac2Pins_mtx_clk_pad_i           : in    std_logic; -- Transmit clock (from PHY)
+            io_ethMac2Pins_mtxd_pad_o              : out   std_logic_vector(3 downto 0); -- Transmit nibble (to PHY)
+            io_ethMac2Pins_mtxen_pad_o             : out   std_logic; -- Transmit enable (to PHY)
+            io_ethMac2Pins_mtxerr_pad_o            : out   std_logic; -- Transmit error (to PHY)
+            io_ethMac2Pins_mrx_clk_pad_i           : in    std_logic; -- Receive clock (from PHY)
+            io_ethMac2Pins_mrxd_pad_i              : in    std_logic_vector(3 downto 0); -- Receive nibble (from PHY)
+            io_ethMac2Pins_mrxdv_pad_i             : in    std_logic; -- Receive data valid (from PHY)
+            io_ethMac2Pins_mrxerr_pad_i            : in    std_logic; -- Receive data error (from PHY)
+            io_ethMac2Pins_mcoll_pad_i             : in    std_logic; -- Collision (from PHY)
+            io_ethMac2Pins_mcrs_pad_i              : in    std_logic; -- Carrier sense (from PHY)
+            io_ethMac2Pins_md_pad_i                : in    std_logic; -- MII data input (from I/O cell)
+            io_ethMac2Pins_mdc_pad_o               : out   std_logic; -- MII Management data clock (to PHY)
+            io_ethMac2Pins_md_pad_o                : out   std_logic; -- MII data output (to I/O cell)
+            io_ethMac2Pins_md_padoe_o              : out   std_logic; -- MII data output enable (to I/O cell)
+            io_ethMac2Pins_ptpPPS                  : out   std_logic;
 
             io_sramCtrlPins_ramOut_addr           : out std_logic_vector(19 downto 0);
             io_sramCtrlPins_ramOut_doutEna        : out std_logic;
@@ -162,6 +190,8 @@ architecture rtl of patmos_top is
     -- signals for converting i o in io (MII)
     signal md_pad_o_int   : std_logic;
     signal md_padoe_o_int : std_logic;
+    signal md2_pad_o_int   : std_logic;
+    signal md2_padoe_o_int : std_logic;
 
     -- for generation of internal reset
     signal int_res            : std_logic;
@@ -178,6 +208,8 @@ architecture rtl of patmos_top is
 begin
     ENET0_MDIO  <= md_pad_o_int when (md_padoe_o_int = '1') else 'Z';
     ENET0_RST_N <= not int_res;
+    ENET1_MDIO  <= md2_pad_o_int when (md2_padoe_o_int = '1') else 'Z';
+    ENET1_RST_N <= not int_res;
 
     pll_inst : entity work.pll generic map(
         input_freq  => pll_infreq,
@@ -239,10 +271,10 @@ begin
         io_gpioPins_gpios_0 => oGpioPins_gpio_0,
         io_uartPins_tx => oUartPins_txd, 
         io_uartPins_rx => iUartPins_rxd,
-        io_uart2Pins_tx => oUart2Pins_txd,
-        io_uart2Pins_rx => iUart2Pins_rxd,
-        io_uart3Pins_tx => oUart3Pins_txd,
-        io_uart3Pins_rx => iUart3Pins_rxd,                     
+        -- io_uart2Pins_tx => oUart2Pins_txd,
+        -- io_uart2Pins_rx => iUart2Pins_rxd,
+        -- io_uart3Pins_tx => oUart3Pins_txd,
+        -- io_uart3Pins_rx => iUart3Pins_rxd,                     
         io_ethMacPins_mtx_clk_pad_i => ENET0_TX_CLK,
         io_ethMacPins_mtxd_pad_o => ENET0_TX_DATA,
         io_ethMacPins_mtxen_pad_o => ENET0_TX_EN,
@@ -257,6 +289,24 @@ begin
         io_ethMacPins_mdc_pad_o => ENET0_MDC,
         io_ethMacPins_md_pad_o => md_pad_o_int,
         io_ethMacPins_md_padoe_o => md_padoe_o_int,
+        io_ethMacPins_ptpPPS => oEthPPS,
+
+        io_ethMac2Pins_mtx_clk_pad_i => ENET1_TX_CLK,
+        io_ethMac2Pins_mtxd_pad_o => ENET1_TX_DATA,
+        io_ethMac2Pins_mtxen_pad_o => ENET1_TX_EN,
+        io_ethMac2Pins_mtxerr_pad_o => ENET1_TX_ER,
+        io_ethMac2Pins_mrx_clk_pad_i => ENET1_RX_CLK,
+        io_ethMac2Pins_mrxd_pad_i => ENET1_RX_DATA,
+        io_ethMac2Pins_mrxdv_pad_i => ENET1_RX_DV,
+        io_ethMac2Pins_mrxerr_pad_i => ENET1_RX_ER,
+        io_ethMac2Pins_mcoll_pad_i => ENET1_RX_COL,
+        io_ethMac2Pins_mcrs_pad_i => ENET1_RX_CRS,
+        io_ethMac2Pins_md_pad_i => ENET1_MDIO,
+        io_ethMac2Pins_mdc_pad_o => ENET1_MDC,
+        io_ethMac2Pins_md_pad_o => md2_pad_o_int,
+        io_ethMac2Pins_md_padoe_o => md2_padoe_o_int,
+        io_ethMac2Pins_ptpPPS => oEth2PPS,
+
         io_sevenSegmentDisplayPins_hexDisp_7 => osevenSegmentDisplayPins_hexDisp_7,
         io_sevenSegmentDisplayPins_hexDisp_6 => osevenSegmentDisplayPins_hexDisp_6,
         io_sevenSegmentDisplayPins_hexDisp_5 => osevenSegmentDisplayPins_hexDisp_5,
@@ -265,11 +315,6 @@ begin
         io_sevenSegmentDisplayPins_hexDisp_2 => osevenSegmentDisplayPins_hexDisp_2,
         io_sevenSegmentDisplayPins_hexDisp_1 => osevenSegmentDisplayPins_hexDisp_1,
         io_sevenSegmentDisplayPins_hexDisp_0 => osevenSegmentDisplayPins_hexDisp_0,
-        io_ethMacPins_ptpPPS => oPPS,
-        -- io_ethMacPins_ledPHY => oLedsPins_ledR(17),
-        -- io_ethMacPins_ledSOF => oLedsPins_ledR(16),
-        -- io_ethMacPins_ledEOF => oLedsPins_ledR(15),
-        -- io_ethMacPins_ledSFD => oLedsPins_ledR(7 downto 0),
         
         io_sramCtrlPins_ramOut_addr => oSRAM_A, 
         io_sramCtrlPins_ramOut_doutEna => sram_out_dout_ena,

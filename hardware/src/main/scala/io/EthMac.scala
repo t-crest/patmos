@@ -3,6 +3,7 @@
  * EthMac interface for Patmos
  *
  * Author: Luca Pezzarossa (lpez@dtu.dk)
+ *         Eleftherios Kyriakakis (elky@dtu.dk)
  *
  */
 
@@ -21,13 +22,14 @@ object EthMac extends DeviceObject {
   var secondsWidth = 32
   var nanoWidth = 32
   var timeStep = 25
+  val currentTime: Long = System.currentTimeMillis / 1000
 
   def init(params : Map[String, String]) = {
     extAddrWidth = getPosIntParam(params, "extAddrWidth")
     dataWidth = getPosIntParam(params, "dataWidth")
     withPTP = getBoolParam(params, "withPTP")
     if(withPTP){
-      initialTime = 1522763228L
+      initialTime = currentTime
       secondsWidth = getPosIntParam(params, "secondsWidth")
       nanoWidth = getPosIntParam(params, "nanoWidth")
       timeStep = getPosIntParam(params, "timeStep")
@@ -65,7 +67,8 @@ object EthMac extends DeviceObject {
       val md_pad_o      = Bits(OUTPUT, width = 1) // MII data output (to I/O cell)
       val md_padoe_o    = Bits(OUTPUT, width = 1) // MII data output enable (to I/O cell)
 
-//<<<<<<< HEAD
+      val int_o         = Bits(OUTPUT, width = 1) // Ethernet intr output
+
       // PTP Debug Signals
       val ptpPPS = Bits(OUTPUT, width=1)
       // val ledPHY = Bits(OUTPUT, width=1)
@@ -77,17 +80,7 @@ object EthMac extends DeviceObject {
   }
 
   trait Intrs{
-    val ethMacIntrs = Vec.fill(3) { Bool(OUTPUT) }
-    /*
-=======
-      val int_o         = Bits(OUTPUT, width = 1) // Interrupt output
-    }
-  }
-
-  trait Intrs {
-    val ethMacIntrs = Vec.fill(1) { Bool(OUTPUT) }
->>>>>>> be89f3aceb0afb553f6ce424a031de30100242f3
-*/
+    val ethMacIntrs = Vec.fill(2) { Bool(OUTPUT) }
   }
 }
 
@@ -121,10 +114,8 @@ class EthMacBB(extAddrWidth : Int = 32, dataWidth : Int = 32) extends BlackBox {
   io.ethMacPins.mdc_pad_o.setName("mdc_pad_o")
   io.ethMacPins.md_pad_o.setName("md_pad_o")
   io.ethMacPins.md_padoe_o.setName("md_padoe_o")
-  /*
   io.ethMacPins.int_o.setName("int_o")
-  */
-
+  
   // set Verilog parameters
   setVerilogParameters("#(.BUFF_ADDR_WIDTH("+extAddrWidth+"))")
 
@@ -140,13 +131,21 @@ class EthMacBB(extAddrWidth : Int = 32, dataWidth : Int = 32) extends BlackBox {
   io.S.Data := dataReg
 }
 
-//<<<<<<< HEAD
 class EthMac(extAddrWidth: Int = 32, dataWidth: Int = 32, withPTP: Boolean = false, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTime: BigInt = 0L, timeStep: Int = 25) extends CoreDevice() {
   override val io = new CoreDeviceIO() with EthMac.Pins with EthMac.Intrs
 
   val eth = Module(new EthMacBB(extAddrWidth, dataWidth))
-  eth.io.ethMacPins <> io.ethMacPins
+  //Wire IO pins straight through
+  io.ethMacPins <> eth.io.ethMacPins
 
+  // Connection to controller interrupt
+  val syncEthIntrReg = RegNext(eth.io.ethMacPins.int_o)
+
+  // Generate interrupts on rising edges
+  val pulseEthIntrReg = RegNext(RegNext(syncEthIntrReg) === Bits("b0") && syncEthIntrReg(0) === Bits("b1"))
+  io.ethMacIntrs := Cat(Bits("b0"), pulseEthIntrReg)
+
+  //Check for PTP features
   if(withPTP) {    
     println("EthMac w/ PTP1588 hardware (eth_addrWidth="+extAddrWidth+", ptp_addrWidth="+(extAddrWidth)+")")
     val ptp = Module(new PTP1588Assist(addrWidth = extAddrWidth, dataWidth = dataWidth, secondsWidth = secondsWidth, nanoWidth = nanoWidth, initialTime = initialTime, timeStep = timeStep))
@@ -186,39 +185,15 @@ class EthMac(extAddrWidth: Int = 32, dataWidth: Int = 32, withPTP: Boolean = fal
     ptp.io.ethMacTX.data := eth.io.ethMacPins.mtxd_pad_o
     ptp.io.ethMacTX.dv := eth.io.ethMacPins.mtxen_pad_o
     ptp.io.ethMacTX.err := eth.io.ethMacPins.mtxerr_pad_o
-    io.ethMacIntrs := ptp.io.intrs
     io.ethMacPins.ptpPPS := ptp.io.rtcPPS
-    // io.ethMacPins.ledPHY := ptp.io.ledPHY
-    // io.ethMacPins.ledSOF := ptp.io.ledSOF
-    // io.ethMacPins.ledEOF := ptp.io.ledEOF
-    // io.ethMacPins.ledSFD := ptp.io.ledSFD
+    io.ethMacIntrs(1) := ptp.io.intrs(0)
   } else {
     println("EthMac (eth_addrWidth="+extAddrWidth+")")
     eth.io.M <> io.ocp.M
     eth.io.S <> io.ocp.S
-    io.ethMacIntrs := false.B
+    io.ethMacPins.ptpPPS := false.B
+    io.ethMacIntrs(1) := false.B
   }
-  /*
-=======
-class EthMac(extAddrWidth : Int = 32, dataWidth : Int = 32) extends CoreDevice() {
-  override val io = new CoreDeviceIO() with EthMac.Pins with EthMac.Intrs
-  val SyncReg = Reg(Bits(width = 1))
-  val IntReg = Reg(Bits(width = 1))
-
-  val bb = Module(new EthMacBB(extAddrWidth, dataWidth))
-  bb.io.M <> io.ocp.M
-  bb.io.S <> io.ocp.S
-  bb.io.ethMacPins <> io.ethMacPins
-
-  // Connection to pins
-  SyncReg := bb.io.ethMacPins.int_o 
-  //SyncReg := ~SyncReg
-  IntReg := SyncReg
-
-  // Generate interrupts on rising edges
-  io.ethMacIntrs(0) := IntReg(0) === Bits("b0") && SyncReg(0) === Bits("b1")
->>>>>>> be89f3aceb0afb553f6ce424a031de30100242f3
-*/
 }
 
 

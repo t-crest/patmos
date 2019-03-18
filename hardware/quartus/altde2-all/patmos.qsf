@@ -59,7 +59,8 @@ set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "3.3-V LVCMOS"
 set_global_assignment -name RESERVE_ALL_UNUSED_PINS_NO_OUTPUT_GND "AS INPUT TRI-STATED"
 
 set_location_assignment PIN_Y2 -to clk
-set_location_assignment PIN_AB22 -to oPPS
+set_location_assignment PIN_AB22 -to oEthPPS
+set_location_assignment PIN_AB21 -to oEth2PPS
 set_location_assignment PIN_T8 -to oSRAM_A[19]
 set_location_assignment PIN_AB8 -to oSRAM_A[18]
 set_location_assignment PIN_AB9 -to oSRAM_A[17]
@@ -140,6 +141,25 @@ set_location_assignment PIN_A19 -to ENET0_TX_DATA[2]
 set_location_assignment PIN_B19 -to ENET0_TX_DATA[3]
 set_location_assignment PIN_A18 -to ENET0_TX_EN
 set_location_assignment PIN_B18 -to ENET0_TX_ER
+set_location_assignment PIN_D23 -to ENET1_MDC
+set_location_assignment PIN_D25 -to ENET1_MDIO
+set_location_assignment PIN_D22 -to ENET1_RST_N
+set_location_assignment PIN_B15 -to ENET1_RX_CLK
+set_location_assignment PIN_B22 -to ENET1_RX_COL
+set_location_assignment PIN_D20 -to ENET1_RX_CRS
+set_location_assignment PIN_B23 -to ENET1_RX_DATA[0]
+set_location_assignment PIN_C21 -to ENET1_RX_DATA[1]
+set_location_assignment PIN_A23 -to ENET1_RX_DATA[2]
+set_location_assignment PIN_D21 -to ENET1_RX_DATA[3]
+set_location_assignment PIN_A22 -to ENET1_RX_DV
+set_location_assignment PIN_C24 -to ENET1_RX_ER
+set_location_assignment PIN_C22 -to ENET1_TX_CLK
+set_location_assignment PIN_C25 -to ENET1_TX_DATA[0]
+set_location_assignment PIN_A26 -to ENET1_TX_DATA[1]
+set_location_assignment PIN_B26 -to ENET1_TX_DATA[2]
+set_location_assignment PIN_C26 -to ENET1_TX_DATA[3]
+set_location_assignment PIN_B25 -to ENET1_TX_EN
+set_location_assignment PIN_A25 -to ENET1_TX_ER
 set_location_assignment PIN_G18 -to osevenSegmentDisplayPins_hexDisp_0[0]
 set_location_assignment PIN_F22 -to osevenSegmentDisplayPins_hexDisp_0[1]
 set_location_assignment PIN_E17 -to osevenSegmentDisplayPins_hexDisp_0[2]
@@ -343,15 +363,42 @@ set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET0_TX_CLK
 set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET0_MDC
 set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET0_MDIO
 
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET1_TX_DATA[0]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET1_RX_DATA[0]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET1_TX_DATA[1]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET1_RX_DATA[1]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET1_TX_DATA[2]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET1_RX_DATA[2]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET1_TX_DATA[3]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET1_RX_DATA[3]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET1_GTX_CLK
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET1_TX_EN
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET1_TX_ER
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET1_RST_N
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET1_RX_DV
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET1_RX_ER
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET1_RX_CRS
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET1_RX_COL
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET1_RX_CLK
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET1_TX_CLK
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET1_MDC
+set_instance_assignment -name IO_STANDARD "2.5 V" -to ENET1_MDIO
+
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to clk
 
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:comp|SRamCtrl:ramCtrl|addrReg"
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:comp|SRamCtrl:ramCtrl|doutReg"
-set_instance_assignment -name FAST_OUTPUT_ENABLE_REGISTER ON -to "Patmos:comp|SRamCtrl:ramCtrl|doutEnaReg"
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:comp|SRamCtrl:ramCtrl|noeReg"
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:comp|SRamCtrl:ramCtrl|nweReg"
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:comp|SRamCtrl:ramCtrl|nlbReg"
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:comp|SRamCtrl:ramCtrl|nubReg"
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:patmos_inst|SRamCtrl:ramCtrl|addrReg"
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:patmos_inst|SRamCtrl:ramCtrl|doutReg"
+set_instance_assignment -name FAST_OUTPUT_ENABLE_REGISTER ON -to "Patmos:patmos_inst|SRamCtrl:ramCtrl|doutEnaReg"
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:patmos_inst|SRamCtrl:ramCtrl|noeReg"
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:patmos_inst|SRamCtrl:ramCtrl|nweReg"
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:patmos_inst|SRamCtrl:ramCtrl|nlbReg"
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:patmos_inst|SRamCtrl:ramCtrl|nubReg"
+set_instance_assignment -name FAST_OUTPUT_ENABLE_REGISTER ON -to "Patmos:patmos_inst|PatmosCore:PatmosCore|InOut:iocomp|EthMac:EthMac|eth_controller_top:eth|eth_top:eth_top_comp_0|eth_txethmac:txethmac1|MTxEn~reg0"
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:patmos_inst|PatmosCore:PatmosCore|InOut:iocomp|EthMac:EthMac|eth_controller_top:eth|eth_top:eth_top_comp_0|eth_txethmac:txethmac1|MTxD[0]~reg[3..0]"
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:patmos_inst|PatmosCore:PatmosCore|InOut:iocomp|EthMac:EthMac|eth_controller_top:eth|eth_top:eth_top_comp_0|eth_txethmac:txethmac1|MTxErr~reg0"
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:patmos_inst|PatmosCore:PatmosCore|InOut:iocomp|Uart:Uart|tx_reg"
+set_instance_assignment -name FAST_INPUT_REGISTER ON -to "Patmos:patmos_inst|PatmosCore:PatmosCore|InOut:iocomp|Uart:Uart|rxd_reg0"
+
 set_global_assignment -name FITTER_EFFORT "STANDARD FIT"
 set_global_assignment -name OPTIMIZE_HOLD_TIMING "ALL PATHS"
 set_global_assignment -name OPTIMIZE_MULTI_CORNER_TIMING ON

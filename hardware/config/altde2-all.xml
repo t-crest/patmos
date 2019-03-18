@@ -10,15 +10,12 @@
 	<IO DevTypeRef="Uart" offset="8"/>
 	<IO DevTypeRef="Leds" offset="9"/>
 	<IO DevTypeRef="Keys" offset="10" intrs="2,3,4,5"/>
-<<<<<<< HEAD
 	<IO DevTypeRef="SevenSegmentDisplay" offset="11"/>
 	<IO DevTypeRef="Gpio" offset="12"/>
-	<IO DevTypeRef="EthMac" offset="13" intrs="6,7,8"/>
-=======
-	<IO DevTypeRef="EthMac" offset="13" intrs="6"/> 
->>>>>>> be89f3aceb0afb553f6ce424a031de30100242f3
-	<IO DevTypeRef="Uart2" offset="14"/>
-	<IO DevTypeRef="Uart3" offset="15"/>
+	<IO DevTypeRef="EthMac" offset="13" intrs="6,7"/>
+	<IO DevTypeRef="EthMac2" offset="14" intrs="8,9"/>
+	<!-- <IO DevTypeRef="Uart2" offset="15"/>
+	<IO DevTypeRef="Uart3" offset="16"/> -->
   </IOs>
 
   <Devs>
@@ -65,7 +62,17 @@
 		</Dev>
 		<Dev DevType="EthMac" entity="EthMac" iface="OcpCore">
 			<params>
-				<param name="extAddrWidth" value="16" />
+				<param name="extAddrWidth" value="14" />
+				<param name="dataWidth" value="32" />
+				<param name="withPTP" value="true" />
+				<param name="secondsWidth" value="32"/>
+				<param name="nanoWidth" value="32"/>
+				<param name="timeStep" value="25"/>
+			</params>
+		</Dev>
+		<Dev DevType="EthMac2" entity="EthMac2" iface="OcpCore">
+			<params>
+				<param name="extAddrWidth" value="14" />
 				<param name="dataWidth" value="32" />
 				<param name="withPTP" value="true" />
 				<param name="secondsWidth" value="32"/>

@@ -1,72 +1,59 @@
+
 /*
-   Copyright 2014 Technical University of Denmark, DTU Compute.
-   All rights reserved.
-
-   This file is part of the time-predictable VLIW processor Patmos.
-
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions are met:
-
-      1. Redistributions of source code must retain the above copyright notice,
-         this list of conditions and the following disclaimer.
-
-      2. Redistributions in binary form must reproduce the above copyright
-         notice, this list of conditions and the following disclaimer in the
-         documentation and/or other materials provided with the distribution.
-
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
-   OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-   OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
-   NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
-   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-   The views and conclusions contained in the software and documentation are
-   those of the authors and should not be interpreted as representing official
-   policies, either expressed or implied, of the copyright holder.
- */
-
-/* Copy of EthMac interface for Patmos
- * Ugly workaround in order to have 2 Ethmac ports 
+ * EthMac interface for Patmos
  *
  * Author: Luca Pezzarossa (lpez@dtu.dk)
- *         
+ *         Eleftherios Kyriakakis (elky@dtu.dk)
+ *
  */
 
 package io
 
 import Chisel._
-import Node._
 import ocp._
+
+import ptp1588assist._
 
 object EthMac2 extends DeviceObject {
   var extAddrWidth = 32
   var dataWidth = 32
+  var withPTP = false
+  var initialTime = 0L
+  var secondsWidth = 32
+  var nanoWidth = 32
+  var timeStep = 25
+  val currentTime: Long = System.currentTimeMillis / 1000
 
   def init(params : Map[String, String]) = {
     extAddrWidth = getPosIntParam(params, "extAddrWidth")
     dataWidth = getPosIntParam(params, "dataWidth")
+    withPTP = getBoolParam(params, "withPTP")
+    if(withPTP){
+      initialTime = currentTime
+      secondsWidth = getPosIntParam(params, "secondsWidth")
+      nanoWidth = getPosIntParam(params, "nanoWidth")
+      timeStep = getPosIntParam(params, "timeStep")
+    }
   }
 
   def create(params: Map[String, String]) : EthMac2 = {
-    Module(new EthMac2(extAddrWidth=extAddrWidth, dataWidth=dataWidth))
+    if(withPTP)
+      Module(new EthMac2(extAddrWidth-1, dataWidth, withPTP, secondsWidth, nanoWidth, initialTime, timeStep))
+    else
+      Module(new EthMac2(extAddrWidth, dataWidth))
   }
 
   trait Pins {
     val ethMac2Pins = new Bundle() {
       // Tx
-      val mtx_clk_pad_i = Bits(INPUT, width = 1)  // Transmit clock (from PHY)
-      val mtxd_pad_o    = Bits(OUTPUT, width = 4) // Transmit nibble (to PHY)
+      val mtx_clk_pad_i = Bool(INPUT)  // Transmit clock (from PHY)
+      val mtxd_pad_o    = Bits(OUTPUT, width = 4) // Transmit niethle (to PHY)
       val mtxen_pad_o   = Bits(OUTPUT, width = 1) // Transmit enable (to PHY)
       val mtxerr_pad_o  = Bits(OUTPUT, width = 1) // Transmit error (to PHY)
 
       // Rx
-      val mrx_clk_pad_i = Bits(INPUT, width = 1) // Receive clock (from PHY)
-      val mrxd_pad_i    = Bits(INPUT, width = 4) // Receive nibble (from PHY)
+      val mrx_clk_pad_i = Bool(INPUT) // Receive clock (from PHY)
+      val mrxd_pad_i    = Bits(INPUT, width = 4) // Receive niethle (from PHY)
       val mrxdv_pad_i   = Bits(INPUT, width = 1) // Receive data valid (from PHY)
       val mrxerr_pad_i  = Bits(INPUT, width = 1) // Receive data error (from PHY)
 
@@ -80,19 +67,27 @@ object EthMac2 extends DeviceObject {
       val md_pad_o      = Bits(OUTPUT, width = 1) // MII data output (to I/O cell)
       val md_padoe_o    = Bits(OUTPUT, width = 1) // MII data output enable (to I/O cell)
 
-      val int_o         = Bits(OUTPUT, width = 1) // Interrupt output
+      val int_o         = Bits(OUTPUT, width = 1) // Ethernet intr output
+
+      // PTP Debug Signals
+      val ptpPPS = Bits(OUTPUT, width=1)
+      // val ledPHY = Bits(OUTPUT, width=1)
+      // val ledSOF = Bits(OUTPUT, width=1)
+      // val ledEOF = Bits(OUTPUT, width=1)
+      // val ledSFD = Bits(OUTPUT, width=8)
+      // val rtcDisp = Vec.fill(8) {Bits(OUTPUT, 7)}
     }
   }
 
-  trait Intrs {
-    val ethMac2Intrs = Vec.fill(1) { Bool(OUTPUT) }
+  trait Intrs{
+    val ethMac2Intrs = Vec.fill(2) { Bool(OUTPUT) }
   }
 }
 
 class EthMac2BB(extAddrWidth : Int = 32, dataWidth : Int = 32) extends BlackBox {
   val io = new OcpCoreSlavePort(extAddrWidth, dataWidth) with EthMac2.Pins
   // rename component
-  setModuleName("eth_controller_top2")
+  setModuleName("eth_controller_top")
 
   // rename signals
   renameClock(clock, "clk")
@@ -120,9 +115,9 @@ class EthMac2BB(extAddrWidth : Int = 32, dataWidth : Int = 32) extends BlackBox 
   io.ethMac2Pins.md_pad_o.setName("md_pad_o")
   io.ethMac2Pins.md_padoe_o.setName("md_padoe_o")
   io.ethMac2Pins.int_o.setName("int_o")
-
+  
   // set Verilog parameters
-  setVerilogParameters("#(.BUFF_ADDR_WIDTH(16))")
+  setVerilogParameters("#(.BUFF_ADDR_WIDTH("+extAddrWidth+"))")
 
   // keep some sigals for emulation
   debug(io.M.Cmd)
@@ -136,21 +131,69 @@ class EthMac2BB(extAddrWidth : Int = 32, dataWidth : Int = 32) extends BlackBox 
   io.S.Data := dataReg
 }
 
-class EthMac2(extAddrWidth : Int = 32, dataWidth : Int = 32) extends CoreDevice() {
+class EthMac2(extAddrWidth: Int = 32, dataWidth: Int = 32, withPTP: Boolean = false, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTime: BigInt = 0L, timeStep: Int = 25) extends CoreDevice() {
   override val io = new CoreDeviceIO() with EthMac2.Pins with EthMac2.Intrs
-  val SyncReg = Reg(Bits(width = 1))
-  val IntReg = Reg(Bits(width = 1))
 
-  val bb2 = Module(new EthMac2BB(extAddrWidth, dataWidth))
-  bb2.io.M <> io.ocp.M
-  bb2.io.S <> io.ocp.S
-  bb2.io.ethMac2Pins <> io.ethMac2Pins
+  val eth = Module(new EthMac2BB(extAddrWidth, dataWidth))
+  //Wire IO pins straight through
+  io.ethMac2Pins <> eth.io.ethMac2Pins
 
-  // Connection to pins
-  SyncReg := bb2.io.ethMac2Pins.int_o 
-  //SyncReg := ~SyncReg
-  IntReg := SyncReg
+  // Connection to controller interrupt
+  val syncEthIntrReg = RegNext(eth.io.ethMac2Pins.int_o)
 
   // Generate interrupts on rising edges
-  io.ethMac2Intrs(0) := IntReg(0) === Bits("b0") && SyncReg(0) === Bits("b1")
+  val pulseEthIntrReg = RegNext(RegNext(syncEthIntrReg) === Bits("b0") && syncEthIntrReg(0) === Bits("b1"))
+  io.ethMac2Intrs := Cat(Bits("b0"), pulseEthIntrReg)
+
+  //Check for PTP features
+  if(withPTP) {    
+    println("EthMac2 w/ PTP1588 hardware (eth_addrWidth="+extAddrWidth+", ptp_addrWidth="+(extAddrWidth)+")")
+    val ptp = Module(new PTP1588Assist(addrWidth = extAddrWidth, dataWidth = dataWidth, secondsWidth = secondsWidth, nanoWidth = nanoWidth, initialTime = initialTime, timeStep = timeStep))
+    val masterReg = Reg(next = io.ocp.M)
+    eth.io.M.Data := masterReg.Data
+    eth.io.M.ByteEn := masterReg.ByteEn
+    eth.io.M.Addr := masterReg.Addr
+    ptp.io.ocp.M.Data := masterReg.Data
+    ptp.io.ocp.M.ByteEn := masterReg.ByteEn
+    ptp.io.ocp.M.Addr := masterReg.Addr
+    //Arbitrate OCP master
+    when(masterReg.Addr(15, 12) === Bits("hE")){
+      eth.io.M.Cmd := OcpCmd.IDLE
+      ptp.io.ocp.M.Cmd := masterReg.Cmd   //PTP
+    }.otherwise{
+      eth.io.M.Cmd := masterReg.Cmd       //EthMac
+      ptp.io.ocp.M.Cmd := OcpCmd.IDLE
+    }
+    //Arbitrate OCP slave based on response
+    val replyRegPTP = Reg(next = ptp.io.ocp.S)
+    val replyRegETH = Reg(next = eth.io.S)
+    when(replyRegETH.Resp =/= OcpResp.NULL){
+      io.ocp.S := replyRegETH             //ETH
+    }.elsewhen(replyRegPTP.Resp =/= OcpResp.NULL){
+      io.ocp.S.Resp := replyRegPTP.Resp   //PTP
+      io.ocp.S.Data := replyRegPTP.Data
+    }.otherwise{
+      io.ocp.S.Resp := OcpResp.NULL
+      io.ocp.S.Data := 0.U                //NONE
+    }
+    //Rest of IO connections
+    ptp.io.ethMacRX.clk := io.ethMac2Pins.mrx_clk_pad_i
+    ptp.io.ethMacRX.data := io.ethMac2Pins.mrxd_pad_i
+    ptp.io.ethMacRX.dv := io.ethMac2Pins.mrxdv_pad_i
+    ptp.io.ethMacRX.err := io.ethMac2Pins.mrxerr_pad_i
+    ptp.io.ethMacTX.clk := eth.io.ethMac2Pins.mtx_clk_pad_i
+    ptp.io.ethMacTX.data := eth.io.ethMac2Pins.mtxd_pad_o
+    ptp.io.ethMacTX.dv := eth.io.ethMac2Pins.mtxen_pad_o
+    ptp.io.ethMacTX.err := eth.io.ethMac2Pins.mtxerr_pad_o
+    io.ethMac2Pins.ptpPPS := ptp.io.rtcPPS
+    io.ethMac2Intrs(1) := ptp.io.intrs(0)
+  } else {
+    println("EthMac2 (eth_addrWidth="+extAddrWidth+")")
+    eth.io.M <> io.ocp.M
+    eth.io.S <> io.ocp.S
+    io.ethMac2Pins.ptpPPS := false.B
+    io.ethMac2Intrs(1) := false.B
+  }
 }
+
+

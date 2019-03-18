@@ -5,6 +5,10 @@
 # Clock in input pin (50 MHz)
 create_clock -period 20 [get_ports clk]
 
+# Clock PHY (25MHz)
+# create_clock -period 40 [get_ports ENET0_RX_CLK]
+# create_clock -period 40 [get_ports ENET0_TX_CLK]
+
 # Create generated clocks based on PLLs
 derive_pll_clocks -use_tan_name
 
@@ -12,13 +16,10 @@ derive_clock_uncertainty
 
 # ** Input/Output Delays
 
-# Use FPGA-centric constraints (general pins)
-# Tsu 5 ns
-set_max_delay -from [all_inputs] -to [all_registers] 5
-set_min_delay -from [all_inputs] -to [all_registers] 0
-# Tco 10 ns
-set_max_delay -from [all_registers] -to [all_outputs] 10
-set_min_delay -from [all_registers] -to [all_outputs] 0
+# Unconstrained pins for gpios
+set_false_path -from * -to [get_ports {*oLedsPins*}]
+set_false_path -from * -to [get_ports {*osevenSegmentDisplayPins*}]
+set_false_path -from [get_ports {*iKeysPins*}] -to *
 
 # Use FPGA-centric constraints (SRAM pins)
 # Tsu 3 ns
