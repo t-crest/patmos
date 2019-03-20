@@ -41,7 +41,7 @@
 #include <machine/patmos.h>
 #include <unistd.h>
 #include <stdio.h>
-#define EMAC *((volatile _IODEV int *) 0xF00A0000)
+#define EMAC *((volatile _IODEV int *) PATMOS_IO_ETH)
 
 int main(void)
 {
