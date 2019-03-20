@@ -25,20 +25,20 @@ entity patmos_top is
         oLedsPins_ledR : out  std_logic_vector(17 downto 0);
         iKeysPins_key : in    std_logic_vector(3 downto 0);
         oGpioPins_gpio_0 : out std_logic_vector(0 downto 0);
-        osevenSegmentDisplayPins_hexDisp_7 : out std_logic_vector(6 downto 0);
-		osevenSegmentDisplayPins_hexDisp_6 : out std_logic_vector(6 downto 0);
-		osevenSegmentDisplayPins_hexDisp_5 : out std_logic_vector(6 downto 0);
-		osevenSegmentDisplayPins_hexDisp_4 : out std_logic_vector(6 downto 0);
-		osevenSegmentDisplayPins_hexDisp_3 : out std_logic_vector(6 downto 0);
-		osevenSegmentDisplayPins_hexDisp_2 : out std_logic_vector(6 downto 0);
-		osevenSegmentDisplayPins_hexDisp_1 : out std_logic_vector(6 downto 0);
-		osevenSegmentDisplayPins_hexDisp_0 : out std_logic_vector(6 downto 0);
+        oSegmentDisplayPins_hexDisp_7 : out std_logic_vector(6 downto 0);
+		oSegmentDisplayPins_hexDisp_6 : out std_logic_vector(6 downto 0);
+		oSegmentDisplayPins_hexDisp_5 : out std_logic_vector(6 downto 0);
+		oSegmentDisplayPins_hexDisp_4 : out std_logic_vector(6 downto 0);
+		oSegmentDisplayPins_hexDisp_3 : out std_logic_vector(6 downto 0);
+		oSegmentDisplayPins_hexDisp_2 : out std_logic_vector(6 downto 0);
+		oSegmentDisplayPins_hexDisp_1 : out std_logic_vector(6 downto 0);
+		oSegmentDisplayPins_hexDisp_0 : out std_logic_vector(6 downto 0);
         oUartPins_txd : out   std_logic;
         iUartPins_rxd : in    std_logic;
-        -- oUart2Pins_txd : out   std_logic;
-        -- iUart2Pins_rxd : in    std_logic;
-        -- oUart3Pins_txd : out   std_logic;
-        -- iUart3Pins_rxd : in    std_logic;
+        oUart2Pins_txd : out   std_logic;
+        iUart2Pins_rxd : in    std_logic;
+        oUart3Pins_txd : out   std_logic;
+        iUart3Pins_rxd : in    std_logic;
         oSRAM_A       : out   std_logic_vector(19 downto 0);
         SRAM_DQ       : inout std_logic_vector(15 downto 0);
         oSRAM_CE_N    : out   std_logic;
@@ -122,18 +122,18 @@ architecture rtl of patmos_top is
             io_gpioPins_gpios_0                   : out std_logic_vector(0 downto 0);
             io_uartPins_tx                        : out std_logic;
             io_uartPins_rx                        : in  std_logic;
-            -- io_uart2Pins_tx                       : out std_logic;
-            -- io_uart2Pins_rx                       : in  std_logic;
-            -- io_uart3Pins_tx                       : out std_logic;
-            -- io_uart3Pins_rx                       : in  std_logic;
-            io_sevenSegmentDisplayPins_hexDisp_7  : out std_logic_vector(6 downto 0);
-            io_sevenSegmentDisplayPins_hexDisp_6  : out std_logic_vector(6 downto 0);
-            io_sevenSegmentDisplayPins_hexDisp_5  : out std_logic_vector(6 downto 0);
-            io_sevenSegmentDisplayPins_hexDisp_4  : out std_logic_vector(6 downto 0);
-            io_sevenSegmentDisplayPins_hexDisp_3  : out std_logic_vector(6 downto 0);
-            io_sevenSegmentDisplayPins_hexDisp_2  : out std_logic_vector(6 downto 0);
-            io_sevenSegmentDisplayPins_hexDisp_1  : out std_logic_vector(6 downto 0);
-            io_sevenSegmentDisplayPins_hexDisp_0  : out std_logic_vector(6 downto 0);
+            io_uart2Pins_tx                       : out std_logic;
+            io_uart2Pins_rx                       : in  std_logic;
+            io_uart3Pins_tx                       : out std_logic;
+            io_uart3Pins_rx                       : in  std_logic;
+            io_segmentDisplayPins_hexDisp_7  : out std_logic_vector(6 downto 0);
+            io_segmentDisplayPins_hexDisp_6  : out std_logic_vector(6 downto 0);
+            io_segmentDisplayPins_hexDisp_5  : out std_logic_vector(6 downto 0);
+            io_segmentDisplayPins_hexDisp_4  : out std_logic_vector(6 downto 0);
+            io_segmentDisplayPins_hexDisp_3  : out std_logic_vector(6 downto 0);
+            io_segmentDisplayPins_hexDisp_2  : out std_logic_vector(6 downto 0);
+            io_segmentDisplayPins_hexDisp_1  : out std_logic_vector(6 downto 0);
+            io_segmentDisplayPins_hexDisp_0  : out std_logic_vector(6 downto 0);
 
             io_ethMacPins_mtx_clk_pad_i           : in    std_logic; -- Transmit clock (from PHY)
             io_ethMacPins_mtxd_pad_o              : out   std_logic_vector(3 downto 0); -- Transmit nibble (to PHY)
@@ -271,10 +271,10 @@ begin
         io_gpioPins_gpios_0 => oGpioPins_gpio_0,
         io_uartPins_tx => oUartPins_txd, 
         io_uartPins_rx => iUartPins_rxd,
-        -- io_uart2Pins_tx => oUart2Pins_txd,
-        -- io_uart2Pins_rx => iUart2Pins_rxd,
-        -- io_uart3Pins_tx => oUart3Pins_txd,
-        -- io_uart3Pins_rx => iUart3Pins_rxd,                     
+        io_uart2Pins_tx => oUart2Pins_txd,
+        io_uart2Pins_rx => iUart2Pins_rxd,
+        io_uart3Pins_tx => oUart3Pins_txd,
+        io_uart3Pins_rx => iUart3Pins_rxd,                     
         io_ethMacPins_mtx_clk_pad_i => ENET0_TX_CLK,
         io_ethMacPins_mtxd_pad_o => ENET0_TX_DATA,
         io_ethMacPins_mtxen_pad_o => ENET0_TX_EN,
@@ -307,14 +307,14 @@ begin
         io_ethMac2Pins_md_padoe_o => md2_padoe_o_int,
         io_ethMac2Pins_ptpPPS => oEth2PPS,
 
-        io_sevenSegmentDisplayPins_hexDisp_7 => osevenSegmentDisplayPins_hexDisp_7,
-        io_sevenSegmentDisplayPins_hexDisp_6 => osevenSegmentDisplayPins_hexDisp_6,
-        io_sevenSegmentDisplayPins_hexDisp_5 => osevenSegmentDisplayPins_hexDisp_5,
-        io_sevenSegmentDisplayPins_hexDisp_4 => osevenSegmentDisplayPins_hexDisp_4,
-        io_sevenSegmentDisplayPins_hexDisp_3 => osevenSegmentDisplayPins_hexDisp_3,
-        io_sevenSegmentDisplayPins_hexDisp_2 => osevenSegmentDisplayPins_hexDisp_2,
-        io_sevenSegmentDisplayPins_hexDisp_1 => osevenSegmentDisplayPins_hexDisp_1,
-        io_sevenSegmentDisplayPins_hexDisp_0 => osevenSegmentDisplayPins_hexDisp_0,
+        io_segmentDisplayPins_hexDisp_7 => oSegmentDisplayPins_hexDisp_7,
+        io_segmentDisplayPins_hexDisp_6 => oSegmentDisplayPins_hexDisp_6,
+        io_segmentDisplayPins_hexDisp_5 => oSegmentDisplayPins_hexDisp_5,
+        io_segmentDisplayPins_hexDisp_4 => oSegmentDisplayPins_hexDisp_4,
+        io_segmentDisplayPins_hexDisp_3 => oSegmentDisplayPins_hexDisp_3,
+        io_segmentDisplayPins_hexDisp_2 => oSegmentDisplayPins_hexDisp_2,
+        io_segmentDisplayPins_hexDisp_1 => oSegmentDisplayPins_hexDisp_1,
+        io_segmentDisplayPins_hexDisp_0 => oSegmentDisplayPins_hexDisp_0,
         
         io_sramCtrlPins_ramOut_addr => oSRAM_A, 
         io_sramCtrlPins_ramOut_doutEna => sram_out_dout_ena,

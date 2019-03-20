@@ -25,7 +25,7 @@ int main(int argc, char **argv){
 #ifdef CLIENT
     *led_ptr = 0x0;
     ssyncTurn = NODE1;
-    actTimer = get_rtc_usecs();
+    actTimer = get_rtc_usecs(thisPtpPortInfo.eth_base);
     while(1){
         client_run();
     }
@@ -34,7 +34,7 @@ int main(int argc, char **argv){
 #ifdef SERVER
     *led_ptr = 0x0;
     ssyncTurn = NODE0;
-    actTimer = get_rtc_usecs();
+    actTimer = get_rtc_usecs(thisPtpPortInfo.eth_base);
     while(1){
         server_run();
     }
@@ -47,20 +47,20 @@ int main(int argc, char **argv){
 }
 
 void server_run(){
-    if(get_rtc_usecs()-actTimer >= PWM_PERIOD){
-        actTimer = get_rtc_usecs();
+    if(get_rtc_usecs(thisPtpPortInfo.eth_base)-actTimer >= PWM_PERIOD){
+        actTimer = get_rtc_usecs(thisPtpPortInfo.eth_base);
         exec_act_task(dutyCycle);
         exec_report_task();
-    } else if(get_rtc_usecs()-actTimer < PWM_PERIOD-PTP_REQ_TIMEOUT) {
+    } else if(get_rtc_usecs(thisPtpPortInfo.eth_base)-actTimer < PWM_PERIOD-PTP_REQ_TIMEOUT) {
         exec_slvsync_task(PTP_REQ_TIMEOUT);
     }
 }
 
 void client_run(){
-    unsigned long long elapsedTime = get_rtc_usecs()-actTimer;
+    unsigned long long elapsedTime = get_rtc_usecs(thisPtpPortInfo.eth_base)-actTimer;
     if(elapsedTime >= PWM_PERIOD)
     {
-        actTimer = get_rtc_usecs();
+        actTimer = get_rtc_usecs(thisPtpPortInfo.eth_base);
         exec_act_task(dutyCycle);
         exec_report_task();
         dutyCycle = (dutyCycle >= 0.1) ? 0.05 : dutyCycle + 0.0001;
@@ -76,7 +76,7 @@ void client_run(){
  */
 __attribute__((noinline))
 void exec_report_task(){
-    printSegmentInt(get_rtc_secs());
+    printSegmentInt(get_rtc_secs(thisPtpPortInfo.eth_base));
     #ifdef SERVER
     *led_ptr |= 0x80;
     #endif
@@ -116,16 +116,16 @@ float exec_daq_task(unsigned long long timeout){
 __attribute__((noinline))
 void exec_slvsync_task(unsigned long long timeout){
     if((*led_ptr = check_packet(timeout)) == PTP){
-        switch(ptpv2_handle_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC)){
+        switch(ptpv2_handle_msg(thisPtpPortInfo, tx_addr, rx_addr, PTP_BROADCAST_MAC)){
         case PTP_SYNC_MSGTYPE:
             if((rxPTPMsg.head.flagField & FLAG_PTP_TWO_STEP_MASK) != FLAG_PTP_TWO_STEP_MASK){
-                ptpv2_issue_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC, lastMasterInfo.ip, rxPTPMsg.head.sequenceId, PTP_DLYREQ_MSGTYPE, ptpTimeRecord.syncInterval);
+                ptpv2_issue_msg(thisPtpPortInfo, tx_addr, rx_addr, PTP_BROADCAST_MAC, lastMasterInfo.ip, rxPTPMsg.head.sequenceId, PTP_DLYREQ_MSGTYPE, ptpTimeRecord.syncInterval);
             }
             *led_ptr |= 0x1;
             break;
         case PTP_FOLLOW_MSGTYPE:
             *led_ptr |= 0x2;
-            ptpv2_issue_msg(tx_addr, rx_addr, PTP_BROADCAST_MAC, lastMasterInfo.ip, rxPTPMsg.head.sequenceId, PTP_DLYREQ_MSGTYPE, ptpTimeRecord.syncInterval);
+            ptpv2_issue_msg(thisPtpPortInfo, tx_addr, rx_addr, PTP_BROADCAST_MAC, lastMasterInfo.ip, rxPTPMsg.head.sequenceId, PTP_DLYREQ_MSGTYPE, ptpTimeRecord.syncInterval);
             *led_ptr |= 0x4;
             break;
         case PTP_DLYRPLY_MSGTYPE:

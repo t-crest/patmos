@@ -46,15 +46,12 @@
 
 // Pointers to the base addresses, all the addressing (addr as arguments)
 // in the library are an offset on these addresses
-#define ETH_DEV_BASE    0xF00D0000
-
-#define ETH_BASE  ((volatile _IODEV unsigned *) (ETH_DEV_BASE + 0xF000))
-#define BUFF_BASE ((volatile _IODEV unsigned *) (ETH_DEV_BASE + 0x0000))
+#define ETH_BASE  ((volatile _IODEV unsigned *) (PATMOS_IO_ETH + 0xF000))
+#define BUFF_BASE ((volatile _IODEV unsigned *) (PATMOS_IO_ETH + 0x0000))
 
 // Base addresses of second Ethernet controller (when present)
-#define ETH1_DEV_BASE    0xF00E0000
-#define ETH1_BASE  ((volatile _IODEV unsigned *) (ETH1_DEV_BASE + 0xF000))
-#define BUFF1_BASE ((volatile _IODEV unsigned *) (ETH1_DEV_BASE + 0x0000))
+#define ETH1_BASE  ((volatile _IODEV unsigned *) (PATMOS_IO_ETH1 + 0xF000))
+#define BUFF1_BASE ((volatile _IODEV unsigned *) (PATMOS_IO_ETH1 + 0x0000))
 
 // Write to ethernet controller
 void eth_iowr(unsigned addr,unsigned data);

@@ -11,7 +11,7 @@ import Chisel._
 import patmos.Constants._
 import ocp._
 
-object SevenSegmentDisplay extends DeviceObject {
+object SegmentDisplay extends DeviceObject {
   var displayCount = -1
   var segmentPolarity = -1
 
@@ -20,21 +20,21 @@ object SevenSegmentDisplay extends DeviceObject {
       segmentPolarity = getIntParam(params, "segmentPolarity")
   }
 
-  def create(params: Map[String, String]) : SevenSegmentDisplay = {
-    Module(new SevenSegmentDisplay(displayCount, segmentPolarity))
+  def create(params: Map[String, String]) : SegmentDisplay = {
+    Module(new SegmentDisplay(displayCount, segmentPolarity))
   }
 
   trait Pins {
-    val sevenSegmentDisplayPins = new Bundle() {
+    val segmentDisplayPins = new Bundle() {
       val hexDisp = Vec.fill(displayCount) {Bits(OUTPUT, 7)}
     }
   }
 }
 
-class SevenSegmentDisplay(displayCount : Int, segmentPolarity: Int) extends CoreDevice() {
+class SegmentDisplay(displayCount : Int, segmentPolarity: Int) extends CoreDevice() {
 
     // Override
-    override val io = new CoreDeviceIO() with SevenSegmentDisplay.Pins
+    override val io = new CoreDeviceIO() with SegmentDisplay.Pins
 
     // Decode hardware
     def sevenSegBCDDecode(data : Bits) : Bits = {
@@ -137,6 +137,6 @@ class SevenSegmentDisplay(displayCount : Int, segmentPolarity: Int) extends Core
     io.ocp.S.Data := dataReg
 
     // Connections to IO
-    io.sevenSegmentDisplayPins.hexDisp := dispRegVec
+    io.segmentDisplayPins.hexDisp := dispRegVec
     
 }

@@ -46,11 +46,11 @@ typedef struct {
 /*
  * Global variables
  */
-volatile _SPM int *led_ptr  = (volatile _SPM int *)  0xF0090000;
-volatile _SPM int *key_ptr = (volatile _SPM int *)	 0xF00A0000;
-volatile _SPM int *gpio_ptr = (volatile _SPM int *) 0xF00C0000;
-volatile _IODEV unsigned *disp_ptr = (volatile _SPM unsigned *) 0xF00B0000;
-volatile _IODEV int *dead_ptr = (volatile _IODEV int *) 0xf0030000;
+volatile _SPM int *led_ptr  = (volatile _SPM int *)  PATMOS_IO_LED;
+volatile _SPM int *key_ptr = (volatile _SPM int *)	 PATMOS_IO_KEYS;
+volatile _SPM int *gpio_ptr = (volatile _SPM int *) PATMOS_IO_GPIO;
+volatile _IODEV unsigned *disp_ptr = (volatile _SPM unsigned *) PATMOS_IO_SEGDISP;
+volatile _IODEV int *dead_ptr = (volatile _IODEV int *) PATMOS_IO_DEADLINE;
 
 unsigned int rx_addr = 0x000;
 unsigned int tx_addr = 0x800;
