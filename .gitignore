@@ -68,6 +68,7 @@ doc/c_doc
 *.tmp
 *.jdi
 *.fst*
+*.elf
 
 # Ignore Vivado journal files
 vivado*.jou
@@ -88,3 +89,7 @@ doc/**/*.synctex.gz
 # Ignore Aegean generated files
 hardware/emulator_config.h
 hardware/vhdl/argo/config.vhd
+c/cmp/nocinit.c
+emulator.h
+emul_api.h
+sim_api.h 
