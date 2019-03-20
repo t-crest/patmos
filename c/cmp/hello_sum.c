@@ -12,6 +12,7 @@
 const int NOC_MASTER = 0;
 #include <string.h>
 #include <machine/spm.h>
+#include <machine/patmos.h>
 #include <stdio.h>
 #include "libnoc/noc.h"
 //#include "include/patio.h"
@@ -62,7 +63,7 @@ int main() {
 
 void blink(int nblinks) {
 
-	volatile _SPM int *led_ptr = (volatile _SPM int *) 0xF0090000;
+	volatile _SPM int *led_ptr = (volatile _SPM int *) PATMOS_IO_LED;
 
 	// Blinking lights
         int k, i, j;

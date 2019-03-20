@@ -50,7 +50,7 @@
 /**
  * Base addresses of the IO devices
  */
-#define __PATMOS_TIMER_BASE     0xF0020000
+#define __PATMOS_TIMER_BASE     PATMOS_IO_TIMER
 #define __PATMOS_UART_BASE      PATMOS_IO_UART
 #define __PATMOS_LEDS_BASE      PATMOS_IO_LED
 

@@ -9,7 +9,7 @@
 #define CNT 4
 #define WORDS 128
 
-#define LED (*((volatile _IODEV unsigned *)0xF0090000))
+#define LED (*((volatile _IODEV unsigned *) PATMOS_IO_LED))
 
 #define DELAY_TIME 3000000
 

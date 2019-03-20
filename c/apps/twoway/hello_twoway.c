@@ -3,13 +3,14 @@
 */
 
 #include <stdio.h>
+#include <machine/patmos.h>
 #include <machine/spm.h>
 #include "../../libcorethread/corethread.h"
 
 #define CNT 4
 #define WORDS 128
 
-#define LED (*((volatile _IODEV unsigned *)0xF0090000))
+#define LED (*((volatile _IODEV unsigned *) PATMOS_IO_LED))
 
 // The main function for the other threads on the other cores
 void work(void *arg)
@@ -60,7 +61,7 @@ int main()
 	printf("\n");
 	printf("Number of cores: %d\n", get_cpucnt());
 
-	volatile _SPM int *led_ptr = (volatile _SPM int *)0xF0090000;
+	volatile _SPM int *led_ptr = (volatile _SPM int *) PATMOS_IO_LED;
 
 	for (int i = 0; i < 10000; i++)
 	{

@@ -1,36 +1,4 @@
 /*
-   Copyright 2014 Technical University of Denmark, DTU Compute.
-   All rights reserved.
-
-   This file is part of the time-predictable VLIW processor Patmos.
-
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions are met:
-
-      1. Redistributions of source code must retain the above copyright notice,
-         this list of conditions and the following disclaimer.
-
-      2. Redistributions in binary form must reproduce the above copyright
-         notice, this list of conditions and the following disclaimer in the
-         documentation and/or other materials provided with the distribution.
-
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
-   OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-   OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
-   NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
-   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-   The views and conclusions contained in the software and documentation are
-   those of the authors and should not be interpreted as representing official
-   policies, either expressed or implied, of the copyright holder.
- */
-
-/*
  * PTP1588 section of ethlib (ethernet library)
  * 
  * Authors: Eleftherios Kyriakakis (elky@dtu.dk)
@@ -38,10 +6,20 @@
 
 #include "ptp1588.h"
 
-PTPPortInfo ptpv2_intialize_local_port(unsigned char mac[6], unsigned char ip[4], unsigned short portId){
+PTPPortInfo ptpv2_intialize_local_port(unsigned int eth_base, unsigned char mac[6], unsigned char ip[4], unsigned short portId){
 	PTPPortInfo newPort;
-	*(newPort.ip) = *(ip);
-	*(newPort.mac) = *(mac);
+	printf("PTP init for eth_base=0x%x\n", eth_base);
+	newPort.eth_base = eth_base;
+	newPort.ip[0] = ip[0];
+	newPort.ip[1] = ip[1];
+	newPort.ip[2] = ip[2];
+	newPort.ip[3] = ip[3];
+	newPort.mac[0] = mac[0];
+	newPort.mac[1] = mac[1];
+	newPort.mac[2] = mac[2];
+	newPort.mac[3] = mac[3];
+	newPort.mac[4] = mac[4];
+	newPort.mac[5] = mac[5];
 	newPort.clockId[0] = mac[0];
 	newPort.clockId[1] = mac[1];
 	newPort.clockId[2] = mac[2];
@@ -55,30 +33,30 @@ PTPPortInfo ptpv2_intialize_local_port(unsigned char mac[6], unsigned char ip[4]
 }
 
 __attribute__((noinline))
-int ptpv2_issue_msg(unsigned tx_addr, unsigned rx_addr, unsigned char destination_mac[6], unsigned char destination_ip[4], unsigned seqId, unsigned msgType, unsigned char syncInterval) {
+int ptpv2_issue_msg(PTPPortInfo ptpPortInfo, unsigned tx_addr, unsigned rx_addr, unsigned char destination_mac[6], unsigned char destination_ip[4], unsigned seqId, unsigned msgType, unsigned char syncInterval) {
 	txPTPMsg.head.sequenceId = seqId;
 	txPTPMsg.head.transportSpec_msgType = msgType;
 	txPTPMsg.head.reserved_versionPTP = 0x02;
 	txPTPMsg.head.flagField |= FLAG_PTP_TWO_STEP_MASK;
 	txPTPMsg.head.flagField |= FLAG_PTP_UNICAST_MASK;
 	txPTPMsg.head.correctionField = 0x0LL;
-	txPTPMsg.head.portIdentity[0] = thisPortInfo.clockId[0];
-	txPTPMsg.head.portIdentity[1] = thisPortInfo.clockId[1];
-	txPTPMsg.head.portIdentity[2] = thisPortInfo.clockId[2];
-	txPTPMsg.head.portIdentity[3] = thisPortInfo.clockId[3];
-	txPTPMsg.head.portIdentity[4] = thisPortInfo.clockId[4];
-	txPTPMsg.head.portIdentity[5] = thisPortInfo.clockId[5];
-	txPTPMsg.head.portIdentity[6] = thisPortInfo.clockId[6];
-	txPTPMsg.head.portIdentity[7] = thisPortInfo.clockId[7];
-	txPTPMsg.head.portId = thisPortInfo.id;
+	txPTPMsg.head.portIdentity[0] = ptpPortInfo.clockId[0];
+	txPTPMsg.head.portIdentity[1] = ptpPortInfo.clockId[1];
+	txPTPMsg.head.portIdentity[2] = ptpPortInfo.clockId[2];
+	txPTPMsg.head.portIdentity[3] = ptpPortInfo.clockId[3];
+	txPTPMsg.head.portIdentity[4] = ptpPortInfo.clockId[4];
+	txPTPMsg.head.portIdentity[5] = ptpPortInfo.clockId[5];
+	txPTPMsg.head.portIdentity[6] = ptpPortInfo.clockId[6];
+	txPTPMsg.head.portIdentity[7] = ptpPortInfo.clockId[7];
+	txPTPMsg.head.portId = ptpPortInfo.id;
 	txPTPMsg.head.logMessageInterval = syncInterval;
 	switch(msgType){
 		case PTP_SYNC_MSGTYPE:
 			//Master
 			txPTPMsg.head.messageLength = 44;
 			txPTPMsg.head.controlField = PTP_SYNC_CTRL;
-			txPTPMsg.body.seconds = (unsigned)RTC_TIME_SEC & 0xFFFFFFFF;
-			txPTPMsg.body.nanoseconds = (unsigned)RTC_TIME_NS;
+			txPTPMsg.body.seconds = (unsigned)RTC_TIME_SEC(ptpPortInfo.eth_base) & 0xFFFFFFFF;
+			txPTPMsg.body.nanoseconds = (unsigned)RTC_TIME_NS(ptpPortInfo.eth_base);
 			udp_send_mac(tx_addr, rx_addr, destination_mac, destination_ip, PTP_EVENT_PORT, PTP_EVENT_PORT, (unsigned char*)&txPTPMsg, 44, 0);
 			break;
 		case PTP_FOLLOW_MSGTYPE:
@@ -93,8 +71,8 @@ int ptpv2_issue_msg(unsigned tx_addr, unsigned rx_addr, unsigned char destinatio
 			//Slave
 			txPTPMsg.head.messageLength = 44;
 			txPTPMsg.head.controlField = PTP_DLYREQ_CTRL;
-			txPTPMsg.body.seconds = (unsigned)RTC_TIME_SEC & 0xFFFFFFFF;
-			txPTPMsg.body.nanoseconds = (unsigned)RTC_TIME_NS;
+			txPTPMsg.body.seconds = (unsigned)RTC_TIME_SEC(ptpPortInfo.eth_base) & 0xFFFFFFFF;
+			txPTPMsg.body.nanoseconds = (unsigned)RTC_TIME_NS(ptpPortInfo.eth_base);
 			udp_send_mac(tx_addr, rx_addr, destination_mac, destination_ip, PTP_EVENT_PORT, PTP_EVENT_PORT, (unsigned char*)&txPTPMsg, 44, 0);
 			break;
 		case PTP_DLYRPLY_MSGTYPE:
@@ -111,38 +89,38 @@ int ptpv2_issue_msg(unsigned tx_addr, unsigned rx_addr, unsigned char destinatio
 	if(msgType==PTP_SYNC_MSGTYPE){
 		//Master
 		#ifdef USE_HW_TIMESTAMP
-		_Pragma("loopbound min 0 max 1")	
-		while((PTP_TXCHAN_STATUS & PTP_CHAN_VALID_TS_MASK) != PTP_CHAN_VALID_TS_MASK){continue;}
-		ptpTimeRecord.t1Nanoseconds = (unsigned) PTP_TXCHAN_TIMESTAMP_NS;
-		ptpTimeRecord.t1Seconds = (unsigned) PTP_TXCHAN_TIMESTAMP_SEC;
+		_Pragma("loopbound min 0 max 1")
+		while((PTP_TXCHAN_STATUS(ptpPortInfo.eth_base) & PTP_CHAN_VALID_TS_MASK) != PTP_CHAN_VALID_TS_MASK){continue;}
+		ptpTimeRecord.t1Nanoseconds = (unsigned) PTP_TXCHAN_TIMESTAMP_NS(ptpPortInfo.eth_base);
+		ptpTimeRecord.t1Seconds = (unsigned) PTP_TXCHAN_TIMESTAMP_SEC(ptpPortInfo.eth_base);
 		#else
-		ptpTimeRecord.t1Nanoseconds = (unsigned) RTC_TIME_NS;
-		ptpTimeRecord.t1Seconds = (unsigned) RTC_TIME_SEC;
+		ptpTimeRecord.t1Nanoseconds = (unsigned) RTC_TIME_NS(ptpPortInfo.eth_base);
+		ptpTimeRecord.t1Seconds = (unsigned) RTC_TIME_SEC(ptpPortInfo.eth_base);
 		#endif
 	} else if(msgType==PTP_DLYREQ_MSGTYPE){
 		//Slave
 		#ifdef USE_HW_TIMESTAMP
 		_Pragma("loopbound min 0 max 1")	
-		while((PTP_TXCHAN_STATUS & PTP_CHAN_VALID_TS_MASK) != PTP_CHAN_VALID_TS_MASK){continue;}
-		ptpTimeRecord.t3Nanoseconds = (unsigned) PTP_TXCHAN_TIMESTAMP_NS;
-		ptpTimeRecord.t3Seconds = (unsigned) PTP_TXCHAN_TIMESTAMP_SEC;
+		while((PTP_TXCHAN_STATUS(ptpPortInfo.eth_base) & PTP_CHAN_VALID_TS_MASK) != PTP_CHAN_VALID_TS_MASK){continue;}
+		ptpTimeRecord.t3Nanoseconds = (unsigned) PTP_TXCHAN_TIMESTAMP_NS(ptpPortInfo.eth_base);
+		ptpTimeRecord.t3Seconds = (unsigned) PTP_TXCHAN_TIMESTAMP_SEC(ptpPortInfo.eth_base);
 		#else
-		ptpTimeRecord.t3Nanoseconds = (unsigned) RTC_TIME_NS;
-		ptpTimeRecord.t3Seconds = (unsigned) RTC_TIME_SEC;
+		ptpTimeRecord.t3Nanoseconds = (unsigned) RTC_TIME_NS(ptpPortInfo.eth_base);
+		ptpTimeRecord.t3Seconds = (unsigned) RTC_TIME_SEC(ptpPortInfo.eth_base);
 		#endif
 	}
 	return 1;
 }
 
 __attribute__((noinline))
-int ptpv2_handle_msg(unsigned tx_addr, unsigned rx_addr, unsigned char source_mac[6]){
+int ptpv2_handle_msg(PTPPortInfo ptpPortInfo, unsigned tx_addr, unsigned rx_addr, unsigned char source_mac[6]){
 	signed char ans = -2;
 	unsigned char source_ip[4];
 	#ifdef USE_HW_TIMESTAMP
 	_Pragma("loopbound min 0 max 1")	
-	while((PTP_RXCHAN_STATUS & PTP_CHAN_VALID_TS_MASK) != PTP_CHAN_VALID_TS_MASK){continue;}
-	unsigned int timestampNanoseconds = (unsigned) PTP_RXCHAN_TIMESTAMP_NS;
-	unsigned int timestampSeconds =  (unsigned) PTP_RXCHAN_TIMESTAMP_SEC;
+	while((PTP_RXCHAN_STATUS(ptpPortInfo.eth_base) & PTP_CHAN_VALID_TS_MASK) != PTP_CHAN_VALID_TS_MASK){continue;}
+	unsigned int timestampNanoseconds = (unsigned) PTP_RXCHAN_TIMESTAMP_NS(ptpPortInfo.eth_base);
+	unsigned int timestampSeconds =  (unsigned) PTP_RXCHAN_TIMESTAMP_SEC(ptpPortInfo.eth_base);
 	#else
 	unsigned int timestampNanoseconds = (unsigned) RTC_TIME_NS;
 	unsigned int timestampSeconds =  (unsigned) RTC_TIME_SEC;
@@ -208,16 +186,16 @@ int ptpv2_handle_msg(unsigned tx_addr, unsigned rx_addr, unsigned char source_ma
 		break;
 	case PTP_DLYRPLY_MSGTYPE:
 		// Exec by slave port
-		if(ptp_filter_clockport(rxPTPMsg.body.requestingSourcePort, rxPTPMsg.body.requestingSourceId, thisPortInfo.clockId, thisPortInfo.id)){
+		// if(ptp_filter_clockport(rxPTPMsg.body.requestingSourcePort, rxPTPMsg.body.requestingSourceId, ptpPortInfo.clockId, ptpPortInfo.id)){
 			ptpTimeRecord.t4Nanoseconds = rxPTPMsg.body.nanoseconds;
 			ptpTimeRecord.t4Seconds = rxPTPMsg.body.seconds;
 			ptpTimeRecord.delayNanoseconds = ptp_calc_delay(ptpTimeRecord.t1Nanoseconds, ptpTimeRecord.t2Nanoseconds, ptpTimeRecord.t3Nanoseconds, ptpTimeRecord.t4Nanoseconds);
 			ptpTimeRecord.offsetNanoseconds = ptp_calc_offset(ptpTimeRecord.t1Nanoseconds, ptpTimeRecord.t2Nanoseconds, ptpTimeRecord.delayNanoseconds);
 			ptpTimeRecord.delaySeconds = ptp_calc_delay(ptpTimeRecord.t1Seconds, ptpTimeRecord.t2Seconds, ptpTimeRecord.t3Seconds, ptpTimeRecord.t4Seconds);
 			ptpTimeRecord.offsetSeconds = ptp_calc_offset(ptpTimeRecord.t1Seconds, ptpTimeRecord.t2Seconds, ptpTimeRecord.delaySeconds);
-			if (PTP_CORRECTION_EN == 1) ptp_correct_offset();
+			if (PTP_CORRECTION_EN == 1) ptp_correct_offset(ptpPortInfo);
 			ans = PTP_DLYRPLY_MSGTYPE;
-		}
+		// }
 		break;
 	default:
 		return -PTP;
@@ -227,21 +205,19 @@ int ptpv2_handle_msg(unsigned tx_addr, unsigned rx_addr, unsigned char source_ma
 }
 
 //Applies the correction mechanism based on the calculated offset and acceptable threshold value
-__attribute__((noinline))
-void ptp_correct_offset(){
+void ptp_correct_offset(PTPPortInfo ptpPortInfo){
 	if(ptpTimeRecord.offsetSeconds != 0){
-		RTC_TIME_SEC = (unsigned) (-ptpTimeRecord.offsetSeconds + (int)RTC_TIME_SEC);	//reverse order to load time operand last
-		RTC_TIME_NS = (unsigned) (-(ptpTimeRecord.offsetNanoseconds) + WCET_COMPENSATION + (int)RTC_TIME_NS);	//reverse order to load time operand last
+		RTC_TIME_SEC(ptpPortInfo.eth_base) = (unsigned) (-ptpTimeRecord.offsetSeconds + (int)RTC_TIME_SEC(ptpPortInfo.eth_base));	//reverse order to load time operand last
+		RTC_TIME_NS(ptpPortInfo.eth_base) = (unsigned) (-(ptpTimeRecord.offsetNanoseconds) + WCET_COMPENSATION + (int)RTC_TIME_NS(ptpPortInfo.eth_base));	//reverse order to load time operand last
 	} else {
 		if(PTP_RATE_CONTROL==0 || abs(ptpTimeRecord.offsetNanoseconds) > PTP_NS_OFFSET_THRESHOLD){
-			RTC_TIME_NS = (unsigned) (-(ptpTimeRecord.offsetNanoseconds) + WCET_COMPENSATION + (int)RTC_TIME_NS);	//reverse order to load time operand last
+			RTC_TIME_NS(ptpPortInfo.eth_base) = (unsigned) (-(ptpTimeRecord.offsetNanoseconds) + WCET_COMPENSATION + (int)RTC_TIME_NS(ptpPortInfo.eth_base));	//reverse order to load time operand last
 		} else {
-			float driftCompens = 0.0002455f * SYNC_INTERVAL_OPTIONS[-((signed char)ptpTimeRecord.syncInterval)] * USEC_TO_NS / 25;
-			RTC_CORRECTION_OFFSET = (int) (ptpTimeRecord.offsetNanoseconds - driftCompens);
+			float driftCompens = (DRIFT_RATE * SYNC_INTERVAL_OPTIONS[-((signed char)ptpTimeRecord.syncInterval)]) / SEC_TO_USEC;
+			RTC_ADJUST_OFFSET(ptpPortInfo.eth_base) = (int) (ptpTimeRecord.offsetNanoseconds - driftCompens*USEC_TO_NS);
 		}
 	}
 }
-
 
 //Calculates the offset from the master clock based on timestamps T1, T2
 int ptp_calc_offset(int t1, int t2, int delay){
@@ -270,12 +246,12 @@ unsigned char ptp_filter_clockport(unsigned char sourceId[8], unsigned short sou
 	return ans;
 }
 
-unsigned long long get_rtc_usecs(){
-	return (unsigned long long) (SEC_TO_USEC * RTC_TIME_SEC) + (NS_TO_USEC * (RTC_TIME_NS));
+unsigned long long get_rtc_usecs(unsigned int eth_base){
+	return (unsigned long long) (SEC_TO_USEC * RTC_TIME_SEC(eth_base)) + (NS_TO_USEC * (RTC_TIME_NS(eth_base)));
 }
 
-unsigned int get_rtc_secs(){
-	return (unsigned int) (RTC_TIME_SEC);
+unsigned int get_rtc_secs(unsigned int eth_base){
+	return (unsigned int) (RTC_TIME_SEC(eth_base));
 }
 
 void print_bytes(unsigned char byte_buffer[], unsigned int len){

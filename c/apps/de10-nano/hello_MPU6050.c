@@ -6,7 +6,7 @@
 //#include "libmp/mp.h"
 
 //LEDs
-#define LED ( *( ( volatile _IODEV unsigned * )	0xF0090000 ) )
+#define LED ( *( ( volatile _IODEV unsigned * )	PATMOS_IO_LED ) )
 
 //I2C controller
 #define I2C ( *( ( volatile _IODEV unsigned * )	0xF00C0000 ) )

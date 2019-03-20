@@ -1,6 +1,7 @@
 #ifndef _AUDIO_H_
 #define _AUDIO_H_
 
+#include <machine/patmos.h>
 #include <machine/spm.h>
 #include <machine/rtc.h>
 #include <stdio.h>
@@ -31,11 +32,11 @@
 #endif
 
 
-#define LED_ADDR       (volatile _SPM int *) 0xF0090000
-#define KEY_ADDR       (volatile _SPM int *) 0xF00A0000
+#define LED_ADDR       (volatile _SPM int *) PATMOS_IO_LED
+#define KEY_ADDR       (volatile _SPM int *) PATMOS_IO_KEYS
 
 
-#define AUDIODEV_BASE   0xF00C0000
+#define AUDIODEV_BASE   PATMOS_IO_AUDIO
 
 #define DACL_ADDR      (volatile _SPM int *)(AUDIODEV_BASE+0x0000)
 #define DACR_ADDR      (volatile _SPM int *)(AUDIODEV_BASE+0x0010)
