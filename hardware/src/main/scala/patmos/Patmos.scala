@@ -222,6 +222,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       case "UartCmp" => cmpdevs(10) = Module(new cmp.UartCmp(nrCores,CLOCK_FREQ,115200,16))
       case "TwoWay" => cmpdevs(11) = Module(new cmp.TwoWayOCPWrapper(nrCores, 1024))
       case "TransactionalMemory" => cmpdevs(12) = Module(new cmp.TransactionalMemory(nrCores))
+      case "LedsCmp" => cmpdevs(13) = Module(new cmp.LedsCmp(nrCores, 1))
       case _ =>
     }
   }
