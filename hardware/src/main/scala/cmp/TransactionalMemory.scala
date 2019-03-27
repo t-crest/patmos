@@ -21,24 +21,22 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16) e
   
   val datawidth = DATA_WIDTH
   
-  val corecur = Counter(corecnt-1)
+  val corecur = Counter(corecnt)
   val memaddrwidth = log2Up(memsize)
-  val _memaddr = UInt(width = memaddrwidth)
-  _memaddr := 0.U
+  
+  val mem = Mem(UInt(width = datawidth), memsize, seqRead = true)
+  val _memrdaddrReg = Reg(UInt(width = memaddrwidth))
+  val _memrddata = mem(_memrdaddrReg)
+  val _memwraddr = UInt(width = memaddrwidth)
+  _memwraddr := 0.U
+  val _memwrdata = UInt(width = datawidth)
+  _memwrdata := 0.U
   val _memwr = Bool()
   _memwr := false.B
   
-  val memdata = UInt(width = datawidth)
-  memdata := 0.U
-  val mem = Mem(memsize, memdata)
-  
-  val _bufcur = Counter(bufsize-1)
+  val _bufcur = Counter(bufsize)
   val _bufnxt = UInt(width = log2Up(bufsize))
   _bufnxt := 0.U
-  val _bufaddr = UInt(width = memaddrwidth)
-  _bufaddr := 0.U
-  val _bufdata = UInt(width = datawidth)
-  _bufdata := 0.U
   val _bufwr = Bool()
   _bufwr := false.B
   val _bufconflict = false.B
@@ -48,7 +46,7 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16) e
       corecur.inc
     }.otherwise {
       when(_bufwr) {
-        mem(_bufaddr) := _bufdata  
+        mem(_memwraddr) := _memwrdata  
       }
       when(_bufcur.value === _bufnxt) {
         // Finished transferring
@@ -59,7 +57,6 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16) e
       }
     }
   }.otherwise {
-    memdata := mem(_memaddr)
     corecur.inc
   }
   
@@ -67,13 +64,13 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16) e
   
   for(i <- 0 until corecnt)  
   {
-    val memwr = RegInit(false.B)
-    val memaddr = Reg(_memaddr)
+    val memwrReg = RegInit(false.B)
+    val memaddrReg = Reg(UInt(width = memaddrwidth))
     
     val bufaddr = io(i).M.Addr(memaddrwidth+2,2)
-    val bufaddrs = Vec(bufsize, Reg(memaddr))
-    val bufnxt = Counter(bufsize-1)
-    val bufdatas = Vec(bufsize, Reg(memdata))
+    val bufaddrs = Vec(bufsize, Reg(UInt(width = memaddrwidth)))
+    val bufnxt = Counter(bufsize)
+    val bufdatas = Vec(bufsize, Reg(UInt(width = datawidth)))
     val bufrds = Vec(bufsize, Reg(init = false.B))
     val bufwrs = Vec(bufsize, Reg(init = false.B))
     val bufmatches = UInt(width = bufsize)
@@ -86,9 +83,9 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16) e
     
     val bufconflict = RegInit(false.B)
     
-    when(_memwr && _bufwr && (_bufcur.value =/= i.U)) {
+    when(_memwr && _bufwr && (corecur.value =/= i.U)) {
       for(j <- 0 until bufsize) {
-        when(bufrds(j) && (_bufaddr === bufaddrs(j))) {
+        when(bufrds(j) && (_memwraddr === bufaddrs(j))) {
           bufconflict := true.B
         }
       }
@@ -96,22 +93,22 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16) e
     
     when(corecur.value === i.U) {
       _bufnxt := bufnxt.value
-      _bufaddr := bufaddrs(_bufcur.value)
-      _bufdata := bufdatas(_bufcur.value)
+      _memwraddr := bufaddrs(_bufcur.value)
+      _memwrdata := bufdatas(_bufcur.value)
       _bufwr := bufwrs(_bufcur.value)
       _bufconflict := bufconflict
-      _memwr := memwr
-      _memaddr := memaddr
+      _memwr := memwrReg
+      _memrdaddrReg := memaddrReg
     }
    
     val slaveReg = Reg(io(i).S)
     io(i).S := slaveReg
-    //slaveReg.Data := memdata
+    slaveReg.Data := _memrddata
     slaveReg.Resp := OcpResp.NULL
     
     val sReg = RegInit(sIdle)
     
-    memwr := false.B
+    memwrReg := false.B
     
     switch(sReg) {
       is(sIdle) {
@@ -127,7 +124,7 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16) e
             bufnxt.inc
           }
         }.elsewhen(io(i).M.Cmd === OcpCmd.RD) {
-          when(io(i).M.Addr(0) === true.B) {
+          when(io(i).M.Addr(15,2) === 0x3FFF.U) {
             when(bufnxt.value === 0.U || bufconflict) {
               // rd/wr conflict or nothing to commit, return failure
               slaveReg.Resp := OcpResp.DVA
@@ -140,7 +137,7 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16) e
                 bufwrs(i) := false.B
               }
             }.otherwise {
-              memwr := true.B
+              memwrReg := true.B
               sReg := sCommit
             }
           }.otherwise {
@@ -148,7 +145,7 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16) e
               slaveReg.Resp := OcpResp.DVA
               slaveReg.Data := bufdatas(bufmatch)
             }.otherwise {
-              memaddr := bufaddr
+              memaddrReg := bufaddr
               sReg := sPreRead
             }
           }
@@ -161,22 +158,21 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16) e
         }
       }
       is(sRead) {
-        bufaddrs(bufnxt.value) := memaddr
-        bufdatas(bufnxt.value) := memdata
+        bufaddrs(bufnxt.value) := memaddrReg
+        bufdatas(bufnxt.value) := _memrddata
         bufrds(bufnxt.value) := true.B
         bufnxt.inc
         
         slaveReg.Resp := OcpResp.DVA
-        slaveReg.Data := memdata
         
         sReg := sIdle
       }
       is(sCommit) {
-        memwr := true.B
+        memwrReg := true.B
         when(_bufcur.value === bufnxt.value || bufconflict) {
           // Finish here
           
-          memwr := false.B
+          memwrReg := false.B
           
           slaveReg.Resp := OcpResp.DVA
           slaveReg.Data := Mux(bufconflict, -1.S, 0.S)
