@@ -50,11 +50,6 @@ class Argo(nrCores: Int, wrapped: Boolean = false, emulateBB: Boolean = false) e
   val busyReg = Vec.fill(argoConf.CORES){Reg(init = Bool(false))}
   val selSpmRplyReg = Vec.fill(argoConf.CORES){Reg(init = Bool(false))}
 
-//  val dataSpmReg = Vec.fill(argoConf.CORES){Reg(init = UInt(width = DATA_WIDTH))}
-//  val respSpmReg = Vec.fill(argoConf.CORES){Reg(init = OcpResp.NULL)}
-//  val dataNoCReg = Vec.fill(argoConf.CORES){Reg(init = UInt(width = DATA_WIDTH))}
-//  val respNoCReg = Vec.fill(argoConf.CORES){Reg(init = OcpResp.NULL)}
-
 	// Wire up Patmos - NoC + SPM
 	for(i <- 0 until argoConf.CORES){
 
@@ -96,7 +91,6 @@ class Argo(nrCores: Int, wrapped: Boolean = false, emulateBB: Boolean = false) e
     } .elsewhen(respSpmReg === OcpResp.DVA || respNoCReg ===OcpResp.DVA){
       selSpmRplyReg(i) := false.B
     }
-
     io(i).S.Data := Mux(selSpmRplyReg(i), dataSpmReg, dataNoCReg)
     io(i).S.Resp := Mux(selSpmRplyReg(i), respSpmReg, respNoCReg)
 
@@ -105,12 +99,15 @@ class Argo(nrCores: Int, wrapped: Boolean = false, emulateBB: Boolean = false) e
 	}
 
   // Generate config.vhd
-  ArgoConfig.genConfigVHD(argoConf, "vhdl/argo/config.vhd")
+  ArgoConfig.genConfigVHD("vhdl/argo/config.vhd")
+  // Generate schedule
+  ArgoConfig.genPoseidonSched("../../local/bin/", "../local/argo_platform.xml", "../local/argo_communication.xml", "../local/argo_schedule.xml")
+  ArgoConfig.genNoCInitSched("../../local/bin/", "../local/argo_schedule.xml", "../c/cmp/nocinit.c")
 }
 
 object Argo {
 	def main(args: Array[String]): Unit = {
     chiselMain(Array[String]("--backend", "v", "--targetDir", "generated"),
-      () => Module(new Argo(4, false, false)))
+      () => Module(new Argo(9, false, false)))
 	}
 }
