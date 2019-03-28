@@ -9,8 +9,8 @@
 #define LED ( *( ( volatile _IODEV unsigned * )	PATMOS_IO_LED ) )
 
 //Actuators and Propulsion controller
-#define ACTUATORS ( ( volatile _IODEV unsigned * )	0xF00D0000 )
-#define PROPULSION ( ( volatile _IODEV unsigned * )	0xF00D0010 )
+#define ACTUATORS ( ( volatile _IODEV unsigned * )	PATMOS_IO_ACT)
+#define PROPULSION ( ( volatile _IODEV unsigned * )	PATMOS_IO_ACT+0x10 )
 
 //UART2
 #define UART2 ( ( volatile _IODEV unsigned * )	PATMOS_IO_UART2 )

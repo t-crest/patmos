@@ -6,7 +6,7 @@
   <ExtMem size="2M" DevTypeRef="Sram16" />
 
   <IOs>
-    <IO DevTypeRef="SSPMDevice" offset="11"/>
+    <IO DevTypeRef="SSPMDevice" offset="15"/>
   </IOs>
 
   <Devs>

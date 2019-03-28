@@ -3,13 +3,13 @@
 #define _ATOMIC_H_
 
 #include <machine/spm.h>
-
+#include <machine/patmos.h>
 
 /* 
 Reading from this address assures that the next read + write 
 happen atomically in the SSPM
 */
-#define SCHEDULE_SYNC (0xF00BFFFF)
+#define SCHEDULE_SYNC (PATMOS_IO_SSPM + 0xFFFF)
 
 typedef enum {OPEN, LOCKED} lock_t;
 

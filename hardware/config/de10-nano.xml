@@ -7,11 +7,11 @@
   <ExtMem size="500k" DevTypeRef="OCRam" />
 
   <IOs>
+  <IO DevTypeRef="Uart2" offset="6"/>
 	<IO DevTypeRef="Uart" offset="8"/>
 	<IO DevTypeRef="Leds" offset="9"/>
-        <IO DevTypeRef="I2CInterface" offset="12"/>
-        <IO DevTypeRef="Actuators" offset="13"/>
-        <IO DevTypeRef="Uart2" offset="14"/>
+  <IO DevTypeRef="I2CInterface" offset="11"/>
+  <IO DevTypeRef="Actuators" offset="12"/>
 	<IO DevTypeRef="AauMpu" offset="15"/>
   </IOs>
 

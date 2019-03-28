@@ -45,10 +45,10 @@
 #include "sd_spi.h"
 
 // Pointers to host controller registers
-volatile _SPM int *sd_ptr        = (volatile _SPM int *) 0xF00b0000;
-volatile _SPM int *sd_cs_ptr     = (volatile _SPM int *) 0xF00b0004;
-volatile _SPM int *sd_en_ptr     = (volatile _SPM int *) 0xF00b0008;
-volatile _SPM int *sd_clkdiv_ptr = (volatile _SPM int *) 0xF00b000c;
+volatile _SPM int *sd_ptr        = (volatile _SPM int *) PATMOS_IO_SD;
+volatile _SPM int *sd_cs_ptr     = (volatile _SPM int *) PATMOS_IO_SD+0x04;
+volatile _SPM int *sd_en_ptr     = (volatile _SPM int *) PATMOS_IO_SD+0x08;
+volatile _SPM int *sd_clkdiv_ptr = (volatile _SPM int *) PATMOS_IO_SD+0x0c;
 
 // Timeout limits when waiting for card
 // No reason not to have them fairly large
