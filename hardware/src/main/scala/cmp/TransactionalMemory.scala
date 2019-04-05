@@ -41,7 +41,7 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
   _bufwr := false.B
   val _bufconflict = false.B
   
-  when(sharedmemwr && !_bufconflict && _bufwr) {
+  when(sharedmemwr && !_bufconflict) {
     when(_bufwr) {
       sharedmem(sharedmemwraddr) := sharedmemwrdata
     }
@@ -55,7 +55,7 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
     sharedmemrddata := sharedmem(sharedmemrdaddrReg)
     corecur.inc
   }
-  
+
   val sIdle::sRead::sPreSharedRead::sSharedRead::sPreCommit::sCommit::Nil = Enum(UInt(),6)
   
   for(i <- 0 until corecnt)  
@@ -65,7 +65,6 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
     
     val bufaddrwidth = log2Up(bufsize)
     
-    val memwrReg = RegInit(false.B)
     val memrdaddrReg = Reg(UInt(width = memaddrwidth))
     
     val bufaddr = ioM.Addr(memaddrwidth+2,2)
@@ -108,6 +107,9 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
       }
     }
     
+    
+    val sReg = RegInit(sIdle)
+    
     bufmemrdaddrReg := _bufcur.value
     when(corecur.value === i.U) {
       _bufnxt := bufnxt.value
@@ -115,12 +117,11 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
       sharedmemwrdata := bufmemrddata
       _bufwr := RegNext(bufwrs(_bufcur.value))
       _bufconflict := bufconflict
-      sharedmemwr := memwrReg
+      sharedmemwr := (sReg === sCommit)
       sharedmemrdaddrReg := memrdaddrReg
     }
    
     val slaveReg = Reg(ioS)
-    val sReg = RegInit(sIdle)
     
     ioS.Data := slaveReg.Data
     ioS.Resp := slaveReg.Resp
@@ -128,7 +129,6 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
     slaveReg.Data := sharedmemrddata
     slaveReg.Resp := OcpResp.NULL
 
-    memwrReg := false.B
     bufmemwr := false.B
     
     switch(sReg) {
@@ -162,7 +162,6 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
                 bufwrs(i) := false.B
               }
             }.otherwise {
-              memwrReg := true.B
               sReg := sCommit
             }
           }.otherwise {
@@ -194,15 +193,13 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
         bufmemwr := true.B
         bufmemwraddr := bufnxt.value
         bufmemwrdata := sharedmemrddata
-        bufwrs(bufnxt.value) := true.B
+        bufrds(bufnxt.value) := true.B
         bufnxt.inc
         
         sReg := sIdle
       }
       is(sCommit) {
-        memwrReg := true.B
-        when(_bufcur.value === bufnxt.value || bufconflict) {
-          memwrReg := false.B
+        when((corecur.value === i.U && _bufcur.value === bufnxt.value) || bufconflict) {
           // Finish here
           
           slaveReg.Resp := OcpResp.DVA
