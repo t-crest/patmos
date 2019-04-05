@@ -15,7 +15,7 @@ import patmos._
 import patmos.Constants._
 import ocp._
 
-class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16) extends Module {
+class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, pipeline: Boolean = true) extends Module {
   
   override val io = Vec.fill(corecnt){new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)} 
   
@@ -56,18 +56,19 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16) e
     corecur.inc
   }
   
-  val sIdle::sPreRead::sRead::sPreCommit::sCommit::Nil = Enum(UInt(),5)
+  val sIdle::sRead::sPreSharedRead::sSharedRead::sPreCommit::sCommit::Nil = Enum(UInt(),6)
   
   for(i <- 0 until corecnt)  
   {
-    val ioCur = io(i)
+    val ioM = if(pipeline) RegNext(io(i).M) else io(i).M
+    val ioS = io(i).S
     
     val bufaddrwidth = log2Up(bufsize)
     
     val memwrReg = RegInit(false.B)
     val memrdaddrReg = Reg(UInt(width = memaddrwidth))
     
-    val bufaddr = ioCur.M.Addr(memaddrwidth+2,2)
+    val bufaddr = ioM.Addr(memaddrwidth+2,2)
     val bufaddrs = Vec(bufsize, Reg(UInt(width = memaddrwidth)))
     val bufrds = Vec(bufsize, Reg(init = false.B))
     val bufwrs = Vec(bufsize, Reg(init = false.B))
@@ -118,39 +119,37 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16) e
       sharedmemrdaddrReg := memrdaddrReg
     }
    
-    val slaveReg = Reg(ioCur.S)
-    val slaveDataSelReg = RegInit(false.B)
+    val slaveReg = Reg(ioS)
     val sReg = RegInit(sIdle)
     
-    ioCur.S.Data := Mux(slaveDataSelReg, bufmemrddata, slaveReg.Data)
-    ioCur.S.Resp := slaveReg.Resp
+    ioS.Data := slaveReg.Data
+    ioS.Resp := slaveReg.Resp
     
     slaveReg.Data := sharedmemrddata
     slaveReg.Resp := OcpResp.NULL
 
-    slaveDataSelReg := false.B
     memwrReg := false.B
     bufmemwr := false.B
     
     switch(sReg) {
       is(sIdle) {
-        when(ioCur.M.Cmd === OcpCmd.WR) {
+        when(ioM.Cmd === OcpCmd.WR) {
           slaveReg.Resp := OcpResp.DVA
           when(bufmatched) {
             bufmemwr := true.B
             bufmemwraddr := bufmatch
-            bufmemwrdata := ioCur.M.Data
+            bufmemwrdata := ioM.Data
             bufwrs(bufmatch) := true.B
           }.otherwise {
             bufaddrs(bufnxt.value) := bufaddr
             bufmemwr := true.B
             bufmemwraddr := bufnxt.value
-            bufmemwrdata := ioCur.M.Data
+            bufmemwrdata := ioM.Data
             bufwrs(bufnxt.value) := true.B
             bufnxt.inc
           }
-        }.elsewhen(ioCur.M.Cmd === OcpCmd.RD) {
-          when(ioCur.M.Addr(15,2) === 0x3FFF.U) {
+        }.elsewhen(ioM.Cmd === OcpCmd.RD) {
+          when(ioM.Addr(15,2) === 0x3FFF.U) {
             when(bufnxt.value === 0.U || bufconflict) {
               // rd/wr conflict or nothing to commit, return failure
               slaveReg.Resp := OcpResp.DVA
@@ -168,24 +167,27 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16) e
             }
           }.otherwise {
             when(bufmatched) {
-              slaveReg.Resp := OcpResp.DVA
               bufmemrdaddrReg := bufmatch
-              slaveDataSelReg := true.B
-              sReg := sIdle
+              sReg := sRead
             }.otherwise {
               memrdaddrReg := bufaddr
-              sReg := sPreRead
+              sReg := sPreSharedRead
             }
           }
         }
       }
-      is(sPreRead) {
+      is(sRead) {
+        slaveReg.Resp := OcpResp.DVA
+        slaveReg.Data := bufmemrddata
+        sReg := sIdle
+      }
+      is(sPreSharedRead) {
         // Wait until my turn. Data is not ready until next cycle
         when(corecur.value === i.U) {
-          sReg := sRead
+          sReg := sSharedRead
         }
       }
-      is(sRead) {
+      is(sSharedRead) {
         slaveReg.Resp := OcpResp.DVA
         
         bufaddrs(bufnxt.value) := memrdaddrReg
