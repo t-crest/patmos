@@ -1,3 +1,4 @@
+#include "htmrts.h"
 
 #include "libcorethread/corethread.h"
 #include <stdio.h>
@@ -6,24 +7,23 @@
 #define TIMER_US_LOW *((volatile _IODEV int *) (PATMOS_IO_TIMER + 0xc))
 
 #include <machine/patmos.h>
-#define RTTM ((_iodev_ptr_t) 0xE80C0000)
-#define RTTM_COMMIT ((_SPM char*) 0xE80CFFFC)
 
 volatile _IODEV int *dead_ptr = (volatile _IODEV int *) PATMOS_IO_DEADLINE;
 const int BACKOFF_MIN = 10;
 const int BACKOFF_MAX = 100;
 _UNCACHED int flag = 0;
 
-const int iter = 10;
+const int iter = 100;
 int writer() {
 	while(!flag) {asm("");}
 	int tries = 0;
 	int cnt = 0;
 	int cnt_tmp = 0;
-	_iodev_ptr_t write_ptr = RTTM;
-	_iodev_ptr_t val_ptr = RTTM+15;
+	_iodev_ptr_t write_ptr = HTMRTS_BASE;
+	_iodev_ptr_t val_ptr = HTMRTS_BASE+15;
 	while(cnt < iter) {
 		do {
+			asm volatile ("" : : : "memory");
 			*dead_ptr = 100;
 			tries++;
 			cnt_tmp = (*write_ptr);
@@ -32,7 +32,8 @@ int writer() {
 				*write_ptr = ++cnt_tmp;
 			}
 			*dead_ptr;
-		} while(*RTTM_COMMIT != 0);
+			asm volatile ("" : : : "memory");
+		} while(*HTMRTS_COMMIT != 0);
 		tries--;
 	  cnt = cnt_tmp;
 	}
@@ -44,9 +45,9 @@ int reader() {
 	int cnt = 0;
 	int cnt_tmp = 0;
 	int sum = 0;
-	_iodev_ptr_t write_ptr = RTTM;
-	_iodev_ptr_t read_ptr = RTTM+1;
-	_iodev_ptr_t val_ptr = RTTM+15;
+	_iodev_ptr_t write_ptr = HTMRTS_BASE;
+	_iodev_ptr_t read_ptr = HTMRTS_BASE+1;
+	_iodev_ptr_t val_ptr = HTMRTS_BASE+15;
 	while(cnt < iter) {
 		int val_tmp;
 		
@@ -58,7 +59,7 @@ int reader() {
 			  val_tmp = *(val_ptr+cnt_tmp);
 				*read_ptr = ++cnt_tmp;
 			}
-		} while(*RTTM_COMMIT != 0);
+		} while(*HTMRTS_COMMIT != 0);
 		tries--;
 		sum += val_tmp;
 		cnt = cnt_tmp;

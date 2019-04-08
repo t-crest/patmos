@@ -71,7 +71,7 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
     val bufaddrs = Vec(bufsize, Reg(UInt(width = memaddrwidth)))
     val bufrds = Vec(bufsize, Reg(init = false.B))
     val bufwrs = Vec(bufsize, Reg(init = false.B))
-    val bufnxt = Counter(bufsize)
+    val bufnxt = Counter(bufsize+1)
     
     val bufmem = Mem(UInt(width = datawidth), bufsize, seqRead = true)
     val bufmemwr = Bool()
@@ -131,6 +131,8 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
 
     bufmemwr := false.B
     
+    val overflowReg = RegInit(false.B)
+    
     switch(sReg) {
       is(sIdle) {
         when(ioM.Cmd === OcpCmd.WR) {
@@ -140,6 +142,8 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
             bufmemwraddr := bufmatch
             bufmemwrdata := ioM.Data
             bufwrs(bufmatch) := true.B
+          }.elsewhen(bufnxt.value === bufsize.U) {
+            overflowReg := true.B
           }.otherwise {
             bufaddrs(bufnxt.value) := bufaddr
             bufmemwr := true.B
@@ -150,11 +154,12 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
           }
         }.elsewhen(ioM.Cmd === OcpCmd.RD) {
           when(ioM.Addr(15,2) === 0x3FFF.U) {
-            when(bufnxt.value === 0.U || bufconflict) {
+            when(bufnxt.value === 0.U || bufconflict || overflowReg) {
               // rd/wr conflict or nothing to commit, return failure
               slaveReg.Resp := OcpResp.DVA
               slaveReg.Data := -1.S
               
+              overflowReg := false.B
               bufnxt.value := 0.U
               bufconflict := false.B
               for(i <- 0 until bufsize) {
@@ -168,6 +173,8 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
             when(bufmatched) {
               bufmemrdaddrReg := bufmatch
               sReg := sRead
+            }.elsewhen(bufnxt.value === bufsize.U) {
+              overflowReg := true.B
             }.otherwise {
               memrdaddrReg := bufaddr
               sReg := sPreSharedRead
@@ -205,6 +212,7 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
           slaveReg.Resp := OcpResp.DVA
           slaveReg.Data := Mux(bufconflict, -1.S, 0.S)
           
+          overflowReg := false.B
           bufnxt.value := 0.U
           bufconflict := false.B
           for(i <- 0 until bufsize) {
