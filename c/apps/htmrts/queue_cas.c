@@ -25,11 +25,3 @@ element_t * dequeue(queue_t * queue_ptr)
 	unlock(0);
 	return last_ptr;
 }
-
-val_t dequeue_val(queue_t * queue_ptr)
-{
-	lock(0);
-	val_t val = _dequeue_val(queue_ptr);
-	unlock(0);
-	return val;
-}

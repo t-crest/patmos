@@ -1,6 +1,6 @@
 # This Makefile is used from the main Patmos folder to run all queue test measurements
 rm log.txt
-for dev in "-D _HARDLOCK_" "-D _CAS_" "-D _HTMRTS_"; \
+for dev in "-D _CAS_" "-D _HTMRTS_" "-D _HARDLOCK_"; \
 do \
 	for cpucnt in 2 4 6 8; \
 	do \

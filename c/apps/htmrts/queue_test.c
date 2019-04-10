@@ -34,7 +34,7 @@ int writer(element_t * elements)
 	
 	for(int i = 0; i < ELEMENTS_PER_CORE; i++)
 		enqueue(queue_ptr, &elements[i]);
-	
+
 	return 0;
 }
 
@@ -42,25 +42,32 @@ int reader(queue_t * queue_ptr)
 {
 	int sum = 0;
 	while(start_flag == 0) {asm("");}
-	
-	for(int i = 0; i < ELEMENTS_PER_CORE; i++)
-		sum += dequeue_val(queue_ptr);
+
+	for(int i = 0; i < ELEMENTS_PER_CORE; i++) {
+		element_t * element_ptr;
+		do
+		{
+			element_ptr = dequeue(queue_ptr);
+		} while(!element_ptr);
+		// Don't have to commit the following read
+		sum += element_ptr->val;
+	}
 	
 	return sum;
 }
 
 void writer_init(void* arg) 
 {
-  int ret = writer((element_t *)arg);
-  corethread_exit((void *)ret);
-  return;
+	int ret = writer((element_t *)arg);
+	corethread_exit((void *)ret);
+	return;
 }
 
 void reader_init(void* arg) 
 {
-  int ret = reader((queue_t *)arg);
-  corethread_exit((void *)ret);
-  return;
+	int ret = reader((queue_t *)arg);
+	corethread_exit((void *)ret);
+	return;
 }
 
 int main()
