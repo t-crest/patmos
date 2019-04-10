@@ -1,5 +1,6 @@
 package ptp1588assist
 
+import scala.math._
 import Chisel._
 import io.CoreDeviceIO
 import ocp.{OcpCmd, OcpCoreSlavePort, OcpResp}
@@ -82,7 +83,7 @@ class RTC(clockFreq: Int = CLOCK_FREQ, secondsWidth: Int = 32, nanoWidth: Int = 
   //Smooth Adjustment
   when(nsOffsetReg =/= 0.S) {
     when(nsOffsetReg < -microInNanoConst.S && nsOffsetReg >= -milliInNanoConst.S) { //-1ms to 1us
-      correctionStepReg := (timeStep).S
+      correctionStepReg := timeStep.S
     }.elsewhen(nsOffsetReg < -hundredNanoConst.S && nsOffsetReg >= -microInNanoConst.S) { //-1us to -100ns
       correctionStepReg := (timeStep/2).S
     }.elsewhen(nsOffsetReg < -fiftyNanoConst.S && nsOffsetReg >= -hundredNanoConst.S) {   //-100ns to -50ns
@@ -105,8 +106,8 @@ class RTC(clockFreq: Int = CLOCK_FREQ, secondsWidth: Int = 32, nanoWidth: Int = 
   }
 
   //Register current time when it is not being updated
-  when(masterReg.Cmd === OcpCmd.IDLE && ~updateNsReg && ~updateSecReg && ~tickEnPulse){
-    timeReg := secTickReg ## nsTickReg
+  when(masterReg.Cmd =/= OcpCmd.WR){
+    timeReg := Cat(secTickReg, nsTickReg)
   }
 
   // Write response
@@ -114,34 +115,46 @@ class RTC(clockFreq: Int = CLOCK_FREQ, secondsWidth: Int = 32, nanoWidth: Int = 
   updateNsReg := false.B
   when(masterReg.Cmd === OcpCmd.WR) {
     respReg := OcpResp.DVA
-    when(masterReg.Addr(5, 4) === Bits("b00")) {
-      when(masterReg.Addr(3, 2) === Bits("b00")) {
+    switch(masterReg.Addr(5, 0)){
+      is(Bits("h00")){
         updateNsReg := true.B
         timeReg(DATA_WIDTH-1, 0) := masterReg.Data
-      }.elsewhen(masterReg.Addr(3, 2) === Bits("b01")) {
+      }
+      is(Bits("h04")){
         updateSecReg := true.B
         timeReg(2*DATA_WIDTH-1, DATA_WIDTH) := masterReg.Data
       }
-    }.elsewhen(masterReg.Addr(5, 4) === Bits("b01")) {
-      periodSelReg := masterReg.Data
-    }.elsewhen(masterReg.Addr(5, 4) === Bits("b10")) {
-      nsOffsetReg := masterReg.Data.toSInt()
+      is(Bits("h10")){
+        periodSelReg := masterReg.Data
+      }
+      is(Bits("h14")){
+        periodSelReg := masterReg.Data 
+      }
+      is(Bits("h20")){
+        nsOffsetReg := masterReg.Data.toSInt()
+      }
     }
   }
 
   // Read response
   when(masterReg.Cmd === OcpCmd.RD) {
     respReg := OcpResp.DVA
-    when(masterReg.Addr(5,4) === Bits("b00")){
-      when(masterReg.Addr(3,2) === Bits("b00")){
+    switch(masterReg.Addr(5, 0)){
+      is(Bits("h00")){
         dataReg := timeReg(DATA_WIDTH-1, 0)
-      }.elsewhen(masterReg.Addr(3,2) ===Bits("b01")){
+      }
+      is(Bits("h04")){
         dataReg := timeReg(2*DATA_WIDTH-1, DATA_WIDTH)
       }
-    }.elsewhen(masterReg.Addr(5,4) === Bits("b01")){
-      dataReg := periodSelReg
-    }.elsewhen(masterReg.Addr(5,4) === Bits("b10")){
-      dataReg := nsOffsetReg
+      is(Bits("h10")){
+        dataReg := periodSelReg
+      }
+      is(Bits("h14")){
+        dataReg := periodSelReg
+      }
+      is(Bits("h20")){
+        dataReg := nsOffsetReg
+      }
     }
   }
 

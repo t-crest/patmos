@@ -119,8 +119,9 @@ class MIITimestampUnit(timestampWidth: Int) extends Module {
         isUDPFrameReg := false.B
         udpDstPortReg := 0.U
         udpSrcPortReg := 0.U
-        rtcTimestampReg := io.rtcTimestamp
         bufClrReg := true.B
+        rtcTimestampReg := io.rtcTimestamp
+        ptpMsgTypeReg := 0.U
         printf("[stCollectSFD]->[stDstMAC]\n")
       }
     }
@@ -223,6 +224,7 @@ class MIITimestampUnit(timestampWidth: Int) extends Module {
           byteCntReg := 0.U
           bufClrReg := true.B
           eofReg := true.B
+          regBuffer := 0.U
           printf("[stPTPhead]->[stCollectSFD]\n")
         }
       }
@@ -241,12 +243,16 @@ class MIITimestampUnit(timestampWidth: Int) extends Module {
   // Read response
   when(masterReg.Cmd === OcpCmd.RD) {
     respReg := OcpResp.DVA
-    when(masterReg.Addr(3,2) === Bits("b00")) {
-      dataReg := ptpTimestampReg(DATA_WIDTH-1, 0)
-    }.elsewhen(masterReg.Addr(3,2) === Bits("b01")){
-      dataReg := ptpTimestampReg(timestampWidth-1, DATA_WIDTH)
-    }.elsewhen(masterReg.Addr(3,2) === Bits("b10")){
-      dataReg := validPTPReg ## ptpMsgTypeReg
+    switch(masterReg.Addr(3, 0)){
+      is(Bits("h00")){
+        dataReg := ptpTimestampReg(DATA_WIDTH-1, 0)
+      }
+      is(Bits("h04")){
+        dataReg := ptpTimestampReg(timestampWidth-1, DATA_WIDTH)
+      }
+      is(Bits("h08")){
+        dataReg := Cat(validPTPReg, ptpMsgTypeReg)
+      }
     }
   }
 
