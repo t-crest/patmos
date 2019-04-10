@@ -6,11 +6,11 @@
 #ifdef _HARDLOCK_
 #define NAME "hardlock"
 #include "stack_hardlock.c"
-#define TOP PATMOS_IO_SPM
+#define STACK PATMOS_IO_SPM
 #else
 #define NAME "lock-free"
 #include "stack_lock_free.c"
-#define TOP HTMRTS_BASE
+#define STACK HTMRTS_BASE
 #endif
 
 #ifndef ITERATIONS
@@ -23,27 +23,28 @@
 
 _UNCACHED int start_flag = 0;
 
-int test(top_ptr_t top)
+int test(stack_t * stack_ptr)
 {
 	while(start_flag == 0) {asm("");}
 	element_t * elms[ELEMENTS_PER_CORE];
 	int ret = 0;
 	for(int i = 0; i < ITERATIONS; i++) {
 		for(int j = 0; j < ELEMENTS_PER_CORE; j++) {
-			element_t * element = pop(top);
-			if(!element)
+			element_t * element_ptr = pop(stack_ptr);
+			if(!element_ptr)
 				return -1;
-			elms[j] = element;
+			elms[j] = element_ptr;
 		}
 		
 		for(int j = 0; j < ELEMENTS_PER_CORE; j++)
-			push(top, elms[j]);
+			push(stack_ptr, elms[j]);
 	}
 	return 0;
 }
 
-void worker_init(void* arg) {
-  int ret = test((top_ptr_t)arg);
+void worker_init(void* arg) 
+{
+  int ret = test((stack_t *)arg);
   corethread_exit((void *)ret);
   return;
 }
@@ -54,33 +55,38 @@ int main()
 {
 	int cpucnt = get_cpucnt();
 	
-	printf("Using \n\tlock:%s\n\tcores:%d\n\titerations:%d\n\telements per core:%d\n",NAME,cpucnt,ITERATIONS,ELEMENTS_PER_CORE);
+	printf("Stack test using \n\tlock:%s\n\tcores:%d\n\titerations:%d\n\telements per core:%d\n",NAME,cpucnt,ITERATIONS,ELEMENTS_PER_CORE);
 	
-	top_ptr_t top = (top_ptr_t)TOP;
+	stack_t * stack_ptr = (stack_t *)STACK;
+	
+	intialize(stack_ptr);
 
-	void * arg = (void *)top;
+	void * arg = (void *)stack_ptr;
 	const int elementcnt = cpucnt*ELEMENTS_PER_CORE;
 	
 	// Push all elements on the stack
 	for(int i = 0; i < elementcnt; i++) {
-		elements[i].val = i;
-		push(top,&elements[i]);
+		intialize_element(&elements[i],i);
+		push(stack_ptr,&elements[i]);
 	}
 	
-	asm volatile ("" : : : "memory");
-	int start = TIMER_CLK_LOW;
-	int cores = cpucnt;
-	
-	for(int i = 1; i < cores; i++)
+	for(int i = 1; i < cpucnt; i++)
 		corethread_create(i,&worker_init,arg);
-	start_flag = 1;
-	int res = test(top);
 	
-	for(int i = 1; i < cores; i++) {
+	asm volatile ("" : : : "memory");
+	start_flag = 1;
+	int start = TIMER_CLK_LOW;
+	asm volatile ("" : : : "memory");
+	
+	int res = test(stack_ptr);
+	
+	for(int i = 1; i < cpucnt; i++) {
 		void * _res;
 		corethread_join(i, &_res);
 		res |= (int)_res;
 	}
+	
+	asm volatile ("" : : : "memory");
 	int stop = TIMER_CLK_LOW;
 	asm volatile ("" : : : "memory");
 	
@@ -89,12 +95,12 @@ int main()
 	int sum = 0;
 	
 	for(int i = 0; i < elementcnt; i++) {
-		element_t * element = pop(top);
-		if(!element) {
+		element_t * element_ptr = pop(stack_ptr);
+		if(!element_ptr) {
 			printf("Only %d elements on stack. Should be %d\n",i,elementcnt);
 			return -1;
 		}
-		sum += element->val;
+		sum += element_ptr->val;
 	}
 	
 	int expsum = ((cpucnt*ELEMENTS_PER_CORE)-1)*((cpucnt*ELEMENTS_PER_CORE)/2);

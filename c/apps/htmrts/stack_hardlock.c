@@ -1,21 +1,22 @@
 #include "../hardlock/hardlock.h"
 #include "stack.h"
 
-void push(top_ptr_t top, element_t * element)
+void intialize(stack_t * stack_ptr)
+{
+	_intialize(stack_ptr);
+}
+
+void push(stack_t * stack_ptr, element_t * element_ptr)
 {
 	lock(0);
-	top_t oldtop = *top;
-	element->next = (element_t *)oldtop;
-	*top = (top_t)element;
+	_push(stack_ptr, element_ptr);
 	unlock(0);
 }
 
-element_t * pop(top_ptr_t top)
+element_t * pop(stack_t * stack_ptr)
 {
 	lock(0);
-	element_t * element = (element_t *)*top;
-	if(element)
-		*top = (top_t)element->next;
+	element_t * element_ptr = _pop(stack_ptr);
 	unlock(0);
-	return element;
+	return element_ptr;
 }
