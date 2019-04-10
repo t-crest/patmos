@@ -7,6 +7,10 @@
 #define NAME "hardlock"
 #include "queue_hardlock.c"
 #define QUEUE PATMOS_IO_SPM
+#elif _CAS_
+#define NAME "cas"
+#include "queue_cas.c"
+#define QUEUE PATMOS_IO_SPM
 #else
 #define NAME "lock-free"
 #include "queue_lock_free.c"
@@ -18,7 +22,7 @@
 #endif
 
 #ifndef ELEMENTS_PER_CORE
-#define ELEMENTS_PER_CORE 100
+#define ELEMENTS_PER_CORE 60
 #endif
 
 _UNCACHED int start_flag = 0;
@@ -70,7 +74,7 @@ int main()
 	
 	int elementcnt = writers*ELEMENTS_PER_CORE;
 	
-	printf("Queue test using \n\tlock:%s\n\tcores:%d\n\twriters:%d\n\treaders:%d\n\telements per writer:%d\n",NAME,cpucnt,writers,readers,ELEMENTS_PER_CORE);
+	printf("Queue test using \n\tsynchronization:%s\n\tcores:%d\n\twriters:%d\n\treaders:%d\n\telements per writer:%d\n",NAME,cpucnt,writers,readers,ELEMENTS_PER_CORE);
 	
 	queue_t * queue_ptr = (queue_t *)QUEUE;
 	element_t * elements = (element_t *)(queue_ptr+1);

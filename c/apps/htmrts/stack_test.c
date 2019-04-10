@@ -7,10 +7,18 @@
 #define NAME "hardlock"
 #include "stack_hardlock.c"
 #define STACK PATMOS_IO_SPM
+#elif _CAS_
+#define NAME "cas"
+#include "stack_cas.c"
+#define STACK PATMOS_IO_SPM
 #else
 #define NAME "lock-free"
 #include "stack_lock_free.c"
 #define STACK HTMRTS_BASE
+#endif
+
+#ifndef MAX_CPU_CNT
+#define MAX_CPU_CNT 8
 #endif
 
 #ifndef ITERATIONS
@@ -54,8 +62,10 @@ element_t elements[128];
 int main()
 {
 	int cpucnt = get_cpucnt();
+	if(MAX_CPU_CNT < cpucnt)
+		cpucnt = MAX_CPU_CNT;
 	
-	printf("Stack test using \n\tlock:%s\n\tcores:%d\n\titerations:%d\n\telements per core:%d\n",NAME,cpucnt,ITERATIONS,ELEMENTS_PER_CORE);
+	printf("Stack test using \n\tsynchronization:%s\n\tcores:%d\n\titerations:%d\n\telements per core:%d\n",NAME,cpucnt,ITERATIONS,ELEMENTS_PER_CORE);
 	
 	stack_t * stack_ptr = (stack_t *)STACK;
 	
