@@ -10,14 +10,15 @@
 #include <machine/patmos.h>
 #include <machine/spm.h>
 #include <machine/rtc.h>
+#include "ethlib/ptp1588.h"
 
-#define NS_TO_SEC 0.000000001
-#define NS_TO_USEC 0.001
-#define USEC_TO_NS 1000
-#define USEC_TO_SEC 0.000001
-#define SEC_TO_NS 1000000000
-#define SEC_TO_USEC 1000000
-#define SEC_TO_HOUR 0.000277777778
+// #define NS_TO_SEC 0.000000001
+// #define NS_TO_USEC 0.001
+// #define USEC_TO_NS 1000
+// #define USEC_TO_SEC 0.000001
+// #define SEC_TO_NS 1000000000
+// #define SEC_TO_USEC 1000000
+// #define SEC_TO_HOUR 0.000277777778
 
 #define PWM_PERIOD 20000
 #define MIN_CYCLE 0.015
@@ -56,9 +57,9 @@ int main(int argc, char **argv){
     volatile unsigned long long elapsedTime = 0;
     volatile unsigned long long startTime = get_cpu_usecs();
     while(1){
-        elapsedTime = get_cpu_usecs() - startTime;                                      //calculate elapsed time
+        elapsedTime = get_ptp_usecs(PATMOS_IO_ETH) - startTime;                                      //calculate elapsed time
         if(elapsedTime >= PWM_PERIOD - 10){
-            startTime = get_cpu_usecs();
+            startTime = get_ptp_usecs(PATMOS_IO_ETH);
             int val = 0;
             *gpio_ptr = 0x1;                                                            //signal high time
             *dead_ptr = DEAD_CALC(dutyCycle, cpuPeriod);                                //wait

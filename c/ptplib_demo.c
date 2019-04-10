@@ -31,8 +31,6 @@ unsigned char multicastip[4] = {224, 0, 0, 255};
 unsigned int initNanoseconds;
 unsigned int initSeconds;
 
-unsigned int runAsPTPMode = PTP_SLAVE;
-
 void print_general_info(){
 	printf("\nGeneral info:\n");
 	printf("\tMAC: %llx", get_mac_address());
@@ -82,15 +80,15 @@ void ptp_master_loop(unsigned long long userPeriod){
 	unsigned short int seqId = 0;
 	int syncInterval = (int) log2((int)userPeriod*USEC_TO_SEC);
 	printf("T_sync=%d\n", syncInterval);
-	startTime = get_rtc_usecs(thisPtpPortInfo.eth_base);
+	startTime = get_ptp_usecs(thisPtpPortInfo.eth_base);
 	while(1){
-		// elapsedTime = get_rtc_usecs(thisPtpPortInfo.eth_base) - startTime;
+		// elapsedTime = get_ptp_usecs(thisPtpPortInfo.eth_base) - startTime;
 		if (0xD == *key_ptr){
 			*led_ptr = 0xD;
 			RTC_ADJUST_OFFSET(thisPtpPortInfo.eth_base) = 0;
 			RTC_TIME_SEC(thisPtpPortInfo.eth_base) = 0;
 			RTC_TIME_NS(thisPtpPortInfo.eth_base) = 0;
-		} else if ( get_rtc_usecs(thisPtpPortInfo.eth_base) - startTime >= userPeriod){
+		} else if (get_ptp_usecs(thisPtpPortInfo.eth_base) - startTime >= userPeriod){
 			printf("Seq# %u\n", seqId);
 			ptpv2_issue_msg(thisPtpPortInfo, tx_addr, rx_addr, PTP_BROADCAST_MAC, PTP_MULTICAST_IP, seqId, PTP_SYNC_MSGTYPE, syncInterval);
 			*led_ptr = 0x1;
@@ -105,11 +103,11 @@ void ptp_master_loop(unsigned long long userPeriod){
 					seqId++;
 				}
 			}
-			startTime = get_rtc_usecs(thisPtpPortInfo.eth_base);
+			startTime = get_ptp_usecs(thisPtpPortInfo.eth_base);
 		} else {
 			*led_ptr ^= 1 << 8; 
 		}
-		printSegmentInt(get_rtc_secs(thisPtpPortInfo.eth_base));
+		printSegmentInt(get_ptp_secs(thisPtpPortInfo.eth_base));
 	}
 }
 
@@ -147,11 +145,13 @@ void ptp_slave_loop(unsigned period){
 				break;
 			}
 		}
-		printSegmentInt(get_rtc_secs(thisPtpPortInfo.eth_base));
+		printSegmentInt(get_ptp_secs(thisPtpPortInfo.eth_base));
+		*led_ptr = 0x0;
 	}
 }
 
 int main(int argc, char **argv){
+	unsigned int runAsPTPMode = PTP_SLAVE;
 	*led_ptr = 0x1FF;
 	puts("\nHello, PTPlib Demo Started");
 	puts("Select PTP mode (PTP_MASTER=1, PTP_SLAVE=0):");
@@ -166,8 +166,8 @@ int main(int argc, char **argv){
 	initSeconds = RTC_TIME_SEC(PATMOS_IO_ETH);
 
 	//Test offset
-	RTC_ADJUST_OFFSET(PATMOS_IO_ETH) = 0xFFFF;
-	while((*led_ptr=RTC_ADJUST_OFFSET(PATMOS_IO_ETH)) != 0){continue;}
+	RTC_ADJUST_OFFSET(PATMOS_IO_ETH) = 0x1000;
+	while((*led_ptr=RTC_ADJUST_OFFSET(PATMOS_IO_ETH)) != 0){printSegmentInt(*led_ptr);}
 	RTC_TIME_NS(PATMOS_IO_ETH) = initNanoseconds;
 	RTC_TIME_SEC(PATMOS_IO_ETH) = initSeconds;
 

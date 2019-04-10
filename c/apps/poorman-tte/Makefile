@@ -27,9 +27,22 @@ libeth: $(LIBETH)
 $(LIBETH): $(patsubst ethlib/%.c,$(BUILDDIR)/ethlib/%.o,$(wildcard ethlib/*.c))
 	patmos-ar r $@ $^
 
-ttepwm:
+ttepwm-comp:
+	patmos-clang -O2 -D $(ROLE) $(CFLAGS) $(LIBETH)/*.c $(LIBETH)/*.h ttepwm.c ttepwm.h -o ttepwm_$(ROLE).elf
+
+ttepwm-down:
+	patmos-clang -O2 -D $(ROLE) $(CFLAGS) $(LIBETH)/*.c $(LIBETH)/*.h ttepwm.c ttepwm.h -o ttepwm_$(ROLE).elf
+	patserdow -v /dev/ttyUSB0 ttepwm_$(ROLE).elf
+
+ttepwm-run:
+	touch ttepwm.c
 	patmos-clang -O2 -D $(ROLE) $(CFLAGS) $(LIBETH)/*.c ttepwm.c -o ttepwm_$(ROLE).elf
 	cd $(PATMOSHOME) && $(MAKE) config BOARD=altde2-all
+	patserdow -v /dev/ttyUSB0 ttepwm_$(ROLE).elf
+
+ttepwm-gen:
+	patmos-clang -O2 -D $(ROLE) $(CFLAGS) $(LIBETH)/*.c $(LIBETH)/*.h ttepwm.c ttepwm.h -o ttepwm_$(ROLE).elf
+	cd $(PATMOSHOME) && $(MAKE) gen synth config BOARD=altde2-all
 	patserdow -v /dev/ttyUSB0 ttepwm_$(ROLE).elf
 
 clean:

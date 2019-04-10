@@ -71,6 +71,8 @@ void eth_mac_initialize();
 
 void set_tx_enable();
 
+void clear_tx_enable();
+
 unsigned get_tx_enable();
 
 void set_rx_enable();

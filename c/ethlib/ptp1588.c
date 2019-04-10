@@ -246,11 +246,11 @@ unsigned char ptp_filter_clockport(unsigned char sourceId[8], unsigned short sou
 	return ans;
 }
 
-unsigned long long get_rtc_usecs(unsigned int eth_base){
+unsigned long long get_ptp_usecs(unsigned int eth_base){
 	return (unsigned long long) (SEC_TO_USEC * RTC_TIME_SEC(eth_base)) + (NS_TO_USEC * (RTC_TIME_NS(eth_base)));
 }
 
-unsigned int get_rtc_secs(unsigned int eth_base){
+unsigned int get_ptp_secs(unsigned int eth_base){
 	return (unsigned int) (RTC_TIME_SEC(eth_base));
 }
 

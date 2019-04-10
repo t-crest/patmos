@@ -75,5 +75,6 @@ float exec_daq_task(unsigned long long timeout);
 void exec_slvsync_task(unsigned long long timeout);
 void server_run();
 void client_run();
+unsigned char test_ptp_offset_correction();
 
 #endif // !TTEPWM_H

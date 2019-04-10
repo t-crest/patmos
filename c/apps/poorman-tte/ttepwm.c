@@ -1,8 +1,4 @@
 /*
-	Author: Lefteris Kyriakakis 
-	Copyright: DTU, BSD License
-*/
-/*
 	Example of a time-triggered network control of a PWM
 
 	Author: Lefteris Kyriakakis 
@@ -12,20 +8,24 @@
 
 int main(int argc, char **argv){
 	//MAC controller settings
+    *led_ptr = 0x1FF;
 	eth_mac_initialize();
     srand((unsigned) get_cpu_usecs());
     unsigned char rand_addr = rand()%253;
     ipv4_set_my_ip((unsigned char[4]){192, 168, 2, rand_addr});
+    arp_table_init();
+    thisPtpPortInfo = ptpv2_intialize_local_port(PATMOS_IO_ETH, my_mac, (unsigned char[4]){192, 168, 2, rand_addr}, rand_addr);
     cpuPeriod = (1.0f/get_cpu_freq()) * SEC_TO_NS;
     //Initialize node
     dutyCycle = 0.1;
-    *led_ptr = 0x1FF;
     *gpio_ptr = 0x0;
     print_general_info();
+    puts("Testing ptp offset correction mechanism");
+    test_ptp_offset_correction();
 #ifdef CLIENT
     *led_ptr = 0x0;
     ssyncTurn = NODE1;
-    actTimer = get_rtc_usecs(thisPtpPortInfo.eth_base);
+    actTimer = get_ptp_usecs(thisPtpPortInfo.eth_base);
     while(1){
         client_run();
     }
@@ -34,7 +34,7 @@ int main(int argc, char **argv){
 #ifdef SERVER
     *led_ptr = 0x0;
     ssyncTurn = NODE0;
-    actTimer = get_rtc_usecs(thisPtpPortInfo.eth_base);
+    actTimer = get_ptp_usecs(thisPtpPortInfo.eth_base);
     while(1){
         server_run();
     }
@@ -42,33 +42,40 @@ int main(int argc, char **argv){
 #endif
     *gpio_ptr = 0x0;
     *led_ptr = 0x1FF;
-    printf("Exiting...");
+    puts("Exiting...");
     *led_ptr = 0x100;
 }
 
-void server_run(){
-    if(get_rtc_usecs(thisPtpPortInfo.eth_base)-actTimer >= PWM_PERIOD){
-        actTimer = get_rtc_usecs(thisPtpPortInfo.eth_base);
+void client_run(){
+    register unsigned long long elapsedTime = get_ptp_usecs(thisPtpPortInfo.eth_base)-actTimer;
+    if(elapsedTime >= PWM_PERIOD)
+    {
         exec_act_task(dutyCycle);
         exec_report_task();
-    } else if(get_rtc_usecs(thisPtpPortInfo.eth_base)-actTimer < PWM_PERIOD-PTP_REQ_TIMEOUT) {
-        exec_slvsync_task(PTP_REQ_TIMEOUT);
+        if(ssyncTurn == NODE0) { 
+            exec_slvsync_task(PTP_REQ_TIMEOUT);
+            ssyncTurn = NODE1;
+        } else {
+            ssyncTurn = NODE0;
+        }
+        actTimer = get_ptp_usecs(thisPtpPortInfo.eth_base);
     }
 }
 
-void client_run(){
-    unsigned long long elapsedTime = get_rtc_usecs(thisPtpPortInfo.eth_base)-actTimer;
+void server_run(){
+    register unsigned long long elapsedTime = get_ptp_usecs(thisPtpPortInfo.eth_base)-actTimer;
     if(elapsedTime >= PWM_PERIOD)
     {
-        actTimer = get_rtc_usecs(thisPtpPortInfo.eth_base);
         exec_act_task(dutyCycle);
         exec_report_task();
-        dutyCycle = (dutyCycle >= 0.1) ? 0.05 : dutyCycle + 0.0001;
-    } 
-    else if(elapsedTime + PTP_REQ_TIMEOUT < PWM_PERIOD)
-    {
-        exec_slvsync_task(PTP_REQ_TIMEOUT);
-    } 
+        if(ssyncTurn == NODE1) { 
+            exec_slvsync_task(PTP_REQ_TIMEOUT);
+            ssyncTurn = NODE0;
+        } else {
+            ssyncTurn = NODE1;
+        }
+        actTimer = get_ptp_usecs(thisPtpPortInfo.eth_base);
+    }
 }
 
 /*
@@ -76,7 +83,7 @@ void client_run(){
  */
 __attribute__((noinline))
 void exec_report_task(){
-    printSegmentInt(get_rtc_secs(thisPtpPortInfo.eth_base));
+    printSegmentInt(get_ptp_secs(thisPtpPortInfo.eth_base));
     #ifdef SERVER
     *led_ptr |= 0x80;
     #endif
@@ -117,23 +124,28 @@ __attribute__((noinline))
 void exec_slvsync_task(unsigned long long timeout){
     if((*led_ptr = check_packet(timeout)) == PTP){
         switch(ptpv2_handle_msg(thisPtpPortInfo, tx_addr, rx_addr, PTP_BROADCAST_MAC)){
-        case PTP_SYNC_MSGTYPE:
-            if((rxPTPMsg.head.flagField & FLAG_PTP_TWO_STEP_MASK) != FLAG_PTP_TWO_STEP_MASK){
-                ptpv2_issue_msg(thisPtpPortInfo, tx_addr, rx_addr, PTP_BROADCAST_MAC, lastMasterInfo.ip, rxPTPMsg.head.sequenceId, PTP_DLYREQ_MSGTYPE, ptpTimeRecord.syncInterval);
-            }
-            *led_ptr |= 0x1;
-            break;
-        case PTP_FOLLOW_MSGTYPE:
-            *led_ptr |= 0x2;
-            ptpv2_issue_msg(thisPtpPortInfo, tx_addr, rx_addr, PTP_BROADCAST_MAC, lastMasterInfo.ip, rxPTPMsg.head.sequenceId, PTP_DLYREQ_MSGTYPE, ptpTimeRecord.syncInterval);
-            *led_ptr |= 0x4;
-            break;
-        case PTP_DLYRPLY_MSGTYPE:
-            *led_ptr |= 0x8;
-            // ssyncTurn = 1 - ssyncTurn; //if synced then flip access
-            break;
-        default:
-            break;
+			case PTP_SYNC_MSGTYPE:
+				if((rxPTPMsg.head.flagField & FLAG_PTP_TWO_STEP_MASK) != FLAG_PTP_TWO_STEP_MASK){
+					*led_ptr = 0x1;
+					ptpv2_issue_msg(thisPtpPortInfo, tx_addr, rx_addr, PTP_BROADCAST_MAC, lastMasterInfo.ip, rxPTPMsg.head.sequenceId, PTP_DLYREQ_MSGTYPE, ptpTimeRecord.syncInterval);
+					*led_ptr = 0x4;
+				}
+				break;
+			case PTP_FOLLOW_MSGTYPE:
+				*led_ptr = 0x2;
+				ptpv2_issue_msg(thisPtpPortInfo, tx_addr, rx_addr, PTP_BROADCAST_MAC, lastMasterInfo.ip, rxPTPMsg.head.sequenceId, PTP_DLYREQ_MSGTYPE, ptpTimeRecord.syncInterval);
+				*led_ptr = 0x4;
+				break;
+			case PTP_DLYRPLY_MSGTYPE:
+				*led_ptr = 0x8;
+				printf("#%u\t%d\t%d\n", rxPTPMsg.head.sequenceId, ptpTimeRecord.offsetSeconds, ptpTimeRecord.offsetNanoseconds);
+				break;
+			case PTP_ANNOUNCE_MSGTYPE:
+				*led_ptr = 0xF;
+				break;
+			default:
+				*led_ptr = 0x100 | *led_ptr;
+				break;
         }
     }
 }
@@ -166,9 +178,24 @@ int check_packet(unsigned long long timeout){
 	}
 }
 
+unsigned char test_ptp_offset_correction(){
+    //Keep initial time
+	unsigned int initNanoseconds = RTC_TIME_NS(PATMOS_IO_ETH);
+	unsigned int initSeconds = RTC_TIME_SEC(PATMOS_IO_ETH);
+	//Test offset
+	RTC_ADJUST_OFFSET(thisPtpPortInfo.eth_base) = 1024;
+	while((*led_ptr=RTC_ADJUST_OFFSET(thisPtpPortInfo.eth_base)) != 0){
+        printSegmentInt(*led_ptr);
+    }
+	RTC_TIME_NS(thisPtpPortInfo.eth_base) = initNanoseconds;
+	RTC_TIME_SEC(thisPtpPortInfo.eth_base) = initSeconds;
+	return 1;
+}
+
+
 void print_general_info(){
-	printf("\nGeneral info:\n");
-    printf("\tNODE:");
+	printf("\nNode General info:\n");
+    printf("\tRole:");
     #ifdef SERVER
         printf(" as server\n");
     #endif
@@ -176,8 +203,9 @@ void print_general_info(){
         printf(" as client\n");
     #endif
     printf("\tCPU Period (ns): %f\n", cpuPeriod);
-	printf("\tMAC: %llx", get_mac_address());
-	printf("\n\tIP: ");
+    printf("\tETH Base: 0x%x\n", thisPtpPortInfo.eth_base);
+	printf("\tMAC: %llx\n", get_mac_address());
+	printf("\tIP: ");
 	ipv4_print_my_ip();
 	printf("\n");
 	arp_table_print();

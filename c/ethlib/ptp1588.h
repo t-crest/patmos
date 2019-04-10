@@ -20,21 +20,21 @@
 #define PTP_CHAN_MSG_TYPE_MASK 0x0FF
 
 
-#define PTP_RXCHAN_TIMESTAMP_NS(base)     *((volatile _SPM unsigned int *) base+0xE000)
-#define PTP_RXCHAN_TIMESTAMP_SEC(base)    *((volatile _SPM unsigned int *) base+0xE004)
-#define PTP_RXCHAN_STATUS(base)           *((volatile _SPM unsigned int *) base+0xE008)
-#define PTP_RXCHAN_INTERRUPT_FILTER(base) *((volatile _SPM unsigned int *) base+0xE00C)
+#define PTP_RXCHAN_TIMESTAMP_NS(base)     *((volatile _SPM unsigned int *) (base+0xE000))
+#define PTP_RXCHAN_TIMESTAMP_SEC(base)    *((volatile _SPM unsigned int *) (base+0xE004))
+#define PTP_RXCHAN_STATUS(base)           *((volatile _SPM unsigned int *) (base+0xE008))
+#define PTP_RXCHAN_INTERRUPT_FILTER(base) *((volatile _SPM unsigned int *) (base+0xE00C))
 
-#define PTP_TXCHAN_TIMESTAMP_NS(base)     *((volatile _SPM unsigned int *) base+0xE400)
-#define PTP_TXCHAN_TIMESTAMP_SEC(base)    *((volatile _SPM unsigned int *) base+0xE404)
-#define PTP_TXCHAN_STATUS(base)           *((volatile _SPM unsigned int *) base+0xE408)
-#define PTP_TXCHAN_INTERRUPT_FILTER(base) *((volatile _SPM unsigned int *) base+0xE40C)
+#define PTP_TXCHAN_TIMESTAMP_NS(base)     *((volatile _SPM unsigned int *) (base+0xE400))
+#define PTP_TXCHAN_TIMESTAMP_SEC(base)    *((volatile _SPM unsigned int *) (base+0xE404))
+#define PTP_TXCHAN_STATUS(base)           *((volatile _SPM unsigned int *) (base+0xE408))
+#define PTP_TXCHAN_INTERRUPT_FILTER(base) *((volatile _SPM unsigned int *) (base+0xE40C))
 
-#define RTC_TIME_NS(base)       *((volatile _SPM unsigned int *) base+0xE800)
-#define RTC_TIME_SEC(base)      *((volatile _SPM unsigned int *) base+0xE804)
-#define RTC_PERIOD_LO(base)     *((volatile _SPM unsigned int *) base+0xE810)
-#define RTC_PERIOD_HI(base)     *((volatile _SPM unsigned int *) base+0xE814)
-#define RTC_ADJUST_OFFSET(base) *((volatile _SPM signed int *)   base+0xE820)
+#define RTC_TIME_NS(base)       *((volatile _SPM unsigned int *) (base+0xE800))
+#define RTC_TIME_SEC(base)      *((volatile _SPM unsigned int *) (base+0xE804))
+#define RTC_PERIOD_LO(base)     *((volatile _SPM unsigned int *) (base+0xE810))
+#define RTC_PERIOD_HI(base)     *((volatile _SPM unsigned int *) (base+0xE814))
+#define RTC_ADJUST_OFFSET(base) *((volatile _SPM signed int *)   (base+0xE820))
 
 #define PTP_MASTER 1
 #define PTP_SLAVE 0
@@ -189,9 +189,9 @@ unsigned char ptp_filter_clockport(unsigned char sourceId[8], unsigned short sou
 //Help Functions
 ///////////////////////////////////////////////////////////////
 
-unsigned long long get_rtc_usecs(unsigned int eth_base);
+unsigned long long get_ptp_usecs(unsigned int eth_base);
 
-unsigned int get_rtc_secs(unsigned int eth_base);
+unsigned int get_ptp_secs(unsigned int eth_base);
 
 void print_bytes(unsigned char byte_buffer[], unsigned int len);
 
