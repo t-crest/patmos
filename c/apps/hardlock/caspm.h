@@ -23,8 +23,8 @@ int caspm_read(_iodev_ptr_t ptr)
 
 #ifndef _CASPM_SUPRESS_LOCK_
 
-#define lock(lockid) set_exp_val(0); set_new_val(1); while(*(CASPM_BASE+lockid) != 0){asm("");}
-#define unlock(lockid) set_exp_val(1); set_new_val(0); while(*(CASPM_BASE+lockid) != 1){asm("");}
+#define lock(lockid) do {asm volatile ("" : : : "memory"); set_exp_val(0); set_new_val(1); while(*(CASPM_BASE+lockid) != 0){asm("");} asm volatile ("" : : : "memory");} while(0)
+#define unlock(lockid) do {asm volatile ("" : : : "memory"); set_exp_val(1); set_new_val(0); while(*(CASPM_BASE+lockid) != 1){asm("");} asm volatile ("" : : : "memory");} while(0)
 
 #endif
 
