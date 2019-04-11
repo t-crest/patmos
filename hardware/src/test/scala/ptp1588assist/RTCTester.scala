@@ -2,8 +2,8 @@ package ptp1588assist
 
 import Chisel._
 import ocp.{OcpCmd, OcpResp}
-import patmos.Constants._
 import sys.process._
+import scala.language.postfixOps
 
 class RTCTester(dut: RTC, testCycles: Int) extends Tester(dut) {
   var asked: Boolean = false
@@ -12,21 +12,21 @@ class RTCTester(dut: RTC, testCycles: Int) extends Tester(dut) {
     step(1)
     peek(dut.io.ptpTimestamp)
     peek(dut.io.pps)
-    if (!asked && i > testCycles/10) {
+    if (!asked && i > testCycles / 10) {
       asked = true
       poke(dut.io.ocp.M.Cmd, OcpCmd.WR.litValue()) //Write
       poke(dut.io.ocp.M.Addr, 0xF00DE820)
       poke(dut.io.ocp.M.Data, -1024)
-    } else if (asked && i%50==0){
+    } else if (asked && i % 50 == 0) {
       poke(dut.io.ocp.M.Cmd, OcpCmd.RD.litValue()) //Read
-      if(!readSeconds) {
+      if (!readSeconds) {
         poke(dut.io.ocp.M.Addr, 0xF00DE800)
         readSeconds = true
-      } else{
+      } else {
         poke(dut.io.ocp.M.Addr, 0xF00DE804)
         readSeconds = false
       }
-    } else if (peek(dut.io.ocp.S.Resp) == 1) {
+    } else if (peek(dut.io.ocp.S.Resp) == OcpResp.DVA.litValue()) {
       poke(dut.io.ocp.M.Cmd, OcpCmd.IDLE.litValue())
     }
   }

@@ -1,5 +1,0 @@
-package patmos
-
-class PatmosCore {
-
-}

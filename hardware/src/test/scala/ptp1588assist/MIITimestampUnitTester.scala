@@ -2,10 +2,11 @@ package ptp1588assist
 
 import Chisel._
 import sys.process._
+import scala.language.postfixOps
 
-class MIITimestampUnitTester(dut: MIITimestampUnit, ethernetFrame: EthernetFrame, testStages: Int, iterations: Int) extends Tester(dut){
+class MIITimestampUnitTester(dut: MIITimestampUnit, ethernetFrame: EthernetFrame, testStages: Int, iterations: Int) extends Tester(dut) {
 
-  def testFrame(ethernetFrame: EthernetFrame, initTime : Long): Long ={
+  def testFrame(ethernetFrame: EthernetFrame, initTime: Long): Long = {
     var time = initTime
     peek(dut.sofReg)
     peek(dut.eofReg)
@@ -32,7 +33,7 @@ class MIITimestampUnitTester(dut: MIITimestampUnit, ethernetFrame: EthernetFrame
         peek(dut.deserializePHYBuffer.io.en)
         peek(dut.deserializePHYBuffer.io.shiftIn)
         //Increase time
-        time+=1
+        time += 1
         poke(dut.io.rtcTimestamp, time)
       }
       step(1)
@@ -63,11 +64,11 @@ class MIITimestampUnitTester(dut: MIITimestampUnit, ethernetFrame: EthernetFrame
         peek(dut.deserializePHYBuffer.io.en)
         peek(dut.deserializePHYBuffer.io.shiftIn)
         //Increase time
-        time+=1
+        time += 1
         poke(dut.io.rtcTimestamp, time)
       }
       step(1)
-      expect(dut.byteCntReg, ethernetFrame.dstMacNibbles.length/2)
+      expect(dut.byteCntReg, ethernetFrame.dstMacNibbles.length / 2)
       step(1)
       println("----------------ethernetFrame.dstMac")
       peek(dut.regBuffer)
@@ -90,11 +91,11 @@ class MIITimestampUnitTester(dut: MIITimestampUnit, ethernetFrame: EthernetFrame
         peek(dut.deserializePHYBuffer.io.en)
         peek(dut.deserializePHYBuffer.io.shiftIn)
         //Increase time
-        time+=1
+        time += 1
         poke(dut.io.rtcTimestamp, time)
       }
       step(1)
-      expect(dut.byteCntReg, ethernetFrame.srcMacNibbles.length/2)
+      expect(dut.byteCntReg, ethernetFrame.srcMacNibbles.length / 2)
       step(1)
       println("----------------ethernetFrame.srcMac")
       peek(dut.regBuffer)
@@ -117,15 +118,15 @@ class MIITimestampUnitTester(dut: MIITimestampUnit, ethernetFrame: EthernetFrame
         peek(dut.deserializePHYBuffer.io.en)
         peek(dut.deserializePHYBuffer.io.shiftIn)
         //Increase time
-        time+=1
+        time += 1
         poke(dut.io.rtcTimestamp, time)
       }
       step(1)
-      expect(dut.byteCntReg, ethernetFrame.ethTypeNibbles.length/2)
+      expect(dut.byteCntReg, ethernetFrame.ethTypeNibbles.length / 2)
       step(1)
       println("----------------ethernetFrame.ethType")
       peek(dut.regBuffer)
-      if(ethernetFrame.ethType.sameElements(ethernetFrame.toBytes(0x80, 0x00))){
+      if (ethernetFrame.ethType.sameElements(ethernetFrame.toBytes(0x80, 0x00))) {
         expect(dut.isIPFrameReg, true)
         expect(dut.isPTPFrameReg, false)
       }
@@ -151,11 +152,11 @@ class MIITimestampUnitTester(dut: MIITimestampUnit, ethernetFrame: EthernetFrame
         peek(dut.deserializePHYBuffer.io.shiftIn)
         peek(dut.byteCntReg)
         //Increase time
-        time+=1
+        time += 1
         poke(dut.io.rtcTimestamp, time)
       }
       step(1)
-      expect(dut.byteCntReg, ethernetFrame.ipHeaderNibbles.length/2)
+      expect(dut.byteCntReg, ethernetFrame.ipHeaderNibbles.length / 2)
       step(1)
       println("----------------ethernetFrame.ipHeader")
       peek(dut.regBuffer)
@@ -180,11 +181,11 @@ class MIITimestampUnitTester(dut: MIITimestampUnit, ethernetFrame: EthernetFrame
         peek(dut.deserializePHYBuffer.io.shiftIn)
         peek(dut.byteCntReg)
         //Increase time
-        time+=1
+        time += 1
         poke(dut.io.rtcTimestamp, time)
       }
       step(1)
-      expect(dut.byteCntReg, ethernetFrame.udpHeaderNibbles.length/2)
+      expect(dut.byteCntReg, ethernetFrame.udpHeaderNibbles.length / 2)
       step(1)
       println("----------------ethernetFrame.udpHeader")
       peek(dut.regBuffer)
@@ -193,7 +194,7 @@ class MIITimestampUnitTester(dut: MIITimestampUnit, ethernetFrame: EthernetFrame
       println("----------------ethernetFrame.udpHeader")
     }
     step(1)
-    if(testStages >= 7) {
+    if (testStages >= 7) {
       println("(Testing PTP Header)")
       expect(dut.stateReg, 0x6)
       expect(dut.byteCntReg, 0x0)
@@ -210,7 +211,7 @@ class MIITimestampUnitTester(dut: MIITimestampUnit, ethernetFrame: EthernetFrame
         peek(dut.deserializePHYBuffer.io.shiftIn)
         peek(dut.byteCntReg)
         //Increase time
-        time+=1
+        time += 1
         poke(dut.io.rtcTimestamp, time)
       }
       step(1)
@@ -225,18 +226,18 @@ class MIITimestampUnitTester(dut: MIITimestampUnit, ethernetFrame: EthernetFrame
   }
 
   println("Test Starting...")
-  var time : Long = 0x53C38A1000000000L
-  for(i <- 0 until iterations) {
+  var time: Long = 0x53C38A1000000000L
+  for (i <- 0 until iterations) {
     println("...")
     println("TEST FRAME ITERATION #" + i + "at t = " + time.toHexString)
-    if(i % 2 == 0) {
+    if (i % 2 == 0) {
       time = testFrame(EthernetTesting.mockupPTPEthFrameOverIpUDP, time)
-    } else if(i % 3 ==0) {
+    } else if (i % 3 == 0) {
       time = testFrame(EthernetTesting.mockupPTPVLANFrameOverIpUDP, time)
     } else {
       time = testFrame(EthernetTesting.mockupPTPEthFrameDHCP, time)
     }
-    println("END TEST FRAME ITERATION #"+ i + "at t = " + time.toHexString)
+    println("END TEST FRAME ITERATION #" + i + "at t = " + time.toHexString)
     time += 0x0000000100000000L
     step(1)
     step(1)
@@ -245,13 +246,15 @@ class MIITimestampUnitTester(dut: MIITimestampUnit, ethernetFrame: EthernetFrame
   }
 }
 
-object MIITimestampUnitTester {
-  def main(args: Array[String]): Unit = {
-    chiselMainTest(Array("--genHarness", "--test", "--backend", "c",
-      "--compile", "--vcd", "--targetDir", "generated/"+this.getClass.getSimpleName.dropRight(1)),
-      () => Module(new MIITimestampUnit(64))) {
-      dut => new MIITimestampUnitTester(dut, ethernetFrame = EthernetTesting.mockupPTPEthFrameOverIpUDP, testStages = 7, iterations = 4)
-    }
-    "gtkwave generated/"++this.getClass.getSimpleName.dropRight(1)+"/"+"MIITimestampUnit.vcd" !
+object MIITimestampUnitTester extends App {
+  private val pathToVCD = "generated/" + this.getClass.getSimpleName.dropRight(1)
+  private val nameOfVCD = this.getClass.getSimpleName.dropRight(7) + ".vcd"
+
+  chiselMainTest(Array("--genHarness", "--test", "--backend", "c",
+    "--compile", "--vcd", "--targetDir", "generated/" + this.getClass.getSimpleName.dropRight(1)),
+    () => Module(new MIITimestampUnit(64))) {
+    dut => new MIITimestampUnitTester(dut, ethernetFrame = EthernetTesting.mockupPTPEthFrameOverIpUDP, testStages = 7, iterations = 4)
   }
+
+  "gtkwave " + pathToVCD + "/" + nameOfVCD + " " + pathToVCD + "/" + "view.sav" !
 }
