@@ -44,15 +44,3 @@ inline element_t * _dequeue(queue_t * queue_ptr)
 	}
 	return last_ptr;
 }
-
-inline val_t _dequeue_val(queue_t * queue_ptr)
-{
-	element_t * last_ptr = queue_ptr->last_ptr;
-	if(last_ptr) {
-		element_t * next_ptr = last_ptr->next_ptr;
-		if(!next_ptr)
-			queue_ptr->first_ptr = NULL;
-		queue_ptr->last_ptr = next_ptr;
-	}
-	return last_ptr->val;
-}

@@ -52,9 +52,9 @@ int test(stack_t * stack_ptr)
 
 void worker_init(void* arg) 
 {
-  int ret = test((stack_t *)arg);
-  corethread_exit((void *)ret);
-  return;
+	int ret = test((stack_t *)arg);
+	corethread_exit((void *)ret);
+	return;
 }
 
 element_t elements[128];
