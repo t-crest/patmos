@@ -38,16 +38,6 @@ void test(int coreid, int lckid, int rawlockid, int rawunlockid, _iodev_ptr_t lo
 #ifdef USE_PTHREAD_MUTEX
   pthread_mutex_t* mutex = &_mutex;
 #endif
-  asm("");
-  asm("");
-  asm("");
-  asm("");
-  asm("");
-  asm("");
-  asm("");
-  asm("");
-
-
   int acquire = 0;
   int acquire_avg = 0;
   int acquire_max = 0;
@@ -63,19 +53,13 @@ void test(int coreid, int lckid, int rawlockid, int rawunlockid, _iodev_ptr_t lo
 
   for(int i = 0; i < iter; i++)
   {
-    asm("");
-    asm("");
-    asm("");
-    asm("");
+    asm volatile("" ::: "memory");
     stop1 = TIMER_CLK_LOW;
     _lock(lckid);
     stop2 = TIMER_CLK_LOW;
     _unlock(lckid);
     stop3 = TIMER_CLK_LOW;
-    asm("");
-    asm("");
-    asm("");
-    asm("");
+    asm volatile("" ::: "memory");
 
     acquire = (stop2 - stop1) - 1;
     acquire_avg += acquire;

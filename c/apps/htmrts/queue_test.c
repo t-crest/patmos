@@ -126,7 +126,12 @@ int main()
 	
 	printf("Finished in %d cycles\n",stop-start);
 	
-	int expsum = ((writers*ELEMENTS_PER_CORE)-1)*((writers*ELEMENTS_PER_CORE)/2);
+	int expsum;
+	if(elementcnt&0x1)
+		expsum = ((elementcnt-1)/2)*(elementcnt-2)+(elementcnt-1);
+	else
+		expsum = (elementcnt/2)*(elementcnt-1);
+	
 	if(sum != expsum) {
 		printf("Error with sum. Expected: %d Actual:%d\n",expsum,sum);
 		// Dummy calls to enable analysis
