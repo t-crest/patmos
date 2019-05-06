@@ -71,8 +71,8 @@ class Arbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) extend
   io.slave.M := master
 
   for (i <- 0 to cnt - 1) {
-    masterBuffer(i).S.CmdAccept := Bits(0)
-    masterBuffer(i).S.DataAccept := Bits(0)
+    masterBuffer(i).S.CmdAccept := UInt(0)
+    masterBuffer(i).S.DataAccept := UInt(0)
     masterBuffer(i).S.Resp := OcpResp.NULL
     // we forward the data to all masters
     masterBuffer(i).S.Data := io.slave.S.Data

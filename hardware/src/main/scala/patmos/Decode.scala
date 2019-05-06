@@ -66,16 +66,16 @@ class Decode() extends Module {
     val opc     = instr(6, 4)
     val isValid = if (i == 0) { Bool(true) } else { dual }
 
-    val immVal = Wire(Bits())
+    val immVal = Wire(UInt())
     // Default value for immediates
-    immVal := Cat(Bits(0), instr(11, 0))
+    immVal := Cat(UInt(0), instr(11, 0))
 
     // ALU register
     io.decex.aluOp(i).func := instr(3, 0)
 
     // ALU immediate
     when(opcode(4, 3) === OPCODE_ALUI) {
-      io.decex.aluOp(i).func := Cat(Bits(0), instr(24, 22))
+      io.decex.aluOp(i).func := Cat(UInt(0), instr(24, 22))
       io.decex.immOp(i) := isValid
       io.decex.wrRd(i) := isValid
       decoded(i) := Bool(true)
@@ -102,7 +102,7 @@ class Decode() extends Module {
         is(OPC_ALUCI) {
           io.decex.aluOp(i).isCmp := isValid
           io.decex.immOp(i) := isValid
-          immVal := Cat(Bits(0), instr(11, 7))
+          immVal := Cat(UInt(0), instr(11, 7))
           decoded(i) := Bool(true)
         }
         is(OPC_ALUP) {
@@ -113,7 +113,7 @@ class Decode() extends Module {
           io.decex.wrRd(i) := isValid
           io.decex.aluOp(i).isBCpy := isValid
           io.decex.immOp(i) := isValid
-          immVal := Cat(Bits(0), instr(11, 7))
+          immVal := Cat(UInt(0), instr(11, 7))
           decoded(i) := Bool(true)
         }
       }
@@ -158,14 +158,14 @@ class Decode() extends Module {
   val sttype = instr(18, 17)
   val stcfun = instr(21, 18)
 
-  val dest = Wire(Bits(width = REG_BITS))
+  val dest = Wire(UInt(width = REG_BITS))
   val longImm = Wire(Bool())
 
   val isMem = Wire(Bool())
   val isStack = Wire(Bool())
 
   val isSTC = Wire(Bool())
-  val stcImm = Cat(Bits(0), instr(17, 0), Bits("b00")).toUInt()
+  val stcImm = Cat(UInt(0), instr(17, 0), Bits("b00")).toUInt()
 
   // Long immediates set this
   longImm := Bool(false)
@@ -179,7 +179,7 @@ class Decode() extends Module {
   dest := instr(21, 17)
 
   // ALU long immediate (Bit 31 is set as well)
-  when(opcode === OPCODE_ALUL && instr(6, 4) === Bits(0)) {
+  when(opcode === OPCODE_ALUL && instr(6, 4) === UInt(0)) {
     io.decex.aluOp(0).func := func
     io.decex.immOp(0) := Bool(true)
     longImm := Bool(true)
@@ -340,11 +340,11 @@ class Decode() extends Module {
   }
 
   // Offset for loads/stores
-  val addrImm = Bits()
-  addrImm := Cat(Bits(0), instr(6, 0))
+  val addrImm = UInt()
+  addrImm := Cat(UInt(0), instr(6, 0))
   switch(shamt) {
-    is(UInt(1)) { addrImm := Cat(Bits(0), instr(6, 0), Bits(0, width = 1)) }
-    is(UInt(2)) { addrImm := Cat(Bits(0), instr(6, 0), Bits(0, width = 2)) }
+    is(UInt(1)) { addrImm := Cat(UInt(0), instr(6, 0), Bits(0, width = 1)) }
+    is(UInt(2)) { addrImm := Cat(UInt(0), instr(6, 0), Bits(0, width = 2)) }
   }
 
   // Non-default immediate value
@@ -357,7 +357,7 @@ class Decode() extends Module {
   // we could mux the imm / register here as well
 
   // Immediate for absolute calls
-  io.decex.callAddr := Cat(Bits(0), instr(21, 0), Bits("b00")).toUInt()
+  io.decex.callAddr := Cat(UInt(0), instr(21, 0), Bits("b00")).toUInt()
 
   // Immediate for branch is sign extended, not extended for call
   // PC-relative value is precomputed here
@@ -374,7 +374,7 @@ class Decode() extends Module {
 
   // Disable register write on register 0
   for (i <- 0 until PIPE_COUNT) {
-    when(io.decex.rdAddr(i) === Bits("b00000")) {
+    when(io.decex.rdAddr(i) === UInt("b00000")) {
       io.decex.wrRd(i) := Bool(false)
     }
   }
@@ -388,7 +388,7 @@ class Decode() extends Module {
   when(io.exc.exc ||
        (io.exc.intr && inDelaySlot === UInt(0))) {
     io.decex.defaults()
-    io.decex.pred(0) := Bits(0)
+    io.decex.pred(0) := UInt(0)
     io.decex.xcall := Bool(true)
     io.decex.xsrc := io.exc.src
     io.decex.callAddr := io.exc.addr

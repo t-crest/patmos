@@ -15,8 +15,8 @@ import Constants._
 import ocp._
 
 class FeDec() extends Bundle() {
-  val instr_a = Bits(width = INSTR_WIDTH)
-  val instr_b = Bits(width = INSTR_WIDTH)
+  val instr_a = UInt(width = INSTR_WIDTH)
+  val instr_b = UInt(width = INSTR_WIDTH)
   val pc = UInt(width = PC_SIZE)
   val base = UInt(width = PC_SIZE)
   val reloc = UInt(width = ADDR_WIDTH)
@@ -28,13 +28,13 @@ class FeDec() extends Bundle() {
     // instr_a(26, 25) := OPCODE_ALUI
     // instr_b(30, 27) := PRED_IFFALSE
     // instr_b(26, 25) := OPCODE_ALUI
-    instr_a := Bits(0)
-    instr_b := Bits(0)
+    instr_a := UInt(0)
+    instr_b := UInt(0)
   }
 }
 
 class AluOp() extends Bundle() {
-  val func = Bits(width = 4)
+  val func = UInt(width = 4)
   val isMul = Bool()
   val isCmp = Bool()
   val isPred = Bool()
@@ -43,7 +43,7 @@ class AluOp() extends Bundle() {
   val isMFS = Bool()
 
   def defaults() = {
-    func := Bits(0)
+    func := UInt(0)
     isMul := Bool(false)
     isCmp := Bool(false)
     isPred := Bool(false)
@@ -54,16 +54,16 @@ class AluOp() extends Bundle() {
 }
 
 class PredOp() extends Bundle() {
-  val func = Bits(width = 2) // as they have a strange encoding
-  val dest = Bits(width = PRED_BITS)
-  val s1Addr = Bits(width = PRED_BITS+1)
-  val s2Addr = Bits(width = PRED_BITS+1)
+  val func = UInt(width = 2) // as they have a strange encoding
+  val dest = UInt(width = PRED_BITS)
+  val s1Addr = UInt(width = PRED_BITS+1)
+  val s2Addr = UInt(width = PRED_BITS+1)
 
   def defaults() = {
-    func := Bits(0)
-    dest := Bits(0)
-    s1Addr := Bits(0)
-    s2Addr := Bits(0)
+    func := UInt(0)
+    dest := UInt(0)
+    s1Addr := UInt(0)
+    s2Addr := UInt(0)
   }
 }
 
@@ -85,7 +85,7 @@ class MemOp() extends Bundle() {
   val hword = Bool()
   val byte = Bool()
   val zext = Bool()
-  val typ  = Bits(width = 2)
+  val typ  = UInt(width = 2)
 
   def defaults() = {
     load := Bool(false)
@@ -93,7 +93,7 @@ class MemOp() extends Bundle() {
     hword := Bool(false)
     byte := Bool(false)
     zext := Bool(false)
-    typ := Bits(0)
+    typ := UInt(0)
   }
 }
 
@@ -101,7 +101,7 @@ class DecEx() extends Bundle() {
   val pc = UInt(width = PC_SIZE)
   val base = UInt(width = PC_SIZE)
   val relPc = UInt(width = PC_SIZE)
-  val pred =  Vec.fill(PIPE_COUNT) { Bits(width = PRED_BITS+1) }
+  val pred =  Vec.fill(PIPE_COUNT) { UInt(width = PRED_BITS+1) }
   val aluOp = Vec.fill(PIPE_COUNT) { new AluOp() }
   val predOp = Vec.fill(PIPE_COUNT) { new PredOp() }
   val jmpOp = new JmpOp()
@@ -110,10 +110,10 @@ class DecEx() extends Bundle() {
 
   // the register fields are very similar to RegFileRead
   // maybe join the structures
-  val rsAddr = Vec.fill(2*PIPE_COUNT) { Bits(width = REG_BITS) }
-  val rsData = Vec.fill(2*PIPE_COUNT) { Bits(width = DATA_WIDTH) }
-  val rdAddr = Vec.fill(PIPE_COUNT) { Bits(width = REG_BITS) }
-  val immVal = Vec.fill(PIPE_COUNT) { Bits(width = DATA_WIDTH) }
+  val rsAddr = Vec.fill(2*PIPE_COUNT) { UInt(width = REG_BITS) }
+  val rsData = Vec.fill(2*PIPE_COUNT) { UInt(width = DATA_WIDTH) }
+  val rdAddr = Vec.fill(PIPE_COUNT) { UInt(width = REG_BITS) }
+  val immVal = Vec.fill(PIPE_COUNT) { UInt(width = DATA_WIDTH) }
   val immOp  = Vec.fill(PIPE_COUNT) { Bool() }
   // maybe we should have similar structure as the Result one here
   val wrRd  = Vec.fill(PIPE_COUNT) { Bool() }
@@ -125,7 +125,7 @@ class DecEx() extends Bundle() {
   val trap = Bool()
   val xcall = Bool()
   val xret = Bool()
-  val xsrc = Bits(width = EXC_SRC_BITS)
+  val xsrc = UInt(width = EXC_SRC_BITS)
   val nonDelayed = Bool()
 
   val illOp = Bool()
@@ -144,10 +144,10 @@ class DecEx() extends Bundle() {
     jmpOp.defaults()
     memOp.defaults()
     stackOp := sc_OP_NONE
-    rsAddr := Vec.fill(2*PIPE_COUNT) { Bits(0) }
-    rsData := Vec.fill(2*PIPE_COUNT) { Bits(0) }
-    rdAddr := Vec.fill(PIPE_COUNT) { Bits(0) }
-    immVal := Vec.fill(PIPE_COUNT) { Bits(0) }
+    rsAddr := Vec.fill(2*PIPE_COUNT) { UInt(0) }
+    rsData := Vec.fill(2*PIPE_COUNT) { UInt(0) }
+    rdAddr := Vec.fill(PIPE_COUNT) { UInt(0) }
+    immVal := Vec.fill(PIPE_COUNT) { UInt(0) }
     immOp := Vec.fill(PIPE_COUNT) { Bool(false) }
     wrRd := Vec.fill(PIPE_COUNT) { Bool(false) }
     callAddr := UInt(0)
@@ -157,15 +157,15 @@ class DecEx() extends Bundle() {
     trap := Bool(false)
     xcall := Bool(false)
     xret := Bool(false)
-    xsrc := Bits(0)
+    xsrc := UInt(0)
     nonDelayed := Bool(false)
     illOp := Bool(false)
   }
 }
 
 class Result() extends Bundle() {
-  val addr = Bits(width = REG_BITS)
-  val data = Bits(width = DATA_WIDTH)
+  val addr = UInt(width = REG_BITS)
+  val data = UInt(width = DATA_WIDTH)
   val valid = Bool()
 
   def flush() = {
@@ -179,16 +179,16 @@ class MemIn() extends Bundle() {
   val hword = Bool()
   val byte = Bool()
   val zext = Bool()
-  val typ = Bits(width = 2)
-  val addr = Bits(width = DATA_WIDTH)
-  val data = Bits(width = DATA_WIDTH)
+  val typ = UInt(width = 2)
+  val addr = UInt(width = DATA_WIDTH)
+  val data = UInt(width = DATA_WIDTH)
   val call = Bool()
   val ret = Bool()
   val brcf = Bool()
   val trap = Bool()
   val xcall = Bool()
   val xret = Bool()
-  val xsrc = Bits(width = EXC_SRC_BITS)
+  val xsrc = UInt(width = EXC_SRC_BITS)
   val illOp = Bool()
   val callRetAddr = UInt(width = DATA_WIDTH)
   val callRetBase = UInt(width = DATA_WIDTH)
@@ -251,8 +251,8 @@ class MemFe() extends Bundle() {
   val callRetBase = UInt(width = PC_SIZE)
   // for ISPM write
   val store = Bool()
-  val addr = Bits(width = DATA_WIDTH)
-  val data = Bits(width = DATA_WIDTH)
+  val addr = UInt(width = DATA_WIDTH)
+  val data = UInt(width = DATA_WIDTH)
 }
 
 class FeEx() extends Bundle() {
@@ -267,8 +267,8 @@ class MemWb() extends Bundle() {
 
 class RegFileRead() extends Bundle() {
   // first two are for pipeline A, second two for pipeline B
-  val rsAddr = Vec.fill(2*PIPE_COUNT) { Bits(INPUT, REG_BITS) }
-  val rsData = Vec.fill(2*PIPE_COUNT) { Bits(OUTPUT, DATA_WIDTH) }
+  val rsAddr = Vec.fill(2*PIPE_COUNT) { UInt(INPUT, REG_BITS) }
+  val rsData = Vec.fill(2*PIPE_COUNT) { UInt(OUTPUT, DATA_WIDTH) }
 }
 
 class RegFileIO() extends Bundle() {
@@ -297,7 +297,7 @@ class ExcDec() extends Bundle() {
   val excAddr = UInt(width = PC_SIZE)
   val intr = Bool()
   val addr = UInt(width = ADDR_WIDTH)
-  val src = Bits(width = EXC_SRC_BITS)
+  val src = UInt(width = EXC_SRC_BITS)
   val local = Bool()
 }
 
@@ -347,7 +347,7 @@ class BootMemIO() extends Bundle() {
 class MemExc() extends Bundle() {
   val call = Bool()
   val ret = Bool()
-  val src = Bits(width = EXC_SRC_BITS)
+  val src = UInt(width = EXC_SRC_BITS)
 
   val exc = Bool()
   val excBase = UInt(width = PC_SIZE)
@@ -388,8 +388,8 @@ class StackCacheIO() extends Bundle() {
 
 // method/instruction cache connections
 class FeICache extends Bundle() {
-  val addrEven = Bits(width = ADDR_WIDTH)
-  val addrOdd = Bits(width = ADDR_WIDTH)
+  val addrEven = UInt(width = ADDR_WIDTH)
+  val addrOdd = UInt(width = ADDR_WIDTH)
 }
 class ExICache() extends Bundle() {
   val doCallRet = Bool()
@@ -397,8 +397,8 @@ class ExICache() extends Bundle() {
   val callRetAddr = UInt(width = ADDR_WIDTH)
 }
 class ICacheFe extends Bundle() {
-  val instrEven = Bits(width = INSTR_WIDTH)
-  val instrOdd = Bits(width = INSTR_WIDTH)
+  val instrEven = UInt(width = INSTR_WIDTH)
+  val instrOdd = UInt(width = INSTR_WIDTH)
   // absolute basse address
   val base = UInt(width = ADDR_WIDTH)
   // relative base address
@@ -407,7 +407,7 @@ class ICacheFe extends Bundle() {
   val relPc = UInt(width = MAX_OFF_WIDTH+1)
   // offset between relative and absolute program counter
   val reloc = UInt(width = DATA_WIDTH)
-  val memSel = Bits(width = 2)
+  val memSel = UInt(width = 2)
 }
 class ICacheIO extends Bundle() {
   val ena_out = Bool(OUTPUT)

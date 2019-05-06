@@ -145,9 +145,9 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int, aegeanCompatible: Boolean) 
   iocomp.io.internalIO.perf.sc := dcache.io.scPerf
   iocomp.io.internalIO.perf.wc := dcache.io.wcPerf
   iocomp.io.internalIO.perf.mem.read := (io.memPort.M.Cmd === OcpCmd.RD &&
-    io.memPort.S.CmdAccept === Bits(1))
+    io.memPort.S.CmdAccept === UInt(1))
   iocomp.io.internalIO.perf.mem.write := (io.memPort.M.Cmd === OcpCmd.WR &&
-    io.memPort.S.CmdAccept === Bits(1))
+    io.memPort.S.CmdAccept === UInt(1))
 
   // The inputs and outputs
   io.comConf <> iocomp.io.comConf
@@ -264,13 +264,13 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
     for(j <- 0 until cmpdevios.length) {
       cmpdevios(j).M := cores(i).io.comSpm.M
-      cmpdevios(j).M.Cmd := Mux(addr === Bits(j), cores(i).io.comSpm.M.Cmd, OcpCmd.IDLE)
+      cmpdevios(j).M.Cmd := Mux(addr === UInt(j), cores(i).io.comSpm.M.Cmd, OcpCmd.IDLE)
     }
 
     // TODO: maybe a better way is for all interfaces to have the bits 'superMode' and 'flags'
     // e.g., all IO devices should be possible to have interrupts
     if(cmpdevs(0) != null && cmpdevs(0).isInstanceOf[Argo]){
-      cmpdevios(0).asInstanceOf[OcpArgoSlavePort].superMode := Bits(0)
+      cmpdevios(0).asInstanceOf[OcpArgoSlavePort].superMode := UInt(0)
       cmpdevios(0).asInstanceOf[OcpArgoSlavePort].superMode(i) := cores(i).io.superMode
       cores(i).io.comConf.S.Flag := cmpdevios(0).asInstanceOf[OcpArgoSlavePort].flags(2*i+1, 2*i)
     }

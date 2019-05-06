@@ -12,8 +12,8 @@ import Chisel._
 // Cache masters provide address space signal
 class OcpNISlaveSignals(dataWidth : Int)
   extends OcpIOSlaveSignals(dataWidth) {
-  val Reset_n = Bits(width = 1)
-  val Flag = Bits(width = 2)
+  val Reset_n = UInt(width = 1)
+  val Flag = UInt(width = 2)
 
   // This does not really clone, but Data.clone doesn't either
   override def clone() = {

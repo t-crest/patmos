@@ -20,7 +20,7 @@ class OcpMaster() extends Module {
   io.M.Data := cnt
   io.M.ByteEn := cnt(7, 4)
 
-  when(cnt(3, 0) === Bits("b1111")) {
+  when(cnt(3, 0) === UInt("b1111")) {
     io.M.Cmd := OcpCmd.WR
   }
 }
