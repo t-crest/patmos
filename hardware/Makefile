@@ -140,6 +140,14 @@ vsim: verilog
 	mv $(HWBUILDDIR)/Patmos.v.tmp $(HWBUILDDIR)/Patmos.v
 	$(MAKE) -C modelsim sim
 
+#elaborate rtl with Quartus
+elab_quartus: 
+	quartus_map quartus/$(BOARD)/patmos --analysis_and_elaboration
+
+rtl_quartus:
+	quartus_npp quartus/$(BOARD)/patmos --netlist_type=sgate
+	qnui quartus/$(BOARD)/patmos
+
 # synthesize with Quartus
 synth_quartus: verilog
 	quartus_map quartus/$(BOARD)/patmos

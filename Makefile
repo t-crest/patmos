@@ -203,6 +203,16 @@ endif
 gen:
 	$(MAKE) -C hardware verilog BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
 
+elab:
+ifeq ($(VENDOR),Altera)
+	$(MAKE) -C hardware elab_quartus BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
+endif
+
+rtlview:
+ifeq ($(VENDOR),Altera)
+	$(MAKE) -C hardware rtl_quartus BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
+endif
+
 synth:
 ifeq ($(VENDOR),Xilinx)
 	$(MAKE) -C hardware synth_ise BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
