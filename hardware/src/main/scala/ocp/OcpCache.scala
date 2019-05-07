@@ -10,15 +10,15 @@ package ocp
 import Chisel._
 
 object OcpCache {
-  val STACK_CACHE = Bits("b00")
-  val DATA_CACHE  = Bits("b10")
-  val UNCACHED    = Bits("b11")
+  val STACK_CACHE = UInt("b00")
+  val DATA_CACHE  = UInt("b10")
+  val UNCACHED    = UInt("b11")
 }
 
 // Cache masters provide address space signal
 class OcpCacheMasterSignals(addrWidth : Int, dataWidth : Int)
   extends OcpCoreMasterSignals(addrWidth, dataWidth) {
-  val AddrSpace = Bits(width = 2)
+  val AddrSpace = UInt(width = 2)
 
   // This does not really clone, but Data.clone doesn't either
   override def clone() = {

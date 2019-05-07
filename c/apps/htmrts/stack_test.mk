@@ -2,7 +2,7 @@
 rm log.txt
 for dev in "-D _CAS_" "-D _HTMRTS_" "-D _HARDLOCK_"; \
 do \
-	for cpucnt in 2 4 6 8; \
+	for cpucnt in 2 4 8; \
 	do \
 		#for elms in 1 2 4 8 16; \
 		for elms in 2; \

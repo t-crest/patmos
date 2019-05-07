@@ -22,14 +22,14 @@ class InOut(nr: Int, cnt: Int, withComConf: Boolean) extends Module {
   val io = IO(Config.getInOutIO(nr))
 
   // Compute selects
-  val selIO = io.memInOut.M.Addr(ADDR_WIDTH-1, ADDR_WIDTH-4) === Bits("b1111")
-  val selNI = io.memInOut.M.Addr(ADDR_WIDTH-1, ADDR_WIDTH-4) === Bits("b1110")
+  val selIO = io.memInOut.M.Addr(ADDR_WIDTH-1, ADDR_WIDTH-4) === UInt("b1111")
+  val selNI = io.memInOut.M.Addr(ADDR_WIDTH-1, ADDR_WIDTH-4) === UInt("b1110")
 
-  val selISpm = !selIO & !selNI & io.memInOut.M.Addr(ISPM_ONE_BIT) === Bits(0x1)
-  val selSpm = !selIO & !selNI & io.memInOut.M.Addr(ISPM_ONE_BIT) === Bits(0x0)
+  val selISpm = !selIO & !selNI & io.memInOut.M.Addr(ISPM_ONE_BIT) === UInt(0x1)
+  val selSpm = !selIO & !selNI & io.memInOut.M.Addr(ISPM_ONE_BIT) === UInt(0x0)
 
-  val selComConf = if(withComConf) selNI & io.memInOut.M.Addr(ADDR_WIDTH-5) === Bits("b0") else false.B
-  val selComSpm  = if(withComConf) selNI & io.memInOut.M.Addr(ADDR_WIDTH-5) === Bits("b1") else selNI
+  val selComConf = if(withComConf) selNI & io.memInOut.M.Addr(ADDR_WIDTH-5) === UInt("b0") else false.B
+  val selComSpm  = if(withComConf) selNI & io.memInOut.M.Addr(ADDR_WIDTH-5) === UInt("b1") else selNI
 
   val MAX_IO_DEVICES : Int = 0x10
   val IO_DEVICE_OFFSET = 16 // Number of address bits for each IO device
@@ -44,9 +44,9 @@ class InOut(nr: Int, cnt: Int, withComConf: Boolean) extends Module {
   for (i <- 0 until MAX_IO_DEVICES) {
     validDeviceVec(i) := Bool(false)
     selDeviceVec(i) := selIO & io.memInOut.M.Addr(IO_DEVICE_ADDR_SIZE
-                          + IO_DEVICE_OFFSET - 1, IO_DEVICE_OFFSET) === Bits(i)
+                          + IO_DEVICE_OFFSET - 1, IO_DEVICE_OFFSET) === UInt(i)
     deviceSVec(i).Resp := OcpResp.NULL
-    deviceSVec(i).Data := Bits(0)
+    deviceSVec(i).Data := UInt(0)
   }
   validDeviceVec(EXC_IO_OFFSET) := Bool(true)
   validDeviceVec(MMU_IO_OFFSET) := Bool(HAS_MMU)

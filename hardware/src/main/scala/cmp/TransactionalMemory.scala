@@ -26,33 +26,27 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
   val sharedmem = Mem(UInt(width = datawidth), memsize, seqRead = true)
   val sharedmemwr = Bool()
   sharedmemwr := false.B
+  val sharedmemwrfin = Bool()
+  sharedmemwrfin := false.B
   val sharedmemrdaddrReg = Reg(UInt(width = memaddrwidth))
   val sharedmemwraddr = UInt(width = memaddrwidth)
   sharedmemwraddr := 0.U
-  val sharedmemrddata = UInt(width = datawidth)
-  sharedmemrddata := 0.U
+  val sharedmemrddata = sharedmem(sharedmemrdaddrReg)
   val sharedmemwrdata = UInt(width = datawidth)
   sharedmemwrdata := 0.U
   
-  val _bufcur = Counter(bufsize)
-  val _bufnxt = UInt(width = log2Up(bufsize))
-  _bufnxt := 0.U
   val _bufwr = Bool()
   _bufwr := false.B
-  val _bufconflict = false.B
   
-  when(sharedmemwr && !_bufconflict) {
+  when(sharedmemwr) {
     when(_bufwr) {
       sharedmem(sharedmemwraddr) := sharedmemwrdata
     }
-    _bufcur.inc
-    when(_bufcur.value === _bufnxt) {
+    when(sharedmemwrfin) {
       // Finished transferring
-      _bufcur.value := 0.U
       corecur.inc
     }
   }.otherwise {
-    sharedmemrddata := sharedmem(sharedmemrdaddrReg)
     corecur.inc
   }
 
@@ -75,18 +69,16 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
     
     val bufmem = Mem(UInt(width = datawidth), bufsize, seqRead = true)
     val bufmemwr = Bool()
-    val bufmemrdaddrReg = Reg(UInt(width = bufaddrwidth))
+    val bufmemrdaddrReg = RegInit(UInt(0,width = bufaddrwidth))
+    bufmemrdaddrReg := 0.U
     val bufmemwraddr = UInt(width = bufaddrwidth)
     bufmemwraddr := 0.U
-    val bufmemrddata = UInt(width = datawidth)
-    bufmemrddata := 0.U
+    val bufmemrddata = bufmem(bufmemrdaddrReg)
     val bufmemwrdata = UInt(width = datawidth)
     bufmemwrdata := 0.U
     
     when(bufmemwr) {
       bufmem(bufmemwraddr) := bufmemwrdata
-    }.otherwise {
-      bufmemrddata := bufmem(bufmemrdaddrReg)
     }
     
     val bufmatches = UInt(width = bufsize)
@@ -110,14 +102,12 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
     
     val sReg = RegInit(sIdle)
     
-    bufmemrdaddrReg := _bufcur.value
     when(corecur.value === i.U) {
-      _bufnxt := bufnxt.value
-      sharedmemwraddr := RegNext(bufaddrs(_bufcur.value))
+      sharedmemwr := (sReg === sCommit) && !bufconflict
+      sharedmemwrfin := bufmemrdaddrReg === bufnxt.value
+      sharedmemwraddr := bufaddrs(bufmemrdaddrReg)
       sharedmemwrdata := bufmemrddata
-      _bufwr := RegNext(bufwrs(_bufcur.value))
-      _bufconflict := bufconflict
-      sharedmemwr := (sReg === sCommit)
+      _bufwr := bufwrs(bufmemrdaddrReg)
       sharedmemrdaddrReg := memrdaddrReg
     }
    
@@ -206,21 +196,23 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
         sReg := sIdle
       }
       is(sCommit) {
-        when((corecur.value === i.U && _bufcur.value === bufnxt.value) || bufconflict) {
-          // Finish here
-          
-          slaveReg.Resp := OcpResp.DVA
-          slaveReg.Data := Mux(bufconflict, -1.S, 0.S)
-          
-          overflowReg := false.B
-          bufnxt.value := 0.U
-          bufconflict := false.B
-          for(i <- 0 until bufsize) {
-            bufrds(i) := false.B
-            bufwrs(i) := false.B
+        when((corecur.value === i.U) || bufconflict) {
+          bufmemrdaddrReg := bufmemrdaddrReg+1.U
+          when((bufmemrdaddrReg === bufnxt.value) || bufconflict) {
+            // Finish here
+            slaveReg.Resp := OcpResp.DVA
+            slaveReg.Data := Mux(bufconflict, -1.S, 0.S)
+            
+            overflowReg := false.B
+            bufnxt.value := 0.U
+            bufconflict := false.B
+            for(i <- 0 until bufsize) {
+              bufrds(i) := false.B
+              bufwrs(i) := false.B
+            }
+            
+            sReg := sIdle
           }
-          
-          sReg := sIdle
         }
       }
     }

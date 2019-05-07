@@ -13,8 +13,8 @@ import Chisel._
 // Burst masters provide handshake signals
 class OcpBurstMasterSignals(addrWidth : Int, dataWidth : Int)
   extends OcpMasterSignals(addrWidth, dataWidth) {
-  val DataValid = Bits(width = 1)
-  val DataByteEn = Bits(width = dataWidth/8)
+  val DataValid = UInt(width = 1)
+  val DataByteEn = UInt(width = dataWidth/8)
 
   // This does not really clone, but Data.clone doesn't either
   override def clone() = {
@@ -26,8 +26,8 @@ class OcpBurstMasterSignals(addrWidth : Int, dataWidth : Int)
 // Burst slaves provide handshake signal
 class OcpBurstSlaveSignals(dataWidth : Int)
   extends OcpSlaveSignals(dataWidth) {
-  val CmdAccept = Bits(width = 1)
-  val DataAccept = Bits(width = 1)
+  val CmdAccept = UInt(width = 1)
+  val DataAccept = UInt(width = 1)
 
   // This does not really clone, but Data.clone doesn't either
   override def clone() = {
@@ -64,13 +64,13 @@ class OcpBurstBridge(master : OcpCacheMasterPort, slave : OcpBurstSlavePort) {
   val addrWidth = master.M.Addr.getWidth
   val dataWidth = master.M.Data.getWidth
   val burstLength = slave.burstLength
-  val burstAddrBits = log2Up(burstLength)
+  val burstAddrUInt = log2Up(burstLength)
 
   // State of transmission
-  val idle :: read :: readResp :: write :: Nil = Enum(Bits(), 4)
+  val idle :: read :: readResp :: write :: Nil = Enum(UInt(), 4)
   val state = Reg(init = idle)
-  val burstCnt = Reg(init = UInt(0, burstAddrBits))
-  val cmdPos = Reg(Bits(width = burstAddrBits))
+  val burstCnt = Reg(init = UInt(0, burstAddrUInt))
+  val cmdPos = Reg(UInt(width = burstAddrUInt))
 
   // Register signals that come from master
   val masterReg = Reg(init = master.M)
@@ -78,17 +78,17 @@ class OcpBurstBridge(master : OcpCacheMasterPort, slave : OcpBurstSlavePort) {
   // Register to delay response
   val slaveReg = Reg(master.S)
 
-  when(state =/= write && (masterReg.Cmd === OcpCmd.IDLE || slave.S.CmdAccept === Bits(1))) {
+  when(state =/= write && (masterReg.Cmd === OcpCmd.IDLE || slave.S.CmdAccept === UInt(1))) {
     masterReg := master.M
   }
 
   // Default values
   slave.M.Cmd := masterReg.Cmd
-  slave.M.Addr := Cat(masterReg.Addr(addrWidth-1, burstAddrBits+log2Up(dataWidth/8)),
-                      Fill(burstAddrBits+log2Up(dataWidth/8), Bits(0)))
-  slave.M.Data := Bits(0)
-  slave.M.DataByteEn := Bits(0)
-  slave.M.DataValid := Bits(0)
+  slave.M.Addr := Cat(masterReg.Addr(addrWidth-1, burstAddrUInt+log2Up(dataWidth/8)),
+                      Fill(burstAddrUInt+log2Up(dataWidth/8), UInt(0)))
+  slave.M.Data := UInt(0)
+  slave.M.DataByteEn := UInt(0)
+  slave.M.DataValid := UInt(0)
   master.S := slave.S
 
   // Read burst
@@ -103,7 +103,7 @@ class OcpBurstBridge(master : OcpCacheMasterPort, slave : OcpBurstSlavePort) {
       burstCnt := burstCnt + UInt(1)
     }
     master.S.Resp := OcpResp.NULL
-    master.S.Data := Bits(0)
+    master.S.Data := UInt(0)
   }
   when(state === readResp) {
     state := idle
@@ -113,7 +113,7 @@ class OcpBurstBridge(master : OcpCacheMasterPort, slave : OcpBurstSlavePort) {
   // Write burst
   when(state === write) {
     masterReg.Cmd := OcpCmd.IDLE
-    slave.M.DataValid := Bits(1)
+    slave.M.DataValid := UInt(1)
     when(burstCnt === cmdPos) {
       slave.M.Data := masterReg.Data
       slave.M.DataByteEn := masterReg.ByteEn
@@ -121,7 +121,7 @@ class OcpBurstBridge(master : OcpCacheMasterPort, slave : OcpBurstSlavePort) {
     when(burstCnt === UInt(burstLength - 1)) {
       state := idle
     }
-    when(slave.S.DataAccept === Bits(1)) {
+    when(slave.S.DataAccept === UInt(1)) {
       burstCnt := burstCnt + UInt(1)
     }
   }
@@ -129,11 +129,11 @@ class OcpBurstBridge(master : OcpCacheMasterPort, slave : OcpBurstSlavePort) {
   // Start new transaction
   when(master.M.Cmd === OcpCmd.RD) {
     state := read
-    cmdPos := master.M.Addr(burstAddrBits+log2Up(dataWidth/8)-1, log2Up(dataWidth/8))
+    cmdPos := master.M.Addr(burstAddrUInt+log2Up(dataWidth/8)-1, log2Up(dataWidth/8))
   }
   when(master.M.Cmd === OcpCmd.WR) {
     state := write
-    cmdPos := master.M.Addr(burstAddrBits+log2Up(dataWidth/8)-1, log2Up(dataWidth/8))
+    cmdPos := master.M.Addr(burstAddrUInt+log2Up(dataWidth/8)-1, log2Up(dataWidth/8))
   }
 }
 
@@ -194,10 +194,10 @@ class OcpBurstPriorityJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort
   }
 
   // do not accept commands while another request is being served
-  left.S.CmdAccept   := Mux(rightPendingReg, Bits(0), joined.S.CmdAccept)
-  left.S.DataAccept  := Mux(rightPendingReg, Bits(0), joined.S.DataAccept)
-  right.S.CmdAccept  := Mux(leftPendingReg,  Bits(0), joined.S.CmdAccept)
-  right.S.DataAccept := Mux(leftPendingReg,  Bits(0), joined.S.DataAccept)
+  left.S.CmdAccept   := Mux(rightPendingReg, UInt(0), joined.S.CmdAccept)
+  left.S.DataAccept  := Mux(rightPendingReg, UInt(0), joined.S.DataAccept)
+  right.S.CmdAccept  := Mux(leftPendingReg,  UInt(0), joined.S.CmdAccept)
+  right.S.DataAccept := Mux(leftPendingReg,  UInt(0), joined.S.DataAccept)
 
   // forward requests from left port
   when (selLeft) {
@@ -205,8 +205,8 @@ class OcpBurstPriorityJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort
       joined.M := left.M
       pendingRespReg := Mux(left.M.Cmd === OcpCmd.WR, UInt(1), UInt(left.burstLength))
       leftPendingReg := Bool(true)
-      right.S.CmdAccept  := Bits(0)
-      right.S.DataAccept := Bits(0)
+      right.S.CmdAccept  := UInt(0)
+      right.S.DataAccept := UInt(0)
     }
   }
   // forward requests from right port
@@ -249,7 +249,7 @@ class OcpBurstBuffer(master : OcpBurstMasterPort, slave : OcpBurstSlavePort) {
   val MBuffer = Vec.fill(master.burstLength) { Reg(init = master.M) }
 
   val free = MBuffer(0).Cmd === OcpCmd.IDLE
-  when (free || slave.S.CmdAccept === Bits(1)) {
+  when (free || slave.S.CmdAccept === UInt(1)) {
     for (i <- 0 until master.burstLength-1) {
       MBuffer(i) := MBuffer(i+1)
     }

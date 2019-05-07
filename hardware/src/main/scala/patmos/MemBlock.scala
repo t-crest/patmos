@@ -18,16 +18,16 @@ object MemBlock {
 }
 
 class MemBlockIO(size : Int, width : Int) extends Bundle {
-  val rdAddr = Bits(INPUT, log2Up(size))
-  val rdData = Bits(OUTPUT, width)
-  val wrAddr = Bits(INPUT, log2Up(size))
-  val wrEna  = Bits(INPUT, 1)
-  val wrData = Bits(INPUT, width)
+  val rdAddr = UInt(INPUT, log2Up(size))
+  val rdData = UInt(OUTPUT, width)
+  val wrAddr = UInt(INPUT, log2Up(size))
+  val wrEna  = UInt(INPUT, 1)
+  val wrData = UInt(INPUT, width)
 
   var read = false
   var write = false
 
-  def <= (ena : Bits, addr : Bits, data : Bits) = {
+  def <= (ena : UInt, addr : UInt, data : UInt) = {
     // This memory supports only one write port
     if (write) { throw new Error("Only one write port supported") }
     write = true
@@ -37,7 +37,7 @@ class MemBlockIO(size : Int, width : Int) extends Bundle {
     wrData := data
   }
 
-  def apply(addr : Bits) : Bits = {
+  def apply(addr : UInt) : UInt = {
     // This memory supports only one read port
     if (read) { throw new Error("Only one read port supported") }
     read = true
@@ -49,10 +49,10 @@ class MemBlockIO(size : Int, width : Int) extends Bundle {
 
 class MemBlock(size : Int, width : Int, bypass : Boolean = true) extends Module {
   val io = new MemBlockIO(size, width)
-  val mem = Mem(Bits(width = width), size)
+  val mem = Mem(UInt(width = width), size)
 
   // write
-  when(io.wrEna === Bits(1)) {
+  when(io.wrEna === UInt(1)) {
     mem(io.wrAddr) := io.wrData
   }
 
@@ -62,7 +62,7 @@ class MemBlock(size : Int, width : Int, bypass : Boolean = true) extends Module 
 
   if (bypass) {
     // force read during write behavior
-    when (Reg(next = io.wrEna) === Bits(1) &&
+    when (Reg(next = io.wrEna) === UInt(1) &&
           Reg(next = io.wrAddr) === rdAddrReg) {
             io.rdData := Reg(next = io.wrData)
           }

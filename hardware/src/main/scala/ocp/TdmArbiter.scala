@@ -50,18 +50,18 @@ class TdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) ext
   }
 
   // Initialize data to zero when cpuSlot is not enabled
-  io.slave.M.Addr       := Bits(0)
-  io.slave.M.Cmd        := Bits(0)
-  io.slave.M.DataByteEn := Bits(0)
-  io.slave.M.DataValid  := Bits(0)
-  io.slave.M.Data       := Bits(0)
+  io.slave.M.Addr       := UInt(0)
+  io.slave.M.Cmd        := UInt(0)
+  io.slave.M.DataByteEn := UInt(0)
+  io.slave.M.DataValid  := UInt(0)
+  io.slave.M.Data       := UInt(0)
   
   // Initialize slave data to zero
   for (i <- 0 to cnt - 1) {
-    io.master(i).S.CmdAccept := Bits(0)
-    io.master(i).S.DataAccept := Bits(0)
+    io.master(i).S.CmdAccept := UInt(0)
+    io.master(i).S.DataAccept := UInt(0)
     io.master(i).S.Resp := OcpResp.NULL
-    io.master(i).S.Data := Bits(0) 
+    io.master(i).S.Data := UInt(0) 
   }
     
   // Temporarily assigned to master 0

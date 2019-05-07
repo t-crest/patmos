@@ -33,7 +33,7 @@ int writer(element_t * elements)
 	while(start_flag == 0) {asm("");}
 	
 	for(int i = 0; i < ELEMENTS_PER_CORE; i++)
-		enqueue(queue_ptr, &elements[i]);
+		enqueue(queue_ptr, elements+i);
 
 	return 0;
 }
@@ -88,9 +88,8 @@ int main()
 	intialize(queue_ptr);
 	
 	// Initialize all elements
-	for(int i = 0; i < elementcnt; i++) {
+	for(int i = 0; i < elementcnt; i++)
 		initialize_element(elements+i,i);
-	}
 	
 	for(int i = 1; i < writers+1; i++) {
 		void * arg = (void *)(elements+((i-1)*ELEMENTS_PER_CORE));
@@ -126,13 +125,20 @@ int main()
 	asm volatile ("" : : : "memory");
 	
 	printf("Finished in %d cycles\n",stop-start);
-#ifdef CHECK_SUM
-	int expsum = ((writers*ELEMENTS_PER_CORE)-1)*((writers*ELEMENTS_PER_CORE)/2);
+	
+	int expsum;
+	if(elementcnt&0x1)
+		expsum = ((elementcnt-1)/2)*(elementcnt-2)+(elementcnt-1);
+	else
+		expsum = (elementcnt/2)*(elementcnt-1);
+	
 	if(sum != expsum) {
 		printf("Error with sum. Expected: %d Actual:%d\n",expsum,sum);
+		// Dummy calls to enable analysis
+		enqueue(queue_ptr,NULL);
+		dequeue(queue_ptr);
 		return -1;
 	}
-#endif
 	
 	return 0;
 }

@@ -64,17 +64,17 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
   }
   
   // Initialize master data to zero when cpuSlot is not enabled 
-  io.slave.M.Addr       := Bits(0)
-  io.slave.M.Cmd        := Bits(0)
-  io.slave.M.DataByteEn := Bits(0)
-  io.slave.M.DataValid  := Bits(0)
-  io.slave.M.Data       := Bits(0)
+  io.slave.M.Addr       := UInt(0)
+  io.slave.M.Cmd        := UInt(0)
+  io.slave.M.DataByteEn := UInt(0)
+  io.slave.M.DataValid  := UInt(0)
+  io.slave.M.Data       := UInt(0)
 
   // Initialize slave data to zero
-  io.master.S.Data       := Bits(0)
+  io.master.S.Data       := UInt(0)
   io.master.S.Resp       := OcpResp.NULL
-  io.master.S.CmdAccept  := Bits(0)
-  io.master.S.DataAccept := Bits(0)
+  io.master.S.CmdAccept  := UInt(0)
+  io.master.S.DataAccept := UInt(0)
   
   // FSM for TDM Arbiter 
   when (stateReg === sIdle) {
@@ -109,11 +109,11 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
    
     // Sends ZEROs after the burst is done 
     when (wrCntReg >= UInt(burstLen-1)) {
-      io.slave.M.Cmd  := Bits(0)
-      io.slave.M.Addr := Bits(0)
-      io.slave.M.Data := Bits(0)
-      io.slave.M.DataValid := Bits(0)
-      io.slave.M.DataByteEn := Bits(0)
+      io.slave.M.Cmd  := UInt(0)
+      io.slave.M.Addr := UInt(0)
+      io.slave.M.Data := UInt(0)
+      io.slave.M.DataValid := UInt(0)
+      io.slave.M.DataByteEn := UInt(0)
     }
 
     // Turn off the DataValid after a burst of 4
@@ -139,11 +139,11 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
     // Sends ZEROs after the burst is done 
     // MS: This should also (as in write) be just the slot length.
     when (rdCntReg >= UInt(burstLen-1)) {
-      io.slave.M.Cmd  := Bits(0)
-      io.slave.M.Addr := Bits(0)
-      io.slave.M.Data := Bits(0)
-      io.slave.M.DataValid := Bits(0)
-      io.slave.M.DataByteEn := Bits(0) 
+      io.slave.M.Cmd  := UInt(0)
+      io.slave.M.Addr := UInt(0)
+      io.slave.M.Data := UInt(0)
+      io.slave.M.DataValid := UInt(0)
+      io.slave.M.DataByteEn := UInt(0) 
     }
     
     // rdCntReg starts 1 clock cycle after the arrival of the 1st data
@@ -196,11 +196,11 @@ class MemMuxIntf(nr: Int, addrWidth : Int, dataWidth : Int, burstLen: Int) exten
     val mDataValid_p2_Reg   = Reg(UInt(width=1))
     
     // Pipeline registers default to 0
-    mCmd_p1_Reg         := Bits(0)
-    mAddr_p1_Reg        := Bits(0)
-    mData_p1_Reg        := Bits(0)
-    mDataByteEn_p1_Reg  := Bits(0)
-    mDataValid_p1_Reg   := Bits(0)
+    mCmd_p1_Reg         := UInt(0)
+    mAddr_p1_Reg        := UInt(0)
+    mData_p1_Reg        := UInt(0)
+    mDataByteEn_p1_Reg  := UInt(0)
+    mDataValid_p1_Reg   := UInt(0)
     
     // 1st stage pipeline of the input
     for (i <- 0 until nr){
