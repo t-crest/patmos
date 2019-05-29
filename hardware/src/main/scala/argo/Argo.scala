@@ -95,14 +95,14 @@ class Argo(nrCores: Int, wrapped: Boolean = false, emulateBB: Boolean = false) e
     io(i).S.Resp := Mux(selSpmRplyReg(i), respSpmReg, respNoCReg)
 
     // NoC - Patmos
-     io(i).flags := argoNoc.io.irq
+    io(i).flags := argoNoc.io.irq
 	}
 
   // Generate config.vhd
   ArgoConfig.genConfigVHD("vhdl/argo/config.vhd")
   // Generate schedule
-  ArgoConfig.genPoseidonSched("../../local/bin/", "../local/argo_platform.xml", "../local/argo_communication.xml", "../local/argo_schedule.xml")
-  ArgoConfig.genNoCInitSched("../../local/bin/", "../local/argo_schedule.xml", "../c/cmp/nocinit.c")
+  ArgoConfig.genPoseidonSched("../../local/bin/", "../local/", "argo_platform.xml", "argo_communication.xml", "../local/argo_schedule.xml")
+  ArgoConfig.genNoCInitFile("../../local/bin/", "../local/argo_schedule.xml", "../c/cmp/nocinit.c")
 }
 
 object Argo {

@@ -5,6 +5,7 @@ import java.io.{File, PrintWriter}
 import sys.process._
 import Chisel._
 import patmos.Constants._
+import scala.language.postfixOps
 
 abstract class ArgoConfig {
   // NoC Dimensions
@@ -126,36 +127,39 @@ object ArgoConfig {
     }
   }
 
-  def genPoseidonSched(poseidonPath: String, platformPath: String, communicationPath: String, schedPath: String): File = {
+  def genPoseidonSched(poseidonPath: String, generatedPath: String, platformFile: String, communicationFile: String, schedPath: String): Unit = {
+    val genDirectory = new File(generatedPath)
+    if(!genDirectory.exists()){
+      genDirectory.mkdir()
+    }
+
     //Write out platform specification
-    new PrintWriter(new File("../local/argo_platform.xml"), "UTF8") {
+    new PrintWriter(new File(generatedPath+platformFile), "UTF8") {
       println("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
       print(conf.PLATFORM_SPEC)
       close()
     }
 
     //Write out communication specification
-    new PrintWriter(new File("../local/argo_communication.xml"), "UTF8") {
+    new PrintWriter(generatedPath+communicationFile, "UTF8") {
       println("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
       print(conf.COMMUNICATION_SPEC)
       close()
     }
 
     println(poseidonPath + "poseidon" +
-      " -p" + platformPath +
-      " -c" + communicationPath +
+      " -p" + (generatedPath+platformFile) +
+      " -c" + (generatedPath+communicationFile) +
       " -s" + schedPath +
       " -m" + "GREEDY" +
       " -v" + "2" +
       " -d" !)
-
-    return null
   }
 
-  def genNoCInitSched(poseidonPath: String, schedPath: String, destPath: String): Unit = {
+  def genNoCInitFile(poseidonPath: String, schedFile: String, destPath: String): Unit = {
     println(
       poseidonPath + "poseidon-conv" +
-      " " + schedPath +
+      " " + schedFile +
       " -o" + destPath !
     )
   }
