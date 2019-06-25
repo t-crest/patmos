@@ -1,0 +1,155 @@
+# -------------------------------------------------------------------------- #
+#
+# Copyright (C) 1991-2011 Altera Corporation
+# Your use of Altera Corporation's design tools, logic functions
+# and other software and tools, and its AMPP partner logic
+# functions, and any output files from any of the foregoing
+# (including device programming or simulation files), and any
+# associated documentation or information are expressly subject
+# to the terms and conditions of the Altera Program License
+# Subscription Agreement, Altera MegaCore Function License
+# Agreement, or other applicable license agreement, including,
+# without limitation, that your use is for the sole purpose of
+# programming logic devices manufactured by Altera and sold by
+# Altera or its authorized distributors.  Please refer to the
+# applicable agreement for further details.
+#
+# -------------------------------------------------------------------------- #
+#
+# Quartus II
+# Version 11.0 Build 208 07/03/2011 Service Pack 1 SJ Web Edition
+# Date created = 11:11:57  June 19, 2012
+#
+# -------------------------------------------------------------------------- #
+#
+# Notes:
+#
+# 1) The default values for assignments are stored in the file:
+#		patmos_core_assignment_defaults.qdf
+#    If this file doesn't exist, see file:
+#		assignment_defaults.qdf
+#
+# 2) Altera recommends that you do not modify this file. This
+#    file is updated automatically by the Quartus II software
+#    and any changes you make may be lost or overwritten.
+#
+# -------------------------------------------------------------------------- #
+
+
+set_global_assignment -name FAMILY "MAX 10"
+set_global_assignment -name DEVICE 10M08SAU169C8G
+set_global_assignment -name DEVICE_FILTER_PACKAGE UFBGA
+set_global_assignment -name DEVICE_FILTER_PIN_COUNT 169
+set_global_assignment -name DEVICE_FILTER_SPEED_GRADE 8
+set_global_assignment -name TOP_LEVEL_ENTITY patmos_top
+set_global_assignment -name ORIGINAL_QUARTUS_VERSION "17.0.0"
+set_global_assignment -name PROJECT_CREATION_TIME_DATE "23:03:20  SEPTEMBER 16, 2017"
+set_global_assignment -name LAST_QUARTUS_VERSION "16.1.2 Lite Edition"
+
+set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
+set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
+set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+set_global_assignment -name USE_CONFIGURATION_DEVICE ON
+set_global_assignment -name RESERVE_ALL_UNUSED_PINS "AS INPUT TRI-STATED"
+set_global_assignment -name RESERVE_ALL_UNUSED_PINS_NO_OUTPUT_GND "AS INPUT TRI-STATED"
+
+set_global_assignment -name SYNTH_TIMING_DRIVEN_SYNTHESIS ON
+set_global_assignment -name OPTIMIZATION_TECHNIQUE AREA
+set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
+set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
+set_global_assignment -name DEVICE_FILTER_PACKAGE FBGA
+set_global_assignment -name VHDL_FILE ../../vhdl/altera/pll.vhd
+set_global_assignment -name VHDL_FILE "../../vhdl/patmos_max1000.vhdl"
+
+set_global_assignment -name VHDL_FILE "../../../../argo/src/ocp/ocp_config.vhd"
+set_global_assignment -name VHDL_FILE "../../../../argo/src/ocp/ocp.vhd"
+set_global_assignment -name VHDL_FILE "../../../../argo/src/util/math_util.vhd"
+set_global_assignment -name VHDL_FILE "../../../../argo/src/config_types.vhd"
+set_global_assignment -name VHDL_FILE "../../vhdl/argo/config.vhd"
+set_global_assignment -name VHDL_FILE "../../../../argo/src/argo_types.vhd"
+set_global_assignment -name VHDL_FILE "../../../../argo/src/noc_interface.vhd"
+set_global_assignment -name VHDL_FILE "../../../../argo/src/mem/tdp_ram.vhd"
+set_global_assignment -name VHDL_FILE "../../../../argo/src/mem/tdp_bram.vhd"
+set_global_assignment -name VHDL_FILE "../../../../argo/src/mem/com_spm.vhd"
+set_global_assignment -name VHDL_FILE "../../vhdl/argo/com_spm_wrapper.vhd"
+set_global_assignment -name VHDL_FILE "../../../../argo/src/ni/rx_unit.vhd"
+set_global_assignment -name VHDL_FILE "../../../../argo/src/ni/irq_fifo.vhd"
+set_global_assignment -name VHDL_FILE "../../../../argo/src/ni/config_bus.vhd"
+set_global_assignment -name VHDL_FILE "../../../../argo/src/ni/spm_bus.vhd"
+set_global_assignment -name VHDL_FILE "../../../../argo/src/ni/packet_manager.vhd"
+set_global_assignment -name VHDL_FILE "../../../../argo/src/ni/schedule_table.vhd"
+set_global_assignment -name VHDL_FILE "../../../../argo/src/ni/TDM_controller.vhd"
+set_global_assignment -name VHDL_FILE "../../../../argo/src/ni/MC_controller.vhd"
+set_global_assignment -name VHDL_FILE "../../../../argo/src/ni/network_interface.vhd"
+set_global_assignment -name VHDL_FILE "../../../../argo/src/routers/synchronous/xbar.vhd"
+set_global_assignment -name VHDL_FILE "../../../../argo/src/routers/synchronous/hpu.vhd"
+set_global_assignment -name VHDL_FILE "../../../../argo/src/routers/synchronous/router.vhd"
+set_global_assignment -name VHDL_FILE "../../../../argo/src/noc/synchronous/noc_node.vhd"
+set_global_assignment -name VHDL_FILE "../../vhdl/argo/noc_node_wrapper.vhd"
+set_global_assignment -name VHDL_FILE "../../vhdl/argo/noc_wrapper_2x2.vhd"
+
+set_global_assignment -name VERILOG_FILE ../../build/Patmos.v
+
+set_global_assignment -name FITTER_EFFORT "STANDARD FIT"
+set_global_assignment -name OPTIMIZE_HOLD_TIMING "ALL PATHS"
+set_global_assignment -name OPTIMIZE_MULTI_CORNER_TIMING ON
+set_global_assignment -name PHYSICAL_SYNTHESIS_COMBO_LOGIC ON
+set_global_assignment -name SEED 6
+set_global_assignment -name VERILOG_MACRO "SYNTHESIS=<None>"
+
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
+set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+
+set_location_assignment PIN_H6 -to clk
+
+set_location_assignment PIN_A4 -to iUartPins_rxd
+set_location_assignment PIN_B4 -to oUartPins_txd
+
+set_location_assignment PIN_D8 -to oLedsPins_led[7]
+set_location_assignment PIN_C10 -to oLedsPins_led[6]
+set_location_assignment PIN_C9 -to oLedsPins_led[5]
+set_location_assignment PIN_B10 -to oLedsPins_led[4]
+set_location_assignment PIN_A10 -to oLedsPins_led[3]
+set_location_assignment PIN_A11 -to oLedsPins_led[2]
+set_location_assignment PIN_A9 -to oLedsPins_led[1]
+set_location_assignment PIN_A8 -to oLedsPins_led[0]
+
+set_location_assignment PIN_E6 -to iKeysPins_key[0]
+
+set_global_assignment -name SYNTH_TIMING_DRIVEN_SYNTHESIS ON
+set_global_assignment -name CYCLONEII_OPTIMIZATION_TECHNIQUE SPEED
+set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
+set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
+set_global_assignment -name DEVICE_FILTER_PACKAGE FBGA
+
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oLedsPins_led[7]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oLedsPins_led[6]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oLedsPins_led[5]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oLedsPins_led[4]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oLedsPins_led[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oLedsPins_led[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oLedsPins_led[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oLedsPins_led[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oUartPins_txd
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to iUartPins_rxd
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[15]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[14]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[13]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[12]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[11]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[10]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[9]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[8]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[7]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[6]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[5]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[4]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[0]
+set_instance_assignment -name IO_STANDARD "3.3 V SCHMITT TRIGGER" -to iKeysPins_key[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to clk
