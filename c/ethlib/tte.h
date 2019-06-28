@@ -42,7 +42,7 @@ void tte_init_VL(unsigned char i, unsigned int start, unsigned int period);
 
 unsigned long long transClk_to_clk (unsigned long long transClk);// __attribute__((noinline));
 
-void tte_prepare_test_data(unsigned int tx_addr, unsigned char VL[], unsigned char data, int length);// __attribute__((noinline));
+void tte_prepare_data(unsigned int tx_addr, unsigned char VL[], unsigned char data[], int length);// __attribute__((noinline));
 
 void tte_prepare_pcf(unsigned int addr,unsigned char VL[],unsigned char type);
 

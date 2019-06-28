@@ -85,7 +85,7 @@ unsigned short int udp_get_data_length(unsigned int pkt_addr){
 //This function gets the data field of an UDP packet.
 __attribute__((noinline))
 unsigned char udp_get_data(unsigned int pkt_addr, unsigned char data[], unsigned int data_length){
-	_Pragma("loopbound min 0 max 128")
+	_Pragma("loopbound min 0 max 64")
 	for (int i = 0; i<data_length; i+=1){
 		data[i] = mem_iord_byte(pkt_addr + 42 + i);
 		// unsigned int temp = mem_iord(pkt_addr + 40 + 2 + i);

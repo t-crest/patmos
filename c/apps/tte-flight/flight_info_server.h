@@ -30,21 +30,20 @@
 #define TTE_PRECISION 800 //clock cycles from network_description (eclipse project)
 #define TTE_VL_PERIOD 1000 //us
 
-volatile _IODEV int *led_ptr = (volatile _IODEV int *) PATMOS_IO_LED;
-volatile _IODEV unsigned* disp_ptr = (volatile _IODEV unsigned*) PATMOS_IO_SEGDISP;
-
 typedef struct {
     unsigned base_addr;
     unsigned rx_addr;
     unsigned tx_addr;
 } ethif_t;
 
+void waitInitArp();
+void waitFsimBeacon();
+void execute();
 void print_hex_bytes(unsigned char byte_buffer[], unsigned int len);
 void print_segment(unsigned number);
 void print_comm_info();
 int checkForFrame(ethif_t ethif, const unsigned int timeout);
 void handle_fsim_msg(ethif_t ethif, fsim_msg_circbuf_t *fsim_msg_buf);
-void send_sensor_data(ethif_t, fsim_msg_circbuf_t *fsim_msg_buf);
-void execute();
+void tte_schedsend_flightdata(ethif_t ethif, fsim_msg_circbuf_t *fsim_msg_buf);
 
 #endif // !FLISERV_H

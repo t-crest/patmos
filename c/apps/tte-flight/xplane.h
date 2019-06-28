@@ -1,9 +1,10 @@
 #ifndef XPLANE_H
 #define XPLANE_H
 
-#define FSIM_PORT 666
-#define FSIM_PERIOD 2000 //us
-#define FSIM_MSG_TIMEOUT 1000
+#define FSIM_DATAOUT_PORT 666
+#define FSIM_BEACON_PORT 49707
+#define FSIM_PERIOD 1000000 //us
+#define FSIM_MSG_RXWIN_TIMEOUT 500000
 #define FSIM_MSG_BUF_SIZE 100
 
 typedef struct {

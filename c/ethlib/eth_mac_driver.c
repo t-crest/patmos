@@ -90,12 +90,11 @@ unsigned eth_mac_receive(unsigned int rx_addr, unsigned long long int timeout){
 	}else{
 		unsigned long long int start_time = get_cpu_usecs();
         _Pragma("loopbound min 0 max 80") //1us	
-		while (((eth_iord(0x04) & 0x4)==0) && (get_cpu_usecs()-start_time < timeout)){;};
-		if ((eth_iord(0x04) & 0x4)==0){
-			return 0;
-		}else{
-			return 1;
-		}	
+		while (((eth_iord(0x04) & 0x4)==0)){
+            if((get_cpu_usecs()-start_time > timeout))
+                return 0;
+        }
+        return 1;
 	}
 }
 

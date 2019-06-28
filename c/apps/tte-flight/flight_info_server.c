@@ -15,51 +15,93 @@ ethif_t ttethif = {
   .tx_addr = 0x800
 };
 
-typedef union 
-{
-  unsigned char b[4];
-  float val;
-} fsimFloat;
+unsigned char CT[] = { 0xAB, 0xAD, 0xBA, 0xBE };
+unsigned char VL0[] = { 0x0F, 0xA1 };
+unsigned char VL1[] = { 0x0F, 0xA2 };
 
+int sched_errors = 0;
+unsigned beaconReceived = 0;
+
+volatile _IODEV int *led_ptr = (volatile _IODEV int *) PATMOS_IO_LED;
+volatile _IODEV int *key_ptr = (volatile _IODEV int *) PATMOS_IO_KEYS;
+volatile _IODEV unsigned* disp_ptr = (volatile _IODEV unsigned*) PATMOS_IO_SEGDISP;
 
 int main(){
+    *led_ptr = 0xFF;
     puts("FLISERV (Flight Info Server) started");
     puts("Initializing Ethernet communication");
     eth_mac_initialize();
+    set_mac_address(0x1D000400, 0x00000289);
+    eth_iowr(ttethif.rx_addr, 0x00006000); // set NOT empty, IRQ and wrap
+    // int_period = 10ms, cluster cycle=20ms, CT, 2 VLs sending, max_delay , comp_delay, precision (in clock cycles)
+    tte_initialize(INT_PERIOD*MS_TO_MAJA, CYC_PERIOD*MS_TO_MAJA, CT, 2, TTE_MAX_TRANS_DELAY, TTE_COMP_DELAY, TTE_PRECISION);
+    tte_init_VL(0, 8, 40);  // VL 4001 starts at 0.8ms and has a period of 4ms
+    tte_init_VL(1, 10, 20); // VL 4002 starts at 1ms and has a period of 2ms
     ipv4_set_my_ip((unsigned char[4]){192, 168, 2, 253});
 		arp_table_init();
 		print_comm_info();
     ttethif.base_addr = PATMOS_IO_ETH;
     ttethif.rx_addr = 0x000;
     ttethif.tx_addr = 0x800;
+    *led_ptr = 0xF0;
     puts("Start serving");
+    beaconReceived = 0;
+    // waitInitArp();
+    waitFsimBeacon();
     execute();
+    puts("Server stopped");
+}
+
+void waitInitArp(){
+  unsigned char arpReceived = 0;
+  while (!arpReceived){ //Wait here for the beacon
+    switch(checkForFrame(ttethif, 0)){
+      case ARP:
+          arpReceived = 1;
+        break;
+    }
+  }
+}
+
+void waitFsimBeacon(){
+  while (beaconReceived == 0){ //Wait here for the beacon
+      switch(checkForFrame(ttethif, 0)){
+        case UDP:
+          if((udp_get_destination_port(ttethif.rx_addr)==FSIM_BEACON_PORT)){
+            beaconReceived++;
+          }
+          break;
+      }
+    }
 }
 
 void execute(){
-  volatile unsigned long long elapsedTime = 0;
   volatile unsigned long long startTime = get_cpu_usecs();
-  while(1){
-    elapsedTime = get_cpu_usecs() - startTime;                                      //calculate elapsed time
-    if(elapsedTime >= FSIM_PERIOD - 40){
+  unsigned short udpPort = 0x0;
+  while(*key_ptr != 0xE){
+    if(get_cpu_usecs() - startTime >= FSIM_PERIOD - FSIM_MSG_RXWIN_TIMEOUT/2){
       startTime = get_cpu_usecs();
-      *led_ptr ^= ~1UL << 7;
-      switch(*led_ptr = checkForFrame(ttethif, FSIM_MSG_TIMEOUT)){
+      switch(*led_ptr = checkForFrame(ttethif, FSIM_MSG_RXWIN_TIMEOUT/2)){
         case UDP:
-          if((udp_get_destination_port(ttethif.rx_addr)==FSIM_PORT)){
+          if((udpPort = udp_get_destination_port(ttethif.rx_addr))==FSIM_DATAOUT_PORT){
             handle_fsim_msg(ttethif, &fsim_msg_circbuf);
-              printf("Xplane-dataPrologue (bytes=%lu): %s\n", sizeof(fsimDataoutput), (char*) &fsimDataoutput.prologue);
-              printf("Xplane-dataID = %x\n", fsimDataoutput.index[0]);
-              printf("Xplane-aircraft-pitch = %3.4f\n", acfOrientation.pitch.val);
-              print_hex_bytes(fsimDataoutput.pitch, 4);
-            send_sensor_data(ttethif, &fsim_msg_circbuf);
+            printf("0x%x\t%3.4f\t%3.4f\t%3.4f\n", beaconReceived, acfOrientation.pitch.val, acfOrientation.roll.val, acfOrientation.headT.val);
+            tte_schedsend_flightdata(ttethif, &fsim_msg_circbuf);
+          }
+          else
+          if(udpPort==FSIM_BEACON_PORT){
+            beaconReceived++;
+            print_segment(beaconReceived);
+          } else {
+            print_segment(0xEE000000 | udpPort);
           }
           break;
         default:
-          continue;
+          startTime = 0; //if we receive non-TT frame in a TT slot we shall reset the time to immediately catch the next
       }
     }
   }
+  printf("received_beacons = %d\n", beaconReceived);
 }
 
 int checkForFrame(ethif_t ethif, const unsigned int timeout){
@@ -73,10 +115,10 @@ int checkForFrame(ethif_t ethif, const unsigned int timeout){
 		case ARP:
 			return (arp_process_received(ethif.rx_addr, ethif.tx_addr)==0) ? -ARP : ARP;
 		default:
-			return UNSUPPORTED;
+			return 0xF0;
 		}
 	} else {
-		return UNSUPPORTED;
+		return 0x80;
 	}
 }
 
@@ -107,14 +149,13 @@ void handle_fsim_msg(ethif_t ethif, fsim_msg_circbuf_t *fsim_msg_buf){
   //TODO: further pre-processing, put values in circular buffer for transmission
 }
 
-void send_sensor_data(ethif_t ethif, fsim_msg_circbuf_t *fsim_msg_buf){
-  udp_send(ethif.tx_addr, ethif.rx_addr, (unsigned char[4]){192, 168, 2, 254}, 666, 999, acfOrientation.pitch.bytes, 4, 0);
-  
-  //TODO: pop values from circular buffer and distribute to flight controller nodes
+void tte_schedsend_flightdata(ethif_t ethif, fsim_msg_circbuf_t *fsim_msg_buf){
+  tte_prepare_data(ethif.tx_addr, VL0, (unsigned char*) &acfOrientation, sizeof(acf_orientation_t));
+  if (!tte_schedule_send(0x2000, 1514, 0))
+    sched_errors++;
 }
 
-void print_segment(unsigned number)
-{
+void print_segment(unsigned number){
   *(disp_ptr + 0) = number & 0xF;
   *(disp_ptr + 1) = (number >> 4) & 0xF;
   *(disp_ptr + 2) = (number >> 8) & 0xF;

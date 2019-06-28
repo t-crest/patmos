@@ -8,6 +8,7 @@
 */
 
 #include "tte.h"
+#include "ptp1588.h"
 
 unsigned int TTE_MAX_TRANS_DELAY;
 unsigned int TTE_COMP_DELAY;
@@ -18,14 +19,14 @@ unsigned int integration_cycle;
 unsigned int cluster_period;
 static unsigned long long start_time; //clock cycles at 80MHz (12.5 ns)
 static unsigned long long timer_time; //clock cycles at 80MHz (12.5 ns)
-static unsigned long long receive_pit; //clock cycles at 80MHz (12.5 ns)
-static unsigned long long scheduled_pit; //clock cycles at 80MHz (12.5 ns)
 signed long long prev_error;
 unsigned char CT_marker[4];
 unsigned char max_sched;
 unsigned char mac[6];
 unsigned long long send_times[2000];
 int send_time_i=0;
+signed long long last_err;
+signed long long int_err;
 
 struct VL{
    unsigned char max_queue;
@@ -56,10 +57,9 @@ unsigned char is_pcf(unsigned int addr){
 }
 
 void tte_wait_for_message(unsigned long long * receive_point){
-	  while ((eth_iord(0x04) & 0x4)==0){
-	    *receive_point = *(_iodev_ptr_t)(__PATMOS_TIMER_LOCLK); //to avoid delay error
-	  };
-	  *receive_point = *(_iodev_ptr_t)(__PATMOS_TIMER_LOCLK);
+	do{
+		*receive_point = *(_iodev_ptr_t)(__PATMOS_TIMER_LOCLK); //to avoid delay error
+	}while ((eth_iord(0x04) & 0x4)==0);
 }
 
 void tte_clear_free_rx_buffer(unsigned int addr){
@@ -107,6 +107,7 @@ int handle_integration_frame_log(unsigned int addr,unsigned long long receive_pi
 	unsigned long long sched_rec_pit;
 	unsigned long long trans_clock;
 	signed long long err;
+	signed long long der_err;
 
 	trans_clock = mem_iord_byte(addr + 34);
 	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 35));
@@ -131,20 +132,23 @@ int handle_integration_frame_log(unsigned int addr,unsigned long long receive_pi
 
 	sched_rec_pit = start_time + 2*TTE_MAX_TRANS_DELAY + TTE_COMP_DELAY;
 
-	if(permanence_pit>(sched_rec_pit-TTE_PRECISION) &&
-	    permanence_pit<(sched_rec_pit+TTE_PRECISION)){
+	error[i]=err=(permanence_pit - sched_rec_pit);
 
-		err=permanence_pit - sched_rec_pit;
-		error[i]=err;
-		start_time = start_time+err;
+	//check scheduled receive window
+	if(permanence_pit>(sched_rec_pit-TTE_PRECISION) && permanence_pit<(sched_rec_pit+TTE_PRECISION)){
+		
+		int_err = int_err + err;
 
+		start_time = start_time + err;
+
+		// start_time = start_time + (0.3*err) + (0.7*int_err) + (0.0*der_err);
+		
 		if(integration_cycle==0){
 		  schedplace=0;
 		  timer_time = start_time+(CYCLES_PER_UNIT*startTick); 
 		  arm_clock_timer(timer_time);
 		}
 		start_time += integration_period;
-
 		return 1;
 	}
 	else{
@@ -153,53 +157,53 @@ int handle_integration_frame_log(unsigned int addr,unsigned long long receive_pi
 	return 0;
 }
 
-int handle_integration_frame(unsigned int addr,unsigned long long receive_pit){
-	unsigned long long permanence_pit;
-	unsigned long long sched_rec_pit;
-	unsigned long long trans_clock;
+// int handle_integration_frame(unsigned int addr,unsigned long long receive_pit){
+// 	unsigned long long permanence_pit;
+// 	unsigned long long sched_rec_pit;
+// 	unsigned long long trans_clock;
 
-	trans_clock = mem_iord_byte(addr + 34);
-	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 35));
-	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 36));
-	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 37));
-	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 38));
-	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 39));
-	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 40));
-	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 41));
-	trans_clock = transClk_to_clk(trans_clock);
+// 	trans_clock = mem_iord_byte(addr + 34);
+// 	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 35));
+// 	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 36));
+// 	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 37));
+// 	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 38));
+// 	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 39));
+// 	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 40));
+// 	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 41));
+// 	trans_clock = transClk_to_clk(trans_clock);
 
-	integration_cycle = mem_iord_byte(addr + 14);
-	integration_cycle = (integration_cycle << 8) | (mem_iord_byte(addr + 15));
-	integration_cycle = (integration_cycle << 8) | (mem_iord_byte(addr + 16));
-	integration_cycle = (integration_cycle << 8) | (mem_iord_byte(addr + 17));
+// 	integration_cycle = mem_iord_byte(addr + 14);
+// 	integration_cycle = (integration_cycle << 8) | (mem_iord_byte(addr + 15));
+// 	integration_cycle = (integration_cycle << 8) | (mem_iord_byte(addr + 16));
+// 	integration_cycle = (integration_cycle << 8) | (mem_iord_byte(addr + 17));
 
-	permanence_pit = receive_pit + (TTE_MAX_TRANS_DELAY-trans_clock); 
+// 	permanence_pit = receive_pit + (TTE_MAX_TRANS_DELAY-trans_clock); 
 
-	if(start_time==0){
-		start_time=permanence_pit-(2*TTE_MAX_TRANS_DELAY + TTE_COMP_DELAY);
-	}
+// 	if(start_time==0){
+// 		start_time=permanence_pit-(2*TTE_MAX_TRANS_DELAY + TTE_COMP_DELAY);
+// 	}
 
-	sched_rec_pit = start_time + 2*TTE_MAX_TRANS_DELAY + TTE_COMP_DELAY;
+// 	sched_rec_pit = start_time + 2*TTE_MAX_TRANS_DELAY + TTE_COMP_DELAY;
 
-	if(permanence_pit>(sched_rec_pit-TTE_PRECISION) &&
-	    permanence_pit<(sched_rec_pit+TTE_PRECISION)){
+// 	if(permanence_pit>(sched_rec_pit-TTE_PRECISION) &&
+// 	    permanence_pit<(sched_rec_pit+TTE_PRECISION)){
 
-		start_time = start_time+(permanence_pit - sched_rec_pit);
+// 		start_time = start_time+(permanence_pit - sched_rec_pit);
 
-		if(integration_cycle==0){
-		  schedplace=0;
-		  timer_time = start_time+(CYCLES_PER_UNIT*startTick);
-		  arm_clock_timer(timer_time);
-		}
-		start_time += integration_period;
+// 		if(integration_cycle==0){
+// 		  schedplace=0;
+// 		  timer_time = start_time+(CYCLES_PER_UNIT*startTick);
+// 		  arm_clock_timer(timer_time);
+// 		}
+// 		start_time += integration_period;
 
-		return 1;
-	}
-	else{
-	    start_time = 0;
-	}
-	return 0;
-}
+// 		return 1;
+// 	}
+// 	else{
+// 	    start_time = 0;
+// 	}
+// 	return 0;
+// }
 
 unsigned long long transClk_to_clk (unsigned long long transClk){
         return ((transClk*10)>>16)*536871>>26; //*536871>>26 is almost equivalent to /125
@@ -334,7 +338,7 @@ void tte_prepare_header(unsigned int tx_addr, unsigned char VL[], unsigned char 
   mem_iowr_byte(tx_addr + 13, ethType[1]);
 }
 
-void tte_prepare_test_data(unsigned int tx_addr, unsigned char VL[], unsigned char data, int length){
+void tte_prepare_data(unsigned int tx_addr, unsigned char VL[], unsigned char data[], int length){
   unsigned char ethType[2];
   ethType[0]=((length-14)>>8) & 0xFF;
   ethType[1]=(length-14) & 0xFF;
@@ -343,7 +347,7 @@ void tte_prepare_test_data(unsigned int tx_addr, unsigned char VL[], unsigned ch
 
   #pragma loopbound min 0 max 1500
   for(int i=14; i<length; i++){
-    mem_iowr_byte(tx_addr + i, data);
+    mem_iowr_byte(tx_addr + i, data[i]);
   }
 }
 
