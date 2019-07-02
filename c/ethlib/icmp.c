@@ -70,17 +70,20 @@ unsigned int icmp_build_ping_reply(unsigned int rx_addr, unsigned int tx_addr){
 	unsigned int frame_length = 14 + ((mem_iord_byte(rx_addr+16) << 8) | mem_iord_byte(rx_addr+17));
 	
 	//Copy the entire frame	
-	if (rx_addr != tx_addr ){ 
+	if (rx_addr != tx_addr ){
+		#pragma loopbound min 98 max 98 
 		for(int i=0; i<frame_length; i++){
 			mem_iowr_byte(tx_addr + i, mem_iord_byte(rx_addr + i));
 		}
 	} 
 	//Swap MAC addrs
+	#pragma loopbound min 4 max 4
 	for (int i=0; i<6; i++){
 		mem_iowr_byte(tx_addr + i, mem_iord_byte(tx_addr+6+i));
 		mem_iowr_byte(tx_addr + 6 + i, my_mac[i]);
 	}
 	//Swap IP addr
+	#pragma loopbound min 4 max 4
 	for (int i=0; i<4; i++){
 		mem_iowr_byte(tx_addr + 30 + i, mem_iord_byte(tx_addr+26+i));
 		mem_iowr_byte(tx_addr + 26 + i, my_ip[i]);
