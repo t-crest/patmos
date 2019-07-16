@@ -590,6 +590,10 @@ or 9 cores.
 
 For the multicore configuration there are several multicore devices available, e.g.,
 several network-on-chips, shared on-chip memories, and a locking unit.
+By default, the configuration includes the locking unit configured
+with a single lock used by the POSIX mutex implementation. If the multicore device
+configuration is overridden, as below, and if POSIX mutexes are required, it is necessary 
+to manually add the locking unit to the configuration.
 The most important device is the Argo NoC. To enable it uncomment following lines
 in the configuration file:
 
@@ -755,7 +759,7 @@ int main() {
 \subsubsection{Shared Memory}
 
 The external shared memory is not held cache coherent with the core local data cache.
-There are two options how to exchange data between cores in shared memory:
+There are three options how to exchange data between cores in shared memory:
 
 (1) use uncached access to access fields as follows:
 
@@ -763,12 +767,15 @@ There are two options how to exchange data between cores in shared memory:
 volatile _UNCACHED static int field;
 \end{verbatim}
 
-or (2) invalidate the data cache. The data cache is per default configured as write-through.
+(2) invalidate the data cache. The data cache is per default configured as write-through.
 That means the main memory contains the latest change on a write. Therefore, to get those
 latest change into a core that wants to read those values the cache can be invalidated.
 
-\todo{Check if and how synchronization is implemented in the library.}
-
+(3) use POSIX mutexes, which are currently available in libcorethread instead of pthread.h. 
+By protecting the shared data with a mutex, i.e., only accessing the data after locking
+the mutex, the cores are guaranteed to see the most up-to-date value, as successfully 
+locking a mutex invalidates a core's data cache. The pattern for sharing data using the
+mutexes is therefore: lock the mutex, read/write the data, unlock the mutex.
 
 \subsubsection{On-chip Application}
 
