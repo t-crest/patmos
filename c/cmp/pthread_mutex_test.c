@@ -41,9 +41,6 @@ int main() {
   
   pthread_mutex_unlock(&mutex);
   
-  if(err != 0)
-    printf("mutex err %d\n",err);
-  
   work();
   
   for(int i = 1; i < cpucnt; i++) {
