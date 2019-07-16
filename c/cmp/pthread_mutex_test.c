@@ -34,12 +34,12 @@ int main() {
   printf("Started using %d threads\n",cpucnt);
   
   // No thread starts before all are initialized;
-  int err = pthread_mutex_lock(&mutex);
+  pthread_mutex_lock(&mutex);
   
   for(int i = 1; i < cpucnt; i++)
     corethread_create(i,&work,NULL);
   
-  err = pthread_mutex_unlock(&mutex);
+  pthread_mutex_unlock(&mutex);
   
   if(err != 0)
     printf("mutex err %d\n",err);
