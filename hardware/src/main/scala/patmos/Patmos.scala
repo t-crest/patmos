@@ -210,7 +210,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     dev match {
       // Address 0 reserved for Argo
       case "Argo" =>  cmpdevs(0) = Module(new argo.Argo(nrCores, wrapped=false, emulateBB=false))
-      case "Hardlock" => cmpdevs(1) = Module(new cmp.HardlockOCPWrapper(() => new cmp.Hardlock(nrCores, nrCores * 2)))
+      case "Hardlock" => cmpdevs(1) = Module(new cmp.HardlockOCPWrapper(() => new cmp.Hardlock(nrCores, 1)))
       case "SharedSPM" => cmpdevs(2) = Module(new cmp.SharedSPM(nrCores, (nrCores-1)*2*1024))
       case "OneWay" => cmpdevs(3) = Module(new cmp.OneWayOCPWrapper(nrCores))
       case "TdmArbiter" => cmpdevs(4) = Module(new cmp.TdmArbiter(nrCores))
