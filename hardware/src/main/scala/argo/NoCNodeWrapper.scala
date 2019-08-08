@@ -21,7 +21,7 @@ import patmos.Constants._
   */
 class NoCNodeDummy(argoConf: ArgoConfig, master: Boolean) extends Module {
   val io = new Bundle(){
-    val irq = Bits(width = 2).asOutput()
+    val irq = Output(Bits(width = 2))
     val run = Bool(INPUT)
     val supervisor = Bool(INPUT)
     val masterRun = Bool(OUTPUT)
@@ -86,7 +86,7 @@ class NoCNodeDummy(argoConf: ArgoConfig, master: Boolean) extends Module {
   */
 class NoCNodeWrapper(argoConf: ArgoConfig, master: Boolean) extends BlackBox {
   val io = new Bundle(){
-    val irq = Bits(width = 2).asOutput()
+    val irq = Output(Bits(width = 2))
     val run = Bool(INPUT)
     val supervisor = Bool(INPUT)
     val masterRun = Bool(OUTPUT)

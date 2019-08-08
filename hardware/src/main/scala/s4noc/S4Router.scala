@@ -32,8 +32,8 @@ class SingleChannel[T <: Data](dt: T) extends Bundle {
 }
 
 class Channel[T <: Data](dt: T) extends Bundle {
-  val out = new SingleChannel(dt).asOutput
-  val in = new SingleChannel(dt).asInput
+  val out = Output(new SingleChannel(dt))
+  val in = Input(new SingleChannel(dt))
 
   override def clone() = (new Channel(dt)).asInstanceOf[this.type]
 }

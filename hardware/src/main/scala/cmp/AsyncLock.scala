@@ -115,7 +115,7 @@ class AsyncLock(corecnt: Int, lckcnt: Int, fair: Boolean = false) extends Module
     val addr = io(i).M.Addr(log2Up(lckcnt)-1+2, 2)
     val acks = Bits(width = lckcnt)
     acks := 0.U
-    val blck = orR(acks)
+    val blck = acks.orR
 
     for (j <- 0 until lckcnt) {
       val reqReg = Reg(init = Bool(false))
