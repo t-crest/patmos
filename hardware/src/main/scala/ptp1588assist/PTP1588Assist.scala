@@ -7,8 +7,8 @@ import patmos.Constants._
 class PTP1588Assist(addrWidth: Int = ADDR_WIDTH, dataWidth: Int = DATA_WIDTH, clockFreq: Int = CLOCK_FREQ, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTime: BigInt = 0L, timeStep: Int = 25) extends Module{
   val io = new Bundle{
     val ocp = new OcpCoreSlavePort(addrWidth, dataWidth)
-    val ethMacRX = new MIIChannel().asInput()
-    val ethMacTX = new MIIChannel().asInput()
+    val ethMacRX = Input(new MIIChannel())
+    val ethMacTX = Input(new MIIChannel())
     val intrs = Vec.fill(3){Bool(OUTPUT)}
     val rtcPPS = Bool(OUTPUT)
     val rtcHexDisp = Vec.fill(8) {Bits(OUTPUT, 7)}
