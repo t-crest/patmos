@@ -208,7 +208,7 @@ class MCacheReplFifo() extends Module {
     hitReg := Bool(true) //start fetch, we have again a hit!
     wrPosReg := posReg
     //update free space
-    freeSpaceReg := freeSpaceReg - io.ctrlrepl.wData(MCACHE_SIZE_WIDTH,0) + sizeVec(nextIndexReg)
+    freeSpaceReg := freeSpaceReg - io.ctrlrepl.wData(MCACHE_SIZE_WIDTH,0).toSInt + sizeVec(nextIndexReg).toSInt
     //update tag fields
     posVec(nextIndexReg) := nextPosReg
     sizeVec(nextIndexReg) := io.ctrlrepl.wData(MCACHE_SIZE_WIDTH, 0)
@@ -224,7 +224,7 @@ class MCacheReplFifo() extends Module {
   }
   //free new space if still needed -> invalidate next method
   when (freeSpaceReg < SInt(0)) {
-    freeSpaceReg := freeSpaceReg + sizeVec(nextTagReg)
+    freeSpaceReg := freeSpaceReg + sizeVec(nextTagReg).toSInt
     sizeVec(nextTagReg) := UInt(0)
     validVec(nextTagReg) := Bool(false)
     nextTagReg := Mux(nextTagReg === UInt(METHOD_COUNT - 1), UInt(0), nextTagReg + UInt(1))
