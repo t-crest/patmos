@@ -127,8 +127,12 @@ int corethread_join(int core_id, void **retval) {
 #include <machine/patmos.h>
 
 // Assumes that the Hardlock is connected with at least 1 lock, used as a global lock
+#ifndef _HARDLOCK_LOCK
 #define _HARDLOCK_LOCK() do {asm volatile ("" : : : "memory"); *((_iodev_ptr_t) PATMOS_IO_HARDLOCK) = 1; asm volatile ("" : : : "memory");} while(0)
+#endif
+#ifndef _HARDLOCK_UNLOCK
 #define _HARDLOCK_UNLOCK() do {asm volatile ("" : : : "memory"); *((_iodev_ptr_t) PATMOS_IO_HARDLOCK) = 0; asm volatile ("" : : : "memory");} while(0)
+#endif
           
 /* Mutex Initialization Attributes, P1003.1c/Draft 10, p. 81 */
 
