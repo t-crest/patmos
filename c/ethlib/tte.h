@@ -16,6 +16,8 @@
 
 #define CYCLES_PER_UNIT 8000
 
+#define TTETIME_TO_NS 65536
+
 unsigned long long send_times[2000];
 
 unsigned char is_pcf(unsigned int addr);

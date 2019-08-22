@@ -187,7 +187,7 @@ int udp_verify_checksum(unsigned int pkt_addr){
 __attribute__((noinline))
 int udp_send(unsigned int tx_addr, unsigned int rx_addr, unsigned char destination_ip[], unsigned short source_port, unsigned short destination_port, unsigned char data[], unsigned short data_length, long long timeout){
 	//Resolve the ip address
-	unsigned char destination_mac[6];
+	unsigned char destination_mac[6] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
 	if (arp_table_search(destination_ip, destination_mac) == 0){
 		if (arp_resolve_ip(rx_addr, tx_addr, destination_ip, timeout) == 0){
 			return 0;

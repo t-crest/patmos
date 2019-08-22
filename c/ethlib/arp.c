@@ -63,6 +63,7 @@ void arp_table_init(){
 
 //This function searches in the ARP table for the given IP. If it exists it returns 1 and the MAC. If not it returns 0.
 int arp_table_search(unsigned char ip_addr[], unsigned char mac_addr[]){
+	#pragma loopbound min ARP_TABLE_SIZE max ARP_TABLE_SIZE
 	for (int i=0; i<ARP_TABLE_SIZE; i++){
 		if (arp_table[i].used == 1 && arp_table[i].ip_addr[0]==ip_addr[0] && arp_table[i].ip_addr[1]==ip_addr[1] && arp_table[i].ip_addr[2]==ip_addr[2] && arp_table[i].ip_addr[3]==ip_addr[3]){
 			for(int j=0; j<6; j++){
@@ -77,6 +78,7 @@ int arp_table_search(unsigned char ip_addr[], unsigned char mac_addr[]){
 //This function remove ARP table entries for the given IP. If something is removed it returns 1. If not it returns 0.
 int arp_table_delete_entry(unsigned char ip_addr[]){
 	int ans = 0;	
+	#pragma loopbound min ARP_TABLE_SIZE max ARP_TABLE_SIZE
 	for (int i=0; i<ARP_TABLE_SIZE; i++){
 		if (arp_table[i].used == 1 && arp_table[i].ip_addr[0]==ip_addr[0] && arp_table[i].ip_addr[1]==ip_addr[1] && arp_table[i].ip_addr[2]==ip_addr[2] && arp_table[i].ip_addr[3]==ip_addr[3]){
 			arp_table[i].used=0;
@@ -93,6 +95,7 @@ void arp_table_new_entry(unsigned char ip_addr[], unsigned char mac_addr[]){
 	if(arp_table_search(ip_addr, previous_mac) == 1){
 		arp_table_delete_entry(ip_addr);
 	}
+	#pragma loopbound min 1 max ARP_TABLE_SIZE
 	while(arp_table[i].used == 1 && i<ARP_TABLE_SIZE){
 		i++;
 	}
@@ -100,9 +103,11 @@ void arp_table_new_entry(unsigned char ip_addr[], unsigned char mac_addr[]){
 		i = 0;//table is full
 	}
 	arp_table[i].used = 1;
+	#pragma loopbound min 4 max 4
 	for(int j=0; j<4; j++){
 		arp_table[i].ip_addr[j] = ip_addr[j];
 	}
+	#pragma loopbound min 6 max 6
 	for(int j=0; j<6; j++){
 		arp_table[i].mac_addr[j] = mac_addr[j];
 	}
@@ -234,6 +239,7 @@ unsigned int arp_build_request(unsigned int tx_addr, unsigned char target_ip[]){
 	unsigned int frame_length = 42;//ARP frames have a fixed length
 	
 	//MAC addrs
+	#pragma loopbound min 6 max 6
 	for (int i=0; i<6; i++){
 		mem_iowr_byte(tx_addr + i, 0xFF);//ETH header broadcast
 		mem_iowr_byte(tx_addr + 6 + i, my_mac[i]);//ETH header mymac
@@ -241,6 +247,7 @@ unsigned int arp_build_request(unsigned int tx_addr, unsigned char target_ip[]){
 		mem_iowr_byte(tx_addr + 32 + i, 0x00);//Clear target
 	}
 	//IP addrs
+	#pragma loopbound min 4 max 4
 	for (int i=0; i<4; i++){
 		mem_iowr_byte(tx_addr + 28 + i, my_ip[i]);//Sender myip
 		mem_iowr_byte(tx_addr + 38 + i, target_ip[i]);//Target ip

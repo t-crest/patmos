@@ -23,21 +23,20 @@
 #define PTP_RXCHAN_TIMESTAMP_NS(base)     *((volatile _SPM unsigned int *) (base+0xE000))
 #define PTP_RXCHAN_TIMESTAMP_SEC(base)    *((volatile _SPM unsigned int *) (base+0xE004))
 #define PTP_RXCHAN_STATUS(base)           *((volatile _SPM unsigned int *) (base+0xE008))
-#define PTP_RXCHAN_INTERRUPT_FILTER(base) *((volatile _SPM unsigned int *) (base+0xE00C))
+#define PTP_RXCHAN_DSTMACLO_FILTER(base)    *((volatile _SPM unsigned int *) (base+0xE00C))
+#define PTP_RXCHAN_DSTMACHI_FILTER(base)    *((volatile _SPM unsigned int *) (base+0xE010))
 
 #define PTP_TXCHAN_TIMESTAMP_NS(base)     *((volatile _SPM unsigned int *) (base+0xE400))
 #define PTP_TXCHAN_TIMESTAMP_SEC(base)    *((volatile _SPM unsigned int *) (base+0xE404))
 #define PTP_TXCHAN_STATUS(base)           *((volatile _SPM unsigned int *) (base+0xE408))
-#define PTP_TXCHAN_INTERRUPT_FILTER(base) *((volatile _SPM unsigned int *) (base+0xE40C))
+#define PTP_TXCHAN_DSTMACLO_FILTER(base)    *((volatile _SPM unsigned int *) (base+0xE40C))
+#define PTP_TXCHAN_DSTMACHI_FILTER(base)    *((volatile _SPM unsigned int *) (base+0xE410))
 
 #define RTC_TIME_NS(base)       *((volatile _SPM unsigned int *) (base+0xE800))
 #define RTC_TIME_SEC(base)      *((volatile _SPM unsigned int *) (base+0xE804))
 #define RTC_PERIOD_LO(base)     *((volatile _SPM unsigned int *) (base+0xE810))
 #define RTC_PERIOD_HI(base)     *((volatile _SPM unsigned int *) (base+0xE814))
 #define RTC_ADJUST_OFFSET(base) *((volatile _SPM signed int *)   (base+0xE820))
-
-#define PTP_MASTER 1
-#define PTP_SLAVE 0
 
 //Protocol types
 #define PTP_EVENT_PORT 319
@@ -74,13 +73,16 @@
 
 //Time in us
 #define PTP_SYNC_PERIOD 3906
-#define PTP_SYNC_TIMEOUT 0
+#define PTP_SYNC_TIMEOUT 1000000
 #define PTP_REQ_TIMEOUT 10000
 #define PTP_RPLY_TIMEOUT 10000
 #define NS_TO_SEC 0.000000001
 #define NS_TO_USEC 0.001
 #define USEC_TO_NS 1000
 #define USEC_TO_SEC 0.000001
+#define MS_TO_NS 1000000
+#define MS_TO_USEC 1000
+#define MS_TO_SEC 0.001
 #define SEC_TO_NS 1000000000
 #define SEC_TO_USEC 1000000
 #define SEC_TO_HOUR 0.000277777778
@@ -95,11 +97,14 @@
 #define PTP_DRIFT_AMOUNT(syncInterval) (int) (syncInterval*DRIFT_RATE/SEC_TO_USEC)*USEC_TO_NS
 
 //Constants & Options
+#define PTP_DELAY_FOLLOWUP 500000
 #define USE_HW_TIMESTAMP
 #define PTP_RATE_CONTROL 1
 #define PTP_CORRECTION_EN 1
 
 static const unsigned SYNC_INTERVAL_OPTIONS[] = {1000000, 500000, 250000, 125000, 62500, 31250, 15625, 7812, 3906, 1935, 976};
+
+enum ptp_role{PTP_MASTER, PTP_SLAVE};
 
 typedef struct {
 	unsigned char transportSpec_msgType;
@@ -116,6 +121,12 @@ typedef struct {
 	unsigned char controlField;
 	unsigned char logMessageInterval;
 } PTPv2MsgHeader;
+
+
+typedef struct {
+  unsigned int seconds;
+  unsigned int nanoseconds;
+} PTPv2Time;
 
 typedef struct {
 	unsigned int seconds;
@@ -151,6 +162,8 @@ typedef struct{
   unsigned char mac[6];
   unsigned char clockId[8];
   unsigned short id;
+  unsigned int portRole;
+	char syncInterval;
 } PTPPortInfo;
 
 PTPv2Msg txPTPMsg;
@@ -165,10 +178,13 @@ PTPPortInfo lastSlaveInfo;
 ///////////////////////////////////////////////////////////////
 
 //Intialiaze PTP port
-PTPPortInfo ptpv2_intialize_local_port(unsigned int eth_base, unsigned char mac[6], unsigned char ip[4], unsigned short portId);
+PTPPortInfo ptpv2_intialize_local_port(unsigned int eth_base, int portRole, unsigned char mac[6], unsigned char ip[4], unsigned short portId, int syncPeriod);
+
+//Process a received PTPV2 message on a specific port
+int ptpv2_process_received(PTPPortInfo ptpPortInfo, unsigned tx_addr, unsigned rx_addr);
 
 //Issues a PTPv2 Message
-int ptpv2_issue_msg(PTPPortInfo ptpPortInfo, unsigned tx_addr, unsigned rx_addr, unsigned char destination_mac[6], unsigned char destination_ip[4], unsigned seqId, unsigned msgType, unsigned char syncInterval);
+int ptpv2_issue_msg(PTPPortInfo ptpPortInfo, unsigned tx_addr, unsigned rx_addr, unsigned char destination_mac[6], unsigned char destination_ip[4], unsigned seqId, unsigned msgType);
 
 //Handles a PTPv2 Message
 int ptpv2_handle_msg(PTPPortInfo ptpPortInfo, unsigned tx_addr, unsigned rx_addr, unsigned char source_mac[6]);

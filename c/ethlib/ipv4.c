@@ -64,8 +64,8 @@ char ipv4_get_type_of_service(unsigned int pkt_addr){
 }
 
 //This function returns the IPv4 length of a received packet.
-char ipv4_get_length(unsigned int pkt_addr){
-	unsigned int length;
+unsigned short ipv4_get_length(unsigned int pkt_addr){
+	unsigned short length;
 	length = mem_iord_byte(pkt_addr + 14 + 2); //Upper Byte
 	length = length << 8;
 	length = length + mem_iord_byte(pkt_addr + 14 + 3); //Lowe Byte

@@ -77,7 +77,7 @@ unsigned int icmp_build_ping_reply(unsigned int rx_addr, unsigned int tx_addr){
 		}
 	} 
 	//Swap MAC addrs
-	#pragma loopbound min 4 max 4
+	#pragma loopbound min 6 max 6
 	for (int i=0; i<6; i++){
 		mem_iowr_byte(tx_addr + i, mem_iord_byte(tx_addr+6+i));
 		mem_iowr_byte(tx_addr + 6 + i, my_mac[i]);

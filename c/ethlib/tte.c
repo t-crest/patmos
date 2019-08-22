@@ -60,8 +60,12 @@ void tte_wait_for_message(unsigned long long * receive_point){
 	do{
 		*receive_point = *(_iodev_ptr_t)(__PATMOS_TIMER_LOCLK); //to avoid delay error
 	}while ((eth_iord(0x04) & 0x4)==0);
+	// unsigned long long ts = ((SEC_TO_NS * PTP_RXCHAN_TIMESTAMP_SEC(PATMOS_IO_ETH)) + PTP_RXCHAN_TIMESTAMP_NS(PATMOS_IO_ETH))/12;
+	// printf("%llu, %llu\n", ts, *receive_point);
+	// PTP_RXCHAN_STATUS(PATMOS_IO_ETH) = 0x1; //Clear PTP flag
 }
 
+__attribute__((noinline))
 void tte_clear_free_rx_buffer(unsigned int addr){
 	eth_iowr(0x04, 0x00000004);
 	unsigned cur_data = eth_iord(addr);
@@ -84,6 +88,7 @@ unsigned char tte_receive_log(unsigned int addr,unsigned long long rec_start,sig
 	return 3;
 }
 
+__attribute__((noinline))
 unsigned char tte_receive(unsigned int addr,unsigned long long rec_start){ //0 for failed pcf, 1 for success pcf, 2 for tte, 3 otherwise
 	if(is_pcf(addr)){
 	  if((mem_iord_byte(addr + 28)) == 0x2){ //integration frame
@@ -139,9 +144,9 @@ int handle_integration_frame_log(unsigned int addr,unsigned long long receive_pi
 		
 		int_err = int_err + err;
 
-		start_time = start_time + err;
+		// start_time = start_time + err;
 
-		// start_time = start_time + (0.3*err) + (0.7*int_err) + (0.0*der_err);
+		start_time = start_time + (300*err >> 10) + (700*int_err >> 10);
 		
 		if(integration_cycle==0){
 		  schedplace=0;
@@ -157,53 +162,59 @@ int handle_integration_frame_log(unsigned int addr,unsigned long long receive_pi
 	return 0;
 }
 
-// int handle_integration_frame(unsigned int addr,unsigned long long receive_pit){
-// 	unsigned long long permanence_pit;
-// 	unsigned long long sched_rec_pit;
-// 	unsigned long long trans_clock;
+__attribute__((noinline))
+int handle_integration_frame(unsigned int addr,unsigned long long receive_pit){
+	unsigned long long permanence_pit;
+	unsigned long long sched_rec_pit;
+	unsigned long long trans_clock;
+	signed long long err;
 
-// 	trans_clock = mem_iord_byte(addr + 34);
-// 	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 35));
-// 	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 36));
-// 	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 37));
-// 	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 38));
-// 	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 39));
-// 	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 40));
-// 	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 41));
-// 	trans_clock = transClk_to_clk(trans_clock);
+	trans_clock = mem_iord_byte(addr + 34);
+	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 35));
+	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 36));
+	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 37));
+	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 38));
+	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 39));
+	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 40));
+	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 41));
+	trans_clock = transClk_to_clk(trans_clock);
 
-// 	integration_cycle = mem_iord_byte(addr + 14);
-// 	integration_cycle = (integration_cycle << 8) | (mem_iord_byte(addr + 15));
-// 	integration_cycle = (integration_cycle << 8) | (mem_iord_byte(addr + 16));
-// 	integration_cycle = (integration_cycle << 8) | (mem_iord_byte(addr + 17));
+	integration_cycle = mem_iord_byte(addr + 14);
+	integration_cycle = (integration_cycle << 8) | (mem_iord_byte(addr + 15));
+	integration_cycle = (integration_cycle << 8) | (mem_iord_byte(addr + 16));
+	integration_cycle = (integration_cycle << 8) | (mem_iord_byte(addr + 17));
 
-// 	permanence_pit = receive_pit + (TTE_MAX_TRANS_DELAY-trans_clock); 
+	permanence_pit = receive_pit + (TTE_MAX_TRANS_DELAY-trans_clock); 
 
-// 	if(start_time==0){
-// 		start_time=permanence_pit-(2*TTE_MAX_TRANS_DELAY + TTE_COMP_DELAY);
-// 	}
+	if(start_time==0){
+		start_time=permanence_pit-(2*TTE_MAX_TRANS_DELAY + TTE_COMP_DELAY);
+	}
 
-// 	sched_rec_pit = start_time + 2*TTE_MAX_TRANS_DELAY + TTE_COMP_DELAY;
+	sched_rec_pit = start_time + 2*TTE_MAX_TRANS_DELAY + TTE_COMP_DELAY;
 
-// 	if(permanence_pit>(sched_rec_pit-TTE_PRECISION) &&
-// 	    permanence_pit<(sched_rec_pit+TTE_PRECISION)){
+	err=(permanence_pit - sched_rec_pit);
+	
+	if(permanence_pit>(sched_rec_pit-TTE_PRECISION) &&
+	    permanence_pit<(sched_rec_pit+TTE_PRECISION)){
+		
+		// int_err = int_err + err;
+		start_time = start_time+err;
+		// start_time = start_time + (300*err >> 10) + (700*int_err >> 10);
 
-// 		start_time = start_time+(permanence_pit - sched_rec_pit);
+		if(integration_cycle==0){
+		  schedplace=0;
+		  timer_time = start_time+(CYCLES_PER_UNIT*startTick);
+		  arm_clock_timer(timer_time);
+		}
+		start_time += integration_period;
 
-// 		if(integration_cycle==0){
-// 		  schedplace=0;
-// 		  timer_time = start_time+(CYCLES_PER_UNIT*startTick);
-// 		  arm_clock_timer(timer_time);
-// 		}
-// 		start_time += integration_period;
-
-// 		return 1;
-// 	}
-// 	else{
-// 	    start_time = 0;
-// 	}
-// 	return 0;
-// }
+		return 1;
+	}
+	else{
+	    start_time = 0;
+	}
+	return 0;
+}
 
 unsigned long long transClk_to_clk (unsigned long long transClk){
         return ((transClk*10)>>16)*536871>>26; //*536871>>26 is almost equivalent to /125
@@ -219,6 +230,7 @@ unsigned char is_tte(unsigned int addr){
 	return 1;
 }
 
+__attribute__((noinline))
 void tte_initialize(unsigned int int_period, unsigned int cl_period, unsigned char CT[], unsigned char VLcount,
     unsigned int max_delay, unsigned int comp_delay, unsigned int precision){ 
 	integration_period=int_period*CYCLES_PER_UNIT;
@@ -244,6 +256,7 @@ void tte_initialize(unsigned int int_period, unsigned int cl_period, unsigned ch
 	return;
 }
 
+__attribute__((noinline))
 void tte_init_VL(unsigned char i, unsigned int start, unsigned int period){
 	VLarray[i].startTime=start;
 	VLarray[i].period=period;
@@ -258,6 +271,7 @@ void tte_init_VL(unsigned char i, unsigned int start, unsigned int period){
 	}
 }
 
+__attribute__((noinline))
 void tte_generate_schedule(){
 	unsigned int VLcurrent[VLsize];
 	unsigned int min=cluster_period;
@@ -321,6 +335,7 @@ void tte_start_ticking(char log_sending,char enable_int, void (int_handler)(void
   	start_time = 0; 
 }
 
+__attribute__((noinline))
 void tte_prepare_header(unsigned int tx_addr, unsigned char VL[], unsigned char ethType[]){
   #pragma loopbound min 4 max 4
   for(int i=0; i<4; i++){
@@ -338,6 +353,7 @@ void tte_prepare_header(unsigned int tx_addr, unsigned char VL[], unsigned char 
   mem_iowr_byte(tx_addr + 13, ethType[1]);
 }
 
+__attribute__((noinline))
 void tte_prepare_data(unsigned int tx_addr, unsigned char VL[], unsigned char data[], int length){
   unsigned char ethType[2];
   ethType[0]=((length-14)>>8) & 0xFF;
@@ -387,6 +403,7 @@ void tte_stop_ticking(){
   free(VLarray);
 }
 
+__attribute__((noinline))
 char tte_schedule_send(unsigned int addr,unsigned int size,unsigned char i){
   if(VLarray[i].queue[VLarray[i].addplace]==0){
     VLarray[i].queue[VLarray[i].addplace]=addr;
@@ -400,6 +417,7 @@ char tte_schedule_send(unsigned int addr,unsigned int size,unsigned char i){
   return 0; //scheduling error
 }
 
+__attribute__((noinline))
 void tte_send_data(unsigned char i){ 
   int tx_addr=VLarray[i].queue[VLarray[i].rmplace];
   VLarray[i].queue[VLarray[i].rmplace]=0;

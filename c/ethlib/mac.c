@@ -44,8 +44,8 @@
 unsigned char my_mac[6] = {0x00, 0x80, 0x6e, 0xF0, 0xDA, 0x42};
 
 enum eth_protocol mac_packet_type(unsigned int addr){
+	unsigned char b = mem_iord_byte(addr + 13);
 	if (mem_iord_byte(addr + 12) == 0x08){
-		unsigned char b = mem_iord_byte(addr + 13);
 		if(b == 0x00){//IP
 			b = mem_iord_byte(addr + 23);
 			if (b == 0x01){
@@ -62,18 +62,39 @@ enum eth_protocol mac_packet_type(unsigned int addr){
 		}else{
 			return UNSUPPORTED;
 		}
-	} else if(mem_iord_byte(addr + 12) == 0x88 && mem_iord_byte(addr + 13) == 0xF7){
-		return PTP;	
+	} else if(mem_iord_byte(addr + 12) == 0x88){
+		if (b == 0xc) {
+			return LLDP;
+		}
+		else if(b == 0xf7) {
+			return PTP;
+		}	
+	} else if(mem_iord_byte(addr + 12) == 0x89){
+		if(b == 0x1d){
+			return TTE_PCF;
+		}
 	}
 	return UNSUPPORTED;
 }
 
 //This function retrieves the mac of the sender
-void mac_addr_sender(unsigned int rx_addr, unsigned char source_mac[]){
-	int i;
+unsigned char* mac_addr_sender(unsigned int rx_addr){
+	unsigned char src_mac[6];
+	#pragma loopbound min 6 max 6
 	for (int i=0; i<6; i++){
-		source_mac[i] = mem_iord_byte(rx_addr + 6 + i);//ETH header mymac
+		src_mac[i] = mem_iord_byte(rx_addr + 6 + i);//ETH header mymac
 	}
+	return src_mac;
+}
+
+//This function retrieves the mac of the destination
+unsigned char* mac_addr_dest(unsigned int rx_addr){
+	unsigned char dst_mac[6];
+	#pragma loopbound min 6 max 6
+	for (int i=0; i<6; i++){
+		dst_mac[i] = mem_iord_byte(rx_addr + i);//ETH header mymac
+	}
+	return dst_mac;
 }
 
 ///////////////////////////////////////////////////////////////
