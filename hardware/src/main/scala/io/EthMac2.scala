@@ -11,7 +11,7 @@ package io
 
 import Chisel._
 import ocp._
-
+import patmos.Constants.CLOCK_FREQ
 import ptp1588assist._
 
 object EthMac2 extends DeviceObject {
@@ -21,7 +21,7 @@ object EthMac2 extends DeviceObject {
   var initialTime = 0L
   var secondsWidth = 32
   var nanoWidth = 32
-  var timeStep = 25
+  var ppsDuration = 25
   val currentTime: Long = System.currentTimeMillis / 1000
 
   def init(params : Map[String, String]) = {
@@ -32,13 +32,13 @@ object EthMac2 extends DeviceObject {
       initialTime = currentTime
       secondsWidth = getPosIntParam(params, "secondsWidth")
       nanoWidth = getPosIntParam(params, "nanoWidth")
-      timeStep = getPosIntParam(params, "timeStep")
+      ppsDuration = getPosIntParam(params, "ppsDuration")
     }
   }
 
   def create(params: Map[String, String]) : EthMac2 = {
     if(withPTP)
-      Module(new EthMac2(extAddrWidth-1, dataWidth, withPTP, secondsWidth, nanoWidth, initialTime, timeStep))
+      Module(new EthMac2(extAddrWidth-1, dataWidth, withPTP, secondsWidth, nanoWidth, initialTime, ppsDuration))
     else
       Module(new EthMac2(extAddrWidth, dataWidth))
   }
@@ -80,7 +80,7 @@ object EthMac2 extends DeviceObject {
   }
 
   trait Intrs{
-    val ethMac2Intrs = Vec.fill(2) { Bool(OUTPUT) }
+    val ethMac2Intrs = Vec.fill(3) { Bool(OUTPUT) }
   }
 }
 
@@ -131,7 +131,7 @@ class EthMac2BB(extAddrWidth : Int = 32, dataWidth : Int = 32) extends BlackBox 
   io.S.Data := dataReg
 }
 
-class EthMac2(extAddrWidth: Int = 32, dataWidth: Int = 32, withPTP: Boolean = false, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTime: BigInt = 0L, timeStep: Int = 25) extends CoreDevice() {
+class EthMac2(extAddrWidth: Int = 32, dataWidth: Int = 32, withPTP: Boolean = false, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTime: BigInt = 0L, ppsDuration: Int = 10) extends CoreDevice() {
   override val io = new CoreDeviceIO() with EthMac2.Pins with EthMac2.Intrs
 
   val eth = Module(new EthMac2BB(extAddrWidth, dataWidth))
@@ -148,7 +148,7 @@ class EthMac2(extAddrWidth: Int = 32, dataWidth: Int = 32, withPTP: Boolean = fa
   //Check for PTP features
   if(withPTP) {    
     println("EthMac2 w/ PTP1588 hardware (eth_addrWidth="+extAddrWidth+", ptp_addrWidth="+(extAddrWidth)+")")
-    val ptp = Module(new PTP1588Assist(addrWidth = extAddrWidth, dataWidth = dataWidth, secondsWidth = secondsWidth, nanoWidth = nanoWidth, initialTime = initialTime, timeStep = timeStep))
+    val ptp = Module(new PTP1588Assist(extAddrWidth, dataWidth, CLOCK_FREQ, secondsWidth, nanoWidth, initialTime, ppsDuration))
     val masterReg = Reg(next = io.ocp.M)
     eth.io.M.Data := masterReg.Data
     eth.io.M.ByteEn := masterReg.ByteEn
@@ -187,12 +187,14 @@ class EthMac2(extAddrWidth: Int = 32, dataWidth: Int = 32, withPTP: Boolean = fa
     ptp.io.ethMacTX.err := eth.io.ethMac2Pins.mtxerr_pad_o
     io.ethMac2Pins.ptpPPS := ptp.io.rtcPPS
     io.ethMac2Intrs(1) := ptp.io.intrs(0)
+    io.ethMac2Intrs(2) := ptp.io.intrs(1)
   } else {
     println("EthMac2 (eth_addrWidth="+extAddrWidth+")")
     eth.io.M <> io.ocp.M
     eth.io.S <> io.ocp.S
     io.ethMac2Pins.ptpPPS := false.B
     io.ethMac2Intrs(1) := false.B
+    io.ethMac2Intrs(2) := false.B
   }
 }
 

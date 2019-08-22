@@ -36,11 +36,13 @@ class RTCTester(dut: RTC, testCycles: Int) extends Tester(dut) {
 object RTCTester extends App {
   private val pathToVCD = "generated/" + this.getClass.getSimpleName.dropRight(1)
   private val nameOfVCD = this.getClass.getSimpleName.dropRight(7) + ".vcd"
-
-  chiselMainTest(Array("--genHarness", "--test", "--backend", "c",
-    "--compile", "--vcd", "--targetDir", "generated/" + this.getClass.getSimpleName.dropRight(1)),
-    () => Module(new RTC(clockFreq = 80000000, secondsWidth = 32, nanoWidth = 32, initialTime = 0x5ac385dcL, timeStep = 100))) {
-    dut => new RTCTester(dut, testCycles = 10000)
+  try{
+    chiselMainTest(Array("--genHarness", "--test", "--backend", "c",
+      "--compile", "--vcd", "--targetDir", "generated/" + this.getClass.getSimpleName.dropRight(1)),
+      () => Module(new RTC(80000000, 32, 32, 0x5ac385dcL, 100))) {
+      dut => new RTCTester(dut, testCycles = 10000)
+    }
+  } finally {
+    "gtkwave " + pathToVCD + "/" + nameOfVCD + " " + pathToVCD + "/" + "view.sav" !
   }
-  "gtkwave " + pathToVCD + "/" + nameOfVCD + " " + pathToVCD + "/" + "view.sav" !
 }

@@ -27,10 +27,6 @@ object StandaloneRTC extends DeviceObject {
       val hexDisp = Vec.fill(8) {Bits(OUTPUT, 7)}
     }
   }
-
-  trait Intrs{
-    val periodIntr = Bool(OUTPUT)
-  }
 }
 
 class StandaloneRTC(secondsWidth: Int = 40, nanoWidth: Int = 24, initialTime: BigInt = 0L, timeStep: Int = 25) extends CoreDevice() {
@@ -99,7 +95,6 @@ class StandaloneRTC(secondsWidth: Int = 40, nanoWidth: Int = 24, initialTime: Bi
 
   val rtc = Module(new RTC(CLOCK_FREQ, secondsWidth, nanoWidth, initialTime, timeStep))
   rtc.io.ocp <> io.ocp
-  io.periodIntr := rtc.io.periodIntr
 
 //  io.standaloneRTCPins.hexDisp.setName("io_sevenSegmentDisplayPins_hexDisp")
 

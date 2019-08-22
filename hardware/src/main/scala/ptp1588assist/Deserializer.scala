@@ -14,7 +14,12 @@ class Deserializer(msbFirst: Boolean = false, inputWidth: Int = 4, outputWidth: 
         val done = Bool(OUTPUT)
     }
 
+    val SHIFT_AMOUNT = (outputWidth / inputWidth).U - 1.U
+
     val shiftReg = Reg(init = Bits(0, width = outputWidth))
+    val countReg = Reg(init = UInt(0, width=log2Floor(outputWidth/inputWidth)+1))
+    val dataReg = Reg(init = Bits(0, width = outputWidth))
+    val doneReg = Reg(init = Bool(false))
 
     // Shift-register
     when(io.clr) {
@@ -29,22 +34,21 @@ class Deserializer(msbFirst: Boolean = false, inputWidth: Int = 4, outputWidth: 
         }
     }
 
-    val countReg = Reg(init = UInt((outputWidth/inputWidth-1), width=log2Floor(outputWidth/inputWidth)+1))
-    val doneReg = Reg(init = Bool(false))
-
     // Shift Counter
     when(io.clr) {
-        countReg := (outputWidth / inputWidth - 1).U
-        doneReg := false.B
+        countReg := 0.U
     } .elsewhen(io.en) {
-        when(countReg === 0.U) {
-            countReg := (outputWidth / inputWidth - 1).U
-            doneReg := true.B
+        when(countReg === SHIFT_AMOUNT) {
+            countReg := 0.U
         }   .otherwise {
-            countReg := countReg - 1.U
-            doneReg := false.B
+            countReg := countReg + 1.U
         }
-    } .elsewhen(doneReg) {
+    }
+
+    // Flags
+    when(countReg === SHIFT_AMOUNT && io.en){
+        doneReg := true.B
+    }.otherwise {
         doneReg := false.B
     }
 

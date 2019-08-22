@@ -4,12 +4,12 @@ import Chisel._
 import ocp._
 import patmos.Constants._
 
-class PTP1588Assist(addrWidth: Int = ADDR_WIDTH, dataWidth: Int = DATA_WIDTH, clockFreq: Int = CLOCK_FREQ, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTime: BigInt = 0L, timeStep: Int = 25) extends Module{
+class PTP1588Assist(addrWidth: Int = ADDR_WIDTH, dataWidth: Int = DATA_WIDTH, clockFreq: Int = CLOCK_FREQ, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTime: BigInt = 0L, ppsDuration: Int = 10) extends Module{
   val io = new Bundle{
     val ocp = new OcpCoreSlavePort(addrWidth, dataWidth)
-    val ethMacRX = new MIIChannel().asInput()
-    val ethMacTX = new MIIChannel().asInput()
-    val intrs = Vec.fill(3){Bool(OUTPUT)}
+    val ethMacRX = new MIIChannel().asInput
+    val ethMacTX = new MIIChannel().asInput
+    val intrs = Vec.fill(2){Bool(OUTPUT)}
     val rtcPPS = Bool(OUTPUT)
     val rtcHexDisp = Vec.fill(8) {Bits(OUTPUT, 7)}
     val ledPHY = Bits(OUTPUT, width=1)
@@ -19,7 +19,7 @@ class PTP1588Assist(addrWidth: Int = ADDR_WIDTH, dataWidth: Int = DATA_WIDTH, cl
   }
 
   // Connections
-  val rtc = Module(new RTC(clockFreq, secondsWidth, nanoWidth, initialTime, timeStep))
+  val rtc = Module(new RTC(clockFreq, secondsWidth, nanoWidth, initialTime, ppsDuration))
 
   val tsuRx = Module(new MIITimestampUnit(secondsWidth+nanoWidth))
   tsuRx.io.miiChannel <> io.ethMacRX
@@ -72,7 +72,7 @@ class PTP1588Assist(addrWidth: Int = ADDR_WIDTH, dataWidth: Int = DATA_WIDTH, cl
   }
 
   // Interrupts
-  io.intrs := Cat(tsuTx.io.ptpValid, tsuRx.io.ptpValid, rtc.io.periodIntr)
+  io.intrs := Cat(tsuTx.io.ptpValid, tsuRx.io.ptpValid)
 
   // HEX Decode hardware
   def sevenSegBCDDecode(data : Bits, segmentPolarity: Int) : Bits = {

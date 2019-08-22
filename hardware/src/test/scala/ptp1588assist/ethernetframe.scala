@@ -15,6 +15,9 @@ abstract class EthernetFrame{
   val dstMac : Array[Byte]
   val srcMac : Array[Byte]
   val ethType : Array[Byte]
+
+  val rawData : Array[Byte]
+
   val ipHeader : Array[Byte]
   val udpHeader : Array[Byte]
   val ptpHeader : Array[Byte]
@@ -28,6 +31,9 @@ abstract class EthernetFrame{
   def dstMacNibbles : Array[Int] = dataBytesToNibbles(dstMac, msbFirst = false)
   def srcMacNibbles : Array[Int] = dataBytesToNibbles(srcMac, msbFirst = false)
   def ethTypeNibbles : Array[Int] = dataBytesToNibbles(ethType, msbFirst = false)
+
+  def rawDataNibbles : Array[Int] = dataBytesToNibbles(rawData, msbFirst = false)
+
   def ipHeaderNibbles : Array[Int] = dataBytesToNibbles(ipHeader, msbFirst = false)
   def udpHeaderNibbles : Array[Int] = dataBytesToNibbles(udpHeader, msbFirst = false)
   def ptpHeaderNibbles : Array[Int] = dataBytesToNibbles(ptpHeader, msbFirst = false)
@@ -101,6 +107,7 @@ object EthernetTesting{
     override val ptpSuffix: Array[Byte] = toBytes(0x00)
     override val fcs: Array[Byte] = toBytes(0x00)
     override val igp: Array[Byte] = toBytes(0x00)
+    override val rawData : Array[Byte] = ipHeader ++ udpHeader ++ ptpHeader ++ ptpBody ++ ptpSuffix ++ fcs ++ igp
   }
 
   val mockupPTPVLANFrameOverIpUDP = new EthernetFrame {
@@ -121,6 +128,8 @@ object EthernetTesting{
     override val ptpSuffix: Array[Byte] = toBytes(0x00)
     override val fcs: Array[Byte] = toBytes(0x00)
     override val igp: Array[Byte] = toBytes(0x00)
+
+    override val rawData : Array[Byte] = ipHeader ++ udpHeader ++ ptpHeader ++ ptpBody ++ ptpSuffix ++ fcs ++ igp
   }
 
   val mockupPTPEthFrameOverIpUDP = new EthernetFrame {
@@ -141,6 +150,24 @@ object EthernetTesting{
     override val ptpSuffix: Array[Byte] = toBytes(0x00)
     override val fcs: Array[Byte] = toBytes(0x00)
     override val igp: Array[Byte] = toBytes(0x00)
+    override val rawData : Array[Byte] = ipHeader ++ udpHeader ++ ptpHeader ++ ptpBody ++ ptpSuffix ++ fcs ++ igp
+  }
+
+  val mockupTTEPCFFrame = new EthernetFrame {
+    override val preamble: Array[Byte] = toBytes(0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0xD5) //only 6 bytes preamble + sfd 
+
+    override val dstMac: Array[Byte] = toBytes(0xAB, 0xAD, 0xBA, 0xBE, 0x0F, 0xCE)
+    override val srcMac: Array[Byte] = toBytes(0x00, 0x11, 0x22, 0x33, 0x44, 0x55)
+    override val ethType: Array[Byte] = toBytes(0x89, 0x1D)
+    override val rawData: Array[Byte] = toBytes(0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x02, 0x00,
+                                                  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1b, 0xc0, 0x00, 0x00)
+    override val fcs: Array[Byte] = Array.emptyByteArray
+    override val igp: Array[Byte] = Array.emptyByteArray
+    override val ipHeader: Array[Byte] = Array.emptyByteArray
+    override val udpHeader: Array[Byte] = Array.emptyByteArray
+    override val ptpHeader: Array[Byte] = Array.emptyByteArray
+    override val ptpBody: Array[Byte] = Array.emptyByteArray
+    override val ptpSuffix: Array[Byte] = Array.emptyByteArray
   }
 
 }

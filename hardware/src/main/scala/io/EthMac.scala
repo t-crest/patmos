@@ -11,7 +11,7 @@ package io
 
 import Chisel._
 import ocp._
-
+import patmos.Constants.CLOCK_FREQ
 import ptp1588assist._
 
 object EthMac extends DeviceObject {
@@ -21,7 +21,7 @@ object EthMac extends DeviceObject {
   var initialTime = 0L
   var secondsWidth = 32
   var nanoWidth = 32
-  var timeStep = 25
+  var ppsDuration = 25
   val currentTime: Long = System.currentTimeMillis / 1000
 
   def init(params : Map[String, String]) = {
@@ -32,13 +32,13 @@ object EthMac extends DeviceObject {
       initialTime = currentTime
       secondsWidth = getPosIntParam(params, "secondsWidth")
       nanoWidth = getPosIntParam(params, "nanoWidth")
-      timeStep = getPosIntParam(params, "timeStep")
+      ppsDuration = getPosIntParam(params, "ppsDuration")
     }
   }
 
   def create(params: Map[String, String]) : EthMac = {
     if(withPTP)
-      Module(new EthMac(extAddrWidth-1, dataWidth, withPTP, secondsWidth, nanoWidth, initialTime, timeStep))
+      Module(new EthMac(extAddrWidth-1, dataWidth, withPTP, secondsWidth, nanoWidth, initialTime, ppsDuration))
     else
       Module(new EthMac(extAddrWidth, dataWidth))
   }
@@ -71,16 +71,16 @@ object EthMac extends DeviceObject {
 
       // PTP Debug Signals
       val ptpPPS = Bits(OUTPUT, width=1)
-      // val ledPHY = Bits(OUTPUT, width=1)
-      // val ledSOF = Bits(OUTPUT, width=1)
-      // val ledEOF = Bits(OUTPUT, width=1)
+       val ledPHY = Bits(OUTPUT, width=1)
+       val ledSOF = Bits(OUTPUT, width=1)
+       val ledEOF = Bits(OUTPUT, width=1)
       // val ledSFD = Bits(OUTPUT, width=8)
       // val rtcDisp = Vec.fill(8) {Bits(OUTPUT, 7)}
     }
   }
 
   trait Intrs{
-    val ethMacIntrs = Vec.fill(2) { Bool(OUTPUT) }
+    val ethMacIntrs = Vec.fill(3) { Bool(OUTPUT) }
   }
 }
 
@@ -131,7 +131,7 @@ class EthMacBB(extAddrWidth : Int = 32, dataWidth : Int = 32) extends BlackBox {
   io.S.Data := dataReg
 }
 
-class EthMac(extAddrWidth: Int = 32, dataWidth: Int = 32, withPTP: Boolean = false, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTime: BigInt = 0L, timeStep: Int = 25) extends CoreDevice() {
+class EthMac(extAddrWidth: Int = 32, dataWidth: Int = 32, withPTP: Boolean = false, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTime: BigInt = 0L, ppsDuration: Int = 10) extends CoreDevice() {
   override val io = new CoreDeviceIO() with EthMac.Pins with EthMac.Intrs
 
   val eth = Module(new EthMacBB(extAddrWidth, dataWidth))
@@ -148,7 +148,7 @@ class EthMac(extAddrWidth: Int = 32, dataWidth: Int = 32, withPTP: Boolean = fal
   //Check for PTP features
   if(withPTP) {    
     println("EthMac w/ PTP1588 hardware (eth_addrWidth="+extAddrWidth+", ptp_addrWidth="+(extAddrWidth)+")")
-    val ptp = Module(new PTP1588Assist(addrWidth = extAddrWidth, dataWidth = dataWidth, secondsWidth = secondsWidth, nanoWidth = nanoWidth, initialTime = initialTime, timeStep = timeStep))
+    val ptp = Module(new PTP1588Assist(extAddrWidth, dataWidth, CLOCK_FREQ, secondsWidth, nanoWidth, initialTime, ppsDuration))
     val masterReg = Reg(next = io.ocp.M)
     eth.io.M.Data := masterReg.Data
     eth.io.M.ByteEn := masterReg.ByteEn
@@ -186,13 +186,18 @@ class EthMac(extAddrWidth: Int = 32, dataWidth: Int = 32, withPTP: Boolean = fal
     ptp.io.ethMacTX.dv := eth.io.ethMacPins.mtxen_pad_o
     ptp.io.ethMacTX.err := eth.io.ethMacPins.mtxerr_pad_o
     io.ethMacPins.ptpPPS := ptp.io.rtcPPS
+    io.ethMacPins.ledSOF := ptp.io.ledSOF
+    io.ethMacPins.ledEOF := ptp.io.ledEOF
+    io.ethMacPins.ledPHY := ptp.io.ledPHY
     io.ethMacIntrs(1) := ptp.io.intrs(0)
+    io.ethMacIntrs(2) := ptp.io.intrs(1)
   } else {
     println("EthMac (eth_addrWidth="+extAddrWidth+")")
     eth.io.M <> io.ocp.M
     eth.io.S <> io.ocp.S
     io.ethMacPins.ptpPPS := false.B
     io.ethMacIntrs(1) := false.B
+    io.ethMacIntrs(2) := false.B
   }
 }
 
