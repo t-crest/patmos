@@ -82,7 +82,7 @@ class Argo(nrCores: Int, wrapped: Boolean = false, emulateBB: Boolean = false) e
     //Register slave resp/data
     val respSpmReg = Reg(next = comSPMWrapper(i).ocp.S.Resp)
     val respNoCReg = Reg(next = argoNoc.io.ocpPorts(i).S.Resp)
-    val dataSpmReg = RegEnable(updateData = comSPMWrapper(i).ocp.S.Data, enable = comSPMWrapper(i).ocp.S.Resp===OcpResp.DVA)
+    val dataSpmReg = RegEnable(comSPMWrapper(i).ocp.S.Data, enable = comSPMWrapper(i).ocp.S.Resp===OcpResp.DVA)
     val dataNoCReg = Reg(next = argoNoc.io.ocpPorts(i).S.Data)
 
     //Mux spm/noc to master

@@ -22,13 +22,13 @@ class MemIFSlave extends Bundle {
 }
 
 class SPMMasterPort(headerFieldWdith: Int, headerCtrlWidth: Int) extends Bundle {
-  val M = new MemIFMaster(headerFieldWdith, headerCtrlWidth).asOutput()
-  val S = new MemIFSlave().asInput()
+  val M = Output(new MemIFMaster(headerFieldWdith, headerCtrlWidth))
+  val S = Input(new MemIFSlave())
 }
 
 class SPMSlavePort(headerFieldWdith: Int, headerCtrlWidth: Int) extends Bundle {
-  val M = new MemIFMaster(headerFieldWdith, headerCtrlWidth).asInput()
-  val S = new MemIFSlave().asOutput()
+  val M = Input(new MemIFMaster(headerFieldWdith, headerCtrlWidth))
+  val S = Output(new MemIFSlave())
 }
 
 class ChannelForward(argoConf : ArgoConfig) extends Bundle {
@@ -41,13 +41,13 @@ class ChannelBackward(argoConf: ArgoConfig) extends Bundle {
 }
 
 class RouterPort(argoConf: ArgoConfig) extends Bundle {
-  val f = new ChannelForward(argoConf).asInput()
-  val b = new ChannelBackward(argoConf).asOutput()
+  val f = Input(new ChannelForward(argoConf))
+  val b = Output(new ChannelBackward(argoConf))
 }
 
 class OutputPort(argoConf: ArgoConfig) extends Bundle {
-  val f = new ChannelForward(argoConf).asOutput()
-  val b = new ChannelBackward(argoConf).asInput()
+  val f = Output(new ChannelForward(argoConf))
+  val b = Input(new ChannelBackward(argoConf))
 }
 
 class NodeInterconnection(argoConf: ArgoConfig) extends Bundle {

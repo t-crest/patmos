@@ -40,16 +40,16 @@ class OcpBurstSlaveSignals(dataWidth : Int)
 class OcpBurstMasterPort(addrWidth : Int, dataWidth : Int, burstLen : Int) extends Bundle() {
   val burstLength = burstLen
   // Clk is implicit in Chisel
-  val M = new OcpBurstMasterSignals(addrWidth, dataWidth).asOutput
-  val S = new OcpBurstSlaveSignals(dataWidth).asInput
+  val M = Output(new OcpBurstMasterSignals(addrWidth, dataWidth))
+  val S = Input(new OcpBurstSlaveSignals(dataWidth))
 }
 
 // Slave port is reverse of master port
 class OcpBurstSlavePort(addrWidth : Int, dataWidth : Int, burstLen : Int) extends Bundle() {
   val burstLength = burstLen
   // Clk is implicit in Chisel
-  val M = new OcpBurstMasterSignals(addrWidth, dataWidth).asInput
-  val S = new OcpBurstSlaveSignals(dataWidth).asOutput
+  val M = Input(new OcpBurstMasterSignals(addrWidth, dataWidth))
+  val S = Output(new OcpBurstSlaveSignals(dataWidth))
 
   // This does not really clone, but Data.clone doesn't either
   override def clone() = {
@@ -236,10 +236,10 @@ class OcpBurstPriorityJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort
 
 // Provide a "bus" with a master port and a slave port to simplify plumbing
 class OcpBurstBus(addrWidth : Int, dataWidth : Int, burstLen : Int) extends Module {
-  val io = new Bundle {
+  val io = IO(new Bundle {
     val master = new OcpBurstMasterPort(addrWidth, dataWidth, burstLen)
     val slave = new OcpBurstSlavePort(addrWidth, dataWidth, burstLen)
-  }
+  })
   io.master <> io.slave
 }
 

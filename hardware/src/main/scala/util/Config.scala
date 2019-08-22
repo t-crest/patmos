@@ -191,10 +191,8 @@ object Config {
       val coreCount = getIntAttr(node, "cores", "@count",
                                  hasParent, defaultConf.coreCount)
 
-      val cmpDevices = {
-        val set = ((node \ "CmpDevs") \ "CmpDev").map(e => (e \ "@name").text).toSet
-        if(set.isEmpty) defaultConf.cmpDevices else set
-      }
+      val cmpDevices = ((node \ "CmpDevs") \ "CmpDev").map(e => (e \ "@name").text).toSet ++ 
+        defaultConf.cmpDevices
 
       val burstLength  = getIntAttr(node, "bus", "@burstLength",
                                     hasParent, defaultConf.burstLength)
