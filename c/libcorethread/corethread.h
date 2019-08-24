@@ -142,6 +142,8 @@ typedef struct {
   volatile int owner;
   volatile int type;
   volatile int count;
+  volatile int ticket_req;
+  volatile int ticket_cur;
 } pthread_mutex_t;
 
 typedef struct {
@@ -159,7 +161,7 @@ typedef struct {
     pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
  */
 
-#define PTHREAD_MUTEX_INITIALIZER  ((pthread_mutex_t) {_PTHREAD_MUTEX_NOOWNER, PTHREAD_MUTEX_RECURSIVE, 0})
+#define PTHREAD_MUTEX_INITIALIZER  ((pthread_mutex_t) {_PTHREAD_MUTEX_NOOWNER, PTHREAD_MUTEX_RECURSIVE, 0, 0, 0})
 
 int pthread_mutexattr_init(pthread_mutexattr_t *attr);
 int pthread_mutexattr_destroy(pthread_mutexattr_t *attr);

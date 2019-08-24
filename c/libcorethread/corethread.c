@@ -193,6 +193,8 @@ int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr) 
   _mutex->owner = _PTHREAD_MUTEX_NOOWNER;
   _mutex->type = type;
   _mutex->count = 0;
+  _mutex->ticket_req = 0;
+  _mutex->ticket_cur = 0;
   
   return 0;
 }
@@ -231,7 +233,7 @@ int pthread_mutex_lock(pthread_mutex_t *mutex) {
       int count = _mutex->count;
       if(count == -1)
         return EAGAIN;
-      _mutex->count++;
+      _mutex->count = count+1;
       return 0;
     }
     break;
@@ -239,10 +241,13 @@ int pthread_mutex_lock(pthread_mutex_t *mutex) {
     return EINVAL;
   }
   
+  _HARDLOCK_LOCK();
+  int ticket = _mutex->ticket_req++;
+  _HARDLOCK_UNLOCK();
   while(1)
   {
     _HARDLOCK_LOCK();
-    if(_mutex->owner == _PTHREAD_MUTEX_NOOWNER) {
+    if(ticket == _mutex->ticket_cur) {
       _mutex->owner = id;
       _HARDLOCK_UNLOCK();
       break;
@@ -275,7 +280,7 @@ int pthread_mutex_trylock(pthread_mutex_t *mutex) {
       int count = _mutex->count;
       if(count == -1)
         return EAGAIN;
-      _mutex->count++;
+      _mutex->count = count+1;
       return 0;
     }
     break;
@@ -284,12 +289,16 @@ int pthread_mutex_trylock(pthread_mutex_t *mutex) {
   }
   
   _HARDLOCK_LOCK();
-  if(_mutex->owner == _PTHREAD_MUTEX_NOOWNER)
-    _mutex->owner = id;
-  else {
+  int ticket = _mutex->ticket_req;
+  if(_mutex->ticket_cur != _mutex->ticket_req) {
+    // Already an owner
     _HARDLOCK_UNLOCK();
     return EBUSY;
   }
+
+  _mutex->ticket_req = ticket+1;
+  _mutex->owner = id;
+
   _HARDLOCK_UNLOCK();
   
   // invalidate data cache to establish cache coherence
@@ -314,5 +323,6 @@ int pthread_mutex_unlock(pthread_mutex_t *mutex) {
   }
   
   _mutex->owner = _PTHREAD_MUTEX_NOOWNER;
+  _mutex->ticket_cur++;
   return 0;
 }
