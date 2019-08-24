@@ -244,16 +244,12 @@ int pthread_mutex_lock(pthread_mutex_t *mutex) {
   _HARDLOCK_LOCK();
   int ticket = _mutex->ticket_req++;
   _HARDLOCK_UNLOCK();
+
   while(1)
-  {
-    _HARDLOCK_LOCK();
-    if(ticket == _mutex->ticket_cur) {
-      _mutex->owner = id;
-      _HARDLOCK_UNLOCK();
+    if(ticket == _mutex->ticket_cur)
       break;
-    }
-    _HARDLOCK_UNLOCK();
-  }
+
+  _mutex->owner = id;
   // invalidate data cache to establish cache coherence
   inval_dcache();
   return 0;
@@ -290,8 +286,8 @@ int pthread_mutex_trylock(pthread_mutex_t *mutex) {
   
   _HARDLOCK_LOCK();
   int ticket = _mutex->ticket_req;
-  if(_mutex->ticket_cur != _mutex->ticket_req) {
-    // Already an owner
+  if(ticket != _mutex->ticket_cur) {
+    // Already owned
     _HARDLOCK_UNLOCK();
     return EBUSY;
   }
