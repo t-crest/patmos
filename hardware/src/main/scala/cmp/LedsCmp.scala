@@ -15,13 +15,6 @@ object LedsCmp {
 
 }
 
-//class CmpIO(nrCores : Int) extends Bundle
-//{
-//  val cores = Vec(nrCores, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))
-//
-//  override def clone = new CmpIO(nrCores).asInstanceOf[this.type]
-//}
-
 class LedsCmp(nrCores: Int, nrLedPerCore: Int) extends Module {
   val io = new CmpIO(nrCores) with LedsCmp.Pins
   io.ledsCmpPins.led.setWidth(nrCores * nrLedPerCore) //modify number of ledPins dynamically
