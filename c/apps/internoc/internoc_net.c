@@ -11,6 +11,7 @@ const char* eth_protocol_names[] = {"UFF", "IP", "ICMP", "UDP", "TCP", "PTP", "A
 const unsigned char multicastip[4] = {224, 0, 0, 255};
 
 int rxPacketCount = 0;
+int txPacketCount = 0;
 
 int receiveAndHandleFrame(const unsigned int timeout){
   unsigned short dest_port;

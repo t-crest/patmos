@@ -14,6 +14,9 @@ PTPPortInfo thisPtpPortInfo;
 extern const unsigned int rx_addr;
 extern const unsigned int tx_addr;
 
+extern int rxPacketCount;
+extern int txPacketCount;
+
 int receiveAndHandleFrame(const unsigned int timeout);
 int demoMasterLoop(unsigned int syncPeriod);
 int demoSlaveLoop();

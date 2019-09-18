@@ -32,7 +32,9 @@ const int NOC_MASTER = 0;
 #define LED (*((volatile _IODEV unsigned *)PATMOS_IO_LED))
 #define LEDCMP (*((volatile _IODEV unsigned *)PATMOS_IO_LEDSCMP))
 #define DEAD (*((volatile _IODEV unsigned *)PATMOS_IO_DEADLINE))
+#define PULSE (*((volatile _SPM int *) PATMOS_IO_GPIO))
 volatile _SPM unsigned *disp_ptr = (volatile _SPM unsigned *) PATMOS_IO_SEGDISP;
+volatile 
 /**
  * Macros
  */
@@ -43,15 +45,17 @@ volatile _SPM unsigned *disp_ptr = (volatile _SPM unsigned *) PATMOS_IO_SEGDISP;
  */
 typedef struct {
   int cpuPeriod;
+  int waitPeriod;
   int tokenLeader;
   int numOfTokens;
-} ThreadArg;
+} InterNoCThreadArg;
 
 typedef struct{
-  short id;
+  short seq;
   char* data;
+  unsigned long long timestamp;
+  short len;
 } InterNoCToken;
-
 
 unsigned int runAsPTPMode = PTP_SLAVE;
 int userPTPSyncInterval = -3;
@@ -86,28 +90,25 @@ void printSegmentInt(unsigned number) {
     *(disp_ptr+7) = (number >> 28) & 0xF;
 }
 
-void task(void *param) {
-  ThreadArg threadArg = *((ThreadArg *)param);
-  int waitPeriod = get_cpuid()+1 * 500 * MS_TO_USEC;
-  unsigned char init = 0;
+void compute_thread(void *param) {
+  InterNoCThreadArg threadArg = *((InterNoCThreadArg *)param);
   int token = 0;
   qpd_t *chanRx = mp_create_qport(get_cpuid(), SINK, MP_CHAN_BUF_SIZE, MP_CHAN_NUM_BUF);
-  qpd_t *chanTx = mp_create_qport((get_cpuid()+1) % (get_cpucnt()-1), SOURCE, MP_CHAN_BUF_SIZE, MP_CHAN_NUM_BUF);
+  qpd_t *chanTx = mp_create_qport((get_cpuid()+1) % (get_cpucnt()), SOURCE, MP_CHAN_BUF_SIZE, MP_CHAN_NUM_BUF);
   mp_init_ports();
 
-  if (get_cpuid() == threadArg.tokenLeader && init == 0) {
+  if (get_cpuid() == threadArg.tokenLeader) {
     for (int i = threadArg.numOfTokens; i != 0; --i) {
       *(volatile int _SPM *)(chanTx->write_buf) = 1;
       mp_send(chanTx, 0);
     }
-    init = 1;
   }
   while (1) {
     mp_recv(chanRx, 0);
     token = *((volatile int _SPM *)(chanRx->read_buf));
     mp_ack(chanRx, 0);
     LEDCMP = token;
-    wait_deadline(waitPeriod, threadArg.cpuPeriod);
+    wait_deadline(threadArg.waitPeriod, threadArg.cpuPeriod);
     *(volatile int _SPM *)(chanTx->write_buf) = 1;
     mp_send(chanTx, 0);
     LEDCMP = ~token;
@@ -115,51 +116,40 @@ void task(void *param) {
   return;
 }
 
-void gateway(void* param){
-  ThreadArg threadArg = *((ThreadArg *)param);
-  int waitPeriod = get_cpuid()+1 * 500 * MS_TO_USEC;
-  unsigned char init = 0;
+void gateway_thread(void* param){
+  InterNoCThreadArg threadArg = *((InterNoCThreadArg *)param);
   int token = 0;
-  qpd_t* chanRx = mp_create_qport(0, SINK, MP_CHAN_BUF_SIZE, MP_CHAN_NUM_BUF);
-  qpd_t* chanTx = mp_create_qport(1, SOURCE, MP_CHAN_BUF_SIZE, MP_CHAN_NUM_BUF);
+  qpd_t *chanRx = mp_create_qport(get_cpuid(), SINK, MP_CHAN_BUF_SIZE, MP_CHAN_NUM_BUF);
+  qpd_t *chanTx = mp_create_qport((get_cpuid()+1) % (get_cpucnt()), SOURCE, MP_CHAN_BUF_SIZE, MP_CHAN_NUM_BUF);
   mp_init_ports();
 
-  LED &= 0x0FF;
-  
-  if (get_cpuid() == threadArg.tokenLeader && init == 0) {
-    if(runAsPTPMode == PTP_MASTER){
+  if(runAsPTPMode == PTP_MASTER){
+    if (get_cpuid() == threadArg.tokenLeader) {
       for (int i = threadArg.numOfTokens; i != 0; --i) {
-        *(volatile int _SPM *)(chanTx->write_buf) = 1;
-        mp_send(chanTx, 0);
-      }
-    } else {
-      for (int i = threadArg.numOfTokens; i != 0; --i) {
-        while(receiveAndHandleFrame(0) != INTERNOC_MSG){};
         *(volatile int _SPM *)(chanTx->write_buf) = 1;
         mp_send(chanTx, 0);
       }
     }
-    init = 1;
   }
-
-  LED |= 0x100;
 
   while(1){
     if(runAsPTPMode == PTP_MASTER){
       mp_recv(chanRx, 0);
       token = *((volatile int _SPM *)(chanRx->read_buf));
       mp_ack(chanRx, 0);
-      udp_send_mac(tx_addr, rx_addr, PTP_BROADCAST_MAC, (unsigned char[4]){192,168,2,128}, 696, 696, (unsigned char[]) {'1'}, 1, 0);
+      udp_send_mac(tx_addr, rx_addr, PTP_BROADCAST_MAC, (unsigned char[4]){192,168,2,64*(1-runAsPTPMode)}, 696, 696, (unsigned char[]) {'1'}, 1, 0);
+      printSegmentInt(++txPacketCount);
     } else {
-        while(receiveAndHandleFrame(0) != INTERNOC_MSG){};
-        *(volatile int _SPM *)(chanTx->write_buf) = 1;
-        mp_send(chanTx, 0);
+      while(receiveAndHandleFrame(0) != INTERNOC_MSG){ continue; };
+      if(mp_nbrecv(chanRx)) mp_nback(chanRx);
+      printSegmentInt(++rxPacketCount);
     }
-    LEDCMP = token;
-    wait_deadline(waitPeriod, threadArg.cpuPeriod);
+    LEDCMP = PULSE = 1;
+    wait_deadline(threadArg.waitPeriod, threadArg.cpuPeriod);
     *(volatile int _SPM *)(chanTx->write_buf) = 1;
     mp_send(chanTx, 0);
-    LEDCMP = ~token;
+    LEDCMP = PULSE = 0;
+   
   }
 }
 
@@ -191,23 +181,25 @@ int main() {
 	// thisPtpPortInfo = ptpv2_intialize_local_port(PATMOS_IO_ETH, runAsPTPMode, my_mac, my_ip, 1, userPTPSyncInterval);
 
   //Start Threads
-  ThreadArg threadArg = {
+  InterNoCThreadArg threadArg = {
     .cpuPeriod = (1.0f / get_cpu_freq()) * SEC_TO_NS,
+    .waitPeriod = 100 * MS_TO_USEC,
     .tokenLeader = 0,
-    .numOfTokens = 2
+    .numOfTokens = 1
   };
-  LED = 0xFF & get_cpucnt();
+  LED = 0xFF;
   for (int i = 0; i < get_cpucnt(); i++) {
     if (i != NOC_MASTER) {
-      if (corethread_create(i, &task, (void *)&threadArg) != 0) {
+      if (corethread_create(i, &compute_thread, (void *)&threadArg) != 0) {
         printf("Corethread %d not created\n", i);
       }
     }
+    LED=i+1;
   }
   
   puts("I started the threads!");
-  gateway((void *)&threadArg);
-
+  gateway_thread((void *)&threadArg);
+  LED = 0x1FF;
   return 0;
 }
 
