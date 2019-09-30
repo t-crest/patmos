@@ -14,8 +14,8 @@
 	<IO DevTypeRef="Uart" offset="8"/>
 	<IO DevTypeRef="Leds" offset="9"/>
 	<IO DevTypeRef="Keys" offset="10" intrs="2,3,4,5"/>
-	<IO DevTypeRef="EthMac" offset="13" intrs="6,7,8"/>
-	<IO DevTypeRef="EthMac2" offset="14" intrs="8,9,10"/>
+	<IO DevTypeRef="EthMac" offset="13" intrs="6"/>
+	 <IO DevTypeRef="EthMac2" offset="14" intrs="8"/>
   </IOs>
 
   <Devs>

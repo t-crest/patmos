@@ -80,7 +80,7 @@ object EthMac extends DeviceObject {
   }
 
   trait Intrs{
-    val ethMacIntrs = Vec.fill(3) { Bool(OUTPUT) }
+    val ethMacIntrs = Vec.fill(1) { Bool(OUTPUT) }
   }
 }
 
@@ -188,16 +188,12 @@ class EthMac(extAddrWidth: Int = 32, dataWidth: Int = 32, withPTP: Boolean = fal
     io.ethMacPins.ptpPPS := ptp.io.rtcPPS
     io.ethMacPins.ledSOF := ptp.io.ledSOF
     io.ethMacPins.ledEOF := ptp.io.ledEOF
-    io.ethMacPins.ledPHY := ptp.io.ledPHY
-    io.ethMacIntrs(1) := ptp.io.intrs(0)
-    io.ethMacIntrs(2) := ptp.io.intrs(1)
+    io.ethMacPins.ledPHY := ptp.io.ledTS
   } else {
     println("EthMac (eth_addrWidth="+extAddrWidth+")")
     eth.io.M <> io.ocp.M
     eth.io.S <> io.ocp.S
     io.ethMacPins.ptpPPS := false.B
-    io.ethMacIntrs(1) := false.B
-    io.ethMacIntrs(2) := false.B
   }
 }
 

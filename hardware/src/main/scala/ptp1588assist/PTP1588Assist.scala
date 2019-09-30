@@ -3,16 +3,16 @@ package ptp1588assist
 import Chisel._
 import ocp._
 import patmos.Constants._
+import util.BCDToSevenSegDecoder
 
 class PTP1588Assist(addrWidth: Int = ADDR_WIDTH, dataWidth: Int = DATA_WIDTH, clockFreq: Int = CLOCK_FREQ, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTime: BigInt = 0L, ppsDuration: Int = 10) extends Module{
   val io = new Bundle{
     val ocp = new OcpCoreSlavePort(addrWidth, dataWidth)
     val ethMacRX = Input(new MIIChannel())
     val ethMacTX = Input(new MIIChannel())
-    val intrs = Vec.fill(2){Bool(OUTPUT)}
     val rtcPPS = Bool(OUTPUT)
     val rtcHexDisp = Vec.fill(8) {Bits(OUTPUT, 7)}
-    val ledPHY = Bits(OUTPUT, width=1)
+    val ledTS = Bits(OUTPUT, width=1)
     val ledSOF = Bits(OUTPUT, width=1)
     val ledEOF = Bits(OUTPUT, width=1)
     val ledSFD = Bits(OUTPUT, width=8)
@@ -71,85 +71,19 @@ class PTP1588Assist(addrWidth: Int = ADDR_WIDTH, dataWidth: Int = DATA_WIDTH, cl
     io.ocp.S.Data := 0.U
   }
 
-  // Interrupts
-  io.intrs := Cat(tsuTx.io.ptpValid, tsuRx.io.ptpValid)
-
-  // HEX Decode hardware
-  def sevenSegBCDDecode(data : Bits, segmentPolarity: Int) : Bits = {
-    val result = Bits(width = 7)
-    result := Bits("b1000001")
-    switch(data(3,0)){
-      is(Bits("b0000")){
-        result := Bits("b1000000")    //0
-      }
-      is(Bits("b0001")){
-        result := Bits("b1111001")    //1
-      }
-      is(Bits("b0010")){
-        result := Bits("b0100100")    //2
-      }
-      is(Bits("b0011")){
-        result := Bits("b0110000")    //3
-      }
-      is(Bits("b0100")){
-        result := Bits("b0011001")    //4
-      }
-      is(Bits("b0101")){
-        result := Bits("b0010010")    //5
-      }
-      is(Bits("b0110")){
-        result := Bits("b0000010")    //6
-      }
-      is(Bits("b0111")){
-        result := Bits("b1111000")    //7
-      }
-      is(Bits("b1000")){
-        result := Bits("b0000000")    //8
-      }
-      is(Bits("b1001")){
-        result := Bits("b0011000")    //9
-      }
-      is(Bits("b1010")){
-        result := Bits("b0001000")    //A
-      }
-      is(Bits("b1011")){
-        result := Bits("b0000011")    //B
-      }
-      is(Bits("b1100")){
-        result := Bits("b1000110")    //C
-      }
-      is(Bits("b1101")){
-        result := Bits("b0100001")    //D
-      }
-      is(Bits("b1110")){
-        result := Bits("b0000110")    //E
-      }
-      is(Bits("b1111")){
-        result := Bits("b0001110")    //F
-      }
-    }
-    if (segmentPolarity==0) {
-      result
-    } else {
-      ~result
-    }
-  }
-
   io.rtcPPS := rtc.io.pps
 
   // [OPTIONAL] Hex & Led Connectivity
   // Led connections
-  val dispRegVec = RegInit(Vec.fill(8){Bits(0, width = 7)})
-  dispRegVec(0) := sevenSegBCDDecode(rtc.io.ptpTimestamp(35, 32), segmentPolarity = 0)
-  dispRegVec(1) := sevenSegBCDDecode(rtc.io.ptpTimestamp(39, 36), segmentPolarity = 0)
-  dispRegVec(2) := sevenSegBCDDecode(rtc.io.ptpTimestamp(43, 40), segmentPolarity = 0)
-  dispRegVec(3) := sevenSegBCDDecode(rtc.io.ptpTimestamp(47, 44), segmentPolarity = 0)
-  dispRegVec(4) := sevenSegBCDDecode(rtc.io.ptpTimestamp(51, 48), segmentPolarity = 0)
-  dispRegVec(5) := sevenSegBCDDecode(rtc.io.ptpTimestamp(55, 52), segmentPolarity = 0)
-  dispRegVec(6) := sevenSegBCDDecode(rtc.io.ptpTimestamp(59, 56), segmentPolarity = 0)
-  dispRegVec(7) := sevenSegBCDDecode(rtc.io.ptpTimestamp(63, 60), segmentPolarity = 0)
+  val dispRegVec = Reg(Vec.fill(8){Bits(0, width = 7)})
+  for(i <- 0 until 7){
+    val decoder = Module(new BCDToSevenSegDecoder).io
+    decoder.bcdData := rtc.io.ptpTimestamp(39+i*4, 32+i*4)
+    decoder.segPolarity := false.B
+    dispRegVec(i) := decoder.segData
+  }
   io.rtcHexDisp := dispRegVec
-  io.ledPHY := tsuRx.io.listening | tsuTx.io.listening
+  io.ledTS := tsuRx.io.timestampAvail | tsuTx.io.timestampAvail
   io.ledSOF := tsuRx.io.sofValid | tsuTx.io.sofValid
   io.ledEOF := tsuRx.io.eofValid | tsuTx.io.eofValid
   io.ledSFD := tsuRx.io.sfdValid | tsuTx.io.sfdValid
