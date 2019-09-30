@@ -1,5 +1,5 @@
 /*
-    Mulit-core LED example
+    Mulit-core tokens LED example
         Author: Eleftherios Kyriakakis
 */
 
@@ -20,6 +20,9 @@ const int NOC_MASTER = 0;
 #define NS_TO_USEC 0.001
 #define USEC_TO_NS 1000
 #define USEC_TO_SEC 0.000001
+#define MS_TO_NS 1000000
+#define MS_TO_USEC 1000
+#define MS_TO_SEC 0.001
 #define SEC_TO_NS 1000000000
 #define SEC_TO_USEC 1000000
 #define SEC_TO_HOUR 0.000277777778
@@ -31,8 +34,12 @@ const int NOC_MASTER = 0;
 /**
  * Macros
  */
-#define DEAD_CALC(WAITTIME, CPU_PERIOD)                                        \
-  (WAITTIME * 0.5 * USEC_TO_NS / CPU_PERIOD)
+#define DEAD_CALC(WAITTIME, CPU_PERIOD) (WAITTIME * 0.5 * USEC_TO_NS / CPU_PERIOD)
+
+typedef struct {
+  int numOfTokens;
+  float cpuPeriod;
+} ThreadArg;
 
 /**
  * Functions
@@ -43,18 +50,16 @@ int wait_deadline(unsigned int waitUsecs, float cpuPeriod) {
 }
 
 void slave(void *param) {
-  float cpuPeriod = (1.0f / get_cpu_freq()) * SEC_TO_NS;
-  unsigned int numOfTokens = *((unsigned int *)param);
+  ThreadArg threadArg = *((ThreadArg *)param);
   int readPeriod;
   unsigned char init = 0;
-  qpd_t *chan1 =
-      mp_create_qport(get_cpuid(), SOURCE, MP_CHAN_BUF_SIZE, MP_CHAN_NUM_BUF);
+  qpd_t *chan1 = mp_create_qport(get_cpuid(), SOURCE, MP_CHAN_BUF_SIZE, MP_CHAN_NUM_BUF);
   qpd_t *chan2 = mp_create_qport((get_cpuid() % (get_cpucnt() - 1)) + 1, SINK, MP_CHAN_BUF_SIZE, MP_CHAN_NUM_BUF);
   mp_init_ports();
 
   if (get_cpuid() == 1 && init == 0) {
-    for (int i = numOfTokens; i != 0; --i) {
-      *(volatile int _SPM *)(chan1->write_buf) = get_cpuid() * 1000;
+    for (int i = threadArg.numOfTokens; i != 0; --i) {
+      *(volatile int _SPM *)(chan1->write_buf) = (get_cpuid()+1) * 1000;
       mp_send(chan1, 0);
     }
     init = 1;
@@ -64,8 +69,8 @@ void slave(void *param) {
     readPeriod = *((volatile int _SPM *)(chan1->read_buf));
     mp_ack(chan2, 0);
     LEDCMP = 1;
-    wait_deadline(readPeriod, cpuPeriod);
-    *(volatile int _SPM *)(chan1->write_buf) = (readPeriod + get_cpuid() * 10000) % SEC_TO_USEC;
+    wait_deadline(readPeriod, threadArg.cpuPeriod);
+    *(volatile int _SPM *)(chan1->write_buf) = (readPeriod + (get_cpuid()+1) * 100*MS_TO_USEC) % SEC_TO_USEC;
     mp_send(chan1, 0);
     LEDCMP = 0;
   }
@@ -76,11 +81,15 @@ void slave(void *param) {
  * MAIN
  */
 int main() {
-  int numOfTokens = 1;
   puts("Master is up n' running!");
+  ThreadArg threadArg = {
+    .numOfTokens = 2,
+    .cpuPeriod = (1.0f / get_cpu_freq()) * SEC_TO_NS
+  };
+  LED = get_cpucnt();
   for (int i = 0; i < get_cpucnt(); i++) {
     if (i != NOC_MASTER) {
-      if (corethread_create(i, &slave, (void *)&numOfTokens) != 0) {
+      if (corethread_create(i, &slave, (void *)&threadArg) != 0) {
         printf("Corethread %d not created\n", i);
       }
     }
