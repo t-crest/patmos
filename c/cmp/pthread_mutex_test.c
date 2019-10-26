@@ -1,5 +1,5 @@
 /*
-    This program tests a POSIX mutex.
+    This program tests POSIX mutexes.
 
     Author: Torur Biskopsto Strom
     Copyright: DTU, BSD License
