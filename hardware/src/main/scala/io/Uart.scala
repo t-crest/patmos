@@ -10,7 +10,6 @@
 package io
 
 import Chisel._
-import Node._
 
 import patmos.Constants._
 

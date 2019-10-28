@@ -50,7 +50,7 @@
 #include "ethlib/ipv4.h"
 #include "ethlib/eth_mac_driver.h"
 
-#define LED ( *( ( volatile _IODEV unsigned * )	0xF0090000 ) )
+#define LED ( *( ( volatile _IODEV unsigned * )	PATMOS_IO_LED ) )
 
 unsigned short int led_udp_port = 1234;
 unsigned short int calc_udp_port = 1235;
@@ -72,7 +72,7 @@ void print_general_info(){
 
 void demo_mode(){
 	printf("\nDemo (rx, tx, LED, calculator)");
-	enum ethtype packet_type;
+	enum eth_protocol packet_type;
 	unsigned char ans;
 	unsigned char target_ip[4];
 	unsigned char target_mac[6];

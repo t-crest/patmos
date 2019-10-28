@@ -1,34 +1,3 @@
-/*
-   Copyright 2013 Technical University of Denmark, DTU Compute.
-   All rights reserved.
-
-   This file is part of the time-predictable VLIW processor Patmos.
-
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions are met:
-
-      1. Redistributions of source code must retain the above copyright notice,
-         this list of conditions and the following disclaimer.
-
-      2. Redistributions in binary form must reproduce the above copyright
-         notice, this list of conditions and the following disclaimer in the
-         documentation and/or other materials provided with the distribution.
-
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
-   OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-   OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
-   NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
-   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-   The views and conclusions contained in the software and documentation are
-   those of the authors and should not be interpreted as representing official
-   policies, either expressed or implied, of the copyright holder.
- */
 
 /*
  * Arbiter for OCP burst slaves.
@@ -41,19 +10,15 @@
 package ocp
 
 import Chisel._
-import Node._
-import scala.math._
-
-import scala.collection.mutable.HashMap
 
 class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int, ctrlDelay: Int) extends Module {
   // MS: I'm always confused from which direction the name shall be
   // probably the other way round...
-  val io = new Bundle {
+  val io = IO(new Bundle {
     val master = new OcpBurstSlavePort(addrWidth, dataWidth, burstLen) 
     val slave = new OcpBurstMasterPort(addrWidth, dataWidth, burstLen)
     val node = UInt(INPUT, 6)
-  }
+  })
   debug(io.master)
   debug(io.slave)
   debug(io.node)
@@ -99,17 +64,17 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
   }
   
   // Initialize master data to zero when cpuSlot is not enabled 
-  io.slave.M.Addr       := Bits(0)
-  io.slave.M.Cmd        := Bits(0)
-  io.slave.M.DataByteEn := Bits(0)
-  io.slave.M.DataValid  := Bits(0)
-  io.slave.M.Data       := Bits(0)
+  io.slave.M.Addr       := UInt(0)
+  io.slave.M.Cmd        := UInt(0)
+  io.slave.M.DataByteEn := UInt(0)
+  io.slave.M.DataValid  := UInt(0)
+  io.slave.M.Data       := UInt(0)
 
   // Initialize slave data to zero
-  io.master.S.Data       := Bits(0)
+  io.master.S.Data       := UInt(0)
   io.master.S.Resp       := OcpResp.NULL
-  io.master.S.CmdAccept  := Bits(0)
-  io.master.S.DataAccept := Bits(0)
+  io.master.S.CmdAccept  := UInt(0)
+  io.master.S.DataAccept := UInt(0)
   
   // FSM for TDM Arbiter 
   when (stateReg === sIdle) {
@@ -144,11 +109,11 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
    
     // Sends ZEROs after the burst is done 
     when (wrCntReg >= UInt(burstLen-1)) {
-      io.slave.M.Cmd  := Bits(0)
-      io.slave.M.Addr := Bits(0)
-      io.slave.M.Data := Bits(0)
-      io.slave.M.DataValid := Bits(0)
-      io.slave.M.DataByteEn := Bits(0)
+      io.slave.M.Cmd  := UInt(0)
+      io.slave.M.Addr := UInt(0)
+      io.slave.M.Data := UInt(0)
+      io.slave.M.DataValid := UInt(0)
+      io.slave.M.DataByteEn := UInt(0)
     }
 
     // Turn off the DataValid after a burst of 4
@@ -174,11 +139,11 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
     // Sends ZEROs after the burst is done 
     // MS: This should also (as in write) be just the slot length.
     when (rdCntReg >= UInt(burstLen-1)) {
-      io.slave.M.Cmd  := Bits(0)
-      io.slave.M.Addr := Bits(0)
-      io.slave.M.Data := Bits(0)
-      io.slave.M.DataValid := Bits(0)
-      io.slave.M.DataByteEn := Bits(0) 
+      io.slave.M.Cmd  := UInt(0)
+      io.slave.M.Addr := UInt(0)
+      io.slave.M.Data := UInt(0)
+      io.slave.M.DataValid := UInt(0)
+      io.slave.M.DataByteEn := UInt(0) 
     }
     
     // rdCntReg starts 1 clock cycle after the arrival of the 1st data
@@ -231,11 +196,11 @@ class MemMuxIntf(nr: Int, addrWidth : Int, dataWidth : Int, burstLen: Int) exten
     val mDataValid_p2_Reg   = Reg(UInt(width=1))
     
     // Pipeline registers default to 0
-    mCmd_p1_Reg         := Bits(0)
-    mAddr_p1_Reg        := Bits(0)
-    mData_p1_Reg        := Bits(0)
-    mDataByteEn_p1_Reg  := Bits(0)
-    mDataValid_p1_Reg   := Bits(0)
+    mCmd_p1_Reg         := UInt(0)
+    mAddr_p1_Reg        := UInt(0)
+    mData_p1_Reg        := UInt(0)
+    mDataByteEn_p1_Reg  := UInt(0)
+    mDataValid_p1_Reg   := UInt(0)
     
     // 1st stage pipeline of the input
     for (i <- 0 until nr){

@@ -12,7 +12,7 @@ import Chisel._
  * Test the router by printing out the value at each clock cycle
  * and checking some known end values.
  */
-class RouterTester(c: Router[UInt]) extends Tester(c) {
+class RouterTester(c: S4Router[UInt]) extends Tester(c) {
 
   for (i <- 0 until 5) {
     poke(c.io.ports(0).in.data, 0x10 + i)
@@ -37,7 +37,7 @@ object RouterTester {
   def main(args: Array[String]): Unit = {
     chiselMainTest(Array("--genHarness", "--test", "--backend", "c",
       "--compile", "--targetDir", "generated"),
-      () => Module(new Router(Schedule.getSchedule(2)._1, UInt(width = 16)))) {
+      () => Module(new S4Router(Schedule.getSchedule(2)._1, UInt(width = 16)))) {
         c => new RouterTester(c)
       }
   }

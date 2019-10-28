@@ -1,7 +1,6 @@
 package ptp1588assist
 
 import Chisel._
-import Node._
 
 class MIIChannel extends Bundle{
   val clk = Bool(INPUT)
@@ -12,8 +11,8 @@ class MIIChannel extends Bundle{
 
 class MIIBundle extends Bundle{
   //RX
-  val rxChannel = new MIIChannel().asInput()
+  val rxChannel = Input(new MIIChannel())
   //TX
-  val txChannel = new MIIChannel().asOutput()
+  val txChannel = Output(new MIIChannel())
 }
 

@@ -47,13 +47,16 @@
 
 extern unsigned char my_mac[6];
 
-enum ethtype{UNSUPPORTED, IP, ICMP, UDP, TCP, ARP}; 
+enum eth_protocol{UNSUPPORTED, IP, ICMP, UDP, TCP, PTP, ARP, LLDP, MDNS, TTE_PCF, TTE_MSG}; 
 
 //This function returns 1 if ICMP, returns 2 if UDP, returns 3 if ARP, otherwise 0.
-enum ethtype mac_packet_type(unsigned int addr);
+enum eth_protocol mac_packet_type(unsigned int addr);
 
 //This function retrieves the mac of the sender
-void mac_addr_sender(unsigned int rx_addr, unsigned char source_mac[]);
+unsigned char* mac_addr_sender(unsigned int rx_addr);
+
+//This function retrieves the mac of the destination
+unsigned char* mac_addr_dest(unsigned int rx_addr);
 
 ///////////////////////////////////////////////////////////////
 //Support functions related to the MAC layer

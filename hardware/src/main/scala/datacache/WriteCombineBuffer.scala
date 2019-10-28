@@ -39,7 +39,6 @@
 package datacache
 
 import Chisel._
-import Node._
 
 import patmos.Constants._
 import patmos.WriteCombinePerf
@@ -47,19 +46,19 @@ import patmos.WriteCombinePerf
 import ocp._
 
 class WriteCombineBuffer() extends Module {
-  val io = new Bundle {
+  val io = IO(new Bundle {
     val readMaster = new OcpBurstSlavePort(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
     val writeMaster = new OcpCacheSlavePort(ADDR_WIDTH, DATA_WIDTH)
     val slave = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
     val perf = new WriteCombinePerf()
-  }
+  })
 
   io.perf.hit := Bool(false)
   io.perf.miss := Bool(false)
 
-  val addrWidth = io.writeMaster.M.Addr.getWidth()
-  val dataWidth = io.writeMaster.M.Data.getWidth()
-  val byteEnWidth = io.writeMaster.M.ByteEn.getWidth()
+  val addrWidth = io.writeMaster.M.Addr.getWidth
+  val dataWidth = io.writeMaster.M.Data.getWidth
+  val byteEnWidth = io.writeMaster.M.ByteEn.getWidth
   val burstLength = io.readMaster.burstLength
   val burstAddrBits = log2Up(burstLength)
   val byteAddrBits = log2Up(dataWidth/8)

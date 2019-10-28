@@ -8,12 +8,11 @@
 package ocp
 
 import Chisel._
-import Node._
 
 // Masters include a byte-enable signal
 class OcpCoreMasterSignals(addrWidth : Int, dataWidth : Int)
   extends OcpMasterSignals(addrWidth, dataWidth) {
-  val ByteEn = Bits(width = dataWidth/8)
+  val ByteEn = UInt(width = dataWidth/8)
 
   // This does not really clone, but Data.clone doesn't either
   override def clone() = {

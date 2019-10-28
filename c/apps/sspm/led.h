@@ -4,7 +4,7 @@
 
 #include <machine/patmos.h>
 
-#define LED ( *( ( volatile _IODEV unsigned * ) 0xF0090000))
+#define LED ( *( ( volatile _IODEV unsigned * ) PATMOS_IO_LED))
 #define MS_CLOCK (18000)
 
 void led_on();

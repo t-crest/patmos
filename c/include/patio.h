@@ -50,9 +50,9 @@
 /**
  * Base addresses of the IO devices
  */
-#define __PATMOS_TIMER_BASE     0xF0020000
-#define __PATMOS_UART_BASE      0xF0080000
-#define __PATMOS_LEDS_BASE      0xF0090000
+#define __PATMOS_TIMER_BASE     PATMOS_IO_TIMER
+#define __PATMOS_UART_BASE      PATMOS_IO_UART
+#define __PATMOS_LEDS_BASE      PATMOS_IO_LED
 
 #define TIMER_CLK_LOW *((volatile _IODEV int *) (__PATMOS_TIMER_BASE + 0x4))
 #define TIMER_US_LOW *((volatile _IODEV int *) (__PATMOS_TIMER_BASE + 0xc))

@@ -1,49 +1,17 @@
-/*
-   Copyright 2014 Technical University of Denmark, DTU Compute.
-   All rights reserved.
-
-   This file is part of the time-predictable VLIW processor Patmos.
-
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions are met:
-
-      1. Redistributions of source code must retain the above copyright notice,
-         this list of conditions and the following disclaimer.
-
-      2. Redistributions in binary form must reproduce the above copyright
-         notice, this list of conditions and the following disclaimer in the
-         documentation and/or other materials provided with the distribution.
-
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
-   OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-   OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
-   NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
-   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-   The views and conclusions contained in the software and documentation are
-   those of the authors and should not be interpreted as representing official
-   policies, either expressed or implied, of the copyright holder.
- */
 
 /*
  * EthMac interface for Patmos
  *
  * Author: Luca Pezzarossa (lpez@dtu.dk)
+ *         Eleftherios Kyriakakis (elky@dtu.dk)
  *
  */
 
 package io
 
 import Chisel._
-import Node._
 import ocp._
-import patmos.Constants._
-
+import patmos.Constants.CLOCK_FREQ
 import ptp1588assist._
 
 object EthMac extends DeviceObject {
@@ -51,23 +19,26 @@ object EthMac extends DeviceObject {
   var dataWidth = 32
   var withPTP = false
   var initialTime = 0L
-  var secondsWidth = 0
-  var nanoWidth = 0
+  var secondsWidth = 32
+  var nanoWidth = 32
+  var ppsDuration = 25
+  val currentTime: Long = System.currentTimeMillis / 1000
 
   def init(params : Map[String, String]) = {
     extAddrWidth = getPosIntParam(params, "extAddrWidth")
     dataWidth = getPosIntParam(params, "dataWidth")
     withPTP = getBoolParam(params, "withPTP")
     if(withPTP){
-      initialTime = 1522763228L
+      initialTime = currentTime
       secondsWidth = getPosIntParam(params, "secondsWidth")
       nanoWidth = getPosIntParam(params, "nanoWidth")
+      ppsDuration = getPosIntParam(params, "ppsDuration")
     }
   }
 
   def create(params: Map[String, String]) : EthMac = {
     if(withPTP)
-      Module(new EthMac(extAddrWidth-1, dataWidth, withPTP, secondsWidth, nanoWidth, initialTime))
+      Module(new EthMac(extAddrWidth-1, dataWidth, withPTP, secondsWidth, nanoWidth, initialTime, ppsDuration))
     else
       Module(new EthMac(extAddrWidth, dataWidth))
   }
@@ -96,18 +67,20 @@ object EthMac extends DeviceObject {
       val md_pad_o      = Bits(OUTPUT, width = 1) // MII data output (to I/O cell)
       val md_padoe_o    = Bits(OUTPUT, width = 1) // MII data output enable (to I/O cell)
 
+      val int_o         = Bits(OUTPUT, width = 1) // Ethernet intr output
+
       // PTP Debug Signals
       val ptpPPS = Bits(OUTPUT, width=1)
-      val ledPHY = Bits(OUTPUT, width=1)
-      val ledSOF = Bits(OUTPUT, width=1)
-      val ledEOF = Bits(OUTPUT, width=1)
-      val ledSFD = Bits(OUTPUT, width=8)
+       val ledPHY = Bits(OUTPUT, width=1)
+       val ledSOF = Bits(OUTPUT, width=1)
+       val ledEOF = Bits(OUTPUT, width=1)
+      // val ledSFD = Bits(OUTPUT, width=8)
       // val rtcDisp = Vec.fill(8) {Bits(OUTPUT, 7)}
     }
   }
 
   trait Intrs{
-    val ethMacIntrs = Vec.fill(3) { Bool(OUTPUT) }
+    val ethMacIntrs = Vec.fill(1) { Bool(OUTPUT) }
   }
 }
 
@@ -141,7 +114,8 @@ class EthMacBB(extAddrWidth : Int = 32, dataWidth : Int = 32) extends BlackBox {
   io.ethMacPins.mdc_pad_o.setName("mdc_pad_o")
   io.ethMacPins.md_pad_o.setName("md_pad_o")
   io.ethMacPins.md_padoe_o.setName("md_padoe_o")
-
+  io.ethMacPins.int_o.setName("int_o")
+  
   // set Verilog parameters
   setVerilogParameters("#(.BUFF_ADDR_WIDTH("+extAddrWidth+"))")
 
@@ -157,15 +131,24 @@ class EthMacBB(extAddrWidth : Int = 32, dataWidth : Int = 32) extends BlackBox {
   io.S.Data := dataReg
 }
 
-class EthMac(extAddrWidth: Int = 32, dataWidth: Int = 32, withPTP: Boolean = false, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTime: BigInt = 0L) extends CoreDevice() {
+class EthMac(extAddrWidth: Int = 32, dataWidth: Int = 32, withPTP: Boolean = false, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTime: BigInt = 0L, ppsDuration: Int = 10) extends CoreDevice() {
   override val io = new CoreDeviceIO() with EthMac.Pins with EthMac.Intrs
 
   val eth = Module(new EthMacBB(extAddrWidth, dataWidth))
-  eth.io.ethMacPins <> io.ethMacPins
+  //Wire IO pins straight through
+  io.ethMacPins <> eth.io.ethMacPins
 
+  // Connection to controller interrupt
+  val syncEthIntrReg = RegNext(eth.io.ethMacPins.int_o)
+
+  // Generate interrupts on rising edges
+  val pulseEthIntrReg = RegNext(RegNext(syncEthIntrReg) === Bits("b0") && syncEthIntrReg(0) === Bits("b1"))
+  io.ethMacIntrs := Cat(Bits("b0"), pulseEthIntrReg)
+
+  //Check for PTP features
   if(withPTP) {    
     println("EthMac w/ PTP1588 hardware (eth_addrWidth="+extAddrWidth+", ptp_addrWidth="+(extAddrWidth)+")")
-    val ptp = Module(new PTP1588Assist(addrWidth = extAddrWidth, dataWidth = dataWidth, secondsWidth = secondsWidth, nanoWidth = nanoWidth, initialTime = initialTime))
+    val ptp = Module(new PTP1588Assist(extAddrWidth, dataWidth, CLOCK_FREQ, secondsWidth, nanoWidth, initialTime, ppsDuration))
     val masterReg = Reg(next = io.ocp.M)
     eth.io.M.Data := masterReg.Data
     eth.io.M.ByteEn := masterReg.ByteEn
@@ -202,17 +185,15 @@ class EthMac(extAddrWidth: Int = 32, dataWidth: Int = 32, withPTP: Boolean = fal
     ptp.io.ethMacTX.data := eth.io.ethMacPins.mtxd_pad_o
     ptp.io.ethMacTX.dv := eth.io.ethMacPins.mtxen_pad_o
     ptp.io.ethMacTX.err := eth.io.ethMacPins.mtxerr_pad_o
-    io.ethMacIntrs := ptp.io.intrs
     io.ethMacPins.ptpPPS := ptp.io.rtcPPS
-    io.ethMacPins.ledPHY := ptp.io.ledPHY
     io.ethMacPins.ledSOF := ptp.io.ledSOF
     io.ethMacPins.ledEOF := ptp.io.ledEOF
-    io.ethMacPins.ledSFD := ptp.io.ledSFD
+    io.ethMacPins.ledPHY := ptp.io.ledTS
   } else {
     println("EthMac (eth_addrWidth="+extAddrWidth+")")
     eth.io.M <> io.ocp.M
     eth.io.S <> io.ocp.S
-    io.ethMacIntrs := false.B
+    io.ethMacPins.ptpPPS := false.B
   }
 }
 

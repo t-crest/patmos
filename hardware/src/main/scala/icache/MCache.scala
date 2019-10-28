@@ -1,34 +1,3 @@
-/*
-   Copyright 2013 Technical University of Denmark, DTU Compute.
-   All rights reserved.
-
-   This file is part of the time-predictable VLIW processor Patmos.
-
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions are met:
-
-      1. Redistributions of source code must retain the above copyright notice,
-         this list of conditions and the following disclaimer.
-
-      2. Redistributions in binary form must reproduce the above copyright
-         notice, this list of conditions and the following disclaimer in the
-         documentation and/or other materials provided with the distribution.
-
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
-   OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-   OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
-   NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
-   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-   The views and conclusions contained in the software and documentation are
-   those of the authors and should not be interpreted as representing official
-   policies, either expressed or implied, of the copyright holder.
- */
 
 /*
  Method Cache for Patmos
@@ -38,14 +7,9 @@
 package patmos
 
 import Chisel._
-import Node._
 import MConstants._
 import Constants._
 import ocp._
-
-import scala.collection.mutable.HashMap
-import scala.util.Random
-import scala.math
 
 /*
   Method cache constants only used internally
@@ -73,11 +37,11 @@ class MCacheCtrlIO extends Bundle() {
 }
 class MCacheCtrlRepl extends Bundle() {
   val wEna = Bool()
-  val wData = Bits(width = INSTR_WIDTH)
-  val wAddr = Bits(width = ADDR_WIDTH)
+  val wData = UInt(width = INSTR_WIDTH)
+  val wAddr = UInt(width = ADDR_WIDTH)
   val wTag = Bool()
-  val addrEven = Bits(width = MCACHE_SIZE_WIDTH)
-  val addrOdd = Bits(width = MCACHE_SIZE_WIDTH)
+  val addrEven = UInt(width = MCACHE_SIZE_WIDTH)
+  val addrOdd = UInt(width = MCACHE_SIZE_WIDTH)
   val instrStall = Bool()
 }
 class MCacheReplCtrl extends Bundle() {
@@ -99,14 +63,14 @@ class MCacheReplIO extends Bundle() {
 class MCacheMemIn extends Bundle() {
   val wEven = Bool()
   val wOdd = Bool()
-  val wData = Bits(width = DATA_WIDTH)
-  val wAddr = Bits(width = (log2Up(MCACHE_WORD_SIZE / 2)))
-  val addrEven = Bits(width = (log2Up(MCACHE_WORD_SIZE / 2)))
-  val addrOdd = Bits(width = (log2Up(MCACHE_WORD_SIZE / 2)))
+  val wData = UInt(width = DATA_WIDTH)
+  val wAddr = UInt(width = (log2Up(MCACHE_WORD_SIZE / 2)))
+  val addrEven = UInt(width = (log2Up(MCACHE_WORD_SIZE / 2)))
+  val addrOdd = UInt(width = (log2Up(MCACHE_WORD_SIZE / 2)))
 }
 class MCacheMemOut extends Bundle() {
-  val instrEven = Bits(width = INSTR_WIDTH)
-  val instrOdd = Bits(width = INSTR_WIDTH)
+  val instrEven = UInt(width = INSTR_WIDTH)
+  val instrOdd = UInt(width = INSTR_WIDTH)
 }
 class MCacheMemIO extends Bundle() {
   val memIn = new MCacheMemIn().asInput
@@ -117,7 +81,7 @@ class MCacheMemIO extends Bundle() {
  MCache: Top Level Class for the Method Cache
  */
 class MCache() extends Module {
-  val io = new ICacheIO()
+  val io = IO(new ICacheIO())
   val ctrl = Module(new MCacheCtrl())
   val repl = Module(new MCacheReplFifo())
   //Use MCacheReplFifo2 for replacement with fixed block size
@@ -151,7 +115,7 @@ class MCache() extends Module {
  MCacheMem: On-Chip Even/Odd Memory
  */
 class MCacheMem() extends Module {
-  val io = new MCacheMemIO()
+  val io = IO(new MCacheMemIO())
 
   val mcacheEven = MemBlock(MCACHE_WORD_SIZE / 2, INSTR_WIDTH)
   val mcacheOdd = MemBlock(MCACHE_WORD_SIZE / 2, INSTR_WIDTH)
@@ -170,22 +134,22 @@ class MCacheMem() extends Module {
  A variable block size is used in this replacement.
  */
 class MCacheReplFifo() extends Module {
-  val io = new MCacheReplIO()
+  val io = IO(new MCacheReplIO())
 
   //tag field tables  for reading tag memory
-  val addrVec = { Vec.fill(METHOD_COUNT) { Reg(Bits(width = ADDR_WIDTH)) }}
-  val sizeVec = { Vec.fill(METHOD_COUNT) { Reg(init = Bits(0, width = MCACHE_SIZE_WIDTH+1)) }}
+  val addrVec = { Vec.fill(METHOD_COUNT) { Reg(UInt(width = ADDR_WIDTH)) }}
+  val sizeVec = { Vec.fill(METHOD_COUNT) { Reg(init = UInt(0, width = MCACHE_SIZE_WIDTH+1)) }}
   val validVec = { Vec.fill(METHOD_COUNT) { Reg(init = Bool(false)) }}
-  val posVec = { Vec.fill(METHOD_COUNT) { Reg(Bits(width = MCACHE_SIZE_WIDTH)) }}
+  val posVec = { Vec.fill(METHOD_COUNT) { Reg(UInt(width = MCACHE_SIZE_WIDTH)) }}
   //registers to save current replacement status
-  val nextIndexReg = Reg(init = Bits(0, width = log2Up(METHOD_COUNT)))
-  val nextTagReg = Reg(init = Bits(0, width = log2Up(METHOD_COUNT)))
-  val nextPosReg = Reg(init = Bits(0, width = MCACHE_SIZE_WIDTH))
+  val nextIndexReg = Reg(init = UInt(0, width = log2Up(METHOD_COUNT)))
+  val nextTagReg = Reg(init = UInt(0, width = log2Up(METHOD_COUNT)))
+  val nextPosReg = Reg(init = UInt(0, width = MCACHE_SIZE_WIDTH))
   val freeSpaceReg = Reg(init = SInt(MCACHE_WORD_SIZE, width = MCACHE_SIZE_WIDTH+2))
   //variables when call/return occurs to check tag field
-  val posReg = Reg(init = Bits(0, width = MCACHE_SIZE_WIDTH))
+  val posReg = Reg(init = UInt(0, width = MCACHE_SIZE_WIDTH))
   val hitReg = Reg(init = Bool(true))
-  val wrPosReg = Reg(init = Bits(0, width = MCACHE_SIZE_WIDTH))
+  val wrPosReg = Reg(init = UInt(0, width = MCACHE_SIZE_WIDTH))
   val callRetBaseReg = Reg(init = UInt(1, DATA_WIDTH))
   val callAddrReg = Reg(init = UInt(1, DATA_WIDTH))
   val selSpmReg = Reg(init = Bool(false))
@@ -196,25 +160,25 @@ class MCacheReplFifo() extends Module {
 
   // hit detection
   val hitVec = { Vec.fill(METHOD_COUNT) { Bool() } }
-  val mergePosVec = { Vec.fill(METHOD_COUNT) { Bits(width = MCACHE_SIZE_WIDTH) } }
+  val mergePosVec = { Vec.fill(METHOD_COUNT) { UInt(width = MCACHE_SIZE_WIDTH) } }
   for (i <- 0 until METHOD_COUNT) {
     hitVec(i) := Bool(false)
-    mergePosVec(i) := Bits(0)
+    mergePosVec(i) := UInt(0)
     when (io.exmcache.callRetBase === addrVec(i) && validVec(i)) {
       hitVec(i) := Bool(true)
       mergePosVec(i) := posVec(i)
     }
   }
   val hit = hitVec.fold(Bool(false))(_|_)
-  val pos = Mux(hit, mergePosVec.fold(Bits(0))(_|_), nextPosReg)
+  val pos = Mux(hit, mergePosVec.fold(UInt(0))(_|_), nextPosReg)
 
   //read from tag memory on call/return to check if method is in the cache
   when (io.exmcache.doCallRet && io.ena_in) {
 
     callRetBaseReg := io.exmcache.callRetBase
     callAddrReg := io.exmcache.callRetAddr
-    selSpmReg := io.exmcache.callRetBase(ADDR_WIDTH-1, ISPM_ONE_BIT-2) === Bits(0x1)
-    val selCache = io.exmcache.callRetBase(ADDR_WIDTH-1, ISPM_ONE_BIT-1) >= Bits(0x1)
+    selSpmReg := io.exmcache.callRetBase(ADDR_WIDTH-1, ISPM_ONE_BIT-2) === UInt(0x1)
+    val selCache = io.exmcache.callRetBase(ADDR_WIDTH-1, ISPM_ONE_BIT-1) >= UInt(0x1)
     selCacheReg := selCache
     when (selCache) {
       hitReg := hit
@@ -244,7 +208,7 @@ class MCacheReplFifo() extends Module {
     hitReg := Bool(true) //start fetch, we have again a hit!
     wrPosReg := posReg
     //update free space
-    freeSpaceReg := freeSpaceReg - io.ctrlrepl.wData(MCACHE_SIZE_WIDTH,0) + sizeVec(nextIndexReg)
+    freeSpaceReg := freeSpaceReg - io.ctrlrepl.wData(MCACHE_SIZE_WIDTH,0).toSInt + sizeVec(nextIndexReg).toSInt
     //update tag fields
     posVec(nextIndexReg) := nextPosReg
     sizeVec(nextIndexReg) := io.ctrlrepl.wData(MCACHE_SIZE_WIDTH, 0)
@@ -252,7 +216,7 @@ class MCacheReplFifo() extends Module {
     validVec(nextIndexReg) := Bool(true)
     //update pointers
     nextPosReg := nextPosReg + io.ctrlrepl.wData(MCACHE_SIZE_WIDTH-1,0)
-    val nextTag = Mux(nextIndexReg === Bits(METHOD_COUNT - 1), Bits(0), nextIndexReg + Bits(1))
+    val nextTag = Mux(nextIndexReg === UInt(METHOD_COUNT - 1), UInt(0), nextIndexReg + UInt(1))
     nextIndexReg := nextTag
     when (nextTagReg === nextIndexReg) {
       nextTagReg := nextTag
@@ -260,10 +224,10 @@ class MCacheReplFifo() extends Module {
   }
   //free new space if still needed -> invalidate next method
   when (freeSpaceReg < SInt(0)) {
-    freeSpaceReg := freeSpaceReg + sizeVec(nextTagReg)
-    sizeVec(nextTagReg) := Bits(0)
+    freeSpaceReg := freeSpaceReg + sizeVec(nextTagReg).toSInt
+    sizeVec(nextTagReg) := UInt(0)
     validVec(nextTagReg) := Bool(false)
-    nextTagReg := Mux(nextTagReg === Bits(METHOD_COUNT - 1), Bits(0), nextTagReg + Bits(1))
+    nextTagReg := Mux(nextTagReg === UInt(METHOD_COUNT - 1), UInt(0), nextTagReg + UInt(1))
   }
 
   val wParity = io.ctrlrepl.wAddr(0)
@@ -279,8 +243,8 @@ class MCacheReplFifo() extends Module {
   io.memIn.addrEven := addrEven
   io.memIn.addrOdd := addrOdd
 
-  val instrEvenReg = Reg(Bits(width = INSTR_WIDTH))
-  val instrOddReg = Reg(Bits(width = INSTR_WIDTH))
+  val instrEvenReg = Reg(UInt(width = INSTR_WIDTH))
+  val instrOddReg = Reg(UInt(width = INSTR_WIDTH))
   val instrEven = io.memOut.instrEven
   val instrOdd = io.memOut.instrOdd
   when (!io.ctrlrepl.instrStall) {
@@ -310,53 +274,53 @@ class MCacheReplFifo() extends Module {
  MCacheCtrl Class: Main Class of Method Cache, implements the State Machine and handles the R/W/Fetch of Cache and External Memory
  */
 class MCacheCtrl() extends Module {
-  val io = new MCacheCtrlIO()
+  val io = IO(new MCacheCtrlIO())
 
   //fsm state variables
   val idleState :: sizeState :: transferState :: errorState :: errorDecState :: errorExeState :: errorMemState :: Nil = Enum(UInt(), 7)
   val stateReg = Reg(init = idleState)
   //signals for method cache memory (repl)
-  val addrEven = Bits(width = ADDR_WIDTH)
-  val addrOdd = Bits(width = ADDR_WIDTH)
-  val wData = Bits(width = DATA_WIDTH)
-  val wTag = Bool() //signalizes the transfer of begin of a write
-  val wAddr = Bits(width = ADDR_WIDTH)
-  val wEna = Bool()
+  val addrEven = Wire(UInt(width = ADDR_WIDTH))
+  val addrOdd = Wire(UInt(width = ADDR_WIDTH))
+  val wData = Wire(UInt(width = DATA_WIDTH))
+  val wTag = Wire(Bool()) //signalizes the transfer of begin of a write
+  val wAddr = Wire(UInt(width = ADDR_WIDTH))
+  val wEna = Wire(Bool())
   //signals for external memory
   val ocpCmdReg = Reg(init = OcpCmd.IDLE)
-  val ocpAddrReg = Reg(Bits(width = ADDR_WIDTH))
-  val fetchEna = Bool()
-  val transferSizeReg = Reg(Bits(width = MCACHE_SIZE_WIDTH))
-  val fetchCntReg = Reg(Bits(width = MCACHE_SIZE_WIDTH))
+  val ocpAddrReg = Reg(UInt(width = ADDR_WIDTH))
+  val fetchEna = Wire(Bool())
+  val transferSizeReg = Reg(UInt(width = MCACHE_SIZE_WIDTH))
+  val fetchCntReg = Reg(UInt(width = MCACHE_SIZE_WIDTH))
   val burstCntReg = Reg(UInt(width = log2Up(BURST_LENGTH)))
   //input/output registers
-  val callRetBaseReg = Reg(Bits(width = ADDR_WIDTH))
-  val msizeAddr = callRetBaseReg - Bits(1)
-  val addrEvenReg = Reg(Bits())
-  val addrOddReg = Reg(Bits())
+  val callRetBaseReg = Reg(UInt(width = ADDR_WIDTH))
+  val msizeAddr = callRetBaseReg - UInt(1)
+  val addrEvenReg = Reg(UInt())
+  val addrOddReg = Reg(UInt())
 
   val ocpSlaveReg = Reg(next = io.ocp_port.S)
 
   //init signals
   addrEven := addrEvenReg
   addrOdd := addrOddReg
-  wData := Bits(0)
+  wData := UInt(0)
   wTag := Bool(false)
   wEna := Bool(false)
-  wAddr := Bits(0)
+  wAddr := UInt(0)
   fetchEna := Bool(true)
 
   // reset command when accepted
-  when (io.ocp_port.S.CmdAccept === Bits(1)) {
+  when (io.ocp_port.S.CmdAccept === UInt(1)) {
     ocpCmdReg := OcpCmd.IDLE
   }
 
   //output to external memory
-  io.ocp_port.M.Addr := Cat(ocpAddrReg, Bits("b00"))
+  io.ocp_port.M.Addr := Cat(ocpAddrReg, UInt("b00"))
   io.ocp_port.M.Cmd := ocpCmdReg
-  io.ocp_port.M.Data := Bits(0)
-  io.ocp_port.M.DataByteEn := Bits("b1111")
-  io.ocp_port.M.DataValid := Bits(0)
+  io.ocp_port.M.Data := UInt(0)
+  io.ocp_port.M.DataByteEn := UInt("b1111")
+  io.ocp_port.M.DataValid := UInt(0)
 
   when (io.exmcache.doCallRet) {
     callRetBaseReg := io.exmcache.callRetBase // use callret to save base address for next cycle
@@ -366,7 +330,7 @@ class MCacheCtrl() extends Module {
 
   //check if instruction is available
   when (stateReg === idleState) {
-    when(io.replctrl.hit === Bits(1)) {
+    when(io.replctrl.hit === UInt(1)) {
       addrEven := io.femcache.addrEven
       addrOdd := io.femcache.addrOdd
     }
@@ -376,13 +340,13 @@ class MCacheCtrl() extends Module {
 
       //aligned read from ssram
       io.ocp_port.M.Cmd := OcpCmd.RD
-      when (io.ocp_port.S.CmdAccept === Bits(0)) {
+      when (io.ocp_port.S.CmdAccept === UInt(0)) {
         ocpCmdReg := OcpCmd.RD
       }
       io.ocp_port.M.Addr := Cat(msizeAddr(ADDR_WIDTH-1,log2Up(BURST_LENGTH)),
-                                Bits(0, width=log2Up(BURST_LENGTH)+2))
+                                UInt(0, width=log2Up(BURST_LENGTH)+2))
       ocpAddrReg := Cat(msizeAddr(ADDR_WIDTH-1,log2Up(BURST_LENGTH)),
-                        Bits(0, width=log2Up(BURST_LENGTH)))
+                        UInt(0, width=log2Up(BURST_LENGTH)))
 
       stateReg := sizeState
     }
@@ -391,18 +355,18 @@ class MCacheCtrl() extends Module {
   when (stateReg === sizeState) {
     fetchEna := Bool(false)
     when (ocpSlaveReg.Resp === OcpResp.DVA) {
-      burstCntReg := burstCntReg + Bits(1)
+      burstCntReg := burstCntReg + UInt(1)
       when (burstCntReg === msizeAddr(log2Up(BURST_LENGTH)-1,0)) {
         val size = ocpSlaveReg.Data(MCACHE_SIZE_WIDTH+2,2)
         //init transfer from external memory
-        transferSizeReg := size - Bits(1)
-        fetchCntReg := Bits(0) //start to write to cache with offset 0
+        transferSizeReg := size - UInt(1)
+        fetchCntReg := UInt(0) //start to write to cache with offset 0
         when (burstCntReg === UInt(BURST_LENGTH - 1)) {
           io.ocp_port.M.Cmd := OcpCmd.RD
-          when (io.ocp_port.S.CmdAccept === Bits(0)) {
+          when (io.ocp_port.S.CmdAccept === UInt(0)) {
             ocpCmdReg := OcpCmd.RD
           }
-          io.ocp_port.M.Addr := Cat(callRetBaseReg, Bits("b00"))
+          io.ocp_port.M.Addr := Cat(callRetBaseReg, UInt("b00"))
           ocpAddrReg := callRetBaseReg
           burstCntReg := UInt(0)
         }
@@ -422,17 +386,17 @@ class MCacheCtrl() extends Module {
     fetchEna := Bool(false)
     when (fetchCntReg <= transferSizeReg) {
       when (ocpSlaveReg.Resp === OcpResp.DVA) {
-        fetchCntReg := fetchCntReg + Bits(1)
-        burstCntReg := burstCntReg + Bits(1)
+        fetchCntReg := fetchCntReg + UInt(1)
+        burstCntReg := burstCntReg + UInt(1)
         when(fetchCntReg < transferSizeReg) {
           //fetch next address from external memory
           when (burstCntReg === UInt(BURST_LENGTH - 1)) {
             io.ocp_port.M.Cmd := OcpCmd.RD
-            when (io.ocp_port.S.CmdAccept === Bits(0)) {
+            when (io.ocp_port.S.CmdAccept === UInt(0)) {
               ocpCmdReg := OcpCmd.RD
             }
-            io.ocp_port.M.Addr := Cat(callRetBaseReg + fetchCntReg + Bits(1), Bits("b00"))
-            ocpAddrReg := callRetBaseReg + fetchCntReg + Bits(1) //need +1 because start fetching with the size of method
+            io.ocp_port.M.Addr := Cat(callRetBaseReg + fetchCntReg + UInt(1), UInt("b00"))
+            ocpAddrReg := callRetBaseReg + fetchCntReg + UInt(1) //need +1 because start fetching with the size of method
             burstCntReg := UInt(0)
           }
         }
@@ -454,7 +418,7 @@ class MCacheCtrl() extends Module {
     //restart to idle state after burst is done
     .otherwise {
       when (ocpSlaveReg.Resp === OcpResp.DVA) {
-        burstCntReg := burstCntReg + Bits(1)
+        burstCntReg := burstCntReg + UInt(1)
       }
       when (burstCntReg === UInt(BURST_LENGTH - 1)) {
         fetchEna := Bool(true)
@@ -471,13 +435,13 @@ class MCacheCtrl() extends Module {
   when (ocpSlaveReg.Resp === OcpResp.ERR) {
     io.ocp_port.M.Cmd := OcpCmd.IDLE
     ocpCmdReg := OcpCmd.IDLE
-    burstCntReg := burstCntReg + Bits(1)
+    burstCntReg := burstCntReg + UInt(1)
     stateReg := errorState
   }
   // wait for end of burst before signalling error
   when (stateReg === errorState) {
     when (ocpSlaveReg.Resp =/= OcpResp.NULL) {
-      burstCntReg := burstCntReg + Bits(1)
+      burstCntReg := burstCntReg + UInt(1)
     }
     when (burstCntReg === UInt(BURST_LENGTH - 1)) {
       io.illMem := Bool(true)

@@ -161,7 +161,7 @@ swsim: $(BUILDDIR)/$(BOOTAPP).bin
 
 # ISA simulation with PatSim
 isasim: $(BUILDDIR)/$(BOOTAPP).bin
-	cd isasim; sbt "run-main patsim.PatSim $(BUILDDIR)/$(BOOTAPP).bin"
+	cd isasim; sbt "runMain patsim.PatSim $(BUILDDIR)/$(BOOTAPP).bin"
 
 # C simulation of the Chisel version of Patmos
 hwsim:
@@ -173,7 +173,7 @@ test: test_compile test_emu
 test_compile:
 	make clean
 	make emulator
-	
+
 test_sim: patsim
 	cd $(SIMBUILDDIR) && make test
 test_emu:
@@ -202,6 +202,16 @@ endif
 
 gen:
 	$(MAKE) -C hardware verilog BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
+
+elab:
+ifeq ($(VENDOR),Altera)
+	$(MAKE) -C hardware elab_quartus BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
+endif
+
+rtlview:
+ifeq ($(VENDOR),Altera)
+	$(MAKE) -C hardware rtl_quartus BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
+endif
 
 synth:
 ifeq ($(VENDOR),Xilinx)

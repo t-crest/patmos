@@ -1,18 +1,12 @@
 /*
-    A small BOOTABLE demo program demostrating the use of the Argo noc for communication between patmos 
-    processors Master core initiates a message that is sent from one core to the next (based on get_cpuid()). 
-    Each core adds its ID to the sum of ids and forwards the message to the next core,
-    until it reches the master again.
+    A small bootable example intended for testing Argo NoC in simulation. It demonstrates
+	a 1-to-all communication of a single packet message.
 
-    Author: Evangelia Kasapaki
-    Adapted to be bootable by: Luca Pezzarossa
+    Author: Eleftherios Kyriakakis
     Copyright: DTU, BSD License
 
 */
-
-#include <machine/spm.h>
 #include "include/bootable.h"
-#include "include/patio.h"
 #include "libnoc/noc.h"
 
 #include "libmp/mp.h"
@@ -35,43 +29,51 @@ int main(void) __attribute__((noreturn));
 int main() {
 	volatile _SPM char *spm_base = (volatile _SPM char *) NOC_SPM_BASE;
 	volatile _SPM char *spm_slave = spm_base+get_cpucnt()*16;
-	int i;
 
 	if(get_cpuid()==NOC_MASTER)	LEDS = 255;
+
 	noc_configure();
+
 	if(get_cpuid()==NOC_MASTER)	LEDS = 127;
+
 	noc_enable();
+
 	if(get_cpuid()==NOC_MASTER)	LEDS = 63;
-	
-	for(i = 0; i < get_cpucnt()*4; i++) {
+
+	for(int i = 0; i < get_cpucnt()*4; i++) {
 		*(NOC_SPM_BASE+i) = 0;
 		*(NOC_SPM_BASE+get_cpucnt()*4+i) = 0;
 	}
 
 	if(get_cpuid()==NOC_MASTER){
-		LEDS = 31;
-		// message to be send
-		const char *msg_snd = "0123";
-		// put message to spm
-		int i;
-		for (i = 0; i < 4; i++) {
-			*(spm_base+i) = *(msg_snd+i);
+		// send message at spm_base to all nodes
+		for(int i=1; i < get_cpucnt(); i++){
+			// put message to spm
+			WRITE("\ntx:", 4);
+			LEDS = 31;
+			for (int j = 0; j < 4; j++) {
+				*(spm_base+j) = i;
+			}
+			LEDS = 15;
+			// put message in noc
+			noc_write(i, spm_slave, spm_base, 4, 0); //4 bytes
+			LEDS = 7;
+			// wait and poll
+			while(*(spm_slave+3) == 0) {;}
+			LEDS = 3;
+			// received something
+			WRITE("\nrx:", 4);
+			WRITE(spm_slave, 4);
 		}
-		LEDS = 15;
-		WRITE("Sending: 0123\n", 14);
-		noc_write(1, spm_slave, spm_base, 4, 0); //4 bytes
-		LEDS = 7;
-		// wait and poll
-		WRITE("Receiving...\n", 13);
-		while(*(spm_slave+3) == 0) {;}
-		LEDS = 3;
-		WRITE(spm_slave, 14);
 	} else {
-		// wait and poll until message arrives
+		// wait and poll
 		while(*(spm_slave+3) == 0) {;}
+		for (int i = 0; i < 4; i++) {
+			*(spm_slave+i) = 4;
+		}
 		noc_write(0, spm_slave, spm_slave, 4, 0);
 	}
-	
+
 	if(get_cpuid()==NOC_MASTER)	LEDS = 1;
 }
 

@@ -140,6 +140,14 @@ vsim: verilog
 	mv $(HWBUILDDIR)/Patmos.v.tmp $(HWBUILDDIR)/Patmos.v
 	$(MAKE) -C modelsim sim
 
+#elaborate rtl with Quartus
+elab_quartus: 
+	quartus_map quartus/$(BOARD)/patmos --analysis_and_elaboration
+
+rtl_quartus:
+	quartus_npp quartus/$(BOARD)/patmos --netlist_type=sgate
+	qnui quartus/$(BOARD)/patmos
+
 # synthesize with Quartus
 synth_quartus: verilog
 	quartus_map quartus/$(BOARD)/patmos
@@ -214,3 +222,29 @@ SSPM-memspm:
 
 SSPM-memspm-test:
 	$(SBT) "runMain sspm.memSPMTester"
+
+
+# ONEWAY make targets
+oneway:
+	$(SBT) "runMain oneway.OneWayMem"
+
+oneway_test:
+	$(SBT) "test:runMain oneway.OneWayMemTester"
+
+Network-test: 
+	$(SBT) "test:runMain s4noc.NetworkTester"
+
+
+# TWOWAY make targets
+twoway:
+	$(SBT) "runMain twoway.TwoWayMem"
+
+twoway_test:
+	$(SBT) "test:runMain twoway.TwoWayMemTester"
+
+twowayboard:
+	$(SBT) "runMain twoway.TwoWayBoard"
+
+twowayboard_test:
+	$(SBT) "test:runMain twoway.TwoWayBoardTester"
+

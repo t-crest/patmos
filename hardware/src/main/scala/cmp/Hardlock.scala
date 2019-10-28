@@ -10,12 +10,9 @@
 package cmp
  
 import Chisel._
-import Node._
 
-import patmos._
 import patmos.Constants._
 import ocp._
-import io.CoreDeviceIO
 
 class HardlockIO(lckCnt : Int) extends Bundle {
   val sel = UInt(INPUT, log2Up(lckCnt))
@@ -50,7 +47,7 @@ abstract class AbstractHardlock(coreCnt : Int,lckCnt : Int) extends Module {
     for (j <- 0 until lckCnt) {
       blocks(i)(j) := queueReg(j)(i) && (curReg(j) =/= UInt(i)) 
     }
-    io(i).blck := orR(blocks(i))
+    io(i).blck := blocks(i).orR
   }
 }
 
@@ -67,7 +64,7 @@ class Hardlock(coreCnt : Int,lckCnt : Int) extends AbstractHardlock(coreCnt, lck
       hi(i)(j) := queueReg(i)(j) && (curReg(i) <= UInt(j))
     }
     
-    when(orR(hi(i))) {
+    when(hi(i).orR) {
       curReg(i) := PriorityEncoder(hi(i))
     }
     .otherwise {

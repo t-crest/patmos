@@ -43,13 +43,13 @@
 const int NOC_MASTER = 0;
 #include "libnoc/noc.h"
 #include "libcorethread/corethread.h"
-
+#include <machine/patmos.h>
 #include "include/bootable.h"
 
-#define core_id *((volatile _SPM int *) 0xF0000000)
+#define core_id *((volatile _SPM int *) PATMOS_IO_CPUINFO)
 
-#define UART_STATUS *((volatile _SPM int *) 0xF0080000)
-#define UART_DATA   *((volatile _SPM int *) 0xF0080004)
+#define UART_STATUS *((volatile _SPM int *) PATMOS_IO_UART)
+#define UART_DATA   *((volatile _SPM int *) PATMOS_IO_UART+0x04)
 static void write(const char *msg, int len) __attribute__((noinline));
 #define WRITE(data,len) write(data,len)
 

@@ -22,8 +22,8 @@ int writeToI2C2(int addr,int data) {
 
 
 	//temporary
-	volatile _SPM int *i2cWrReg	= (volatile _SPM int *) 0xF00C00B0;
-	volatile _SPM int *i2cSDIN	= (volatile _SPM int *) 0xF00C00C0;
+	volatile _SPM int *i2cWrReg	= (volatile _SPM int *) PATMOS_IO_AUDIO+0x00B0;
+	volatile _SPM int *i2cSDIN	= (volatile _SPM int *) PATMOS_IO_AUDIO+0x00C0;
 
 	*i2cDataReg  = data;
 	*i2cAdrReg = addr;

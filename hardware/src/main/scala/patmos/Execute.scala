@@ -1,36 +1,4 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute.
-   All rights reserved.
-
-   This file is part of the time-predictable VLIW processor Patmos.
-
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions are met:
-
-      1. Redistributions of source code must retain the above copyright notice,
-         this list of conditions and the following disclaimer.
-
-      2. Redistributions in binary form must reproduce the above copyright
-         notice, this list of conditions and the following disclaimer in the
-         documentation and/or other materials provided with the distribution.
-
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
-   OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-   OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
-   NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
-   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-   The views and conclusions contained in the software and documentation are
-   those of the authors and should not be interpreted as representing official
-   policies, either expressed or implied, of the copyright holder.
- */
-
-/*
  * Execution stage of Patmos.
  *
  * Authors: Martin Schoeberl (martin@jopdesign.com)
@@ -41,12 +9,11 @@
 package patmos
 
 import Chisel._
-import Node._
 
 import Constants._
 
 class Execute() extends Module {
-  val io = new ExecuteIO()
+  val io = IO(new ExecuteIO())
 
   val exReg = Reg(new DecEx())
   when(io.ena) {
@@ -57,15 +24,15 @@ class Execute() extends Module {
     }
   }
 
-  def alu(func: Bits, op1: UInt, op2: UInt): Bits = {
-    val result = UInt(width = DATA_WIDTH)
+  def alu(func: UInt, op1: UInt, op2: UInt): UInt = {
+    val result = Wire(UInt(width = DATA_WIDTH))
     val scaledOp1 = op1 << Mux(func === FUNC_SHADD2, UInt(2),
                                Mux(func === FUNC_SHADD, UInt(1),
                                    UInt(0)))
     val sum = scaledOp1 + op2
     result := sum // some default
     val shamt = op2(4, 0).toUInt
-    val srOp = Mux(func === FUNC_SRA, op1(DATA_WIDTH-1), Bits(0)) ## op1
+    val srOp = Mux(func === FUNC_SRA, op1(DATA_WIDTH-1), UInt(0)) ## op1
     // This kind of decoding of the ALU op in the EX stage is not efficient,
     // but we keep it for now to get something going soon.
     switch(func) {
@@ -83,7 +50,7 @@ class Execute() extends Module {
     result
   }
 
-  def comp(func: Bits, op1: UInt, op2: UInt): Bool = {
+  def comp(func: UInt, op1: UInt, op2: UInt): Bool = {
     val op1s = op1.toSInt
     val op2s = op2.toSInt
     val bitMsk = UInt(1) << op2(4, 0).toUInt
@@ -102,7 +69,7 @@ class Execute() extends Module {
       (CFUNC_BTEST, (op1 & bitMsk) =/= UInt(0))))
   }
 
-  def pred(func: Bits, op1: Bool, op2: Bool): Bool = {
+  def pred(func: UInt, op1: Bool, op2: Bool): Bool = {
     MuxLookup(func.toUInt, Bool(false), Array(
       (PFUNC_OR, op1 | op2),
       (PFUNC_AND, op1 & op2),
@@ -111,32 +78,32 @@ class Execute() extends Module {
   }
 
   // data forwarding
-  val fwReg  = Vec.fill(2*PIPE_COUNT) { Reg(Bits(width = 3)) }
-  val fwSrcReg  = Vec.fill(2*PIPE_COUNT) { Reg(UInt(width = log2Up(PIPE_COUNT))) }
-  val memResultDataReg = Vec.fill(PIPE_COUNT) { Reg(Bits(width = DATA_WIDTH)) }
-  val exResultDataReg  = Vec.fill(PIPE_COUNT) { Reg(Bits(width = DATA_WIDTH)) }
-  val op = Vec.fill(2*PIPE_COUNT) { Bits(width = DATA_WIDTH) }
+  val fwReg  = Vec(2*PIPE_COUNT, Reg(UInt(width = 3)))
+  val fwSrcReg  = Vec(2*PIPE_COUNT, Reg(UInt(width = log2Up(PIPE_COUNT))))
+  val memResultDataReg = Vec(PIPE_COUNT, Reg(UInt(width = DATA_WIDTH)))
+  val exResultDataReg  = Vec(PIPE_COUNT, Reg(UInt(width = DATA_WIDTH)))
+  val op = Vec(2*PIPE_COUNT, UInt(width = DATA_WIDTH))
 
   // precompute forwarding
   for (i <- 0 until 2*PIPE_COUNT) {
-    fwReg(i) := Bits("b000")
+    fwReg(i) := UInt("b000")
     fwSrcReg(i) := UInt(0)
     for (k <- 0 until PIPE_COUNT) {
       when(io.decex.rsAddr(i) === io.memResult(k).addr && io.memResult(k).valid) {
-        fwReg(i) := Bits("b010")
+        fwReg(i) := UInt("b010")
         fwSrcReg(i) := UInt(k)
       }
     }
     for (k <- 0 until PIPE_COUNT) {
       when(io.decex.rsAddr(i) === io.exResult(k).addr && io.exResult(k).valid) {
-        fwReg(i) := Bits("b001")
+        fwReg(i) := UInt("b001")
         fwSrcReg(i) := UInt(k)
       }
     }    
   }
   for (i <- 0 until PIPE_COUNT) {
     when(io.decex.immOp(i)) {
-      fwReg(2*i+1) := Bits("b100")
+      fwReg(2*i+1) := UInt("b100")
     }
   }
 
@@ -162,9 +129,9 @@ class Execute() extends Module {
   }
 
   // predicates
-  val predReg = Vec.fill(PRED_COUNT) { Reg(Bool()) }
+  val predReg = Vec(PRED_COUNT, Reg(Bool()))
 
-  val doExecute = Vec.fill(PIPE_COUNT) { Bool() }
+  val doExecute = Vec(PIPE_COUNT, Bool())
   for (i <- 0 until PIPE_COUNT) {
     doExecute(i) := Mux(io.flush, Bool(false),
                         predReg(exReg.pred(i)(PRED_BITS-1, 0)) ^ exReg.pred(i)(PRED_BITS))
@@ -200,10 +167,10 @@ class Execute() extends Module {
 
     val signed = exReg.aluOp(0).func === MFUNC_MUL
 
-    val op1H = Cat(Mux(signed, op(0)(DATA_WIDTH-1), Bits("b0")),
+    val op1H = Cat(Mux(signed, op(0)(DATA_WIDTH-1), UInt("b0")),
                    op(0)(DATA_WIDTH-1, DATA_WIDTH/2)).toSInt
     val op1L = op(0)(DATA_WIDTH/2-1, 0)
-    val op2H = Cat(Mux(signed, op(1)(DATA_WIDTH-1), Bits("b0")), 
+    val op2H = Cat(Mux(signed, op(1)(DATA_WIDTH-1), UInt("b0")), 
                    op(1)(DATA_WIDTH-1, DATA_WIDTH/2)).toSInt
     val op2L = op(1)(DATA_WIDTH/2-1, 0)
 
@@ -224,7 +191,7 @@ class Execute() extends Module {
 
   // interface to the stack cache
   io.exsc.op := sc_OP_NONE
-  io.exsc.opData := UInt(0)
+  io.exsc.opData := 0.U
   io.exsc.opOff := Mux(exReg.immOp(0), exReg.immVal(0), op(0))
 
   // stack control instructions
@@ -259,7 +226,7 @@ class Execute() extends Module {
 
       switch(exReg.aluOp(i).func) {
         is(SPEC_FL) {
-          predReg := op(2*i)(PRED_COUNT-1, 0).toBits()
+          predReg := op(2*i)(PRED_COUNT-1, 0).toUInt()
           predReg(0) := Bool(true)
         }
         is(SPEC_SL) {
@@ -292,7 +259,7 @@ class Execute() extends Module {
     mfsResult := UInt(0, DATA_WIDTH)
     switch(exReg.aluOp(i).func) {
       is(SPEC_FL) {
-        mfsResult := Cat(Bits(0, DATA_WIDTH-PRED_COUNT), predReg.toBits()).toUInt()
+        mfsResult := Cat(UInt(0, DATA_WIDTH-PRED_COUNT), predReg.toUInt()).toUInt()
       }
       is(SPEC_SL) {
         mfsResult := mulLoReg
@@ -366,7 +333,7 @@ class Execute() extends Module {
 
   // return information
   when(exReg.call && doExecute(0)) {
-    retBaseReg := Cat(exReg.base, Bits("b00").toUInt)
+    retBaseReg := Cat(exReg.base, UInt("b00").toUInt)
   }
   // the offset is saved when the call is already in the MEM statge
   saveRetOff := exReg.call && doExecute(0) && io.ena
@@ -374,8 +341,8 @@ class Execute() extends Module {
 
   // exception return information
   when(exReg.xcall && doExecute(0)) {
-    excBaseReg := Cat(exReg.base, Bits("b00").toUInt)
-    excOffReg := Cat(exReg.relPc, Bits("b00").toUInt)
+    excBaseReg := Cat(exReg.base, UInt("b00").toUInt)
+    excOffReg := Cat(exReg.relPc, UInt("b00").toUInt)
   }
 
   // branch
@@ -409,7 +376,7 @@ class Execute() extends Module {
 
   // saveRetOff overrides io.ena for writes to retOffReg
   when(saveRetOff) {
-    retOffReg := Cat(Mux(saveND, exReg.relPc, io.feex.pc), Bits("b00").toUInt)
+    retOffReg := Cat(Mux(saveND, exReg.relPc, io.feex.pc), UInt("b00").toUInt)
   }
 
   // reset at end to override any computations

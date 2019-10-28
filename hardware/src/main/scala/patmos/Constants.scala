@@ -1,36 +1,4 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute.
-   All rights reserved.
-
-   This file is part of the time-predictable VLIW processor Patmos.
-
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions are met:
-
-      1. Redistributions of source code must retain the above copyright notice,
-         this list of conditions and the following disclaimer.
-
-      2. Redistributions in binary form must reproduce the above copyright
-         notice, this list of conditions and the following disclaimer in the
-         documentation and/or other materials provided with the distribution.
-
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
-   OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-   OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
-   NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
-   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-   The views and conclusions contained in the software and documentation are
-   those of the authors and should not be interpreted as representing official
-   policies, either expressed or implied, of the copyright holder.
- */
-
-/*
  * Constants for Patmos.
  *
  * Authors: Martin Schoeberl (martin@jopdesign.com)
@@ -41,7 +9,6 @@
 package patmos
 
 import Chisel._
-import Node._
 
 import util.log2Up
 
@@ -124,7 +91,7 @@ object Constants {
 
   val PRED_BITS = 3
   val PRED_COUNT = 1 << PRED_BITS
-  val PRED_IFFALSE = Bits("b1") ## Bits(0, width = PRED_BITS)
+  val PRED_IFFALSE = UInt("b1") ## UInt(0, width = PRED_BITS)
 
   val INSTR_WIDTH = 32
   val DATA_WIDTH = 32
@@ -133,102 +100,102 @@ object Constants {
   val BYTE_WIDTH = 8
   val BYTES_PER_WORD = DATA_WIDTH / BYTE_WIDTH
 
-  val OPCODE_ALUI = Bits("b00")
-  val OPCODE_ALU = Bits("b01000")
-  val OPCODE_SPC = Bits("b01001")
-  val OPCODE_LDT = Bits("b01010")
-  val OPCODE_STT = Bits("b01011")
+  val OPCODE_ALUI = UInt("b00")
+  val OPCODE_ALU = UInt("b01000")
+  val OPCODE_SPC = UInt("b01001")
+  val OPCODE_LDT = UInt("b01010")
+  val OPCODE_STT = UInt("b01011")
 
-  val OPCODE_STC = Bits("b01100")
+  val OPCODE_STC = UInt("b01100")
 
-  val OPCODE_CFL_CALLND = Bits("b10000")
-  val OPCODE_CFL_BRND   = Bits("b10010")
-  val OPCODE_CFL_BRCFND = Bits("b10100")
-  val OPCODE_CFL_TRAP   = Bits("b10110")
+  val OPCODE_CFL_CALLND = UInt("b10000")
+  val OPCODE_CFL_BRND   = UInt("b10010")
+  val OPCODE_CFL_BRCFND = UInt("b10100")
+  val OPCODE_CFL_TRAP   = UInt("b10110")
 
-  val OPCODE_CFL_CALL   = Bits("b10001")
-  val OPCODE_CFL_BR     = Bits("b10011")
-  val OPCODE_CFL_BRCF   = Bits("b10101")
+  val OPCODE_CFL_CALL   = UInt("b10001")
+  val OPCODE_CFL_BR     = UInt("b10011")
+  val OPCODE_CFL_BRCF   = UInt("b10101")
 
-  val OPCODE_CFL_CFLRND = Bits("b11000")
-  val OPCODE_CFL_CFLR   = Bits("b11001")
+  val OPCODE_CFL_CFLRND = UInt("b11000")
+  val OPCODE_CFL_CFLR   = UInt("b11001")
 
-  val OPCODE_ALUL = Bits("b11111")
+  val OPCODE_ALUL = UInt("b11111")
 
-  val OPC_ALUR  = Bits("b000")
-  val OPC_ALUU  = Bits("b001")
-  val OPC_ALUM  = Bits("b010")
-  val OPC_ALUC  = Bits("b011")
-  val OPC_ALUP  = Bits("b100")
-  val OPC_ALUB  = Bits("b101")
-  val OPC_ALUCI = Bits("b110")
+  val OPC_ALUR  = UInt("b000")
+  val OPC_ALUU  = UInt("b001")
+  val OPC_ALUM  = UInt("b010")
+  val OPC_ALUC  = UInt("b011")
+  val OPC_ALUP  = UInt("b100")
+  val OPC_ALUB  = UInt("b101")
+  val OPC_ALUCI = UInt("b110")
 
-  val OPC_MTS = Bits("b010")
-  val OPC_MFS = Bits("b011")
+  val OPC_MTS = UInt("b010")
+  val OPC_MFS = UInt("b011")
 
-  val MSIZE_W = Bits("b000")
-  val MSIZE_H = Bits("b001")
-  val MSIZE_B = Bits("b010")
-  val MSIZE_HU = Bits("b011")
-  val MSIZE_BU = Bits("b100")
+  val MSIZE_W = UInt("b000")
+  val MSIZE_H = UInt("b001")
+  val MSIZE_B = UInt("b010")
+  val MSIZE_HU = UInt("b011")
+  val MSIZE_BU = UInt("b100")
 
-  val MTYPE_S = Bits("b00")
-  val MTYPE_L = Bits("b01")
-  val MTYPE_C = Bits("b10")
-  val MTYPE_M = Bits("b11")
+  val MTYPE_S = UInt("b00")
+  val MTYPE_L = UInt("b01")
+  val MTYPE_C = UInt("b10")
+  val MTYPE_M = UInt("b11")
 
-  val FUNC_ADD = Bits("b0000")
-  val FUNC_SUB = Bits("b0001")
-  val FUNC_XOR = Bits("b0010")
-  val FUNC_SL = Bits("b0011")
-  val FUNC_SR = Bits("b0100")
-  val FUNC_SRA = Bits("b0101")
-  val FUNC_OR = Bits("b0110")
-  val FUNC_AND = Bits("b0111")
-  val FUNC_NOR = Bits("b1011")
-  val FUNC_SHADD = Bits("b1100")
-  val FUNC_SHADD2 = Bits("b1101")
+  val FUNC_ADD = UInt("b0000")
+  val FUNC_SUB = UInt("b0001")
+  val FUNC_XOR = UInt("b0010")
+  val FUNC_SL = UInt("b0011")
+  val FUNC_SR = UInt("b0100")
+  val FUNC_SRA = UInt("b0101")
+  val FUNC_OR = UInt("b0110")
+  val FUNC_AND = UInt("b0111")
+  val FUNC_NOR = UInt("b1011")
+  val FUNC_SHADD = UInt("b1100")
+  val FUNC_SHADD2 = UInt("b1101")
 
-  val MFUNC_MUL = Bits("b0000")
-  val MFUNC_MULU = Bits("b0001")
+  val MFUNC_MUL = UInt("b0000")
+  val MFUNC_MULU = UInt("b0001")
 
-  val CFUNC_EQ = Bits("b0000")
-  val CFUNC_NEQ = Bits("b0001")
-  val CFUNC_LT = Bits("b0010")
-  val CFUNC_LE = Bits("b0011")
-  val CFUNC_ULT = Bits("b0100")
-  val CFUNC_ULE = Bits("b0101")
-  val CFUNC_BTEST = Bits("b0110")
+  val CFUNC_EQ = UInt("b0000")
+  val CFUNC_NEQ = UInt("b0001")
+  val CFUNC_LT = UInt("b0010")
+  val CFUNC_LE = UInt("b0011")
+  val CFUNC_ULT = UInt("b0100")
+  val CFUNC_ULE = UInt("b0101")
+  val CFUNC_BTEST = UInt("b0110")
 
-  val PFUNC_OR = Bits("b00")
-  val PFUNC_AND = Bits("b01")
-  val PFUNC_XOR = Bits("b10")
-  val PFUNC_NOR = Bits("b11")
+  val PFUNC_OR = UInt("b00")
+  val PFUNC_AND = UInt("b01")
+  val PFUNC_XOR = UInt("b10")
+  val PFUNC_NOR = UInt("b11")
 
-  val JFUNC_RET   = Bits("b0000")
-  val JFUNC_XRET  = Bits("b0001")
-  val JFUNC_CALL  = Bits("b0100")
-  val JFUNC_BR    = Bits("b0101")
-  val JFUNC_BRCF  = Bits("b1010")
+  val JFUNC_RET   = UInt("b0000")
+  val JFUNC_XRET  = UInt("b0001")
+  val JFUNC_CALL  = UInt("b0100")
+  val JFUNC_BR    = UInt("b0101")
+  val JFUNC_BRCF  = UInt("b1010")
 
-  val SPEC_FL = Bits("b0000")
-  val SPEC_SL = Bits("b0010")
-  val SPEC_SH = Bits("b0011")
-  val SPEC_SS = Bits("b0101")
-  val SPEC_ST = Bits("b0110")
+  val SPEC_FL = UInt("b0000")
+  val SPEC_SL = UInt("b0010")
+  val SPEC_SH = UInt("b0011")
+  val SPEC_SS = UInt("b0101")
+  val SPEC_ST = UInt("b0110")
 
-  val SPEC_SRB = Bits("b0111")
-  val SPEC_SRO = Bits("b1000")
-  val SPEC_SXB = Bits("b1001")
-  val SPEC_SXO = Bits("b1010")
+  val SPEC_SRB = UInt("b0111")
+  val SPEC_SRO = UInt("b1000")
+  val SPEC_SXB = UInt("b1001")
+  val SPEC_SXO = UInt("b1010")
 
-  val STC_SRES   = Bits("b0000")
-  val STC_SENS   = Bits("b0100")
-  val STC_SFREE  = Bits("b1000")
-  val STC_SSPILL = Bits("b1100")
+  val STC_SRES   = UInt("b0000")
+  val STC_SENS   = UInt("b0100")
+  val STC_SFREE  = UInt("b1000")
+  val STC_SSPILL = UInt("b1100")
 
-  val STC_SENSR   = Bits("b0101")
-  val STC_SSPILLR = Bits("b1101")
+  val STC_SENSR   = UInt("b0101")
+  val STC_SSPILLR = UInt("b1101")
 
   val SC_OP_BITS = 3
   val sc_OP_NONE :: sc_OP_SET_ST :: sc_OP_SET_MT :: sc_OP_RES :: sc_OP_ENS :: sc_OP_FREE :: sc_OP_SPILL :: Nil = Enum(UInt(), 7)

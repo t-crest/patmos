@@ -19,20 +19,20 @@ object SPMPool {
 
   def roundRobinArbiter(reqs: UInt, continue: Bool = Bool(false)) = {
 
-    val curReg = Reg(UInt(width = log2Up(reqs.getWidth())))
+    val curReg = Reg(UInt(width = log2Up(reqs.getWidth)))
 
-    val hi = UInt(width = reqs.getWidth())
-    val lo = UInt(width = reqs.getWidth())
+    val hi = UInt(width = reqs.getWidth)
+    val lo = UInt(width = reqs.getWidth)
 
     lo := UInt(0)
     hi := UInt(0)
-    for (i <- 0 until reqs.getWidth()) {
+    for (i <- 0 until reqs.getWidth) {
       lo(i) := reqs(i) && (curReg >= UInt(i))
       hi(i) := reqs(i) && (curReg < UInt(i))
     }
 
     when(!reqs(curReg) || continue) {
-      when(orR(hi)) {
+      when(hi.orR) {
         curReg := PriorityEncoder(hi)
       }.otherwise {
         curReg := PriorityEncoder(lo)
@@ -78,9 +78,9 @@ class SPMPool(corecnt:Int, spmcnt:Int, spmsize:Int, spmcntmax:Int = 15, spmsizem
 
   // remove empty fields
 
-  val spmios = Vec(spms.map(e => e.io.cores))
+  val spmios = Wire(Vec(spms.map(e => e.io.cores)))
 
-  val spmscheds = Vec(spms.map(e => Reg(UInt(width = corecnt))))
+  val spmscheds = Wire(Vec(spms.map(e => Reg(UInt(width = corecnt)))))
 
   for(i <- 0 until spms.length)
     spms(i).io.sched := spmscheds(i)
@@ -89,14 +89,14 @@ class SPMPool(corecnt:Int, spmcnt:Int, spmsize:Int, spmcntmax:Int = 15, spmsizem
   val spmaddrwidth = log2Up(spmcntmax+1)
   val spmdataaddrwidth = log2Up(spmsizemax)
 
-  val avails = Reverse(Cat(spmscheds.map(e => !orR(e))))
+  val avails = Reverse(Cat(spmscheds.map(e => !e.orR)))
   val nxtavail = PriorityEncoder(avails)
-  val anyavail = orR(avails)
+  val anyavail = avails.orR
 
-  val respRegs = Vec(corecnt, RegInit(OcpResp.NULL))
-  val dataRegs = Vec(corecnt, Reg(io(0).S.Data))
+  val respRegs = Wire(Vec(corecnt, RegInit(OcpResp.NULL)))
+  val dataRegs = Wire(Vec(corecnt, Reg(io(0).S.Data)))
 
-  val dumio = Vec(corecnt, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))
+  val dumio = Wire(Vec(corecnt, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)))
 
   for(i <- 0 until corecnt)
   {

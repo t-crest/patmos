@@ -1,36 +1,4 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute.
-   All rights reserved.
-
-   This file is part of the time-predictable VLIW processor Patmos.
-
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions are met:
-
-      1. Redistributions of source code must retain the above copyright notice,
-         this list of conditions and the following disclaimer.
-
-      2. Redistributions in binary form must reproduce the above copyright
-         notice, this list of conditions and the following disclaimer in the
-         documentation and/or other materials provided with the distribution.
-
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
-   OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-   OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
-   NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
-   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-   The views and conclusions contained in the software and documentation are
-   those of the authors and should not be interpreted as representing official
-   policies, either expressed or implied, of the copyright holder.
- */
-
-/*
  * IO component of Patmos.
  *
  * Authors: Martin Schoeberl (martin@jopdesign.com)
@@ -41,7 +9,6 @@
 package patmos
 
 import Chisel._
-import Node._
 
 import Constants._
 
@@ -51,22 +18,18 @@ import io.CoreDevice
 import io.CoreDeviceIO
 import io.CpuInfoCmp
 
-import java.lang.Integer
-
-class InOut(nr: Int, cnt: Int) extends Module {
-  val io = Config.getInOutIO()
+class InOut(nr: Int, cnt: Int, withComConf: Boolean) extends Module {
+  val io = IO(Config.getInOutIO(nr))
 
   // Compute selects
-  val selIO = io.memInOut.M.Addr(ADDR_WIDTH-1, ADDR_WIDTH-4) === Bits("b1111")
-  val selNI = io.memInOut.M.Addr(ADDR_WIDTH-1, ADDR_WIDTH-4) === Bits("b1110")
+  val selIO = io.memInOut.M.Addr(ADDR_WIDTH-1, ADDR_WIDTH-4) === UInt("b1111")
+  val selNI = io.memInOut.M.Addr(ADDR_WIDTH-1, ADDR_WIDTH-4) === UInt("b1110")
 
-  val selISpm = !selIO & !selNI & io.memInOut.M.Addr(ISPM_ONE_BIT) === Bits(0x1)
-  val selSpm = !selIO & !selNI & io.memInOut.M.Addr(ISPM_ONE_BIT) === Bits(0x0)
+  val selISpm = !selIO & !selNI & io.memInOut.M.Addr(ISPM_ONE_BIT) === UInt(0x1)
+  val selSpm = !selIO & !selNI & io.memInOut.M.Addr(ISPM_ONE_BIT) === UInt(0x0)
 
-  // val selComConf = selNI & io.memInOut.M.Addr(ADDR_WIDTH-5) === Bits("b0")
-  // val selComSpm  = selNI & io.memInOut.M.Addr(ADDR_WIDTH-5) === Bits("b1")
-  val selComConf = false.B
-  val selComSpm = selNI
+  val selComConf = if(withComConf) selNI & io.memInOut.M.Addr(ADDR_WIDTH-5) === UInt("b0") else false.B
+  val selComSpm  = if(withComConf) selNI & io.memInOut.M.Addr(ADDR_WIDTH-5) === UInt("b1") else selNI
 
   val MAX_IO_DEVICES : Int = 0x10
   val IO_DEVICE_OFFSET = 16 // Number of address bits for each IO device
@@ -81,9 +44,9 @@ class InOut(nr: Int, cnt: Int) extends Module {
   for (i <- 0 until MAX_IO_DEVICES) {
     validDeviceVec(i) := Bool(false)
     selDeviceVec(i) := selIO & io.memInOut.M.Addr(IO_DEVICE_ADDR_SIZE
-                          + IO_DEVICE_OFFSET - 1, IO_DEVICE_OFFSET) === Bits(i)
+                          + IO_DEVICE_OFFSET - 1, IO_DEVICE_OFFSET) === UInt(i)
     deviceSVec(i).Resp := OcpResp.NULL
-    deviceSVec(i).Data := Bits(0)
+    deviceSVec(i).Data := UInt(0)
   }
   validDeviceVec(EXC_IO_OFFSET) := Bool(true)
   validDeviceVec(MMU_IO_OFFSET) := Bool(HAS_MMU)
@@ -147,7 +110,7 @@ class InOut(nr: Int, cnt: Int) extends Module {
         validDeviceVec(off) := Bool(true)
         validDevices(off) = true;
       } else {
-        ChiselError.error("Can't assign multiple devices to the same offset. " +
+        throw new Error("Can't assign multiple devices to the same offset. " +
                           "Device " + name + " conflicting on offset " +
                           off.toString + ". ")
       }
@@ -169,8 +132,12 @@ class InOut(nr: Int, cnt: Int) extends Module {
   }
 
   for (devConf <- Config.getConfig.Devs) {
-    val dev = Config.createDevice(devConf).asInstanceOf[CoreDevice]
-    if(nr == 0 || dev.io.getClass().getInterfaces().forall(e => e.getSimpleName() != "Pins" || !e.getMethods().nonEmpty)) {
+    val clazz = 
+      try { Class.forName("io."+devConf.name+"$Pins") }
+      catch { case e: Exception => null}
+
+    if(nr == 0 || clazz == null || !clazz.getMethods.nonEmpty) {
+      val dev = Config.createDevice(devConf).asInstanceOf[CoreDevice]
       connectDevice(dev.io,devConf.offset,devConf.name)
       Config.connectIOPins(devConf.name, io, dev.io)
       Config.connectIntrPins(devConf, io, dev.io)

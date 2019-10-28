@@ -53,8 +53,14 @@
 //This function sends an ethernet frame located at tx_addr and of length frame_length.
 void eth_mac_send(unsigned int tx_addr, unsigned int frame_length);
 
+//This function sends an ethernet frame located at tx_addr and of length frame_length (NON-BLOCKING call).
+unsigned eth_mac_send_nb(unsigned int tx_addr, unsigned int frame_length);
+
 //This function receive an ethernet frame and put it in rx_addr.
-int eth_mac_receive(unsigned int rx_addr, unsigned long long int timeout);
+unsigned eth_mac_receive(unsigned int rx_addr, unsigned long long int timeout);
+
+//This function receive an ethernet frame and put it in rx_addr (Non-blocking call).
+unsigned eth_mac_receive_nb(unsigned int rx_addr);
 
 //This function initilize the ethernet controller (only for the demo).
 void eth_mac_initialize();
@@ -64,6 +70,8 @@ void eth_mac_initialize();
 ///////////////////////////////////////////////////////////////
 
 void set_tx_enable();
+
+void clear_tx_enable();
 
 unsigned get_tx_enable();
 

@@ -6,14 +6,14 @@
 //#include "libmp/mp.h"
 
 //LEDs
-#define LED ( *( ( volatile _IODEV unsigned * )	0xF0090000 ) )
+#define LED ( *( ( volatile _IODEV unsigned * )	PATMOS_IO_LED ) )
 
 //Actuators and Propulsion controller
-#define ACTUATORS ( ( volatile _IODEV unsigned * )	0xF00D0000 )
-#define PROPULSION ( ( volatile _IODEV unsigned * )	0xF00D0010 )
+#define ACTUATORS ( ( volatile _IODEV unsigned * )	PATMOS_IO_ACT)
+#define PROPULSION ( ( volatile _IODEV unsigned * )	PATMOS_IO_ACT+0x10 )
 
 //UART2
-#define UART2 ( ( volatile _IODEV unsigned * )	0xF00E0000 )
+#define UART2 ( ( volatile _IODEV unsigned * )	PATMOS_IO_UART2 )
 
 //Writes to actuator specified by actuator ID (0 to 4)
 void actuator_write(unsigned int actuator_id, unsigned int data){

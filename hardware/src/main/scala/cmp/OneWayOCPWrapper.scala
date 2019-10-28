@@ -8,13 +8,9 @@
 package cmp
 
 import Chisel._
-import Node._
 
-import patmos._
 import patmos.Constants._
 import ocp._
-import io.CoreDeviceIO
-import oneway._
 
 class OneWayOCPWrapper(nrCores: Int) extends Module {
 
@@ -28,7 +24,7 @@ class OneWayOCPWrapper(nrCores: Int) extends Module {
 
   val onewaymem = Module(new oneway.OneWayMem(dim, size))
 
-  val io = Vec(nrCores, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))
+  val io = IO(Vec(nrCores, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)))
 
   // Connection between OneWay memories and OCPcore ports
   for (i <- 0 until nrCores) {

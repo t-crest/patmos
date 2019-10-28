@@ -33,7 +33,6 @@
 package util
 
 import Chisel._
-import Node._
 import patmos._
 import io.CoreDevice
 import io.Device
@@ -192,10 +191,8 @@ object Config {
       val coreCount = getIntAttr(node, "cores", "@count",
                                  hasParent, defaultConf.coreCount)
 
-      val cmpDevices = {
-        val set = ((node \ "CmpDevs") \ "CmpDev").map(e => (e \ "@name").text).toSet
-        if(set.isEmpty) defaultConf.cmpDevices else set
-      }
+      val cmpDevices = ((node \ "CmpDevs") \ "CmpDev").map(e => (e \ "@name").text).toSet ++ 
+        defaultConf.cmpDevices
 
       val burstLength  = getIntAttr(node, "bus", "@burstLength",
                                     hasParent, defaultConf.burstLength)
@@ -292,7 +289,7 @@ object Config {
         } else {
           intrsList.split(",").toList.map(_.trim.toInt)
         }
-        ChiselError.info("IO device "+key+": entity "+name+
+        println("IO device "+key+": entity "+name+
                          ", offset "+offset+", params "+params+
                          (if (!intrs.isEmpty) ", interrupts: "+intrs else ""))
         new DeviceConfig(name, params, offset, intrs)
@@ -356,10 +353,13 @@ object Config {
     rawDev.asInstanceOf[Device]
   }
 
-  def connectIOPins(name : String, outer : Node, inner : Node) = {
+  def connectIOPins(name : String, outer : Node, inner : Node, pack : String = "io.") = {
       // get class for pin trait
-      val clazz = Class.forName("io."+name+"$Pins")
-      if (clazz.isInstance(outer)) {
+      val clazz = 
+      try {
+        Class.forName(pack+name+"$Pins")
+      } catch { case e: Exception => null}
+      if (clazz != null && clazz.isInstance(outer)) {
         // get method to retrieve pin bundle
         val methName = name(0).toLower + name.substring(1, name.length) + "Pins"
         for (m <- clazz.getMethods) {
@@ -369,7 +369,7 @@ object Config {
               _ || _.getMethods.map(_.getName).contains(m.getName))
 
             if (!isInherited) {
-              ChiselError.error("Pins trait for IO device "+name+
+              throw new Error("Pins trait for IO device "+name+
                                 " cannot declare non-inherited member "+m.getName+
                                 ", only member "+methName+" allowed")
             }
@@ -377,7 +377,7 @@ object Config {
         }
         val meth = clazz.getMethods.find(_.getName == methName)
         if (meth == None) {
-          ChiselError.info("No pins for IO device "+name)
+          println("No pins for IO device "+name)
         } else {
           // retrieve pin bundles
           val outerPins = meth.get.invoke(clazz.cast(outer))
@@ -408,7 +408,7 @@ object Config {
             _ || _.getMethods.map(_.getName).contains(m.getName))
 
           if (!isInherited) {
-            ChiselError.error("Intrs trait for IO device "+name+
+            throw new Error("Intrs trait for IO device "+name+
                               " cannot declare non-inherited member "+m.getName+
                               ", only member "+methName+" allowed")
           }
@@ -416,11 +416,11 @@ object Config {
       }
       val meth = clazz.getMethods.find(_.getName == methName)
       if (meth == None) {
-        ChiselError.error("Interrupt pins not found for device "+name)
+        throw new Error("Interrupt pins not found for device "+name)
       } else {
         val intrPins = meth.get.invoke(clazz.cast(inner)).asInstanceOf[Vec[Bool]]
         if (intrPins.length != dev.intrs.length) {
-          ChiselError.error("Inconsistent interrupt counts for IO device "+name)
+          throw new Error("Inconsistent interrupt counts for IO device "+name)
         } else {
           for (i <- 0 until dev.intrs.length) {
             outer.intrs(dev.intrs(i)) := intrPins(i)
@@ -430,12 +430,18 @@ object Config {
     }
   }
 
-  private def genTraitedClass[T](base : String, list : List[String]) : T = {
+  private def genTraitedClass[T](base : String, list : List[(String, String)]) : T = {
     // build class definition
-    val traitClass = list.foldLeft("Trait"+base)(_+"_"+ _)
+    val _list = list.filter(e => 
+      try{
+        Class.forName(e._1+e._2+"$Pins")
+        true
+      }
+      catch { case e: Exception => false}
+    )
+    val traitClass = _list.foldLeft("Trait"+base)(_+"_"+_._2)
     val traitClassDef = "class "+traitClass+" extends "+"patmos."+base
-    val classDef = list.foldLeft(traitClassDef)(_+" with io."+_+".Pins")
-
+    val classDef = _list.foldLeft(traitClassDef)((a,b) => a+" with "+b._1+b._2+".Pins")
     // fire up a new Scala interpreter/compiler
     val settings = new Settings()
     settings.embeddedDefaults(this.getClass.getClassLoader())
@@ -448,15 +454,20 @@ object Config {
     clazz.newInstance().asInstanceOf[T]
   }
 
-  def getInOutIO() : InOutIO = {
-    genTraitedClass[InOutIO]("InOutIO", conf.Devs.map(_.name))
+  def getInOutIO(id: Int = 0) : InOutIO = {
+    genTraitedClass[InOutIO]("InOutIO", if(id == 0) {conf.Devs.map(e => ("io.",e.name))} else {List.empty})
   }
 
-  def getPatmosCoreIO() : PatmosCoreIO = {
-    genTraitedClass[PatmosCoreIO]("PatmosCoreIO", conf.Devs.map(_.name))
+  def getPatmosCoreIO(id: Int = 0) : PatmosCoreIO = {
+    genTraitedClass[PatmosCoreIO]("PatmosCoreIO", if(id == 0) {conf.Devs.map(e => ("io.",e.name))} else {List.empty})
   }
 
   def getPatmosIO() : PatmosIO = {
-    genTraitedClass[PatmosIO]("PatmosIO", conf.ExtMem.ram.name :: conf.Devs.map(_.name))
+    genTraitedClass[PatmosIO]("PatmosIO", ("io.", conf.ExtMem.ram.name) 
+    :: conf.Devs.map(e => ("io.",e.name)) 
+    ++  conf.cmpDevices
+    .map(e => ("cmp.",e))
+    .toList
+    )
   }
 }

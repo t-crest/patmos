@@ -1,36 +1,4 @@
 /*
-   Copyright 2015 Technical University of Denmark, DTU Compute.
-   All rights reserved.
-
-   This file is part of the time-predictable VLIW processor Patmos.
-
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions are met:
-
-      1. Redistributions of source code must retain the above copyright notice,
-         this list of conditions and the following disclaimer.
-
-      2. Redistributions in binary form must reproduce the above copyright
-         notice, this list of conditions and the following disclaimer in the
-         documentation and/or other materials provided with the distribution.
-
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
-   OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-   OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
-   NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
-   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-   The views and conclusions contained in the software and documentation are
-   those of the authors and should not be interpreted as representing official
-   policies, either expressed or implied, of the copyright holder.
- */
-
-/*
  * A memory management unit for Patmos.
  *
  * Author: Wolfgang Puffitsch (wpuffitsch@gmail.com)
@@ -40,7 +8,6 @@
 package patmos
 
 import Chisel._
-import Node._
 
 import Constants._
 
@@ -57,7 +24,7 @@ object MemoryManagement {
   val PERM_X = 0
 
   class Segment extends Bundle {
-    val perm   = Bits(width = PERM_BITS)
+    val perm   = UInt(width = PERM_BITS)
     val length = UInt(width = ADDR_WIDTH-ALIGN_BITS-PERM_BITS)
     val base   = UInt(width = ADDR_WIDTH-ALIGN_BITS)
   }
@@ -66,20 +33,20 @@ object MemoryManagement {
 import MemoryManagement._
 
 class MemoryManagement extends Module {
-  val io = new MMUIO()
+  val io = IO(new MMUIO())
 
-  val masterReg = Reg(next = io.ctrl.M)
+  val masterReg = RegNext(io.ctrl.M)
 
   def checked(action: => Unit) {
     when (io.superMode) (action) .otherwise { io.ctrl.S.Resp := OcpResp.ERR }
   }
 
-  val segInfoVec = Mem(Bits(width = ADDR_WIDTH-ALIGN_BITS), SEG_COUNT)
-  val segBaseVec = Mem(Bits(width = ADDR_WIDTH-ALIGN_BITS), SEG_COUNT)
+  val segInfoVec = Mem(UInt(width = ADDR_WIDTH-ALIGN_BITS), SEG_COUNT)
+  val segBaseVec = Mem(UInt(width = ADDR_WIDTH-ALIGN_BITS), SEG_COUNT)
 
   // Default OCP response
   io.ctrl.S.Resp := OcpResp.NULL
-  io.ctrl.S.Data := Bits(0, width = DATA_WIDTH)
+  io.ctrl.S.Data := UInt(0, width = DATA_WIDTH)
 
   // Handle OCP reads and writes for control interface
   when(masterReg.Cmd === OcpCmd.RD) {
@@ -88,7 +55,7 @@ class MemoryManagement extends Module {
   when(masterReg.Cmd === OcpCmd.WR) {
     io.ctrl.S.Resp := OcpResp.DVA
     checked {
-      when (masterReg.Addr(2) === Bits(0)) {
+      when (masterReg.Addr(2) === UInt(0)) {
         segBaseVec(masterReg.Addr(SEG_BITS+2, 3)) := masterReg.Data(DATA_WIDTH-1, ALIGN_BITS)
       } .otherwise {
         segInfoVec(masterReg.Addr(SEG_BITS+2, 3)) := masterReg.Data(DATA_WIDTH-1, ALIGN_BITS)
@@ -97,10 +64,10 @@ class MemoryManagement extends Module {
   }
 
   // Address translation
-  val virtReg = Reg(next = io.virt.M)
-  val execReg = Reg(next = io.exec)
+  val virtReg = RegNext(io.virt.M)
+  val execReg = RegNext(io.exec)
 
-  val segment = new Segment()
+  val segment = new Segment() // Wire of a Bundle?
   val info = segInfoVec(virtReg.Addr(ADDR_WIDTH-1, ADDR_WIDTH-SEG_BITS))
   val base = segBaseVec(virtReg.Addr(ADDR_WIDTH-1, ADDR_WIDTH-SEG_BITS))
   segment.perm   := info(ADDR_WIDTH-ALIGN_BITS-1, ADDR_WIDTH-ALIGN_BITS-PERM_BITS)
@@ -109,7 +76,7 @@ class MemoryManagement extends Module {
 
   val translated = new OcpBurstMasterSignals(ADDR_WIDTH, DATA_WIDTH)
   translated := virtReg
-  translated.Addr := Cat(segment.base, Bits(0, width = ALIGN_BITS)) + virtReg.Addr(ADDR_WIDTH-SEG_BITS-1, 0)
+  translated.Addr := Cat(segment.base, UInt(0, width = ALIGN_BITS)) + virtReg.Addr(ADDR_WIDTH-SEG_BITS-1, 0)
 
   // Connect return path
   io.virt.S := io.phys.S
@@ -126,13 +93,13 @@ class MemoryManagement extends Module {
   buffer.io.deq.ready := io.phys.S.CmdAccept | io.phys.S.DataAccept
 
   // Check permissions
-  val permViol = ((virtReg.Cmd === OcpCmd.RD && !execReg && segment.perm(PERM_R) === Bits(0)) ||
-                  (virtReg.Cmd === OcpCmd.RD && execReg && segment.perm(PERM_X) === Bits(0)) ||
-                  (virtReg.Cmd === OcpCmd.WR && segment.perm(PERM_W) === Bits(0)))
+  val permViol = ((virtReg.Cmd === OcpCmd.RD && !execReg && segment.perm(PERM_R) === UInt(0)) ||
+                  (virtReg.Cmd === OcpCmd.RD && execReg && segment.perm(PERM_X) === UInt(0)) ||
+                  (virtReg.Cmd === OcpCmd.WR && segment.perm(PERM_W) === UInt(0)))
   val permViolReg = Reg(next = permViol)
   debug(permViolReg)
 
-  val lengthViol = (segment.length =/= Bits(0) &&
+  val lengthViol = (segment.length =/= UInt(0) &&
                     virtReg.Addr(ADDR_WIDTH-SEG_BITS-1, ALIGN_BITS) >= segment.length)
   val lengthViolReg = Reg(next = lengthViol)
   debug(lengthViolReg)  

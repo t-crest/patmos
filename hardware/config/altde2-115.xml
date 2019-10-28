@@ -3,16 +3,15 @@
 
   <frequency Hz="80000000"/>	
 
-  <!-- Default is single core
-  <pipeline dual="false" />
-  <cores count="4"/>
-  <CmpDevs>
-  <CmpDev name="Argo" />
-  </CmpDevs>
-  -->
+  <!-- Default is single core -->
+	<!-- <pipeline dual="false" />
+	<cores count="6"/>
+	<CmpDevs>
+	<CmpDev name="Argo" />
+	</CmpDevs> -->
 
   <ExtMem size="2M" DevTypeRef="Sram16" />
-  <!-- <ExtMem size="500k" DevTypeRef="OCRam" /> -->
+  <!-- <ExtMem size="128k" DevTypeRef="OCRam" /> -->
 
   <IOs>
 	<IO DevTypeRef="Uart" offset="8"/>
@@ -44,10 +43,10 @@
 		<param name="sramDataWidth" value="16" />
 	    </params>
 	</Dev>
-	<!-- <Dev DevType="OCRam" entity="OCRamCtrl" iface="OcpBurst">
+	<Dev DevType="OCRam" entity="OCRamCtrl" iface="OcpBurst">
 	  <params>
 	     <param name="addrWidth" value="19" />
 	  </params>
-	</Dev> -->
+	</Dev>
   </Devs>
 </patmos>

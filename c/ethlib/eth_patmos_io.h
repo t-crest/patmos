@@ -46,10 +46,12 @@
 
 // Pointers to the base addresses, all the addressing (addr as arguments)
 // in the library are an offset on these addresses
-#define ETH_DEV_BASE    0xF00D0000
+#define ETH_BASE  ((volatile _IODEV unsigned *) (PATMOS_IO_ETH + 0xF000))
+#define BUFF_BASE ((volatile _IODEV unsigned *) (PATMOS_IO_ETH + 0x0000))
 
-#define ETH_BASE  ((volatile _IODEV unsigned *) (ETH_DEV_BASE + 0xF000))
-#define BUFF_BASE ((volatile _IODEV unsigned *) (ETH_DEV_BASE + 0x0000))
+// Base addresses of second Ethernet controller (when present)
+#define ETH1_BASE  ((volatile _IODEV unsigned *) (PATMOS_IO_ETH1 + 0xF000))
+#define BUFF1_BASE ((volatile _IODEV unsigned *) (PATMOS_IO_ETH1 + 0x0000))
 
 // Write to ethernet controller
 void eth_iowr(unsigned addr,unsigned data);
@@ -61,12 +63,30 @@ unsigned eth_iord(unsigned addr);
 void mem_iowr(unsigned addr, unsigned data);
 
 // Write a byte in rx-tx buffer
-void mem_iowr_byte(unsigned addr, unsigned data);
+void mem_iowr_byte(unsigned addr, unsigned data);// __attribute__((noinline));
 
 // Read rx-tx buffer
 unsigned mem_iord(int addr);
 
 // Write a byte in rx-tx buffer
-unsigned mem_iord_byte(unsigned addr);
+unsigned mem_iord_byte(unsigned addr);// __attribute__((noinline));
+
+// Write to ethernet controller
+void eth_iowr1(unsigned addr,unsigned data);
+
+// Read ethernet controller
+unsigned eth_iord1(unsigned addr);
+
+// Write rx-tx buffer
+void mem_iowr1(unsigned addr, unsigned data);
+
+// Write a byte in rx-tx buffer
+void mem_iowr_byte1(unsigned addr, unsigned data);
+
+// Read rx-tx buffer
+unsigned mem_iord1(int addr);
+
+// Write a byte in rx-tx buffer
+unsigned mem_iord_byte1(unsigned addr);
 
 #endif

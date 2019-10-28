@@ -1,36 +1,4 @@
 /*
-   Copyright 2014 Technical University of Denmark, DTU Compute. 
-   All rights reserved.
-   
-   This file is part of the time-predictable VLIW processor Patmos.
-
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions are met:
-
-      1. Redistributions of source code must retain the above copyright notice,
-         this list of conditions and the following disclaimer.
-
-      2. Redistributions in binary form must reproduce the above copyright
-         notice, this list of conditions and the following disclaimer in the
-         documentation and/or other materials provided with the distribution.
-
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
-   OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-   OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
-   NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
-   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-   The views and conclusions contained in the software and documentation are
-   those of the authors and should not be interpreted as representing official
-   policies, either expressed or implied, of the copyright holder.
- */
-
-/*
  * PTP1588 section of ethlib (ethernet library)
  * 
  * Authors: Eleftherios Kyriakakis (elky@dtu.dk)
@@ -39,6 +7,7 @@
 #ifndef _PTP_1588_H
 #define _PTP_1588_H
 
+#include <machine/patmos.h>
 #include <machine/exceptions.h>
 #include <machine/spm.h>
 #include <string.h>
@@ -50,21 +19,24 @@
 #define PTP_CHAN_VALID_TS_MASK 0x100
 #define PTP_CHAN_MSG_TYPE_MASK 0x0FF
 
-#define PTP_RXCHAN_TIMESTAMP_NS *((volatile _SPM unsigned int *) 0xF00DE000)
-#define PTP_RXCHAN_TIMESTAMP_SEC *((volatile _SPM unsigned int *) 0xF00DE004)
-#define PTP_RXCHAN_STATUS *((volatile _SPM unsigned int *) 0xF00DE008)
-#define PTP_RXCHAN_INTERRUPT_FILTER *((volatile _SPM unsigned int *) 0xF00DE00C)
 
-#define PTP_TXCHAN_TIMESTAMP_NS *((volatile _SPM unsigned int *) 0xF00DE400)
-#define PTP_TXCHAN_TIMESTAMP_SEC *((volatile _SPM unsigned int *) 0xF00DE404)
-#define PTP_TXCHAN_STATUS *((volatile _SPM unsigned int *) 0xF00DE408)
-#define PTP_TXCHAN_INTERRUPT_FILTER *((volatile _SPM unsigned int *) 0xF00DE40C)
+#define PTP_RXCHAN_TIMESTAMP_NS(base)     *((volatile _SPM unsigned int *) (base+0xE000))
+#define PTP_RXCHAN_TIMESTAMP_SEC(base)    *((volatile _SPM unsigned int *) (base+0xE004))
+#define PTP_RXCHAN_STATUS(base)           *((volatile _SPM unsigned int *) (base+0xE008))
+#define PTP_RXCHAN_DSTMACLO_FILTER(base)    *((volatile _SPM unsigned int *) (base+0xE00C))
+#define PTP_RXCHAN_DSTMACHI_FILTER(base)    *((volatile _SPM unsigned int *) (base+0xE010))
 
-#define RTC_TIME_NS *((volatile _SPM unsigned int *) 0xF00DE800)
-#define RTC_TIME_SEC *((volatile _SPM unsigned int *) 0xF00DE804)
-#define RTC_PERIOD_LO *((volatile _SPM unsigned int *) 0xF00DE810)
-#define RTC_PERIOD_HI *((volatile _SPM unsigned int *) 0xF00DE814)
-#define RTC_CORRECTION_OFFSET *((volatile _SPM int *) 0xF00DE820)
+#define PTP_TXCHAN_TIMESTAMP_NS(base)     *((volatile _SPM unsigned int *) (base+0xE400))
+#define PTP_TXCHAN_TIMESTAMP_SEC(base)    *((volatile _SPM unsigned int *) (base+0xE404))
+#define PTP_TXCHAN_STATUS(base)           *((volatile _SPM unsigned int *) (base+0xE408))
+#define PTP_TXCHAN_DSTMACLO_FILTER(base)    *((volatile _SPM unsigned int *) (base+0xE40C))
+#define PTP_TXCHAN_DSTMACHI_FILTER(base)    *((volatile _SPM unsigned int *) (base+0xE410))
+
+#define RTC_TIME_NS(base)       *((volatile _SPM unsigned int *) (base+0xE800))
+#define RTC_TIME_SEC(base)      *((volatile _SPM unsigned int *) (base+0xE804))
+#define RTC_PERIOD_LO(base)     *((volatile _SPM unsigned int *) (base+0xE810))
+#define RTC_PERIOD_HI(base)     *((volatile _SPM unsigned int *) (base+0xE814))
+#define RTC_ADJUST_OFFSET(base) *((volatile _SPM signed int *)   (base+0xE820))
 
 //Protocol types
 #define PTP_EVENT_PORT 319
@@ -74,6 +46,7 @@
 #define PTP_FOLLOW_MSGTYPE 0x08
 #define PTP_DLYREQ_MSGTYPE 0x01
 #define PTP_DLYRPLY_MSGTYPE 0x09
+#define PTP_ANNOUNCE_MSGTYPE 0xb
 
 #define PTP_SYNC_CTRL 0x0
 #define PTP_FOLLOW_CTRL 0x2
@@ -83,7 +56,7 @@
 #define FLAG_PTP_SECURITY_MASK(value) (value & 0x8000)
 #define FLAG_PTP_PROF_SPEC_2_MASK(value) (value & 0x4000)
 #define FLAG_PTP_PROF_SPEC_1_MASK(value) (value & 0x2000)
-#define FLAG_PTP_UNICAST_MASK(value) (value & 0x0400)
+#define FLAG_PTP_UNICAST_MASK 0x400
 #define FLAG_PTP_TWO_STEP_MASK 0x0200
 #define FLAG_PTP_ALT_MASTER_MASK(value) (value & 0x0100)
 #define FLAG_FREQ_TRACE_MASK(value) (value & 0x0020)
@@ -99,26 +72,39 @@
 #define PTP_MULTICAST_IP (unsigned char[4]) {224,0,1,129}
 
 //Time in us
-#define PTP_SYNC_PERIOD 500
-#define PTP_SYNC_TIMEOUT 0
-#define PTP_FOLLOW_DELAY 1000
+#define PTP_SYNC_PERIOD 3906
+#define PTP_SYNC_TIMEOUT 1000000
 #define PTP_REQ_TIMEOUT 10000
 #define PTP_RPLY_TIMEOUT 10000
-#define NS_TO_SEC 0.000001f
-#define NS_TO_USEC 0.001f
+#define NS_TO_SEC 0.000000001
+#define NS_TO_USEC 0.001
+#define USEC_TO_NS 1000
+#define USEC_TO_SEC 0.000001
+#define MS_TO_NS 1000000
+#define MS_TO_USEC 1000
+#define MS_TO_SEC 0.001
+#define SEC_TO_NS 1000000000
 #define SEC_TO_USEC 1000000
-#define SEC_TO_HOUR 0.000277777778f
+#define SEC_TO_HOUR 0.000277777778
 
 //Thresholds
-#define PTP_NS_OFFSET_THRESHOLD 5000
+#define PTP_NS_OFFSET_THRESHOLD 500000*USEC_TO_NS
 #define PTP_SEC_OFFSET_THRESHOLD 0
 
+//Drift
+#define WCET_COMPENSATION 787 //usec
+#define DRIFT_RATE 9.828f //usec
+#define PTP_DRIFT_AMOUNT(syncInterval) (int) (syncInterval*DRIFT_RATE/SEC_TO_USEC)*USEC_TO_NS
+
 //Constants & Options
+#define PTP_DELAY_FOLLOWUP 500000
 #define USE_HW_TIMESTAMP
 #define PTP_RATE_CONTROL 1
 #define PTP_CORRECTION_EN 1
-#define PTP_OFFSET_DRIFT_CORRECT (int) (PTP_SYNC_PERIOD*0.008f)
 
+static const unsigned SYNC_INTERVAL_OPTIONS[] = {1000000, 500000, 250000, 125000, 62500, 31250, 15625, 7812, 3906, 1935, 976};
+
+enum ptp_role{PTP_MASTER, PTP_SLAVE};
 
 typedef struct {
 	unsigned char transportSpec_msgType;
@@ -127,19 +113,26 @@ typedef struct {
 	unsigned char domainNumber;
 	unsigned char reserved1;
 	unsigned short flagField;
-	unsigned char correctionField[8];
+	unsigned long long correctionField;
 	unsigned int reserved2;
-	unsigned char sourcePortIdentity[10];
+	unsigned char portIdentity[8];
+	unsigned short portId;
 	unsigned short sequenceId;
 	unsigned char controlField;
 	unsigned char logMessageInterval;
 } PTPv2MsgHeader;
 
+
+typedef struct {
+  unsigned int seconds;
+  unsigned int nanoseconds;
+} PTPv2Time;
+
 typedef struct {
 	unsigned int seconds;
 	unsigned int nanoseconds;
-	unsigned char portIdentity[8];
-	unsigned short portId;
+  unsigned char requestingSourcePort[8];
+  unsigned short requestingSourceId;
 } PTPMsgBody;
 
 typedef struct {
@@ -147,21 +140,8 @@ typedef struct {
 	PTPMsgBody body;
 } PTPv2Msg;
 
-// typedef struct{
-//   int seconds;
-//   int nanoseconds;
-// } PTPTime;
-
-// typedef struct {
-//   PTPTime t1PreciseSync;
-//   PTPTime t2Sync;
-//   PTPTime t3PreciseDelReq;
-//   PTPTime t4DelReq;
-//   PTPTime offset;
-//   PTPTime delay;
-// } PTPv2TimeRecord;
-
 typedef struct {
+  unsigned char syncInterval;
   int offsetSeconds;
   int offsetNanoseconds;
   unsigned int t1Seconds;
@@ -177,51 +157,57 @@ typedef struct {
 } PTPv2TimeRecord;
 
 typedef struct{
+  unsigned int eth_base;
   unsigned char ip[4];
   unsigned char mac[6];
-} PTPAddrInfo;
+  unsigned char clockId[8];
+  unsigned short id;
+  unsigned int portRole;
+	char syncInterval;
+} PTPPortInfo;
 
-PTPv2Msg ptpMsg;
+PTPv2Msg txPTPMsg;
+PTPv2Msg rxPTPMsg;
 PTPv2TimeRecord ptpTimeRecord;
-PTPAddrInfo lastMasterInfo;
-PTPAddrInfo lastSlaveInfo;
+PTPPortInfo thisPtpPortInfo;
+PTPPortInfo lastMasterInfo;
+PTPPortInfo lastSlaveInfo;
 
 ///////////////////////////////////////////////////////////////
 //Functions for PTP 1588 protocol
 ///////////////////////////////////////////////////////////////
 
-//Interrupts to register timestamps as soon as they happen
-void ptpv2_intr_rx_handler(void) __attribute__((naked));
-void ptpv2_intr_tx_handler(void) __attribute__((naked));
+//Intialiaze PTP port
+PTPPortInfo ptpv2_intialize_local_port(unsigned int eth_base, int portRole, unsigned char mac[6], unsigned char ip[4], unsigned short portId, int syncPeriod);
 
-//Serializes a PTPv2 message structure into buffer byte array
-int ptpv2_serialize(PTPv2Msg msg, unsigned char buffer[]);
-
-//Deserializes a buffer byte array to a PTPv2 message structure
-PTPv2Msg ptpv2_deserialize(unsigned char buffer[]);
+//Process a received PTPV2 message on a specific port
+int ptpv2_process_received(PTPPortInfo ptpPortInfo, unsigned tx_addr, unsigned rx_addr);
 
 //Issues a PTPv2 Message
-int ptpv2_issue_msg(unsigned tx_addr, unsigned rx_addr, unsigned char destination_mac[6], unsigned char destination_ip[4], unsigned seqId, unsigned msgType, unsigned ctrlField, unsigned short eventPort);
+int ptpv2_issue_msg(PTPPortInfo ptpPortInfo, unsigned tx_addr, unsigned rx_addr, unsigned char destination_mac[6], unsigned char destination_ip[4], unsigned seqId, unsigned msgType);
 
 //Handles a PTPv2 Message
-int ptpv2_handle_msg(unsigned tx_addr, unsigned rx_addr, unsigned char source_mac[6], unsigned char source_ip[4]);
+int ptpv2_handle_msg(PTPPortInfo ptpPortInfo, unsigned tx_addr, unsigned rx_addr, unsigned char source_mac[6]);
 
 //Applies the correction mechanism based on the calculated offset and acceptable threshold value
-void ptp_correct_offset();
+void ptp_correct_offset(PTPPortInfo ptpPortInfo);
 
 //Calculates the offset from the master clock based on timestamps T1, T2
 int ptp_calc_offset(int t1, int t2, int delay);
 
 //Calculates the delay from the master clock based on timestamps T1, T2, T3, T4
-int ptp_calc_one_way_delay(int t1, int t2, int t3, int t4);
+int ptp_calc_delay(int t1, int t2, int t3, int t4);
+
+//Returns 1 if the source clock port identity matches the filter identity 
+unsigned char ptp_filter_clockport(unsigned char sourceId[8], unsigned short sourcePortId, unsigned char matchId[8], unsigned short matchPortId);
 
 ///////////////////////////////////////////////////////////////
 //Help Functions
 ///////////////////////////////////////////////////////////////
 
-unsigned int get_rtc_usecs();
+unsigned long long get_ptp_usecs(unsigned int eth_base);
 
-unsigned int get_rtc_secs();
+unsigned int get_ptp_secs(unsigned int eth_base);
 
 void print_bytes(unsigned char byte_buffer[], unsigned int len);
 

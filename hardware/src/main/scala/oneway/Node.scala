@@ -14,10 +14,10 @@ import s4noc._
  * providing the NI machinery.
  */
 class Node(n: Int, size: Int) extends Module {
-  val io = new Bundle {
+  val io = IO(new Bundle {
     val local = new Channel(UInt(width = size))
     val memPort = new DualPort(size)
-  }
+  })
 
   val st = Schedule.getSchedule(n)
   val scheduleLength = st._1.length
@@ -33,15 +33,15 @@ class Node(n: Int, size: Int) extends Module {
   println("Memory block size: " + scala.math.pow(2, blockAddrWidth).toInt)
 
   // Send data to the NoC
-  val regTxAddrUpper = Reg(init = UInt(0, log2Up(scheduleLength)))
-  val regTxAddrLower = Reg(init = UInt(0, blockAddrWidth))
+  val regTxAddrUpper = RegInit(UInt(0, log2Up(scheduleLength)))
+  val regTxAddrLower = RegInit(UInt(0, blockAddrWidth))
 
   val valid = validTab(regTdmCounter)
   debug(valid)
   when(valid) {
     regTxAddrUpper := regTxAddrUpper + UInt(1)
     when(regTxAddrUpper === UInt(nrChannels - 1)) {
-      regTxAddrUpper := UInt(0)
+      regTxAddrUpper := 0.U
       regTxAddrLower := regTxAddrLower + UInt(1)
     }
   }
@@ -58,8 +58,8 @@ class Node(n: Int, size: Int) extends Module {
   io.local.out.valid := RegNext(valid, init = Bool(false))
 
   // Receive data from the NoC  
-  val regRxAddrUpper = Reg(init = UInt(0, log2Up(scheduleLength)))
-  val regRxAddrLower = Reg(init = UInt(0, blockAddrWidth))
+  val regRxAddrUpper = RegInit(UInt(0, log2Up(scheduleLength)))
+  val regRxAddrLower = RegInit(UInt(0, blockAddrWidth))
 
   val validRx = io.local.in.valid
   debug(validRx)

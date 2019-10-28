@@ -14,7 +14,7 @@
 
 int main() {
 
-	volatile _SPM int *led_ptr = (volatile _SPM int *) 0xF0090000;
+	volatile _SPM int *led_ptr = (volatile _SPM int *) PATMOS_IO_LED;
 	char val;
 
 	for (;;) {

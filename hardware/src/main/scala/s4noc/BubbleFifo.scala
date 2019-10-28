@@ -35,7 +35,7 @@ class WriterIO() extends Bundle {
 class ReaderIO() extends Bundle {
   val read = Bool(INPUT)
   val empty = Bool(OUTPUT)
-  val dout = new Entry().asOutput()
+  val dout = Output(new Entry())
 }
 
 /**

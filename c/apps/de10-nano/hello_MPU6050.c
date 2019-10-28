@@ -6,10 +6,10 @@
 //#include "libmp/mp.h"
 
 //LEDs
-#define LED ( *( ( volatile _IODEV unsigned * )	0xF0090000 ) )
+#define LED ( *( ( volatile _IODEV unsigned * )	PATMOS_IO_LED ) )
 
 //I2C controller
-#define I2C ( *( ( volatile _IODEV unsigned * )	0xF00C0000 ) )
+#define I2C ( *( ( volatile _IODEV unsigned * )	PATMOS_IO_I2C ) )
 
 // Default I2C address for the MPU-6050 is 0x68.
 // But only if the AD0 pin is low.

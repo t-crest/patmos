@@ -48,7 +48,9 @@ entity eth_controller_top is
 		md_pad_i      : in  std_logic;  -- MII data input (from I/O cell)
 		mdc_pad_o     : out std_logic;  -- MII Management data clock (to PHY)
 		md_pad_o      : out std_logic;  -- MII data output (to I/O cell)
-		md_padoe_o    : out std_logic   -- MII data output enable (to I/O cell)
+		md_padoe_o    : out std_logic;  -- MII data output enable (to I/O cell)
+
+		int_o         : out std_logic   -- Interrupt output
 	);
 end eth_controller_top;
 
@@ -282,7 +284,7 @@ begin
 			mdc_pad_o                                  => mdc_pad_o,
 			md_pad_o                                   => md_pad_o,
 			md_padoe_o                                 => md_padoe_o,
-			int_o                                      => open
+			int_o                                      => int_o
 		);
 
 	rx_tx_buffer_comp_0 : rx_tx_buffer

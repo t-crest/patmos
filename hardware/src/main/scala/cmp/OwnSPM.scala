@@ -20,12 +20,12 @@ import ocp._
 
 class OwnSPM(nrCores: Int, nrSPMs: Int, size: Int) extends Module {
 
-  val io = Vec(nrCores, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))
+  val io = IO(Vec(nrCores, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)))
 
   val bits = log2Up(nrSPMs)
   println("OwnSPM: cnt = " + nrSPMs + " bits = " + bits)
 
-  val masters = Vec(nrSPMs, Vec(nrCores, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)))
+  val masters = Wire(Vec(nrSPMs, Vec(nrCores, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))))
   val spms = (0 until nrSPMs).map(i => Module(new Spm(size)))
   val cmdOutReg = Vec(nrCores, Reg(init = Bool(false)))
 

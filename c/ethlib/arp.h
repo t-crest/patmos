@@ -49,7 +49,7 @@
 #include "mac.h"
 #include "eth_mac_driver.h"
 
-#define ARP_TABLE_SIZE 5
+#define ARP_TABLE_SIZE 8
 
 ///////////////////////////////////////////////////////////////
 //Functions related to the ARP table

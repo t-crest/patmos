@@ -1,36 +1,4 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute.
-   All rights reserved.
-
-   This file is part of the time-predictable VLIW processor Patmos.
-
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions are met:
-
-      1. Redistributions of source code must retain the above copyright notice,
-         this list of conditions and the following disclaimer.
-
-      2. Redistributions in binary form must reproduce the above copyright
-         notice, this list of conditions and the following disclaimer in the
-         documentation and/or other materials provided with the distribution.
-
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
-   OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-   OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
-   NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
-   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-   The views and conclusions contained in the software and documentation are
-   those of the authors and should not be interpreted as representing official
-   policies, either expressed or implied, of the copyright holder.
- */
-
-/*
  * Decode stage of Patmos.
  *
  * Authors: Martin Schoeberl (martin@jopdesign.com)
@@ -40,12 +8,11 @@
 package patmos
 
 import Chisel._
-import Node._
 
 import Constants._
 
 class Decode() extends Module {
-  val io = new DecodeIO()
+  val io = IO(new DecodeIO())
 
   val rf = Module(new RegisterFile())
 
@@ -88,7 +55,7 @@ class Decode() extends Module {
     io.decex.rsData(3) := rf.io.rfRead.rsData(3)
   }
 
-  val decoded = Vec.fill(PIPE_COUNT) { Bool() }
+  val decoded = Vec(PIPE_COUNT, Bool())
   decoded.map(_ := Bool(false))
 
   // Decoding of dual-issue operations
@@ -99,16 +66,16 @@ class Decode() extends Module {
     val opc     = instr(6, 4)
     val isValid = if (i == 0) { Bool(true) } else { dual }
 
-    val immVal = Bits()
+    val immVal = Wire(UInt())
     // Default value for immediates
-    immVal := Cat(Bits(0), instr(11, 0))
+    immVal := Cat(UInt(0), instr(11, 0))
 
-   // ALU register
+    // ALU register
     io.decex.aluOp(i).func := instr(3, 0)
 
     // ALU immediate
     when(opcode(4, 3) === OPCODE_ALUI) {
-      io.decex.aluOp(i).func := Cat(Bits(0), instr(24, 22))
+      io.decex.aluOp(i).func := Cat(UInt(0), instr(24, 22))
       io.decex.immOp(i) := isValid
       io.decex.wrRd(i) := isValid
       decoded(i) := Bool(true)
@@ -135,7 +102,7 @@ class Decode() extends Module {
         is(OPC_ALUCI) {
           io.decex.aluOp(i).isCmp := isValid
           io.decex.immOp(i) := isValid
-          immVal := Cat(Bits(0), instr(11, 7))
+          immVal := Cat(UInt(0), instr(11, 7))
           decoded(i) := Bool(true)
         }
         is(OPC_ALUP) {
@@ -146,7 +113,7 @@ class Decode() extends Module {
           io.decex.wrRd(i) := isValid
           io.decex.aluOp(i).isBCpy := isValid
           io.decex.immOp(i) := isValid
-          immVal := Cat(Bits(0), instr(11, 7))
+          immVal := Cat(UInt(0), instr(11, 7))
           decoded(i) := Bool(true)
         }
       }
@@ -191,14 +158,14 @@ class Decode() extends Module {
   val sttype = instr(18, 17)
   val stcfun = instr(21, 18)
 
-  val dest = Bits(width = REG_BITS)
-  val longImm = Bool()
+  val dest = Wire(UInt(width = REG_BITS))
+  val longImm = Wire(Bool())
 
-  val isMem = Bool()
-  val isStack = Bool()
+  val isMem = Wire(Bool())
+  val isStack = Wire(Bool())
 
-  val isSTC = Bool()
-  val stcImm = Cat(Bits(0), instr(17, 0), Bits("b00")).toUInt()
+  val isSTC = Wire(Bool())
+  val stcImm = Cat(UInt(0), instr(17, 0), Bits("b00")).toUInt()
 
   // Long immediates set this
   longImm := Bool(false)
@@ -212,7 +179,7 @@ class Decode() extends Module {
   dest := instr(21, 17)
 
   // ALU long immediate (Bit 31 is set as well)
-  when(opcode === OPCODE_ALUL && instr(6, 4) === Bits(0)) {
+  when(opcode === OPCODE_ALUL && instr(6, 4) === UInt(0)) {
     io.decex.aluOp(0).func := func
     io.decex.immOp(0) := Bool(true)
     longImm := Bool(true)
@@ -309,7 +276,7 @@ class Decode() extends Module {
     io.decex.nonDelayed := opcode === OPCODE_CFL_CFLRND
   }
 
-  val shamt = UInt()
+  val shamt = Wire(UInt())
   shamt := UInt(0)
   // load
   when(opcode === OPCODE_LDT) {
@@ -373,11 +340,11 @@ class Decode() extends Module {
   }
 
   // Offset for loads/stores
-  val addrImm = Bits()
-  addrImm := Cat(Bits(0), instr(6, 0))
+  val addrImm = UInt()
+  addrImm := Cat(UInt(0), instr(6, 0))
   switch(shamt) {
-    is(UInt(1)) { addrImm := Cat(Bits(0), instr(6, 0), Bits(0, width = 1)) }
-    is(UInt(2)) { addrImm := Cat(Bits(0), instr(6, 0), Bits(0, width = 2)) }
+    is(UInt(1)) { addrImm := Cat(UInt(0), instr(6, 0), Bits(0, width = 1)) }
+    is(UInt(2)) { addrImm := Cat(UInt(0), instr(6, 0), Bits(0, width = 2)) }
   }
 
   // Non-default immediate value
@@ -390,7 +357,7 @@ class Decode() extends Module {
   // we could mux the imm / register here as well
 
   // Immediate for absolute calls
-  io.decex.callAddr := Cat(Bits(0), instr(21, 0), Bits("b00")).toUInt()
+  io.decex.callAddr := Cat(UInt(0), instr(21, 0), Bits("b00")).toUInt()
 
   // Immediate for branch is sign extended, not extended for call
   // PC-relative value is precomputed here
@@ -407,7 +374,7 @@ class Decode() extends Module {
 
   // Disable register write on register 0
   for (i <- 0 until PIPE_COUNT) {
-    when(io.decex.rdAddr(i) === Bits("b00000")) {
+    when(io.decex.rdAddr(i) === UInt("b00000")) {
       io.decex.wrRd(i) := Bool(false)
     }
   }
@@ -421,7 +388,7 @@ class Decode() extends Module {
   when(io.exc.exc ||
        (io.exc.intr && inDelaySlot === UInt(0))) {
     io.decex.defaults()
-    io.decex.pred(0) := Bits(0)
+    io.decex.pred(0) := UInt(0)
     io.decex.xcall := Bool(true)
     io.decex.xsrc := io.exc.src
     io.decex.callAddr := io.exc.addr

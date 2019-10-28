@@ -2,10 +2,7 @@
 
 These applications are used for the evaluation section of the following paper:
 
-<!---
-Martin Schoeberl, Luca Pezzarossa, and Jens Sparso,
---->
-*Blind*, A Simple Network Interface for a Simple Network-on-Chip, *submitted to DATE 2019*
+Martin Schoeberl, Luca Pezzarossa, and Jens Sparso, A Simple Network Interface for a Simple Network-on-Chip, *submitted to ARCS 2019*
 
 ## Stand Alone Evaluation
 
