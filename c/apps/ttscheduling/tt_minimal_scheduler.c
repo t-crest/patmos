@@ -81,15 +81,15 @@ __attribute__((noinline))
 #endif
 void sort_asc_minimal_tttasks(MinimalTTTask *tasks, const unsigned short num_tasks)
 {
-  for (int i = 0; i < num_tasks; i++)                     //Loop for descending ordering
+  for (int i = 0; i < num_tasks; i++)                     
 	{
-		for (int j = 0; j < num_tasks; j++)             //Loop for comparing other values
+		for (int j = 0; j < num_tasks; j++)             
 		{
-			if (tasks[j].period < tasks[i].period)                    //Comparing other array elements
+			if (tasks[j].period < tasks[i].period)                    
 			{
-				MinimalTTTask tmp = tasks[i];         //Using temporary variable for storing last value
-				tasks[i] = tasks[j];            //replacing value
-				tasks[j] = tmp;             //storing last value
+				MinimalTTTask tmp = tasks[i];         
+				tasks[i] = tasks[j];            
+				tasks[j] = tmp;             
 			}
 		}
 	}
