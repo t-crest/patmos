@@ -1,14 +1,16 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <machine/rtc.h>
 #include "tt_minimal_scheduler.h"
 #include "demo_tasks.h"
 
+
 #define HYPER_PERIOD 100000
 #define NUM_OF_TASKS 5
-#define EXEC_HYPERPERIODS 10
+#define EXEC_HYPERPERIODS 2
 #define RUN_INFINITE false
-#define RUNS 10
+#define RUNS 1
 
 /*
 Utilization = 0.31979
@@ -23,15 +25,22 @@ Satisfied by the following activation times in μs:
  SYN _pit = 0]
 */
 
+/*
+       0   1   2   4   5
+ LEDS[ACT SND RCV MON SYN]
+*/
+
 int main()
 {
+    printf("\nPatmos Time-Triggered Executive Demo\n\n");
+    
     uint16_t numExecTasks;
     unsigned long long scheduleTime;
     unsigned long long startTime;
-    printf("\nPatmos Time-Triggered Executive Demo\n\n");
+    MinimalTTTask taskSet[NUM_OF_TASKS];
+    MinimalTTSchedule schedule;
 
     for(int i=0; i<RUNS; i++){
-        MinimalTTTask taskSet[NUM_OF_TASKS];
         // Tasks are defined in a set with the activation times according to the schedule generation
         init_minimal_tttask(&taskSet[0], 4000, 0, &task_syn);
         init_minimal_tttask(&taskSet[1], 20000, 1695, &task_act);
@@ -41,16 +50,12 @@ int main()
 
         sort_asc_minimal_tttasks(taskSet, NUM_OF_TASKS);
 
-        MinimalTTSchedule schedule = init_minimal_ttschedule(HYPER_PERIOD, NUM_OF_TASKS, taskSet);
-
-        printf("Wait before the schedule start\n\n");
-
-        scheduleTime = tt_minimal_wait(0.01*SEC_TO_US);
-        
-        printf("Execute Schedule @time(us)=%llu\n\n", scheduleTime);
+        schedule = init_minimal_ttschedule(HYPER_PERIOD, NUM_OF_TASKS, taskSet, &get_cpu_usecs);
 
         maxJitter = 0;
         sumJitter = 0;
+
+        printf("Execute Schedule @time(us)=%llu\n\n", get_cpu_usecs());
 
         startTime = get_cpu_usecs();
 

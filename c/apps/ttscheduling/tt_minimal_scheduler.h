@@ -4,9 +4,6 @@
 #include <inttypes.h>
 #include <stdlib.h>	
 #include <stdbool.h>
-#include <machine/patmos.h>
-#include <machine/spm.h>
-#include <machine/rtc.h>
 
 #define SET_TO_MS 1000
 #define SEC_TO_US 1000000
@@ -19,27 +16,27 @@
 #define NT_TO_MS 1/MS_TO_NS
 #define NS_TO_US 1/US_TO_NS
 
-#define WCET_DISPATCHER 1494
-#define WCET_DISPATCHER_US 18
+#define CPU_PERIOD 12.5
+#define WCET_DISPATCHER 1454
+#define WCET_DISPATCHER_US (int) ((WCET_DISPATCHER * CPU_PERIOD) * NS_TO_US)
 
 typedef struct {
     unsigned long long period;
     unsigned long long activation_time;
     unsigned long long last_start_time;
-    long long (*func)(void *self);
+    long long (*func)(const void *self);
 } MinimalTTTask;
 
 typedef struct {
-    double hyperperiod;
+    double hyper_period;
     uint16_t num_tasks;
     MinimalTTTask *tasks;
-    unsigned long long currentTime;
-    unsigned long long scheduleTimeStart;
+    unsigned long long (*get_time)(void);
+    unsigned long long start_time;
 } MinimalTTSchedule;
 
-void init_minimal_tttask(MinimalTTTask *newTask, const unsigned long long period, const unsigned long long activation_time, long long (*func)(void *self));
-MinimalTTSchedule init_minimal_ttschedule(const unsigned long long hyperperiod, const uint16_t num_tasks, MinimalTTTask *tasks);
+void init_minimal_tttask(MinimalTTTask *newTask, const unsigned long long period, const unsigned long long activation_time, long long (*func)(const void *self));
+MinimalTTSchedule init_minimal_ttschedule(const unsigned long long hyperperiod, const uint16_t num_tasks, MinimalTTTask *tasks, unsigned long long (*get_time)(void));
 uint32_t tt_minimal_schedule_loop(MinimalTTSchedule *schedule, const uint16_t noLoops, const bool infinite);
-uint8_t tt_minimal_dispatcher(MinimalTTSchedule *schedule, const unsigned long long scheduleTime);
-unsigned long long tt_minimal_wait(const unsigned long long timeout);
+uint8_t tt_minimal_dispatcher(MinimalTTSchedule *schedule, const unsigned long long schedule_ime);
 void sort_asc_minimal_tttasks(MinimalTTTask *tasks, const uint16_t num_tasks);
