@@ -4284,13 +4284,8 @@ ALU operations: 3173 LCs, 91.91 MHz.
 \chapter{Build Instructions}
 \label{ch:build_instructions}
 
-In the following we describe: (1) the installation of needed tool under Ubuntu and
-on Mac OS X, (2) how to build the Patmos tool chain (e.g., compiler), and (3) how
+In the following we describe: (1) the installation of needed tool under Ubuntu, Mac OS X, and Windows 10 (2) how to build the Patmos tool chain (e.g., compiler), and (3) how
 to get started with Patmos.
-
-The installation instructions might also be valid on different Linux versions.
-Patmos and the compiler have also been successfully installed on a Mac OS X
-system.  The support of Windows is marginal, or basically not existent.
 
 For an easier start we provide a VM image with Ubuntu 14.04 including
 all tools installed for download from: \url{http://patmos.compute.dtu.dk/}
@@ -4359,8 +4354,8 @@ $ sudo apt-get update
 We can now install all the needed tools:
 
 \begin{verbatim}
-$ sudo apt-get install git default-jdk gitk cmake make g++ texinfo flex bison\
-  subversion libelf-dev graphviz libboost-dev libboost-program-options-dev\
+$ sudo apt-get install git default-jdk gitk cmake make g++ texinfo flex bison \
+  subversion libelf-dev graphviz libboost-dev libboost-program-options-dev \
   ruby-full liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala sbt
 \end{verbatim}
 
@@ -4437,8 +4432,8 @@ Start by copying your Git public and private keys to Ubuntu
 $ cp -r /mnt/c/Users/username/.ssh /home/user/
 \end{verbatim}
 
-Notice how the Windows 'C:' drive can be accesses from the Ubuntu terminal as 'mnt/c/'. 
-To ensure Git accepts the private key, we need to restrict access to it:
+Notice how the Windows \code{C:} drive can be accesses from the Ubuntu terminal as \code{/mnt/c/}. 
+To ensure Git accepts the private key, we need to restrict access to it (here we assume the private key is named \code{id\_rsa}):
 
 \begin{verbatim}
 $ chmod 600 ~/.ssh/id_rsa
@@ -4453,8 +4448,7 @@ The only exception is any tool that uses a graphical UI, which requires some add
 \label{sec:build:compiler}
 
 We assume that the T-CREST project will live in \code{\$HOME/t-crest}.
-Before building Patmos add the path
-to the compiler executables (e.g., into your \code{.bashrc} or
+Before building Patmos, add the Patmos tool chain binaries to your path (e.g., in your \code{.bashrc} or
 \code{.profile}):\footnote{The path needs to be absolute. LLVM cannot handle
 a path relative to the home folder \textasciitilde{}, e.g., \code{\textasciitilde{}/t-crest/local/bin}.}
 
@@ -4475,7 +4469,7 @@ $ ./misc/build.sh
 \end{verbatim}
 
 
-For developers with push permission generate an ssh key and upload
+For developers with push permission, generate an ssh key and upload
 it at GitHub (see \url{https://help.github.com/articles/connecting-to-github-with-ssh/}
 for detailed instructions).
 The ssh based clone string for write access is then:
@@ -4494,13 +4488,13 @@ Hint: The build script isn't optimized for multiple cores.
 Some parts of the Patmos tool chain -- Like the compiler -- are very well suited for running on multiple cores.
 To the build process, the script can be interrupted at any time to manually enable multi-core building.
 E.g. to speed-up LLVM's build (which takes up a large part of the build script, interrupt the script when it
-begin building LLVM, navigate to '~/t-crest/llvm/build' and run:
+begin building LLVM, navigate to \code{\textasciitilde/t-crest/llvm/build} and run:
 
 \begin{verbatim}
 $ make -j
 \end{verbatim}
 
-When the LLVM build is done, the build script can be rerun, and it will continue where it left off (now not needing to build the compiler).
+When the LLVM build is done, the build script can be rerun, and it will continue where it left off (without needing to build the compiler).
 
 You can test your installation by checking if the compiler is available:
 
