@@ -1993,7 +1993,7 @@ to general-purpose register \texttt{Rd}.
 
 Applies to the LDT format only. Load from a memory or
 cache. In the table accesses to the stack cache are denoted by \texttt{sc}, to
-the local scratchpad memory by \texttt{lm}, to the date cache by \texttt{dc},
+the local scratchpad memory by \texttt{lm}, to the data cache by \texttt{dc},
 and to the global shared memory by \texttt{gm}. All load variants are
 considered to stall until the memory access is completed.
 
@@ -2070,7 +2070,7 @@ All loads can only be issued on the first slot.
 \clearpage
 \subsection{Store Typed} Applies to the STT format only. Store to a memory or
 cache. In the table accesses to the stack cache are denoted by \texttt{sc}, to
-the local scratchpad memory by \texttt{lm}, to the date cache by \texttt{dc},
+the local scratchpad memory by \texttt{lm}, to the data cache by \texttt{dc},
 and to the global shared memory by \texttt{gm}.
 
 \martin{TODO: make is clear at some point that \code{gm} is basically
@@ -4284,13 +4284,8 @@ ALU operations: 3173 LCs, 91.91 MHz.
 \chapter{Build Instructions}
 \label{ch:build_instructions}
 
-In the following we describe: (1) the installation of needed tool under Ubuntu and
-on Mac OS X, (2) how to build the Patmos tool chain (e.g., compiler), and (3) how
+In the following we describe: (1) the installation of needed tool under Ubuntu, Mac OS X, and Windows 10 (2) how to build the Patmos tool chain (e.g., compiler), and (3) how
 to get started with Patmos.
-
-The installation instructions might also be valid on different Linux versions.
-Patmos and the compiler have also been successfully installed on a Mac OS X
-system.  The support of Windows is marginal, or basically not existent.
 
 For an easier start we provide a VM image with Ubuntu 14.04 including
 all tools installed for download from: \url{http://patmos.compute.dtu.dk/}
@@ -4334,92 +4329,51 @@ all tools installed for download from: \url{http://patmos.compute.dtu.dk/}
 %\end{itemize}
 %
 
-\section{Setup on Ubuntu and Mac OS X}
+\section{Setup}
 
-In the following we present the Patmos build instructions including setup of
-tools in Ubuntu and for the Mac OS X.
+In the following we present how to setup all needed tools in Ubuntu, Mac OS X, and Windows 10. 
+After setting up the tools, section \ref{sec:build:compiler} describes how to download and build Patmos and its tool chain.
 
-\subsection{Setup on Ubuntu 16.04 LTS 64-Bit}
+\subsection{Ubuntu}
+\label{sec:build:setup:ubuntu}
 
-In the following we present the setup of tools within a recent Ubuntu version.
-Here is the list of needed (or recommended) packages:
+The following we describe how to setup an Ubuntu installation with the needed tools. 
+This should work for the latest Ubuntu distribution. 
+
+First, because Patmos uses Chissel as its hardware language, which is built on top of Scala, we need to ensure we can install SBT. 
+Therefore, we start by enabling the distribution to download sbt:
 
 \begin{verbatim}
-sudo apt-get install git default-jdk gitk cmake make g++ texinfo flex bison \
-  subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby-full \
-  liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala
+$ echo "deb https://dl.bintray.com/sbt/debian /" | sudo tee -a \
+  /etc/apt/sources.list.d/sbt.list
+$ sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 \
+  --recv 2EE0EA64E40A89B84B2DF73499E82A75642AC823
+$ sudo apt-get update
 \end{verbatim}
 
-Install \code{sbt} with:
+We can now install all the needed tools:
 
 \begin{verbatim}
-echo "deb https://dl.bintray.com/sbt/debian /" | sudo tee -a /etc/apt/sources.list.d/sbt.list
-sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 \
-  --recv 2EE0EA64E40A89B84B2DF73499E82A75642AC823
-sudo apt-get update
-sudo apt-get install sbt
+$ sudo apt-get install git default-jdk gitk cmake make g++ texinfo flex bison \
+  subversion libelf-dev graphviz libboost-dev libboost-program-options-dev \
+  ruby-full liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala sbt
 \end{verbatim}
 
 For the Quartus setup it is best to change the default shell to \code{/bin/bash}:
 
 \begin{verbatim}
-sudo rm /bin/sh
-sudo ln -s /bin/bash /bin/sh
+$ sudo rm /bin/sh
+$ sudo ln -s /bin/bash /bin/sh
 \end{verbatim}
-
 
 For building the Patmos documentation (e.g., the handbook) you need to install
 a full version of LaTeX (about 3~GB) with:
 
 \begin{verbatim}
-sudo apt-get install texlive-full doxygen
+$ sudo apt-get install texlive-full doxygen
 \end{verbatim}
 
-%\subsection{Setup On Ubuntu 14.04 LTS 32-Bit}
-%
-%In the following we present the Patmos build instructions on a 32-bit Linux/Ubuntu
-%system (14.04 LTS).\footnote{I used the 32-bit version of Ubuntu to simplify the Quartus installation.}
-%
-%After a plain Ubuntu installation several packages need to be installed.
-%The following apt-get lists the packages that need to be
-%installed:\footnote{Some packages might be available in newer version
-%when reading this document.}
-%
-%\begin{verbatim}
-%sudo apt-get install git openjdk-7-jdk gitk cmake make g++ texinfo flex bison \
-%  subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby1.9.1 \
-%  ruby1.9.1-dev liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala
-%\end{verbatim}
-%
-%\emph{The following gem install might not be needed as with the correct
-%packages (liblpsolve55-dev) the setup script shall do it automatically.
-%Needs to be checked on a fresh Ubuntu machine.
-%This is done after T-CREST has been installed.}
-%
-%From within \code{llvm/tools/platin} install:
-%
-%\begin{verbatim}
-%sudo gem1.9.1 install lpsolve --pre
-%sudo gem1.9.1 install ext/lpsolve-5.5.10.j.gem
-%\end{verbatim}
-%
-%Install \code{sbt} with:
-%
-%\begin{verbatim}
-%wget http://dl.bintray.com/sbt/debian/sbt-0.13.2.deb
-%sudo dpkg -i sbt-0.13.2.deb
-%sudo apt-get update
-%sudo apt-get install sbt
-%\end{verbatim}
-%
-%For the Quartus setup it is best to change the default shell to \code{/bin/bash}:
-%
-%\begin{verbatim}
-%sudo rm /bin/sh
-%sudo ln -s /bin/bash /bin/sh
-%\end{verbatim}
-
-\subsection{Setup On Mac OS X}
+\subsection{Mac OS X}
 
 This subsection describes the installation of needed tools and libraries
 on Mac OS X. It is based on a OS X Yosemite and assumes to use
@@ -4461,17 +4415,45 @@ For simulation with ModelSim: \code{wine}
 For Aegean: \code{python33}, \code{py33-lxml}. Make a link from \code{python3} to \code{python3.3} as this is the way it is invoked.
 \todo{Alex suggested a way to avoid this by querying how to invoke python.}
 
+\subsection{Windows 10}
+
+The Patmos tool chain doesn't build nor run directly on Windows.
+However, through the use of the Windows Subsystem for Linux (WSL), 
+we can work with Patmos in Windows through an Ubuntu terminal.
+An installation guide for the WSL is given here: 
+\url{https://docs.microsoft.com/en-us/windows/wsl/install-win10}.
+Chose the Ubuntu distribution from the Microsoft Store.
+From now on, all commands given should be run through the Ubuntu terminal and not the windows command line.
+
+Start by copying your Git public and private keys to Ubuntu 
+(where \textit{username} is you windows account username):
+
+\begin{verbatim}
+$ cp -r /mnt/c/Users/username/.ssh /home/user/
+\end{verbatim}
+
+Notice how the Windows \code{C:} drive can be accesses from the Ubuntu terminal as \code{/mnt/c/}. 
+To ensure Git accepts the private key, we need to restrict access to it (here we assume the private key is named \code{id\_rsa}):
+
+\begin{verbatim}
+$ chmod 600 ~/.ssh/id_rsa
+\end{verbatim}
+
+The rest of the setup can be done using the same steps as given in section \ref{sec:build:setup:ubuntu}.
+Generally, interaction with Patmos should be done through the Ubuntu terminal as if
+the machine was actually running Ubuntu.
+The only exception is any tool that uses a graphical UI, which requires some additional setup to support.
+
 \section{Building Patmos and the Compiler Tool Chain}
 \label{sec:build:compiler}
 
 We assume that the T-CREST project will live in \code{\$HOME/t-crest}.
-Before building Patmos add the path
-to the compiler executables (e.g., into your \code{.bashrc} or
+Before building Patmos, add the Patmos tool chain binaries to your path (e.g., in your \code{.bashrc} or
 \code{.profile}):\footnote{The path needs to be absolute. LLVM cannot handle
 a path relative to the home folder \textasciitilde{}, e.g., \code{\textasciitilde{}/t-crest/local/bin}.}
 
 \begin{verbatim}
-export PATH=$PATH:$HOME/t-crest/local/bin
+$ echo "export PATH=\$PATH:\$HOME/t-crest/local/bin" >> ~/.profile
 \end{verbatim}
 
 A complete logout from Ubuntu might be needed to take effect (just closing
@@ -4480,21 +4462,21 @@ a terminal window is not enough, depending on how you set up your profile files)
 Patmos and the compiler can be checked out from GitHub and built as follows:
 
 \begin{verbatim}
-mkdir ~/t-crest
-cd ~/t-crest
-git clone https://github.com/t-crest/patmos-misc.git misc
-./misc/build.sh
+$ mkdir ~/t-crest
+$ cd ~/t-crest
+$ git clone https://github.com/t-crest/patmos-misc.git misc
+$ ./misc/build.sh
 \end{verbatim}
 
 
-For developers with push permission generate an ssh key and upload
+For developers with push permission, generate an ssh key and upload
 it at GitHub (see \url{https://help.github.com/articles/connecting-to-github-with-ssh/}
 for detailed instructions).
 The ssh based clone string for write access is then:
 
 \begin{verbatim}
-git clone git@github.com:t-crest/patmos-misc.git misc
-./misc/build.sh
+$ git clone git@github.com:t-crest/patmos-misc.git misc
+$ ./misc/build.sh
 \end{verbatim}
 
 This script (\code{build.sh}) will checkout several other repositories (the compiler, library,
@@ -4502,10 +4484,22 @@ and the Patmos source) and
 builds the compiler and the Patmos simulator.
 Therefore, take a cup of coffee and find some nice reading.
 
+Hint: The build script isn't optimized for multiple cores.
+Some parts of the Patmos tool chain -- Like the compiler -- are very well suited for running on multiple cores.
+To the build process, the script can be interrupted at any time to manually enable multi-core building.
+E.g. to speed-up LLVM's build (which takes up a large part of the build script, interrupt the script when it
+begin building LLVM, navigate to \code{\textasciitilde/t-crest/llvm/build} and run:
+
+\begin{verbatim}
+$ make -j
+\end{verbatim}
+
+When the LLVM build is done, the build script can be rerun, and it will continue where it left off (without needing to build the compiler).
+
 You can test your installation by checking if the compiler is available:
 
 \begin{verbatim}
-patmos-clang --version
+$ patmos-clang --version
 \end{verbatim}
 
 The \code{build.sh} script contains default options, which should work out of the box. 
@@ -4528,22 +4522,22 @@ not sure about this.}
 For correct signing of your changes set the username and email in git with:
 
 \begin{verbatim}
-git config --global user.name "Joe Someone"
-git config --global user.email "joe.someone@domain.com"
+$ git config --global user.name "Joe Someone"
+$ git config --global user.email "joe.someone@domain.com"
 \end{verbatim}
 
 Optionally, you may additionally add the \code{misc} checkout to your path, so that \code{build.sh} and the helper tools in 
 \code{misc} can be executed from everywhere.
 
 \begin{verbatim}
-export PATH=$PATH:$HOME/t-crest/misc
+$ export PATH=$PATH:$HOME/t-crest/misc
 \end{verbatim}
 
 The Patmos documentation (handbook, C library, Argo NoC) can be built with:
 
 \begin{verbatim}
-cd patmos/doc
-make
+$ cd patmos/doc
+$ make
 \end{verbatim}
 
 \section{Quartus on Linux}
