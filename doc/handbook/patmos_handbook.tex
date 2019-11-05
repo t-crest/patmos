@@ -4542,8 +4542,9 @@ $ make
 
 \section{Quartus on Linux}
 
-Download the free web edition of Quartus from Altera.\footnote{For a 32-bit Linux you need to
-use Quartus 13.x as 32-bit support has been dropped from Quartus 14.x.}
+Download the free web edition of Quartus from Intel.\footnote{When you use the
+default FPGA board DE2-115 you need to install Quartus 16.1 as later versions
+drop the support of the Cyclone~IV.}
 The Linux version is
 installed as follows:\footnote{\url{http://www.altera.com/literature/manual/quartus_install.pdf}}
 
@@ -4645,9 +4646,13 @@ cable is found with the programmer. Select USB-Blaster in \emph{Hardware Setup}.
 When connected to an FPGA test the USB-Blaster with \emph{Auto Detect}
 (With the DE2-115, a question about shared JTAG ID pops up -- select EP4CE115).
 
+For the DE2-115 board that contains the Cyclone~IV.
+The latest Quartus version that supports the Cyclone~IV is 16.1.
 Quartus~13.1 drops the support of Cyclone~II devices. Therefore, the
 (phased out) Altera DE2-70 board is not supported anymore. Version 13.0 supports Cyclone~II\
-till Cyclone~V devices and might be the best option at the moment.
+till Cyclone~V devices and might be the best option at the moment if you want to
+support both DE2 boards.
+
 
 
 \section{The Xilinx ML605 Platform}
