@@ -37,7 +37,7 @@ class memModule(size: Int) extends Module {
   // Second option is number of entries
   // So e.g. for 128 entry memory of 32 bit Uint we write 128.
   // here, we dot it in BYTE_WIDTH = 8.
-  val syncMem = Mem(UInt(width=BYTE_WIDTH), size / BYTES_PER_WORD, seqRead=true)
+  val syncMem = Mem(UInt(width=BYTE_WIDTH), size / BYTES_PER_WORD)
 
   //io.S.Data := Bits(0)
 
