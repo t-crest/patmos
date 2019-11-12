@@ -179,7 +179,7 @@ class Execute() extends Module {
     mulHLReg := op1H * op2L
     mulHHReg := op1H * op2H
 
-    val mulResult = (Cat(mulHHReg, mulLLReg)
+    val mulResult = (Cat(mulHHReg, mulLLReg).toSInt
                      + Cat(mulHLReg, SInt(0, width = DATA_WIDTH/2)).toSInt
                      + Cat(mulLHReg, SInt(0, width = DATA_WIDTH/2)).toSInt)
 
@@ -222,18 +222,18 @@ class Execute() extends Module {
 
     // special registers
     when(exReg.aluOp(i).isMTS && doExecute(i)) {
-      io.exsc.opData := op(2*i).toUInt()
+      io.exsc.opData := op(2*i)
 
       switch(exReg.aluOp(i).func) {
         is(SPEC_FL) {
-          predReg := op(2*i)(PRED_COUNT-1, 0).toUInt()
+          predReg := op(2*i)(PRED_COUNT-1, 0)
           predReg(0) := Bool(true)
         }
         is(SPEC_SL) {
-          mulLoReg := op(2*i).toUInt()
+          mulLoReg := op(2*i)
         }
         is(SPEC_SH) {
-          mulHiReg := op(2*i).toUInt()
+          mulHiReg := op(2*i)
         }
         is(SPEC_ST) {
           io.exsc.op := sc_OP_SET_ST
@@ -242,16 +242,16 @@ class Execute() extends Module {
           io.exsc.op := sc_OP_SET_MT
         }
         is(SPEC_SRB) {
-          retBaseReg := op(2*i).toUInt()
+          retBaseReg := op(2*i)
         }
         is(SPEC_SRO) {
-          retOffReg := op(2*i).toUInt()
+          retOffReg := op(2*i)
         }
         is(SPEC_SXB) {
-          excBaseReg := op(2*i).toUInt()
+          excBaseReg := op(2*i)
         }
         is(SPEC_SXO) {
-          excOffReg := op(2*i).toUInt()
+          excOffReg := op(2*i)
         }
       }
     }
