@@ -3,7 +3,7 @@ package ptp1588assist
 import Chisel._
 import sys.process._
 import scala.language.postfixOps
-
+/*commented out Chisel3 tester has changed see https://github.com/schoeberl/chisel-examples/blob/master/TowardsChisel3.md 
 class DeserializerTester(dut: Deserializer) extends Tester(dut) {
   // Shifting of discrete numbers for clarity
   poke(dut.io.en, true)
@@ -34,5 +34,5 @@ object DeserializerTester extends App {
     dut => new DeserializerTester(dut)
   }
   "gtkwave " + pathToVCD + "/" + nameOfVCD + " " + pathToVCD + "/" + "view.sav" !
-}
+}*/
 

@@ -44,7 +44,7 @@ object TwoWayBoard {
 }
 
 
-
+/*commented out Chisel3 tester has changed see https://github.com/schoeberl/chisel-examples/blob/master/TowardsChisel3.md 
 class TestBoard(dut: TwoWayBoard) extends Tester(dut) {
     step(100000)
 }
@@ -57,4 +57,4 @@ object TwoWayBoardTester {
         c => new TestBoard(c)
       }
   }
-}
+}*/

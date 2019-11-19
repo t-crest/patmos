@@ -11,6 +11,7 @@ import Chisel._
 import patmos.Constants._
 import ocp._
 
+/*commented out Chisel3 tester has changed see https://github.com/schoeberl/chisel-examples/blob/master/TowardsChisel3.md 
 class SharedSPMTester(dut: SharedSPM) extends Tester(dut) {
 
   println("Shared SPM Tester")
@@ -59,4 +60,4 @@ object SharedSPMTester {
         c => new SharedSPMTester(c)
       }
   }
-}
+}*/

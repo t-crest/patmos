@@ -12,6 +12,7 @@ import Chisel._
 
 import io._
 
+/* commented out Chisel3 tester has changed see https://github.com/schoeberl/chisel-examples/blob/master/TowardsChisel3.md 
 class BranchPredictTester(dut: BranchPredict) extends Tester(dut) {
 
   step(1)
@@ -25,3 +26,4 @@ object BranchPredictTester {
     }
   }
 }
+*/

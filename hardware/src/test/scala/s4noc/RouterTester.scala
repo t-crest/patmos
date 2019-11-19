@@ -12,6 +12,7 @@ import Chisel._
  * Test the router by printing out the value at each clock cycle
  * and checking some known end values.
  */
+ /*commented out Chisel3 tester has changed see https://github.com/schoeberl/chisel-examples/blob/master/TowardsChisel3.md 
 class RouterTester(c: S4Router[UInt]) extends Tester(c) {
 
   for (i <- 0 until 5) {
@@ -41,4 +42,4 @@ object RouterTester {
         c => new RouterTester(c)
       }
   }
-}
+}*/

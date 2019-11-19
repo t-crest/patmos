@@ -68,7 +68,7 @@ class SRamCtrlTop() extends Module {
   //io.port.M <> master.io.port.M
 }
 
-
+/*commented out Chisel3 tester has changed see https://github.com/schoeberl/chisel-examples/blob/master/TowardsChisel3.md 
 class SRamCtrlTester(dut: io.test.SRamCtrlTop) extends Tester(dut) {
 
   val testVec = Array( OcpCmd.IDLE, OcpCmd.WR, OcpCmd.IDLE )
@@ -84,4 +84,4 @@ object SRamCtrlTester {
       f => new SRamCtrlTester(f)
     }
   }
-}
+}*/

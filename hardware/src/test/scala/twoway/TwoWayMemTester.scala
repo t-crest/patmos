@@ -11,6 +11,7 @@ import Chisel._
 /**
  * Test a 2x2 Network.
  */
+ /*commented out Chisel3 tester has changed see https://github.com/schoeberl/chisel-examples/blob/master/TowardsChisel3.md 
 class TestLocalReadWrite(dut: TwoWayMem) extends Tester(dut) {  
   for (j <- 0 until 4) {
       //Write to all memReq channels, asking for memory in node 3
@@ -324,4 +325,4 @@ object TwoWayMemTester {
 
       }
   }
-}
+}*/

@@ -169,7 +169,7 @@ object SSPMConnectorMain {
 /**
  * Test the SSPM design
  */
-
+/*commented out Chisel3 tester has changed see https://github.com/schoeberl/chisel-examples/blob/master/TowardsChisel3.md 
 class SSPMConnectorTester(dut: SSPMConnector) extends Tester(dut) {
 
   def idle() = {
@@ -357,4 +357,4 @@ object SSPMConnectorTester {
         f => new SSPMConnectorTester(f)
       }
   }
-}
+}*/
