@@ -65,7 +65,7 @@ class Exceptions extends Module {
       is(UInt("b000000")) { io.ocp.S.Data := statusReg }
       is(UInt("b000001")) { io.ocp.S.Data := maskReg }
       is(UInt("b000011")) { io.ocp.S.Data := sourceReg }
-      is(UInt("b000010")) { io.ocp.S.Data := intrPendReg.toUInt }
+      is(UInt("b000010")) { io.ocp.S.Data := intrPendReg.asUInt }
       is(UInt("b000101")) { io.ocp.S.Data := localModeReg ## UInt(0, DATA_WIDTH-1) }
     }
     when(masterReg.Addr(EXC_ADDR_WIDTH-1) === UInt("b1")) {
@@ -159,8 +159,8 @@ class Exceptions extends Module {
   }
 
   // Create signals to decode stage
-  val exc = RegNext(excPend.toUInt =/= UInt(0))
-  val intr = RegNext((intrPend.toUInt & maskReg) =/= UInt(0))
+  val exc = RegNext(excPend.asUInt =/= UInt(0))
+  val intr = RegNext((intrPend.asUInt & maskReg) =/= UInt(0))
 
   io.excdec.exc   := exc
   io.excdec.intr  := intr && intrEna

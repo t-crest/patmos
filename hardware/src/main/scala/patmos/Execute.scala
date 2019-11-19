@@ -259,7 +259,7 @@ class Execute() extends Module {
     mfsResult := UInt(0, DATA_WIDTH)
     switch(exReg.aluOp(i).func) {
       is(SPEC_FL) {
-        mfsResult := Cat(UInt(0, DATA_WIDTH-PRED_COUNT), predReg.toUInt()).toUInt()
+        mfsResult := Cat(UInt(0, DATA_WIDTH-PRED_COUNT), predReg.asUInt()).asUInt()
       }
       is(SPEC_SL) {
         mfsResult := mulLoReg
