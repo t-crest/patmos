@@ -7,7 +7,7 @@ import patmos.Constants.{ADDR_WIDTH, DATA_WIDTH}
 class MIITimestampUnit(timestampWidth: Int) extends Module {
   val io = new Bundle {
     val ocp = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
-    val miiChannel = new MIIChannel().asInput()
+    val miiChannel = Input(new MIIChannel())
     val rtcTimestamp = Bits(INPUT, width = timestampWidth)
     val timestampAvail = Bool(OUTPUT)
     val sfdValid = Bits(OUTPUT, width = 8)

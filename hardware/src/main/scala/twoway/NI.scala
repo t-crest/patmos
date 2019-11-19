@@ -121,12 +121,13 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
 
 
 
-  val valid = Bool(timeslotToNode(Mux(notProcessed,inAddressReg >> blockAddrWidth, upperAddr)) === regDelay)
- 
+  val valid = Bool()
+  valid := (timeslotToNode(Mux(notProcessed,inAddressReg >> blockAddrWidth, upperAddr)) === regDelay)
 
+ 
   //This when handles requests if they are immediate.
   when(io.memReq.in.valid){
-    when(Bool(upperAddr === UInt(nodeIndex))){  //Is this right? When valid it should alwayws be for the node.
+    when(upperAddr === UInt(nodeIndex)){  //Is this right? When valid it should alwayws be for the node.
       // LOCAL NODE -> LOCAL MEMORY
       io.memPort.io.portA.wrEna := io.memReq.in.rw
 
@@ -338,7 +339,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
     //gotValueRb := Bool(false)
   }.otherwise{
 
-    muxReadDataChannel := rbFIFO(UInt(lookupvalue) - UInt(1) )
+    muxReadDataChannel := rbFIFO(lookupvalue.asUInt() - UInt(1) )
 
   }
 

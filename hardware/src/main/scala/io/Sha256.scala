@@ -35,74 +35,74 @@ class Sha256() extends CoreDevice() {
   val MSG_WORD_COUNT = 16
 
   val hashDefaults = Vec(Seq(
-    Bits("h6a09e667", width = DATA_WIDTH), Bits("hbb67ae85"),
-    Bits("h3c6ef372"), Bits("ha54ff53a"),
-    Bits("h510e527f"), Bits("h9b05688c"),
-    Bits("h1f83d9ab"), Bits("h5be0cd19")
+    UInt("h6a09e667", width = DATA_WIDTH), UInt("hbb67ae85"),
+    UInt("h3c6ef372"), UInt("ha54ff53a"),
+    UInt("h510e527f"), UInt("h9b05688c"),
+    UInt("h1f83d9ab"), UInt("h5be0cd19")
   ))
 
   val roundConsts = Vec(Seq(
-    Bits("h428a2f98", width = DATA_WIDTH), Bits("h71374491"),
-    Bits("hb5c0fbcf"), Bits("he9b5dba5"),
-    Bits("h3956c25b"), Bits("h59f111f1"),
-    Bits("h923f82a4"), Bits("hab1c5ed5"),
-    Bits("hd807aa98"), Bits("h12835b01"),
-    Bits("h243185be"), Bits("h550c7dc3"),
-    Bits("h72be5d74"), Bits("h80deb1fe"),
-    Bits("h9bdc06a7"), Bits("hc19bf174"),
-    Bits("he49b69c1"), Bits("hefbe4786"),
-    Bits("h0fc19dc6"), Bits("h240ca1cc"),
-    Bits("h2de92c6f"), Bits("h4a7484aa"),
-    Bits("h5cb0a9dc"), Bits("h76f988da"),
-    Bits("h983e5152"), Bits("ha831c66d"),
-    Bits("hb00327c8"), Bits("hbf597fc7"),
-    Bits("hc6e00bf3"), Bits("hd5a79147"),
-    Bits("h06ca6351"), Bits("h14292967"),
-    Bits("h27b70a85"), Bits("h2e1b2138"),
-    Bits("h4d2c6dfc"), Bits("h53380d13"),
-    Bits("h650a7354"), Bits("h766a0abb"),
-    Bits("h81c2c92e"), Bits("h92722c85"),
-    Bits("ha2bfe8a1"), Bits("ha81a664b"),
-    Bits("hc24b8b70"), Bits("hc76c51a3"),
-    Bits("hd192e819"), Bits("hd6990624"),
-    Bits("hf40e3585"), Bits("h106aa070"),
-    Bits("h19a4c116"), Bits("h1e376c08"),
-    Bits("h2748774c"), Bits("h34b0bcb5"),
-    Bits("h391c0cb3"), Bits("h4ed8aa4a"),
-    Bits("h5b9cca4f"), Bits("h682e6ff3"),
-    Bits("h748f82ee"), Bits("h78a5636f"),
-    Bits("h84c87814"), Bits("h8cc70208"),
-    Bits("h90befffa"), Bits("ha4506ceb"),
-    Bits("hbef9a3f7"), Bits("hc67178f2")
+    UInt("h428a2f98", width = DATA_WIDTH), UInt("h71374491"),
+    UInt("hb5c0fbcf"), UInt("he9b5dba5"),
+    UInt("h3956c25b"), UInt("h59f111f1"),
+    UInt("h923f82a4"), UInt("hab1c5ed5"),
+    UInt("hd807aa98"), UInt("h12835b01"),
+    UInt("h243185be"), UInt("h550c7dc3"),
+    UInt("h72be5d74"), UInt("h80deb1fe"),
+    UInt("h9bdc06a7"), UInt("hc19bf174"),
+    UInt("he49b69c1"), UInt("hefbe4786"),
+    UInt("h0fc19dc6"), UInt("h240ca1cc"),
+    UInt("h2de92c6f"), UInt("h4a7484aa"),
+    UInt("h5cb0a9dc"), UInt("h76f988da"),
+    UInt("h983e5152"), UInt("ha831c66d"),
+    UInt("hb00327c8"), UInt("hbf597fc7"),
+    UInt("hc6e00bf3"), UInt("hd5a79147"),
+    UInt("h06ca6351"), UInt("h14292967"),
+    UInt("h27b70a85"), UInt("h2e1b2138"),
+    UInt("h4d2c6dfc"), UInt("h53380d13"),
+    UInt("h650a7354"), UInt("h766a0abb"),
+    UInt("h81c2c92e"), UInt("h92722c85"),
+    UInt("ha2bfe8a1"), UInt("ha81a664b"),
+    UInt("hc24b8b70"), UInt("hc76c51a3"),
+    UInt("hd192e819"), UInt("hd6990624"),
+    UInt("hf40e3585"), UInt("h106aa070"),
+    UInt("h19a4c116"), UInt("h1e376c08"),
+    UInt("h2748774c"), UInt("h34b0bcb5"),
+    UInt("h391c0cb3"), UInt("h4ed8aa4a"),
+    UInt("h5b9cca4f"), UInt("h682e6ff3"),
+    UInt("h748f82ee"), UInt("h78a5636f"),
+    UInt("h84c87814"), UInt("h8cc70208"),
+    UInt("h90befffa"), UInt("ha4506ceb"),
+    UInt("hbef9a3f7"), UInt("hc67178f2")
   ))
 
   // The hash value
-  val hash = Vec.fill(HASH_WORD_COUNT) { Reg(Bits(width = DATA_WIDTH)) }
+  val hash = Vec.fill(HASH_WORD_COUNT) { Reg(UInt(width = DATA_WIDTH)) }
 
   // Temporary registers
-  val a = Reg(Bits(width = DATA_WIDTH))
-  val b = Reg(Bits(width = DATA_WIDTH))
-  val c = Reg(Bits(width = DATA_WIDTH))
-  val d = Reg(Bits(width = DATA_WIDTH))
-  val e = Reg(Bits(width = DATA_WIDTH))
-  val f = Reg(Bits(width = DATA_WIDTH))
-  val g = Reg(Bits(width = DATA_WIDTH))
-  val h = Reg(Bits(width = DATA_WIDTH))
+  val a = Reg(UInt(width = DATA_WIDTH))
+  val b = Reg(UInt(width = DATA_WIDTH))
+  val c = Reg(UInt(width = DATA_WIDTH))
+  val d = Reg(UInt(width = DATA_WIDTH))
+  val e = Reg(UInt(width = DATA_WIDTH))
+  val f = Reg(UInt(width = DATA_WIDTH))
+  val g = Reg(UInt(width = DATA_WIDTH))
+  val h = Reg(UInt(width = DATA_WIDTH))
 
   // Index
   val idxReg = Reg(init = UInt(0, width = log2Up(ROUND_COUNT)+1))
   idxReg := io.ocp.M.Addr(log2Up(MSG_WORD_COUNT)+1, 2)
 
   // Message memory
-  val msg = Mem(Bits(width = DATA_WIDTH), MSG_WORD_COUNT)
+  val msg = Mem(UInt(width = DATA_WIDTH), MSG_WORD_COUNT)
 
   // Read data from message memory
   val msgRdData = msg(idxReg(log2Up(MSG_WORD_COUNT)-1, 0))
 
   // Helper signal for byte enables
-  val comb = Vec.fill(masterReg.ByteEn.getWidth) { Bits(width = 8) }
+  val comb = Vec.fill(masterReg.ByteEn.getWidth) { UInt(width = 8) }
   for (i <- 0 until masterReg.ByteEn.getWidth) {
-    comb(i) := Bits(0)
+    comb(i) := UInt(0)
   }
 
   // States
@@ -110,25 +110,25 @@ class Sha256() extends CoreDevice() {
   val stateReg = Reg(init = restart)
 
   // Transformation functions
-  def rotateRight(data : Bits, amt : Int) = {
+  def rotateRight(data : UInt, amt : Int) = {
     data(amt-1, 0) ## data(DATA_WIDTH-1, amt)
   }
-  def s0(data : Bits) = {
+  def s0(data : UInt) = {
     rotateRight(data, 7) ^ rotateRight(data, 18) ^ (data.toUInt >> UInt(3))
   }
-  def s1(data : Bits) = {
+  def s1(data : UInt) = {
     rotateRight(data, 17) ^ rotateRight(data, 19) ^ (data.toUInt >> UInt(10))
   }
-  def e0(data : Bits) = {
+  def e0(data : UInt) = {
     rotateRight(data, 2) ^ rotateRight(data, 13) ^ rotateRight(data, 22)
   }
-  def e1(data : Bits) = {
+  def e1(data : UInt) = {
     rotateRight(data, 6) ^ rotateRight(data, 11) ^ rotateRight(data, 25)
   }
-  def ch(x : Bits, y : Bits, z : Bits) = {
+  def ch(x : UInt, y : UInt, z : UInt) = {
     (x & y) ^ (~x & z)
   }
-  def maj(x : Bits, y : Bits, z : Bits) = {
+  def maj(x : UInt, y : UInt, z : UInt) = {
     (x & y) ^ (x & z) ^ (y & z)
   }
 
@@ -140,11 +140,11 @@ class Sha256() extends CoreDevice() {
 
   // On-the-fly expansion of working memory
   // See Chavez et al., "Improving SHA-2 Hardware Implementations", CHES 2006
-  val w0 = Bits(width = DATA_WIDTH)
-  val wt = Vec.fill(13) { Reg(Bits(width = DATA_WIDTH)) }
-  val wx = Reg(Bits(width = DATA_WIDTH))
-  val wy = Reg(Bits(width = DATA_WIDTH))
-  val wz = Reg(Bits(width = DATA_WIDTH))
+  val w0 = UInt(width = DATA_WIDTH)
+  val wt = Vec.fill(13) { Reg(UInt(width = DATA_WIDTH)) }
+  val wx = Reg(UInt(width = DATA_WIDTH))
+  val wy = Reg(UInt(width = DATA_WIDTH))
+  val wz = Reg(UInt(width = DATA_WIDTH))
   for (i <- 1 until 13) {
     wt(i) := wt(i-1)
   }
@@ -210,20 +210,20 @@ class Sha256() extends CoreDevice() {
 
   // Default OCP response
   io.ocp.S.Resp := OcpResp.NULL
-  io.ocp.S.Data := Bits(0, width = DATA_WIDTH)
+  io.ocp.S.Data := UInt(0, width = DATA_WIDTH)
 
   // Handle OCP reads
   when (masterReg.Cmd === OcpCmd.RD) {
     io.ocp.S.Resp := OcpResp.DVA
     // Read state
-    when (masterReg.Addr(7, 2) === Bits("b000000")) {
-      io.ocp.S.Data := Cat(Bits(0, width = DATA_WIDTH-1), stateReg =/= idle)
+    when (masterReg.Addr(7, 2) === UInt("b000000")) {
+      io.ocp.S.Data := Cat(UInt(0, width = DATA_WIDTH-1), stateReg =/= idle)
     }
     // Read hash value
-    when (masterReg.Addr(7, 5) === Bits("b010")) {
+    when (masterReg.Addr(7, 5) === UInt("b010")) {
       io.ocp.S.Data := Mux(stateReg === idle,
                            hash(masterReg.Addr(log2Up(HASH_WORD_COUNT)+1, 2)),
-                           Bits(0))
+                           UInt(0))
     }
   }
 
@@ -231,28 +231,28 @@ class Sha256() extends CoreDevice() {
   when (masterReg.Cmd === OcpCmd.WR) {
     io.ocp.S.Resp := OcpResp.DVA
     when (stateReg === idle) {      
-      when (masterReg.Addr(7, 2) === Bits("b000000")) {
+      when (masterReg.Addr(7, 2) === UInt("b000000")) {
         switch (masterReg.Data(0)) {
           // Reset seed
-          is(Bits(0)) {
+          is(UInt(0)) {
             stateReg := restart
           }
           // Start computation
-          is(Bits(1)) {
+          is(UInt(1)) {
             idxReg := UInt(0)
             stateReg := start
           }
         }
       }
       // Write seed value
-      when (masterReg.Addr(7, 5) === Bits("b010")) {
+      when (masterReg.Addr(7, 5) === UInt("b010")) {
         hash(masterReg.Addr(log2Up(HASH_WORD_COUNT)+1, 2)) := masterReg.Data
       }
       // Write data
-      when (masterReg.Addr(7, 6) === Bits("b10")) {
+      when (masterReg.Addr(7, 6) === UInt("b10")) {
         // Fill in data according to byte enables
         for (i <- 0 until masterReg.ByteEn.getWidth) {
-          comb(i) := Mux(masterReg.ByteEn(i) === Bits(1),
+          comb(i) := Mux(masterReg.ByteEn(i) === UInt(1),
                          masterReg.Data(8*i+7, 8*i),
                          msgRdData(8*i+7, 8*i))
         }

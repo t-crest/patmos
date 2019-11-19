@@ -79,7 +79,7 @@ class SDHostCtrl() extends CoreDevice() {
 
       // Write to CKLDIV register
       is(Bits("b0011")) {
-        clkDivReg := UInt(io.ocp.M.Data)
+        clkDivReg := io.ocp.M.Data
       }
     }
   }
