@@ -232,16 +232,11 @@ class Sha256() extends CoreDevice() {
     io.ocp.S.Resp := OcpResp.DVA
     when (stateReg === idle) {      
       when (masterReg.Addr(7, 2) === UInt("b000000")) {
-        switch (masterReg.Data(0)) {
-          // Reset seed
-          is(UInt(0)) {
-            stateReg := restart
-          }
-          // Start computation
-          is(UInt(1)) {
-            idxReg := UInt(0)
-            stateReg := start
-          }
+        when(masterReg.Data(0) === UInt(0)){ // Reset seed
+          stateReg := restart
+        }.elsewhen(masterReg.Data(0) === UInt(1)){// Start computation
+          idxReg := UInt(0)
+          stateReg := start
         }
       }
       // Write seed value
