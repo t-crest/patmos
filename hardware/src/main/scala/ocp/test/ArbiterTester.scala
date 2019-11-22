@@ -80,9 +80,9 @@ class Master(nr: Int, burstLength: Int) extends Module {
     }
   }
 
-  io.port.M.Addr := (UInt(nr * 256) + cntReg).toBits()
+  io.port.M.Addr := (UInt(nr * 256) + cntReg)
 //  io.port.M.Addr := (dataReg).toBits()
-  io.port.M.Data := (UInt(nr * 256 * 16) + cntReg).toBits()
+  io.port.M.Data := (UInt(nr * 256 * 16) + cntReg)
 }
 
 /** A top level to test the arbiter */
