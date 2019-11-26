@@ -85,17 +85,14 @@ class Memory() extends Module {
   byteEn := UInt("b1111")
   // half-word stores
   when(io.exmem.mem.hword) {
-    switch(io.exmem.mem.addr(1)) {
-      is(UInt("b0")) {
-        wrData(2) := io.exmem.mem.data(BYTE_WIDTH-1, 0)
-        wrData(3) := io.exmem.mem.data(2*BYTE_WIDTH-1, BYTE_WIDTH)
-        byteEn := UInt("b1100")
-      }
-      is(UInt("b1")) {
-        wrData(0) := io.exmem.mem.data(BYTE_WIDTH-1, 0)
-        wrData(1) := io.exmem.mem.data(2*BYTE_WIDTH-1, BYTE_WIDTH)
-        byteEn := UInt("b0011")
-      }
+    when(io.exmem.mem.addr(1) === UInt("b0")) {
+      wrData(2) := io.exmem.mem.data(BYTE_WIDTH-1, 0)
+      wrData(3) := io.exmem.mem.data(2*BYTE_WIDTH-1, BYTE_WIDTH)
+      byteEn := UInt("b1100")
+    }.elsewhen(io.exmem.mem.addr(1) === UInt("b1")){
+      wrData(0) := io.exmem.mem.data(BYTE_WIDTH-1, 0)
+      wrData(1) := io.exmem.mem.data(2*BYTE_WIDTH-1, BYTE_WIDTH)
+      byteEn := UInt("b0011")
     }
   }
   // byte stores

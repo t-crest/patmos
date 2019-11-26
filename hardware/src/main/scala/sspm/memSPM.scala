@@ -81,7 +81,7 @@ object memModuleMain {
 }
 
 // Testing
-
+/*commented out Chisel3 tester has changed see https://github.com/schoeberl/chisel-examples/blob/master/TowardsChisel3.md 
 class memModuleTester(dut: memModule) extends Tester(dut) {
   def wr(addr: BigInt, data: BigInt, blockEnable: BigInt) = {
     poke(dut.io.M.Data, data)
@@ -135,7 +135,7 @@ object memModuleTester {
       }
   }
 }
-
+*/
 /*
  * Memory module for scratchpad memory
  * note that we simply use ByteEn for We on the different ports.
@@ -186,7 +186,7 @@ object memSPMMain {
 }
 
 // Testing
-
+/*commented out Chisel3 tester has changed see https://github.com/schoeberl/chisel-examples/blob/master/TowardsChisel3.md 
 class memSPMTester(dut: memSPM) extends Tester(dut) {
 
   def wr(addr: BigInt, data: BigInt, byteEn: BigInt) = {
@@ -354,4 +354,4 @@ object memSPMTester {
         f => new memSPMTester(f)
       }
   }
-}
+}*/

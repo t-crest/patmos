@@ -11,6 +11,7 @@ import Chisel._
 /**
  * Test a 2x2 Network.
  */
+ /*commented out Chisel3 tester has changed see https://github.com/schoeberl/chisel-examples/blob/master/TowardsChisel3.md 
 class OneWayMemTester(dut: OneWayMem) extends Tester(dut) {
 
   def read(n: Int) = {
@@ -46,3 +47,4 @@ object OneWayMemTester {
       }
   }
 }
+*/

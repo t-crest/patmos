@@ -32,6 +32,8 @@
 
 package util
 
+import java.io._
+
 import Chisel._
 import patmos._
 import io.CoreDevice
@@ -254,7 +256,7 @@ object Config {
 
       // Emit defines for emulator
       if (Driver.backend.isInstanceOf[CppBackend]) {
-        val emuConfig = Driver.createOutputFile("emulator_config.h")
+        val emuConfig = new PrintWriter(new File("build/emulator_config.h"))
         emuConfig.write("#define CORE_COUNT "+coreCount+"\n")
         emuConfig.write("#define ICACHE_"+ICache.typ.toUpperCase+"\n")
         for (d <- Devs) { emuConfig.write("#define IO_"+d.name.toUpperCase+"\n") }

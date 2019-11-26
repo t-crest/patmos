@@ -4,7 +4,7 @@ import Chisel._
 import ocp.{OcpCmd, OcpResp}
 import sys.process._
 import scala.language.postfixOps
-
+/*commented out Chisel3 tester has changed see https://github.com/schoeberl/chisel-examples/blob/master/TowardsChisel3.md 
 class RTCTester(dut: RTC, testCycles: Int) extends Tester(dut) {
   var asked: Boolean = false
   var readSeconds: Boolean = false
@@ -45,4 +45,4 @@ object RTCTester extends App {
   } finally {
     "gtkwave " + pathToVCD + "/" + nameOfVCD + " " + pathToVCD + "/" + "view.sav" !
   }
-}
+}*/

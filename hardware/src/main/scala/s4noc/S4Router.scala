@@ -25,7 +25,7 @@ object Const {
 }
 
 class SingleChannel[T <: Data](dt: T) extends Bundle {
-  val data = dt.clone
+  val data = dt.cloneType
   val valid = Bool()
 
   override def clone() = (new SingleChannel(dt)).asInstanceOf[this.type]

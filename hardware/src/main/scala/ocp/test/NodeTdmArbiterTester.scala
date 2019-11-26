@@ -80,7 +80,7 @@ class NodeTdmArbiterTop() extends Module {
 
 }
 
-
+/*commented out Chisel3 tester has changed see https://github.com/schoeberl/chisel-examples/blob/master/TowardsChisel3.md 
 class NodeTdmArbiterTester(dut: ocp.test.NodeTdmArbiterTop) extends Tester(dut) {
   val testVec = Array( OcpCmd.IDLE, OcpCmd.WR, OcpCmd.IDLE )
 
@@ -96,4 +96,4 @@ object NodeTdmArbiterTester {
     }
 
   }
-}
+}*/

@@ -140,6 +140,7 @@ object SSPMAegeanMain {
 /**
  * Test the SSPMAegean design
  */
+ /*commented out Chisel3 tester has changed see https://github.com/schoeberl/chisel-examples/blob/master/TowardsChisel3.md 
 class SSPMAegeanTester(dut: SSPMAegean, size: Int) extends Tester(dut) {
 
   // Set CPU core idle
@@ -563,5 +564,5 @@ object SSPMAegeanTester {
         f => new SSPMAegeanTester(f, 4)
       }
   }
-}
+}*/
 

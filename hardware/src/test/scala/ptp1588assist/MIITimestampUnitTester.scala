@@ -5,7 +5,7 @@ import ocp.{OcpCmd, OcpResp, OcpTestMain}
 
 import sys.process._
 import scala.language.postfixOps
-
+/*commented out Chisel3 tester has changed see https://github.com/schoeberl/chisel-examples/blob/master/TowardsChisel3.md 
 class MIITimestampUnitTester(dut: MIITimestampUnit, testStages: Int, iterations: Int) extends Tester(dut) {
 
   def testPTPFrame(ethernetFrame: EthernetFrame, initTime: Long): Long = {
@@ -315,4 +315,4 @@ object MIITimestampUnitTester extends App {
 
     "gtkwave " + pathToVCD + "/" + nameOfVCD + " " + pathToVCD + "/" + "view.sav" !
   }
-}
+}*/

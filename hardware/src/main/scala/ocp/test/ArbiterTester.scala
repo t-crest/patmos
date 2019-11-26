@@ -80,9 +80,9 @@ class Master(nr: Int, burstLength: Int) extends Module {
     }
   }
 
-  io.port.M.Addr := (UInt(nr * 256) + cntReg).toBits()
+  io.port.M.Addr := (UInt(nr * 256) + cntReg)
 //  io.port.M.Addr := (dataReg).toBits()
-  io.port.M.Data := (UInt(nr * 256 * 16) + cntReg).toBits()
+  io.port.M.Data := (UInt(nr * 256 * 16) + cntReg)
 }
 
 /** A top level to test the arbiter */
@@ -106,7 +106,7 @@ class ArbiterTop() extends Module {
 
 }
 
-
+/*commented out Chisel3 tester has changed see https://github.com/schoeberl/chisel-examples/blob/master/TowardsChisel3.md 
 class ArbiterTester(dut: ocp.test.ArbiterTop) extends Tester(dut) {
   val testVec = Array( OcpCmd.IDLE, OcpCmd.WR, OcpCmd.IDLE )
 
@@ -121,5 +121,4 @@ object ArbiterTester {
       f => new ArbiterTester(f)
     }
 
-  }
-}
+  }*/

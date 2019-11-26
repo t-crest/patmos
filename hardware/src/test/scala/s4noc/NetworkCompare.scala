@@ -68,6 +68,7 @@ class TwoNetworks() extends Module {
 /**
  * Compare two 2x2 networks.
  */
+ /*commented out Chisel3 tester has changed see https://github.com/schoeberl/chisel-examples/blob/master/TowardsChisel3.md 
 class NetworkCompare(dut: TwoNetworks) extends Tester(dut) {
 
   // Again, after 6 clock cycles there are just zeros on the output. why?
@@ -94,4 +95,4 @@ object NetworkCompare {
         c => new NetworkCompare(c)
       }
   }
-}
+}*/
