@@ -1,4 +1,4 @@
-I/O devices for Patmos must follow some conventions:
+# I/O devices for Patmos must follow some conventions:
 
 * I/O devices are implemented as classes that extend a
   Device. Currently, only CoreDevice (i.e., a device with an OcpCore
@@ -14,7 +14,7 @@ I/O devices for Patmos must follow some conventions:
   the first character converted to lower case.
 
 Example:
-
+```scala
 object FooBar extends DeviceObject {
   def create(params: Map[String, String]) : FooBar = {
     val foo = ...
@@ -33,3 +33,4 @@ class FooBar(foo : ..., bar: ...) extends CoreDevice() {
   override val io = new CoreDeviceIO() with FooBar.Pins
   ...
 }
+```
