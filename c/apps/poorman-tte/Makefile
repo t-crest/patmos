@@ -25,7 +25,7 @@ wcet:
 .PHONY: libeth
 libeth: $(LIBETH)
 $(LIBETH): $(patsubst ethlib/%.c,$(BUILDDIR)/ethlib/%.o,$(wildcard ethlib/*.c))
-	patmos-ar r $@ $^
+	ar r $@ $^
 
 ttepwm-comp:
 	patmos-clang -O2 -D $(ROLE) $(CFLAGS) $(LIBETH)/*.c $(LIBETH)/*.h ttepwm.c ttepwm.h -o ttepwm_$(ROLE).elf
