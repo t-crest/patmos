@@ -37,9 +37,9 @@ class NoCNodeDummy(argoConf: ArgoConfig, master: Boolean) extends Module {
     val west_out = new OutputPort(argoConf)
   }
 
-  val dmaReg = Reg(init = UInt(Bits("h0000"), width = DATA_WIDTH))
-  val schReg = Reg(init = UInt(Bits("h2000"), width = DATA_WIDTH))
-  val tdmReg = Reg(init = UInt(Bits("h4000"), width = DATA_WIDTH))
+  val dmaReg = Reg(init = UInt(Integer.parseInt("0000", 16), width = DATA_WIDTH))
+  val schReg = Reg(init = UInt(Integer.parseInt("2000", 16), width = DATA_WIDTH))
+  val tdmReg = Reg(init = UInt(Integer.parseInt("4000", 16), width = DATA_WIDTH))
   val respReg = Reg(init = OcpResp.NULL)
   val acceptReg = Reg(init = false.B)
 
@@ -101,6 +101,8 @@ class NoCNodeWrapper(argoConf: ArgoConfig, master: Boolean) extends BlackBox {
     val south_out = new OutputPort(argoConf)
     val west_out = new OutputPort(argoConf)
   }
+  throw new Error("BlackBox wrapper for NoCNode needs update for Chisel 3")
+  /* Commented out to compile with Chisel3
   setModuleName("noc_node_wrapper")
   addClock(Driver.implicitClock)
   renameClock("clk", "clk")
@@ -109,5 +111,5 @@ class NoCNodeWrapper(argoConf: ArgoConfig, master: Boolean) extends BlackBox {
     setVerilogParameters("#(.MASTER(" + 1 + "))")
   } else {
     setVerilogParameters("#(.MASTER(" + 0 + "))")
-  }
+  }*/
 }

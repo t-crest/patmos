@@ -302,7 +302,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 }
 
 // this testing and main file should go into it's own folder
-
+//commented out Chisel3 tester has changed see https://github.com/schoeberl/chisel-examples/blob/master/TowardsChisel3.md 
 class PatmosTest(pat: Patmos) extends Tester(pat) {
 
   println("Patmos start")

@@ -29,7 +29,7 @@ import Chisel._
 class WriterIO() extends Bundle {
   val write = Bool(INPUT)
   val full = Bool(OUTPUT)
-  val din = new Entry().asInput()
+  val din = Input(new Entry())
 }
 
 class ReaderIO() extends Bundle {
@@ -91,6 +91,7 @@ class BubbleFifo(depth: Int) extends Module {
 /**
   * Test the design.
   */
+/* commented out Chisel3 tester has changed see https://github.com/schoeberl/chisel-examples/blob/master/TowardsChisel3.md 
 class FifoTester(dut: BubbleFifo) extends Tester(dut) {
 
   // some defaults for all signals
@@ -174,4 +175,4 @@ object FifoTester {
       f => new FifoTester(f)
     }
   }
-}
+}*/

@@ -13,7 +13,6 @@ import Chisel._
 object MemBlock {
   def apply(size : Int, width : Int, bypass : Boolean = true) = {
     Module(new MemBlock(size, width, bypass))
-    // Module(new BlackBlock(size, width))
   }
 }
 
@@ -67,18 +66,5 @@ class MemBlock(size : Int, width : Int, bypass : Boolean = true) extends Module 
             io.rdData := Reg(next = io.wrData)
           }
   }
-}
-
-class BlackBlock(size : Int, width : Int) extends BlackBox {
-  val io = new MemBlockIO(size, width)
-
-  // Set entity name
-  setName("Ram"+size+"x"+width)
-  // Override port names as necessary
-  io.rdAddr.setName("RdA")
-  io.rdData.setName("Q")
-  io.wrAddr.setName("WrA")
-  io.wrEna.setName("WrEn")
-  io.wrData.setName("D")
 }
 

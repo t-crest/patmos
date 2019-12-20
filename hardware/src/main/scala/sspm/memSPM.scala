@@ -37,7 +37,7 @@ class memModule(size: Int) extends Module {
   // Second option is number of entries
   // So e.g. for 128 entry memory of 32 bit Uint we write 128.
   // here, we dot it in BYTE_WIDTH = 8.
-  val syncMem = Mem(UInt(width=BYTE_WIDTH), size / BYTES_PER_WORD, seqRead=true)
+  val syncMem = Mem(UInt(width=BYTE_WIDTH), size / BYTES_PER_WORD)
 
   //io.S.Data := Bits(0)
 
@@ -81,7 +81,7 @@ object memModuleMain {
 }
 
 // Testing
-
+/*commented out Chisel3 tester has changed see https://github.com/schoeberl/chisel-examples/blob/master/TowardsChisel3.md 
 class memModuleTester(dut: memModule) extends Tester(dut) {
   def wr(addr: BigInt, data: BigInt, blockEnable: BigInt) = {
     poke(dut.io.M.Data, data)
@@ -135,7 +135,7 @@ object memModuleTester {
       }
   }
 }
-
+*/
 /*
  * Memory module for scratchpad memory
  * note that we simply use ByteEn for We on the different ports.
@@ -186,7 +186,7 @@ object memSPMMain {
 }
 
 // Testing
-
+/*commented out Chisel3 tester has changed see https://github.com/schoeberl/chisel-examples/blob/master/TowardsChisel3.md 
 class memSPMTester(dut: memSPM) extends Tester(dut) {
 
   def wr(addr: BigInt, data: BigInt, byteEn: BigInt) = {
@@ -354,4 +354,4 @@ object memSPMTester {
         f => new memSPMTester(f)
       }
   }
-}
+}*/

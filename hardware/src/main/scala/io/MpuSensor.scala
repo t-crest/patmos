@@ -62,7 +62,9 @@ class MpuSensorIO() extends Bundle {
 //blackbox
 class MpuSensorBB() extends BlackBox {
     val io = new MpuSensorIO()
+    throw new Error("BlackBox wrapper for MpuSensor needs update for Chisel 3")
     // rename component
+    /*Commented out to compile for chisel3
     setModuleName("imu_mpu")
     // rename signals
     renameClock( "clk", "clk")
@@ -88,7 +90,7 @@ class MpuSensorBB() extends BlackBox {
     io.sda_in.setName("sda_in")   //in
     io.we_out.setName("we_out")
     //io.reset.setName("reset")
-
+    */
 
 }
 

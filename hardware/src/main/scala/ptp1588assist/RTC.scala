@@ -115,7 +115,7 @@ import patmos.Constants._
          timeReg(2 * DATA_WIDTH - 1, DATA_WIDTH) := masterReg.Data
        }
        is(Bits("h20")) {
-         nsOffsetReg := masterReg.Data.toSInt()
+         nsOffsetReg := masterReg.Data.asSInt()
        }
      }
    }

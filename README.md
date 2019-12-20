@@ -43,7 +43,7 @@ to the compiler executables into your .bashrc or .profile:
     export PATH=$PATH:$HOME/t-crest/local/bin
 
 Use an absolute path as LLVM cannot handle a path relative to the
-home directory (~).
+home directory (~). Logout and login again to make your new PATH setting active.
 
 Patmos and the compiler can be checked out from GitHub and are built as follows:
 

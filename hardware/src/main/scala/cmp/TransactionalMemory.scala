@@ -23,7 +23,7 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
   val memaddrwidth = log2Up(memsize)
   val corecur = Counter(corecnt)
   
-  val sharedmem = Mem(UInt(width = datawidth), memsize, seqRead = true)
+  val sharedmem = Mem(UInt(width = datawidth), memsize)
   val sharedmemwr = Bool()
   sharedmemwr := false.B
   val sharedmemwrfin = Bool()
@@ -67,7 +67,7 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
     val bufwrs = Vec(bufsize, Reg(init = false.B))
     val bufnxt = Counter(bufsize+1)
     
-    val bufmem = Mem(UInt(width = datawidth), bufsize, seqRead = true)
+    val bufmem = Mem(UInt(width = datawidth), bufsize)
     val bufmemwr = Bool()
     val bufmemrdaddrReg = RegInit(UInt(0,width = bufaddrwidth))
     bufmemrdaddrReg := 0.U

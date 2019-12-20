@@ -51,6 +51,7 @@ class SSPM(val nCores: Int, val extendedSlotSize: Int, val singleExtendedSlot: B
 /**
  * Test the SSPM design
  */
+ /* commented out Chisel3 tester has changed see https://github.com/schoeberl/chisel-examples/blob/master/TowardsChisel3.md 
 class SSPMTester(dut: SSPM) extends Tester(dut) {
   def idle() = {
     poke(dut.io.ocp.M.Cmd, OcpCmd.IDLE.litValue())
@@ -131,5 +132,5 @@ object SSPMTester {
         f => new SSPMTester(f)
       }
   }
-}
+}*/
 
