@@ -47,6 +47,11 @@ unsigned char schedplace;
 void tte_clock_tick(void) __attribute__((naked));
 void tte_clock_tick_log(void) __attribute__((naked));
 
+unsigned long long i_pcf_max_time;
+unsigned long long tte_receive_log_max_time;
+unsigned long long handle_integration_frame_log_max_time;
+
+__attribute__((noinline))
 unsigned char is_pcf(unsigned int addr){
 	unsigned type_1 = mem_iord_byte(addr + 12);
 	unsigned type_2 = mem_iord_byte(addr + 13);
@@ -56,6 +61,7 @@ unsigned char is_pcf(unsigned int addr){
 	return 0;
 }
 
+__attribute__((noinline))
 void tte_wait_for_message(unsigned long long * receive_point){
 	do{
 		*receive_point = *(_iodev_ptr_t)(__PATMOS_TIMER_LOCLK); //to avoid delay error
@@ -72,47 +78,64 @@ void tte_clear_free_rx_buffer(unsigned int addr){
     	eth_iowr(addr, cur_data | (1<<15));
 }
 
+__attribute__((noinline))
 unsigned char tte_receive_log(unsigned int addr,unsigned long long rec_start,signed long long error[],int i){
-	if(is_pcf(addr)){
-	  if((mem_iord_byte(addr + 28)) == 0x2){
-	    if(handle_integration_frame_log(addr,rec_start,error,i)){
-              return 1;
-            }
-	    else{
-              return 0;
-            }
-          }
-	} else if (is_tte(addr)){
-	  return 2;
-        }
-	return 3;
+	unsigned char ans = 3;
+    unsigned long long initMeasurement = *(_iodev_ptr_t)(__PATMOS_TIMER_LOCLK);
+	if(is_pcf(addr))
+	{
+		if((mem_iord_byte(addr + 28)) == 0x2) //integration frame
+		{
+			if(handle_integration_frame_log(addr,rec_start,error,i))
+			{
+				ans = 1;
+			}
+			else
+			{
+				ans = 0;
+			}
+		}
+	} 
+	else if (is_tte(addr))
+	{
+	  ans= 2;
+    }
+    unsigned long long diffTemp = (*(_iodev_ptr_t)(__PATMOS_TIMER_LOCLK)) - initMeasurement;
+    if(diffTemp > tte_receive_log_max_time)
+	{
+      tte_receive_log_max_time =  diffTemp;
+	}
+	return ans;
 }
 
 __attribute__((noinline))
 unsigned char tte_receive(unsigned int addr,unsigned long long rec_start){ //0 for failed pcf, 1 for success pcf, 2 for tte, 3 otherwise
-	if(is_pcf(addr)){
-	  if((mem_iord_byte(addr + 28)) == 0x2){ //integration frame
-	    if(handle_integration_frame(addr,rec_start)){
-	      return 1;  	
-	    }
-	    else{
-              return 0;
-            }
-          }
-	  //other PCF types currently return 3
-	} else if (is_tte(addr)){
+	if(is_pcf(addr))
+	{
+		if((mem_iord_byte(addr + 28)) == 0x2) //integration frame
+		{
+			if(handle_integration_frame(addr,rec_start))
+				return 1;
+			else
+				return 0;
+		}
+	} 
+	else if (is_tte(addr))
+	{
 	  return 2;
-        }
+	}
 	return 3;
 }
 
-int handle_integration_frame_log(unsigned int addr,unsigned long long receive_pit,
-  signed long long error[],int i){
+__attribute__((noinline))
+int handle_integration_frame_log(unsigned int addr, unsigned long long receive_pit, signed long long error[],int i){
 	unsigned long long permanence_pit;
 	unsigned long long sched_rec_pit;
 	unsigned long long trans_clock;
 	signed long long err;
 	signed long long der_err;
+	unsigned char ans = 0;
+	unsigned long long initMeasurement = (*(_iodev_ptr_t)(__PATMOS_TIMER_LOCLK));
 
 	trans_clock = mem_iord_byte(addr + 34);
 	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 35));
@@ -154,12 +177,17 @@ int handle_integration_frame_log(unsigned int addr,unsigned long long receive_pi
 		  arm_clock_timer(timer_time);
 		}
 		start_time += integration_period;
-		return 1;
+		ans = 1;
 	}
 	else{
 	    start_time = 0;
 	}
-	return 0;
+	unsigned long long diffTemp = (*(_iodev_ptr_t)(__PATMOS_TIMER_LOCLK)) - initMeasurement;
+    if(diffTemp > handle_integration_frame_log_max_time)
+	{
+      handle_integration_frame_log_max_time =  diffTemp;
+	}
+	return ans;
 }
 
 __attribute__((noinline))

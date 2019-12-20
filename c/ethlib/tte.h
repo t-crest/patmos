@@ -18,6 +18,10 @@
 
 #define TTETIME_TO_NS 65536
 
+extern unsigned long long i_pcf_max_time;
+extern unsigned long long tte_receive_log_max_time;
+extern unsigned long long handle_integration_frame_log_max_time;
+
 unsigned long long send_times[2000];
 
 unsigned char is_pcf(unsigned int addr);
