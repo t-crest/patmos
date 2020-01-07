@@ -32,8 +32,15 @@ wcet_tsnsync:
 	platin wcet --disable-ait -i tpip.pml -b tsn_timesyncdemo.elf -e ptpv2_issue_msg
 	platin wcet --disable-ait -i tpip.pml -b tsn_timesyncdemo.elf -e ptpv2_handle_msg
 	platin wcet --disable-ait -i tpip.pml -b tsn_timesyncdemo.elf -e ptpv2_process_received
-	platin wcet --disable-ait -i tpip.pml -b tsn_timesyncdemo.elf -e demoSlaveLoop
-	platin wcet --disable-ait -i tpip.pml -b tsn_timesyncdemo.elf -e demoMasterLoop
+	platin wcet --disable-ait -i tpip.pml -b tsn_timesyncdemo.elf -e slaveSyncLoop
+	platin wcet --disable-ait -i tpip.pml -b tsn_timesyncdemo.elf -e masterSyncLoop
+	
+wcet_ttesync:
+	patmos-clang -O2 $(CFLAGS) $(LIBETH)/*.c -mserialize=tpip.pml tte_timesyncdemo.c -o tsn_timesyncdemo.elf
+	platin wcet --disable-ait -i tpip.pml -b tsn_timesyncdemo.elf -e demoLoop
+	platin wcet --disable-ait -i tpip.pml -b tsn_timesyncdemo.elf -e receiveAndHandleFrame
+	platin wcet --disable-ait -i tpip.pml -b tsn_timesyncdemo.elf -e tte_pcf_handle
+	platin wcet --disable-ait -i tpip.pml -b tsn_timesyncdemo.elf -e tte_get_time
 	
 # running examples
 

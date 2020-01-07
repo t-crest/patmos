@@ -1,22 +1,28 @@
 #include <machine/patmos.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include "ethlib/eth_mac_driver.h"
 #include "ethlib/icmp.h"
 #include "ethlib/arp.h"
 #include "ethlib/mac.h"
 #include "ethlib/udp.h"
 #include "ethlib/ipv4.h"
-#include "ethlib/tte.h"
 #include "ethlib/ptp1588.h"
 
-#define NO_RX_PACKETS 100
+#define NO_RX_PACKETS 1000
 
-#define INT_PERIOD 100 //ms
-#define CYC_PERIOD 200 //ms
-#define TTE_MAX_TRANS_DELAY 135600 //ns from net_config (eclipse project)
+#define TTE_PRECISION		10000 //ns from network_description (eclipse project)
+#define TTE_MAX_TRANS_DELAY	135600 //ns from net_config (eclipse project)
+#define TTE_INT_PERIOD		10000000 // 10 ms
+#define TTE_CYC_PERIOD		20000000 // 20 ms
 #define TTE_COMP_DELAY 0
-#define TTE_PRECISION 10000 //ns from network_description (eclipse project)
+
+#define TTETIME_TO_NS 65536
+
+#define TTE_SYNC_Kp 250
+#define TTE_SYNC_Ki 700
+#define TTE_SYNC_Kd 0
 
 //IO
 volatile _SPM int *uart_ptr = (volatile _SPM int *)	 PATMOS_IO_UART;
@@ -33,23 +39,25 @@ unsigned int tx_addr = 0x800;
 const unsigned char multicastip[4] = {224, 0, 0, 255};
 const unsigned char TTE_CT[] = { 0xAB, 0xAD, 0xBA, 0xBE };
 
-unsigned int initNanoseconds;
-unsigned int initSeconds;
-
-unsigned long long sched_rec_pit;
+uint32_t initNanoseconds = 0;
+uint32_t initSeconds = 0;
 
 PTPPortInfo thisPtpPortInfo;
 PTPv2Time softTimestamp;
 PTPv2Time hardTimestamp;
 
-signed long long clkOffsetSum = 0.0;
-unsigned short rxPacketLog[NO_RX_PACKETS];
-int clkOffsetNsLog[NO_RX_PACKETS];
-unsigned int deltaTimeLog[NO_RX_PACKETS];
-unsigned int tteIntCycleLog[NO_RX_PACKETS];
-unsigned long long tteTransClkLog[NO_RX_PACKETS];
-int rxPacketCount;
-unsigned short integration_cycle;
+static uint64_t rxTimestampLog[NO_RX_PACKETS];
+static uint16_t rxPacketLog[NO_RX_PACKETS];
+static int64_t clkOffsetNsLog[NO_RX_PACKETS];
+static uint32_t deltaTimeLog[NO_RX_PACKETS];
+static uint32_t tteIntCycleLog[NO_RX_PACKETS];
+static uint32_t tteTransClkLog[NO_RX_PACKETS];
+static uint64_t sched_rec_pit = 0;
+static int64_t clkDiff = 0;
+static int64_t clkDiffLast = 0;
+static int64_t clkDiffSum = 0;
+static int32_t rxPacketCount = 0;
+static int32_t inScheduleReceptions = 0;
 
 void print_general_info(){
 	printf("\nGeneral info:\n");
@@ -77,15 +85,26 @@ void testRTCAdjustment(){
 	initNanoseconds = RTC_TIME_NS(thisPtpPortInfo.eth_base);
 	initSeconds = RTC_TIME_SEC(thisPtpPortInfo.eth_base);
 	RTC_ADJUST_OFFSET(thisPtpPortInfo.eth_base) = 0x1000;
-	while((*led_ptr=RTC_ADJUST_OFFSET(thisPtpPortInfo.eth_base)) != 0){printSegmentInt(*led_ptr);}
+	while((*led_ptr=RTC_ADJUST_OFFSET(thisPtpPortInfo.eth_base)) != 0)
+  {
+    printSegmentInt(*led_ptr);
+  }
 	RTC_TIME_NS(thisPtpPortInfo.eth_base) = initNanoseconds;
 	RTC_TIME_SEC(thisPtpPortInfo.eth_base) = initSeconds;
 }
 
-int tteintframe_process_received(unsigned current_time){
-	unsigned long long permanence_pit;
-	unsigned long long trans_clock;
-	signed long long clkDiff;
+__attribute__((noinline))
+uint64_t get_tte_time(uint64_t current_time){
+	uint64_t ans = current_time + (TTE_SYNC_Kp*clkDiff>>10) + (TTE_SYNC_Ki*clkDiffSum>>10) + ((TTE_SYNC_Kd*clkDiff-clkDiffLast)>>10);
+	clkDiffLast = clkDiff;
+	return ans;
+}
+
+__attribute__((noinline))
+int tte_pcf_handle(uint64_t current_time){
+	uint64_t trans_clock;
+	uint16_t integration_cycle;
+	uint64_t permanence_pit;
 
 	trans_clock = mem_iord_byte(rx_addr + 34);
 	trans_clock = (trans_clock << 8) | (mem_iord_byte(rx_addr + 35));
@@ -103,28 +122,29 @@ int tteintframe_process_received(unsigned current_time){
 	integration_cycle = (integration_cycle << 8) | (mem_iord_byte(rx_addr + 17));
 	tteIntCycleLog[rxPacketCount] = integration_cycle;
 
-	permanence_pit = (int) softTimestamp.nanoseconds + ((int)TTE_MAX_TRANS_DELAY-(int)trans_clock); 
+	permanence_pit = (SEC_TO_NS * hardTimestamp.seconds + hardTimestamp.nanoseconds) + (TTE_MAX_TRANS_DELAY-trans_clock); 
 
-	// if(rxPacketCount == 0){
-	// 	RTC_TIME_NS(thisPtpPortInfo.eth_base) = permanence_pit - (2*TTE_MAX_TRANS_DELAY + TTE_COMP_DELAY);;
-	// }
-
-	sched_rec_pit = (int) RTC_TIME_NS(thisPtpPortInfo.eth_base) + ((int)2*TTE_MAX_TRANS_DELAY + TTE_COMP_DELAY);
+	sched_rec_pit = current_time + 2*TTE_MAX_TRANS_DELAY;
 
 	clkOffsetNsLog[rxPacketCount] = clkDiff = (permanence_pit - sched_rec_pit);
 
-	clkOffsetSum += clkDiff;
+	clkDiffSum += clkDiff;
 
-	if(integration_cycle==0){
-		RTC_TIME_NS(thisPtpPortInfo.eth_base) = 0;
-	} else {
-		RTC_TIME_NS(thisPtpPortInfo.eth_base) += 0.3*clkDiff;
-	}
+	// if(clkDiff > SEC_TO_NS){
+	// 	RTC_TIME_SEC(thisPtpPortInfo.eth_base) += 1;
+	// 	RTC_TIME_NS(thisPtpPortInfo.eth_base) = RTC_TIME_NS(thisPtpPortInfo.eth_base) + clkDiff - SEC_TO_NS;
+	// } else {
+	// 	// RTC_TIME_NS(thisPtpPortInfo.eth_base) = RTC_TIME_NS(thisPtpPortInfo.eth_base) + clkDiff;
+	// }
+
+	// RTC_TIME_NS(thisPtpPortInfo.eth_base) = RTC_TIME_NS(thisPtpPortInfo.eth_base) + (300*clkDiff>>10) + (700*clkDiffSum>>10);
+
+	// RTC_ADJUST_OFFSET(thisPtpPortInfo.eth_base) = (300*clkDiff>>10) + (700*clkDiffSum>>10);
 
 	//check scheduled receive window
 	if(permanence_pit>(sched_rec_pit-TTE_PRECISION) && permanence_pit<(sched_rec_pit+TTE_PRECISION)){
-		
 		*led_ptr |= 1U << 8;
+		inScheduleReceptions++;
 	}
 	else{
 	    *led_ptr &= 0U << 8;
@@ -133,8 +153,8 @@ int tteintframe_process_received(unsigned current_time){
 	return 1;
 }
 
-
-int receiveAndHandleFrame(const unsigned int timeout, unsigned int current_time){
+__attribute__((noinline))
+int receiveAndHandleFrame(unsigned int timeout, unsigned long long current_time){
 	unsigned short dest_port;
 	//receive
 	if(eth_mac_receive(rx_addr, timeout)){
@@ -146,7 +166,7 @@ int receiveAndHandleFrame(const unsigned int timeout, unsigned int current_time)
 		//handle
 		if (mem_iord_byte(rx_addr + 12) == 0x89 && mem_iord_byte(rx_addr + 13) == 0x1d){
 			if((mem_iord_byte(rx_addr + 28)) == 0x2){
-				tteintframe_process_received(current_time);
+				tte_pcf_handle(current_time);
 			}
 			return TTE_PCF;
 		} else if(mac_compare_mac(mac_addr_dest(rx_addr), (unsigned char*) &TTE_CT)) {
@@ -159,21 +179,21 @@ int receiveAndHandleFrame(const unsigned int timeout, unsigned int current_time)
 	}
 }
 
-
-int demoLoop(unsigned int timeout, unsigned int current_time){
+__attribute__((noinline))
+uint8_t demoLoop(uint32_t timeout, uint32_t current_time){
+	uint8_t ans = 0x0;
 	int packetType = receiveAndHandleFrame(timeout, current_time);
+	if(packetType == TTE_PCF)
+  	{
+		// sched_rec_pit = current_time + (TTE_INT_PERIOD + 2*TTE_MAX_TRANS_DELAY);
+    	ans = 0x1;
+	}
 	*led_ptr = packetType & 0xFF;
+	rxTimestampLog[rxPacketCount] = SEC_TO_NS * hardTimestamp.seconds + hardTimestamp.nanoseconds;
 	rxPacketLog[rxPacketCount] = packetType;
 	deltaTimeLog[rxPacketCount] = abs(initNanoseconds-hardTimestamp.nanoseconds);
 	initNanoseconds = hardTimestamp.nanoseconds;
-	if(packetType == TTE_PCF){
-        return 1;
-	} else if(packetType == PTP) {
-		clkOffsetNsLog[rxPacketCount] = ptpTimeRecord.offsetNanoseconds;
-		return 1;
-	} else {
-		return 0;
-	}
+	return ans;
 }
 
 int main(int argc, char **argv){
@@ -198,28 +218,31 @@ int main(int argc, char **argv){
 	//Demo
 	RTC_TIME_NS(thisPtpPortInfo.eth_base) = 0;
 	RTC_TIME_SEC(thisPtpPortInfo.eth_base) = 0;
-	// sched_rec_pit = (int) RTC_TIME_NS(thisPtpPortInfo.eth_base) + ((int)2*TTE_MAX_TRANS_DELAY + TTE_COMP_DELAY);
-	unsigned int startTime = RTC_TIME_NS(thisPtpPortInfo.eth_base);
-	// printf("first sched_rec_pit = %d", sched_rec_pit);
+	uint64_t start_time = get_ptp_nanos(thisPtpPortInfo.eth_base);
+	// sched_rec_pit = start_time + (TTE_INT_PERIOD + 2*TTE_MAX_TRANS_DELAY);
 	while(rxPacketCount < NO_RX_PACKETS){
-		if(RTC_TIME_NS(thisPtpPortInfo.eth_base) - startTime >= INT_PERIOD*MS_TO_NS-TTE_PRECISION){
-			rxPacketCount+=demoLoop(0, RTC_TIME_NS(thisPtpPortInfo.eth_base));
-			// sched_rec_pit = (int) RTC_TIME_NS(thisPtpPortInfo.eth_base) + ((int)2*TTE_MAX_TRANS_DELAY + TTE_COMP_DELAY);
-			printSegmentInt(get_ptp_usecs(thisPtpPortInfo.eth_base));
+		uint64_t current_time = get_tte_time(get_ptp_nanos(thisPtpPortInfo.eth_base));
+		if(current_time - start_time >= TTE_INT_PERIOD - TTE_PRECISION){
+			rxPacketCount+=demoLoop(TTE_PRECISION, current_time);
+			start_time = current_time; 
 		}
+		printSegmentInt(get_ptp_usecs(thisPtpPortInfo.eth_base));
 		if(*key_ptr == 0xE)	break;
 	}
 
 	//Report
-	printf("Received No. Packets = %d\n", rxPacketCount);
 	puts("------------------------------------------");
 	puts("Clock Offset log:");
 	puts("------------------------------------------");
-	puts("Eth Type;\tCycle#;\tTransClk(ns);\tOffset(ns);\tDelta Time(ns);");
+	puts("Timestamp;\tEth Type;\tCycle#;\tTransClk(ns);\tOffset(ns);\tDelta Time(ns);");
+	puts("---------------------------------------------------------------------------");
 	for(int i=0;i<NO_RX_PACKETS;i++){
-		printf("%s;\t%04x;\t%10llx;\t%10d;\t%10d\n", eth_protocol_names[rxPacketLog[i]], tteIntCycleLog[i], tteTransClkLog[i], clkOffsetNsLog[i], deltaTimeLog[i]);
+		printf("%llu;\t%s;\t%04lx;\t%10lu;\t%10lld;\t%10ld\n", rxTimestampLog[i], eth_protocol_names[rxPacketLog[i]], tteIntCycleLog[i], tteTransClkLog[i], clkOffsetNsLog[i], deltaTimeLog[i]);
 	}
-
+	puts("---------------------------------------------------------------------------");
+	printf("--Received No. Packets = %ld\n", rxPacketCount);
+	printf("--In-Sched No. Packets = %ld\n", inScheduleReceptions);
+	puts("---------------------------------------------------------------------------");
 	puts("\nExiting!");
 	return 0;
 }
