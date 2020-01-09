@@ -329,14 +329,14 @@ class ExecuteIO() extends Bundle() {
 }
 
 class InOutIO() extends Bundle() {
-  val memInOut = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
-  val comConf = new OcpNIMasterPort(ADDR_WIDTH, DATA_WIDTH)
-  val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
-  val excInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
-  val mmuInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
-  val intrs = Vec.fill(INTR_COUNT) { Bool(OUTPUT) }
-  val superMode = Bool(INPUT)
-  val internalIO = new InternalIO().asInput
+  val memInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
+  val comConf = new OcpNISlavePort(ADDR_WIDTH, DATA_WIDTH)
+  val comSpm = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
+  val excInOut = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
+  val mmuInOut = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
+  val intrs = Vec.fill(INTR_COUNT) { Bool(INPUT) }
+  val superMode = Bool(OUTPUT)
+  val internalIO = new InternalIO().asOutput
 }
 
 class BootMemIO() extends Bundle() {
@@ -454,6 +454,7 @@ class PatmosCoreIO() extends Bundle() {
   val comConf = new OcpNIMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val memPort = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+  val inout = new InOutIO()
 }
 
 class PatmosIO() extends Bundle() {
