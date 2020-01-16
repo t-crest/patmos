@@ -169,103 +169,49 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
   val nrCores = Config.getConfig.coreCount
 
-  val aegeanMode = !Config.getConfig.cmpDevices.contains("Argo")
-
   println("Config core count: " + nrCores)
 
   // Instantiate cores
   val cores = (0 until nrCores).map(i => Module(new PatmosCore(binFile, i, nrCores)))
 
   // Forward ports to/from core
-  val cmpDevices = Config.getConfig.cmpDevices
   println("Config cmp: ")
   val MAX_IO_DEVICES = 16
-  val cmpdevs = new Array[Module](MAX_IO_DEVICES)
-  
-  for(dev <- cmpDevices) {
-    println(dev)
-    dev match {
+  val cmpdevs = Config.getConfig.cmpDevices.map(e => {
+    println(e)
+    val (off, _dev) = e match {
       // Address 0 reserved for Argo
-      case "Argo" =>  cmpdevs(0) = Module(new argo.Argo(nrCores, wrapped=false, emulateBB=false))
-      case "Hardlock" => cmpdevs(1) = Module(new cmp.HardlockOCPWrapper(() => new cmp.Hardlock(nrCores, 1)))
-      case "SharedSPM" => cmpdevs(2) = Module(new cmp.SharedSPM(nrCores, (nrCores-1)*2*1024))
-      case "OneWay" => cmpdevs(3) = Module(new cmp.OneWayOCPWrapper(nrCores))
-      case "TdmArbiter" => cmpdevs(4) = Module(new cmp.TdmArbiter(nrCores))
-      case "OwnSPM" => cmpdevs(5) = Module(new cmp.OwnSPM(nrCores, (nrCores-1)*2, 1024))
-      case "SPMPool" => cmpdevs(6) = Module(new cmp.SPMPool(nrCores, (nrCores-1)*2, 1024))
-      case "S4noc" => cmpdevs(7) = Module(new cmp.S4nocOCPWrapper(nrCores, 4, 4))
-      case "CASPM" => cmpdevs(8) = Module(new cmp.CASPM(nrCores, nrCores * 8))
-      case "AsyncLock" => cmpdevs(9) = Module(new cmp.AsyncLock(nrCores, nrCores * 2))
-      case "UartCmp" => cmpdevs(10) = Module(new cmp.UartCmp(nrCores,CLOCK_FREQ,115200,16))
-      case "TwoWay" => cmpdevs(11) = Module(new cmp.TwoWayOCPWrapper(nrCores, 1024))
-      case "TransactionalMemory" => cmpdevs(12) = Module(new cmp.TransactionalMemory(nrCores, 512))
-      case "LedsCmp" => cmpdevs(13) = Module(new cmp.LedsCmp(nrCores, 1))
-      case _ =>
+      case "Argo" =>  (0, Module(new argo.Argo(nrCores, wrapped=false, emulateBB=false)))
+      case "Hardlock" => (1, Module(new cmp.HardlockOCPWrapper(() => new cmp.Hardlock(nrCores, 1))))
+      case "SharedSPM" => (2, Module(new cmp.SharedSPM(nrCores, (nrCores-1)*2*1024)))
+      case "OneWay" => (3, Module(new cmp.OneWayOCPWrapper(nrCores)))
+      case "TdmArbiter" => (4, Module(new cmp.TdmArbiter(nrCores)))
+      case "OwnSPM" => (5, Module(new cmp.OwnSPM(nrCores, (nrCores-1)*2, 1024)))
+      case "SPMPool" => (6, Module(new cmp.SPMPool(nrCores, (nrCores-1)*2, 1024)))
+      case "S4noc" => (7, Module(new cmp.S4nocOCPWrapper(nrCores, 4, 4)))
+      case "CASPM" => (8, Module(new cmp.CASPM(nrCores, nrCores * 8)))
+      case "AsyncLock" => (9, Module(new cmp.AsyncLock(nrCores, nrCores * 2)))
+      case "UartCmp" => (10, Module(new cmp.UartCmp(nrCores,CLOCK_FREQ,115200,16)))
+      case "TwoWay" => (11, Module(new cmp.TwoWayOCPWrapper(nrCores, 1024)))
+      case "TransactionalMemory" => (12, Module(new cmp.TransactionalMemory(nrCores, 512)))
+      case "LedsCmp" => (13, Module(new cmp.LedsCmp(nrCores, 1)))
+      case _ => throw new Error("Unknown device " + e)
     }
-  }
-  
-  for(dev <- cmpdevs) {
-    if(dev != null) {
-      Config.connectIOPins(dev.getClass.getSimpleName, io, dev.io, "cmp.")
+
+    Config.connectIOPins(_dev.getClass.getSimpleName, io, _dev.io, "cmp.")
+    
+    new {
+      val offset = off
+      val dev = _dev
     }
-  }
+  })
 
   for (i <- (0 until nrCores)) {
 
-    // Compute selects
-    val selIO = cores(i).io.inout.memInOut.M.Addr(ADDR_WIDTH-1, ADDR_WIDTH-4) === UInt(0xF)
-    val selNI = cores(i).io.inout.memInOut.M.Addr(ADDR_WIDTH-1, ADDR_WIDTH-4) === UInt(0xE)
-
-    val selISpm = !selIO & !selNI & cores(i).io.inout.memInOut.M.Addr(ISPM_ONE_BIT) === UInt(0x1)
-    val selSpm = !selIO & !selNI & cores(i).io.inout.memInOut.M.Addr(ISPM_ONE_BIT) === UInt(0x0)
-
-    val MAX_IO_DEVICES : Int = 0x10
-    val IO_DEVICE_OFFSET = 16 // Number of address bits for each IO device
-    val IO_DEVICE_ADDR_SIZE = 32 - Integer.numberOfLeadingZeros(MAX_IO_DEVICES-1)
-    assert(Bool(IO_DEVICE_ADDR_SIZE + IO_DEVICE_OFFSET < ADDR_WIDTH-4),
-                                      "Conflicting addressspaces of IO devices")
-
-    val validDeviceVec = Vec.fill(MAX_IO_DEVICES) { Bool() }
-    val validDevices = Array.fill(MAX_IO_DEVICES) { false }
-    val selDeviceVec = Vec.fill(MAX_IO_DEVICES) { Bool() }
-    val deviceSVec = Vec.fill(MAX_IO_DEVICES) { new OcpSlaveSignals(DATA_WIDTH) }
-    
-    for (j <- 0 until MAX_IO_DEVICES) {
-      validDeviceVec(j) := Bool(false)
-      selDeviceVec(j) := selIO & cores(i).io.inout.memInOut.M.Addr(IO_DEVICE_ADDR_SIZE
-                            + IO_DEVICE_OFFSET - 1, IO_DEVICE_OFFSET) === UInt(j)
-      deviceSVec(j).Resp := OcpResp.NULL
-      deviceSVec(j).Data := UInt(0)
-    }
-
-    // Register selects
-    val selDeviceReg = Vec.fill(MAX_IO_DEVICES) { Reg(Bool()) }
-
-    when(cores(i).io.inout.memInOut.M.Cmd =/= OcpCmd.IDLE) {
-
-      selDeviceReg := selDeviceVec
-    }
+    val IO_DEVICE_ADDR_WIDTH = 16
 
     // Default values for interrupt pins
     cores(i).io.inout.intrs := UInt(0)
-
-    // Register for error response
-    val errResp = Reg(init = OcpResp.NULL)
-    val validSelVec = selDeviceVec.zip(validDeviceVec).map{ case (x, y) => x && y }
-    val validSel = validSelVec.fold(Bool(false))(_|_)
-    errResp := Mux(cores(i).io.inout.memInOut.M.Cmd =/= OcpCmd.IDLE &&
-                  selIO && !validSel,
-                  OcpResp.ERR, OcpResp.NULL)
-
-    // Dummy ISPM (create fake response)
-    val ispmCmdReg = Reg(next = Mux(selISpm, cores(i).io.inout.memInOut.M.Cmd, OcpCmd.IDLE))
-    val ispmResp = Mux(ispmCmdReg === OcpCmd.IDLE, OcpResp.NULL, OcpResp.DVA)
-
-    // The SPM
-    val spm = Module(new Spm(DSPM_SIZE))
-    spm.io.M := cores(i).io.inout.memInOut.M
-    spm.io.M.Cmd := Mux(selSpm, cores(i).io.inout.memInOut.M.Cmd, OcpCmd.IDLE)
-    val spmS = spm.io.S
     
     val connectDevice = (devio: CoreDeviceIO, off: Int) => 
       {
@@ -316,23 +262,18 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
         val name = "MMU"
       } else null).filter(e => e != null))
       .map(e => {
-        validDeviceVec(e.off) := Bool(true)
-        validDevices(e.off) = true
-        deviceSVec(e.off) := e.io.S
         new {
           val addr = (0xF0 << 8) + e.off;
-          val addrwidth = 16;
+          val addrwidth = IO_DEVICE_ADDR_WIDTH;
           val io = e.io
           val name = e.name
         }
       })
     
-    val cmpdevios = (0 until cmpdevs.length)
-      .map(e => new {val offset = e; val dev = cmpdevs(e)})
-      .filter(e => e.dev != null)
+    val cmpdevios = cmpdevs
       .map(e => new {
         val addr = (0xE8 << 8) + e.offset;
-        val addrwidth = 16;
+        val addrwidth = IO_DEVICE_ADDR_WIDTH;
         val io = e.dev.io match {
           case cmpio: cmp.CmpIO => cmpio.cores(i)
           case _ => e.dev.io.asInstanceOf[Vec[OcpCoreSlavePort]](i)
@@ -340,8 +281,28 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
         val name = e.dev.moduleName
       })
 
-    val devios = singledevios ++ cmpdevios
+    // The SPM
+    val spm = Module(new Spm(DSPM_SIZE))
 
+    // Dummy ISPM (create fake response)
+    val ispmio = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
+    ispmio.S.Data := 0.U
+    ispmio.S.Resp := RegNext(Mux(ispmio.M.Cmd === OcpCmd.IDLE, OcpResp.NULL, OcpResp.DVA))
+
+    val devios = (singledevios ++ cmpdevios) ++ List( 
+      new {
+          val addr = 0x0000;
+          val addrwidth = IO_DEVICE_ADDR_WIDTH;
+          val io = spm.io
+          val name = "SPM"
+        },
+      new {
+          val addr = 0x0001;
+          val addrwidth = IO_DEVICE_ADDR_WIDTH;
+          val io = ispmio
+          val name = "ISPM"
+        }
+    )
     
     for(dupldev <- devios
                     .groupBy(e => e.addr)
@@ -387,22 +348,14 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       }
     }
 
+    // Register for error response
     val errRespReg = Reg(init = OcpResp.NULL)
-    when(cores(i).io.inout.memInOut.M.Cmd =/= OcpCmd.IDLE && !validdev && !selIO) {
+    when(cores(i).io.inout.memInOut.M.Cmd =/= OcpCmd.IDLE && !validdev) {
       errRespReg := OcpResp.ERR
     }
 
-    // Return data to pipeline
-    when(selSpm) { cores(i).io.inout.memInOut.S.Data := spmS.Data }
-    for (j <- 0 until MAX_IO_DEVICES) {
-      when(selDeviceReg(j)) { cores(i).io.inout.memInOut.S.Data := deviceSVec(j).Data }
-    }
-
     // Merge responses
-    cores(i).io.inout.memInOut.S.Resp := errResp | errRespReg |
-                          ispmResp | spmS.Resp |
-                          deviceSVec.map(_.Resp).fold(OcpResp.NULL)(_|_) |
-                          cmpdevios.map(e => e.io.S.Resp).fold(OcpResp.NULL)(_|_)
+    cores(i).io.inout.memInOut.S.Resp := errRespReg | devios.map(e => e.io.S.Resp).fold(OcpResp.NULL)(_|_)
   }
 
   // Connect memory controller
