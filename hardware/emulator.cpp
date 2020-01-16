@@ -207,9 +207,9 @@ static void emu_uart(Patmos_t *c, int uart_in, int uart_out) {
   static unsigned baud_counter = 0;
 
   // Pass on data from UART
-  if (c->Patmos_PatmosCore_iocomp_Uart__io_ocp_M_Cmd.to_ulong() == 0x1
-      && (c->Patmos_PatmosCore_iocomp_Uart__io_ocp_M_Addr.to_ulong() & 0xff) == 0x04) {
-    unsigned char d = c->Patmos_PatmosCore_iocomp_Uart__io_ocp_M_Data.to_ulong();
+  if (c->Patmos_Uart__io_ocp_M_Cmd.to_ulong() == 0x1
+      && (c->Patmos_Uart__io_ocp_M_Addr.to_ulong() & 0xff) == 0x04) {
+    unsigned char d = c->Patmos_Uart__io_ocp_M_Data.to_ulong();
     int w = write(uart_out, &d, 1);
     if (w != 1) {
       cerr << program_name << ": error: Cannot write UART output" << endl;
@@ -217,7 +217,7 @@ static void emu_uart(Patmos_t *c, int uart_in, int uart_out) {
   }
 
   // Pass on data to UART
-  bool baud_tick = c->Patmos_PatmosCore_iocomp_Uart__tx_baud_tick.to_bool();
+  bool baud_tick = c->Patmos_Uart__tx_baud_tick.to_bool();
   if (baud_tick) {
     baud_counter = (baud_counter + 1) % 10;
   }
@@ -232,10 +232,10 @@ static void emu_uart(Patmos_t *c, int uart_in, int uart_out) {
         if (r != 1) {
           cerr << program_name << ": error: Cannot read UART input" << endl;
         } else {
-          c->Patmos_PatmosCore_iocomp_Uart__rx_state = 0x3; // rx_stop_bit
-          c->Patmos_PatmosCore_iocomp_Uart__rx_baud_tick = 1;
-          c->Patmos_PatmosCore_iocomp_Uart__rxd_reg2 = 1;
-          c->Patmos_PatmosCore_iocomp_Uart__rx_buff = d;
+          c->Patmos_Uart__rx_state = 0x3; // rx_stop_bit
+          c->Patmos_Uart__rx_baud_tick = 1;
+          c->Patmos_Uart__rxd_reg2 = 1;
+          c->Patmos_Uart__rx_buff = d;
         }
       }
     }

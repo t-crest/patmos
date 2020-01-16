@@ -150,8 +150,6 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
     io.memPort.S.CmdAccept === UInt(1))
 
   // The inputs and outputs
-  io.comConf <> io.inout.comConf
-  io.comSpm <> io.inout.comSpm
   io.memPort <> mmu.io.phys
   //Config.connectAllIOPins(io, iocomp.io)
 
@@ -221,9 +219,6 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     val selISpm = !selIO & !selNI & cores(i).io.inout.memInOut.M.Addr(ISPM_ONE_BIT) === UInt(0x1)
     val selSpm = !selIO & !selNI & cores(i).io.inout.memInOut.M.Addr(ISPM_ONE_BIT) === UInt(0x0)
 
-    val selComConf = if(aegeanMode) selNI & cores(i).io.inout.memInOut.M.Addr(ADDR_WIDTH-5) === UInt("b0") else false.B
-    val selComSpm  = if(aegeanMode) selNI & cores(i).io.inout.memInOut.M.Addr(ADDR_WIDTH-5) === UInt("b1") else selNI
-
     val MAX_IO_DEVICES : Int = 0x10
     val IO_DEVICE_OFFSET = 16 // Number of address bits for each IO device
     val IO_DEVICE_ADDR_SIZE = 32 - Integer.numberOfLeadingZeros(MAX_IO_DEVICES-1)
@@ -234,7 +229,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     val validDevices = Array.fill(MAX_IO_DEVICES) { false }
     val selDeviceVec = Vec.fill(MAX_IO_DEVICES) { Bool() }
     val deviceSVec = Vec.fill(MAX_IO_DEVICES) { new OcpSlaveSignals(DATA_WIDTH) }
-    println(IO_DEVICE_ADDR_SIZE)
+    
     for (j <- 0 until MAX_IO_DEVICES) {
       validDeviceVec(j) := Bool(false)
       selDeviceVec(j) := selIO & cores(i).io.inout.memInOut.M.Addr(IO_DEVICE_ADDR_SIZE
@@ -242,30 +237,17 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       deviceSVec(j).Resp := OcpResp.NULL
       deviceSVec(j).Data := UInt(0)
     }
-    validDeviceVec(EXC_IO_OFFSET) := Bool(true)
-    validDevices(EXC_IO_OFFSET) = true
-    validDeviceVec(MMU_IO_OFFSET) := Bool(HAS_MMU)
-    validDevices(MMU_IO_OFFSET) = HAS_MMU
 
     // Register selects
-    val selSpmReg = Reg(Bool())
-    val selComConfReg = Reg(Bool())
-    val selComSpmReg = Reg(Bool())
-
     val selDeviceReg = Vec.fill(MAX_IO_DEVICES) { Reg(Bool()) }
 
     when(cores(i).io.inout.memInOut.M.Cmd =/= OcpCmd.IDLE) {
-      selSpmReg := selSpm
-      selComConfReg := selComConf
-      selComSpmReg := selComSpm
 
       selDeviceReg := selDeviceVec
     }
 
     // Default values for interrupt pins
-    for (j <- 0 until INTR_COUNT) {
-      cores(i).io.inout.intrs(j) := Bool(false)
-    }
+    cores(i).io.inout.intrs := UInt(0)
 
     // Register for error response
     val errResp = Reg(init = OcpResp.NULL)
@@ -284,99 +266,84 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     spm.io.M := cores(i).io.inout.memInOut.M
     spm.io.M.Cmd := Mux(selSpm, cores(i).io.inout.memInOut.M.Cmd, OcpCmd.IDLE)
     val spmS = spm.io.S
-
-    // The communication configuration, including bridge to OcpIO interface
-    val comConf = Module(new OcpCoreBus(ADDR_WIDTH, DATA_WIDTH))
-    comConf.io.slave.M := cores(i).io.inout.memInOut.M
-    comConf.io.slave.M.Cmd := Mux(selComConf, cores(i).io.inout.memInOut.M.Cmd, OcpCmd.IDLE)
-    val comConfS = comConf.io.slave.S
-    val comConfIO = Module(new OcpIOBus(ADDR_WIDTH, DATA_WIDTH))
-    cores(i).io.inout.comConf.M := comConfIO.io.master.M
-    comConfIO.io.master.S := cores(i).io.inout.comConf.S
-    val comConfBridge = new OcpIOBridgeAlt(comConf.io.master, comConfIO.io.slave)
-
-    // The communication scratchpad
-    cores(i).io.inout.comSpm.M := cores(i).io.inout.memInOut.M
-    cores(i).io.inout.comSpm.M.Cmd := Mux(selComSpm, cores(i).io.inout.memInOut.M.Cmd, OcpCmd.IDLE)
-    val comSpmS = cores(i).io.inout.comSpm.S
     
-    val connectDevice = (devio: CoreDeviceIO, off: Int, name: String) => 
+    val connectDevice = (devio: CoreDeviceIO, off: Int) => 
       {
-        if(!validDevices(off)) {
-          validDeviceVec(off) := Bool(true)
-          validDevices(off) = true;
-        } else {
-          throw new Error("Can't assign multiple devices to the same offset. " +
-                            "Device " + name + " conflicting on offset " +
-                            off.toString + ". ")
-        }
-        // connect ports
-        devio.ocp.M := cores(i).io.inout.memInOut.M
-        devio.ocp.M.Cmd := Mux(selDeviceVec(off), cores(i).io.inout.memInOut.M.Cmd, OcpCmd.IDLE)
         devio.superMode <> cores(i).io.inout.superMode
         devio.internalPort <> cores(i).io.inout.internalIO
-        deviceSVec(off) := devio.ocp.S
       }
 
     // Creation of IO devices
     val conf = Config.getConfig
 
     val cpuinfo = Module(new CpuInfoCmp(Config.datFile, i, nrCores))
-    connectDevice(cpuinfo.io, CPUINFO_OFFSET, "CpuInfoCmp")
+    connectDevice(cpuinfo.io, CPUINFO_OFFSET)
 
-    for (devConf <- Config.getConfig.Devs) {
-      val clazz = 
-        try { Class.forName("io."+devConf.name+"$Pins") }
-        catch { case e: Exception => null}
-
-      if(i == 0 || clazz == null || !clazz.getMethods.nonEmpty) {
-        val dev = Config.createDevice(devConf).asInstanceOf[CoreDevice]
-        connectDevice(dev.io,devConf.offset,devConf.name)
-        Config.connectIOPins(devConf.name, io, dev.io)
-        Config.connectIntrPins(devConf, cores(i).io.inout, dev.io)
-      }
-    }
-
-    // The exception and memory management units are special and outside this unit
-    cores(i).io.inout.excInOut.M := cores(i).io.inout.memInOut.M
-    cores(i).io.inout.excInOut.M.Cmd := Mux(selDeviceVec(EXC_IO_OFFSET), cores(i).io.inout.memInOut.M.Cmd, OcpCmd.IDLE)
-    deviceSVec(EXC_IO_OFFSET) := cores(i).io.inout.excInOut.S
-
-    if (HAS_MMU) {
-      cores(i).io.inout.mmuInOut.M := cores(i).io.inout.memInOut.M
-      cores(i).io.inout.mmuInOut.M.Cmd := Mux(selDeviceVec(MMU_IO_OFFSET), cores(i).io.inout.memInOut.M.Cmd, OcpCmd.IDLE)
-      deviceSVec(MMU_IO_OFFSET) := cores(i).io.inout.mmuInOut.S
-    }
-
-    // Return data to pipeline
-    cores(i).io.inout.memInOut.S.Data := spmS.Data
-    when(selComConfReg) { cores(i).io.inout.memInOut.S.Data := comConfS.Data }
-    when(selComSpmReg)  { cores(i).io.inout.memInOut.S.Data := comSpmS.Data }
-    for (j <- 0 until MAX_IO_DEVICES) {
-      when(selDeviceReg(j)) { cores(i).io.inout.memInOut.S.Data := deviceSVec(j).Data }
-    }
-
-    // Merge responses
-    cores(i).io.inout.memInOut.S.Resp := errResp |
-                          ispmResp | spmS.Resp |
-                          comConfS.Resp | comSpmS.Resp |
-                          deviceSVec.map(_.Resp).fold(OcpResp.NULL)(_|_)
+    val singledevios = 
+      (Config.getConfig.Devs
+      .map(e => 
+      {
+        new {
+          val clazz = 
+            try { Class.forName("io."+e.name+"$Pins") }
+            catch { case e: Exception => null};
+          val conf = e
+        }
+      })
+      .filter(e => i == 0 || e.clazz == null || !e.clazz.getMethods.nonEmpty)
+      .map(e => 
+      {
+          val dev = Config.createDevice(e.conf).asInstanceOf[CoreDevice]
+          connectDevice(dev.io, e.conf.offset)
+          Config.connectIOPins(e.conf.name, io, dev.io)
+          Config.connectIntrPins(e.conf, cores(i).io.inout, dev.io)
+          new {
+            val off = e.conf.offset
+            val io = dev.io.ocp
+            val name = e.conf.name
+          }
+      }) ++ List(new {
+        val off = CPUINFO_OFFSET;
+        val io = cpuinfo.io.ocp;
+        val name = cpuinfo.moduleName
+      }, new {
+        val off = EXC_IO_OFFSET;
+        val io = cores(i).io.inout.excInOut;
+        val name = "Exception unit"
+      }, if(HAS_MMU) new {
+        val off = MMU_IO_OFFSET;
+        val io = cores(i).io.inout.mmuInOut;
+        val name = "MMU"
+      } else null).filter(e => e != null))
+      .map(e => {
+        validDeviceVec(e.off) := Bool(true)
+        validDevices(e.off) = true
+        deviceSVec(e.off) := e.io.S
+        new {
+          val addr = (0xF0 << 8) + e.off;
+          val addrwidth = 16;
+          val io = e.io
+          val name = e.name
+        }
+      })
     
     val cmpdevios = (0 until cmpdevs.length)
-      .map(e => (e, cmpdevs(e)))
-      .filter(e => e._2 != null)
+      .map(e => new {val offset = e; val dev = cmpdevs(e)})
+      .filter(e => e.dev != null)
       .map(e => new {
-        val addr = (0xE8 << 8) + e._1;
+        val addr = (0xE8 << 8) + e.offset;
         val addrwidth = 16;
-        val io = e._2.io match {
+        val io = e.dev.io match {
           case cmpio: cmp.CmpIO => cmpio.cores(i)
-          case _ => e._2.io.asInstanceOf[Vec[OcpCoreSlavePort]](i)
+          case _ => e.dev.io.asInstanceOf[Vec[OcpCoreSlavePort]](i)
         }
-        val name = e._2.moduleName
+        val name = e.dev.moduleName
       })
 
+    val devios = singledevios ++ cmpdevios
+
     
-    for(dupldev <- cmpdevios
+    for(dupldev <- devios
                     .groupBy(e => e.addr)
                     .collect { case (addr,e) if e.lengthCompare(1) > 0 => e}
                     .flatten) {
@@ -385,26 +352,26 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
         dupldev.addr + ". ")
     }
 
-    cores(i).io.comSpm.S.Data := UInt(0)
+    cores(i).io.inout.memInOut.S.Data := UInt(0)
     val validdev = Bool()
     validdev := false.B
-    for(dev <- cmpdevios) {
-      val addr = cores(i).io.comSpm.M.Addr(ADDR_WIDTH-1, ADDR_WIDTH-dev.addrwidth)
+    for(dev <- devios) {
+      val addr = cores(i).io.inout.memInOut.M.Addr(ADDR_WIDTH-1, ADDR_WIDTH-dev.addrwidth)
       println(addr.getWidth())
       println(dev.addr)
       println(dev.addrwidth)
-      dev.io.M := cores(i).io.comSpm.M
+      dev.io.M := cores(i).io.inout.memInOut.M
       dev.io.M.Cmd := OcpCmd.IDLE
       when(addr === dev.addr.U) {
-        dev.io.M.Cmd := cores(i).io.comSpm.M.Cmd
+        dev.io.M.Cmd := cores(i).io.inout.memInOut.M.Cmd
         validdev := true.B
       }
       val selReg = RegInit(false.B)
-      when(cores(i).io.comSpm.M.Cmd =/= OcpCmd.IDLE) {
+      when(cores(i).io.inout.memInOut.M.Cmd =/= OcpCmd.IDLE) {
         selReg := addr === dev.addr.U
       }
       when(selReg) {
-        cores(i).io.comSpm.S.Data := dev.io.S.Data
+        cores(i).io.inout.memInOut.S.Data := dev.io.S.Data
       }
 
       // TODO: maybe a better way is for all interfaces to have the bits 'superMode' and 'flags'
@@ -421,11 +388,21 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     }
 
     val errRespReg = Reg(init = OcpResp.NULL)
-    when(cores(i).io.comSpm.M.Cmd =/= OcpCmd.IDLE && !validdev) {
+    when(cores(i).io.inout.memInOut.M.Cmd =/= OcpCmd.IDLE && !validdev && !selIO) {
       errRespReg := OcpResp.ERR
     }
 
-    cores(i).io.comSpm.S.Resp := errRespReg | cmpdevios.map(e => e.io.S.Resp).fold(OcpResp.NULL)(_|_)
+    // Return data to pipeline
+    when(selSpm) { cores(i).io.inout.memInOut.S.Data := spmS.Data }
+    for (j <- 0 until MAX_IO_DEVICES) {
+      when(selDeviceReg(j)) { cores(i).io.inout.memInOut.S.Data := deviceSVec(j).Data }
+    }
+
+    // Merge responses
+    cores(i).io.inout.memInOut.S.Resp := errResp | errRespReg |
+                          ispmResp | spmS.Resp |
+                          deviceSVec.map(_.Resp).fold(OcpResp.NULL)(_|_) |
+                          cmpdevios.map(e => e.io.S.Resp).fold(OcpResp.NULL)(_|_)
   }
 
   // Connect memory controller
