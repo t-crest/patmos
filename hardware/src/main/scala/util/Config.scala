@@ -355,7 +355,7 @@ object Config {
     rawDev.asInstanceOf[Device]
   }
 
-  def connectIOPins(name : String, outer : Node, inner : Node, pack : String = "io.") = {
+  def connectIOPins(name : String, outer : Data, inner : Data, pack : String = "io.") = {
       // get class for pin trait
       val clazz = 
       try {
@@ -390,13 +390,13 @@ object Config {
       }
   }
 
-  def connectAllIOPins(outer : Node, inner : Node) {
+  def connectAllIOPins(outer : Data, inner : Data) {
     for (name <- conf.Devs.map(_.name)) {
       connectIOPins(name, outer, inner)
     }
   }
 
-  def connectIntrPins(dev : Config#DeviceConfig, outer : InOutIO, inner : Node) {
+  def connectIntrPins(dev : Config#DeviceConfig, outer : InOutIO, inner : Data) {
     if (!dev.intrs.isEmpty) {
       val name = dev.name
       // get class for interrupt trait
