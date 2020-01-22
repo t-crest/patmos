@@ -2,6 +2,7 @@
  * "I/O" module to access information about the CPU
  *
  * Authors: Wolfgang Puffitsch (wpuffitsch@gmail.com)
+ *          Torur Biskopsto Strom (torur.strom@gmail.com)
  *
  */
 
@@ -11,30 +12,16 @@ package io
 import Chisel._
 
 import patmos.Constants._
-import util.Config
 import util.Utility
 
 import ocp._
 
-object CpuInfo extends DeviceObject {
+class CpuInfo(datFile: String, cpucnt: Int) extends CoreDevice() {
 
-  def init(params: Map[String, String]) = { }
-
-  def create(params: Map[String, String]) : CpuInfo = {
-    Module(new CpuInfo())
+  override val io = new CoreDeviceIO() {
+    val nr = UInt(INPUT, log2Up(cpucnt))
+    val cnt = UInt(INPUT, log2Floor(cpucnt) + 1)
   }
-
-  trait Pins {
-    val cpuInfoPins = new Bundle() {
-      val id = Bits(INPUT, DATA_WIDTH)
-      val cnt = Bits(INPUT, DATA_WIDTH)
-    }
-  }
-}
-
-class CpuInfo() extends CoreDevice() {
-
-  override val io = new CoreDeviceIO() with CpuInfo.Pins
 
   val masterReg = Reg(next = io.ocp.M)
 
@@ -50,14 +37,14 @@ class CpuInfo() extends CoreDevice() {
   }
 
   // The ROM for booting
-  val rom = Utility.readBin(Config.datFile, DATA_WIDTH)
+  val rom = Utility.readBin(datFile, DATA_WIDTH)
   val romData = rom(masterReg.Addr(log2Up(rom.length)+1, 2))
 
   // Read information
   switch(masterReg.Addr(5,2)) {
-    is(Bits("b0000")) { data := io.cpuInfoPins.id }
+    is(Bits("b0000")) { data := io.nr }
     is(Bits("b0001")) { data := Bits(CLOCK_FREQ) }
-    is(Bits("b0010")) { data := io.cpuInfoPins.cnt }
+    is(Bits("b0010")) { data := io.cnt }
     is(Bits("b0011")) { data := Bits(PIPE_COUNT) }
     // ExtMEM
     // Size (32 bit)

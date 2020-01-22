@@ -14,7 +14,6 @@
   <!-- <ExtMem size="128k" DevTypeRef="OCRam" /> -->
 
   <IOs>
-	<IO DevTypeRef="Uart" offset="8"/>
 	<IO DevTypeRef="Leds" offset="9"/>
 	<IO DevTypeRef="Keys" offset="10" intrs="2,3,4,5"/>
   </IOs>
