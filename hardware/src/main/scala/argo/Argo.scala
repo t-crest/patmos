@@ -10,6 +10,7 @@ package argo
 import Chisel._
 import patmos.Constants._
 import ocp._
+import cmp._
 
 class OcpArgoSlavePort(addrWidth : Int, dataWidth : Int, argoConf: ArgoConfig) 
   extends OcpCoreSlavePort(addrWidth, dataWidth) {
@@ -17,10 +18,17 @@ class OcpArgoSlavePort(addrWidth : Int, dataWidth : Int, argoConf: ArgoConfig)
   val flags = Bits(OUTPUT, 2*argoConf.CORES)
 }
 
+class CmpArgoIO(corecnt : Int, argoConf: ArgoConfig) extends CmpIO(corecnt : Int)
+{
+  override val cores = Vec(corecnt, new OcpArgoSlavePort(ADDR_WIDTH, DATA_WIDTH, argoConf)).asInstanceOf[Vec[OcpCoreSlavePort]]
+
+  override def clone = new CmpArgoIO(corecnt, argoConf).asInstanceOf[this.type]
+}
+
 class Argo(nrCores: Int, wrapped: Boolean = false, emulateBB: Boolean = false) extends Module {
   ArgoConfig.setCores(nrCores)
   val argoConf = ArgoConfig.getConfig
-  val io = Vec.fill(argoConf.CORES){new OcpArgoSlavePort(ADDR_WIDTH, DATA_WIDTH, argoConf)}
+  val io = IO(new CmpArgoIO(argoConf.CORES, argoConf))//Vec.fill(argoConf.CORES){new OcpArgoSlavePort(ADDR_WIDTH, DATA_WIDTH, argoConf)}
 
   println("Connecting "+ argoConf.CORES +" Patmos islands with configuration:")
   println("N=" + argoConf.N)
@@ -43,7 +51,7 @@ class Argo(nrCores: Int, wrapped: Boolean = false, emulateBB: Boolean = false) e
   for(i <- 0 until argoConf.CORES){
 		comSPMWrapper(i).spm.M := argoNoc.io.spmPorts(i).M
     argoNoc.io.spmPorts(i).S := comSPMWrapper(i).spm.S
-    argoNoc.io.supervisor(i) := io(i).superMode(i)
+    argoNoc.io.supervisor(i) := io.cores(i).asInstanceOf[OcpArgoSlavePort].superMode(i)
   }
 
   val masterReg = Vec.fill(argoConf.CORES){Reg(new OcpArgoSlavePort(ADDR_WIDTH, DATA_WIDTH, argoConf)).M}
@@ -55,10 +63,10 @@ class Argo(nrCores: Int, wrapped: Boolean = false, emulateBB: Boolean = false) e
 
     //While not busy register a new master for NoC
     when(!busyReg(i)) {
-      masterReg(i) := io(i).M
+      masterReg(i) := io.cores(i).M
     }
     //Is busy when command is RD/WR and address is for the NoC
-    when((io(i).M.Cmd === OcpCmd.RD || io(i).M.Cmd === OcpCmd.WR) && io(i).M.Addr(27) === Bits("b0")) {
+    when((io.cores(i).M.Cmd === OcpCmd.RD || io.cores(i).M.Cmd === OcpCmd.WR) && io.cores(i).M.Addr(27) === Bits("b0")) {
       busyReg(i) := true.B
     }
     //Not busy when the command has been accepted
@@ -74,10 +82,10 @@ class Argo(nrCores: Int, wrapped: Boolean = false, emulateBB: Boolean = false) e
     argoNoc.io.ocpPorts(i).M.Cmd := Mux(masterReg(i).Addr(27) === Bits("b0"), masterReg(i).Cmd, OcpCmd.IDLE) //0xE000_0000
 
     //Argo SPM gets immediate access to io
-    comSPMWrapper(i).ocp.M.Data := io(i).M.Data
-    comSPMWrapper(i).ocp.M.ByteEn := io(i).M.ByteEn
-    comSPMWrapper(i).ocp.M.Addr := io(i).M.Addr
-    comSPMWrapper(i).ocp.M.Cmd := Mux(io(i).M.Addr(27) === Bits("b1"), io(i).M.Cmd, OcpCmd.IDLE) //0xE800_0000
+    comSPMWrapper(i).ocp.M.Data := io.cores(i).M.Data
+    comSPMWrapper(i).ocp.M.ByteEn := io.cores(i).M.ByteEn
+    comSPMWrapper(i).ocp.M.Addr := io.cores(i).M.Addr
+    comSPMWrapper(i).ocp.M.Cmd := Mux(io.cores(i).M.Addr(27) === Bits("b1"), io.cores(i).M.Cmd, OcpCmd.IDLE) //0xE800_0000
 
     //Register slave resp/data
     val respSpmReg = Reg(next = comSPMWrapper(i).ocp.S.Resp)
@@ -86,16 +94,16 @@ class Argo(nrCores: Int, wrapped: Boolean = false, emulateBB: Boolean = false) e
     val dataNoCReg = Reg(next = argoNoc.io.ocpPorts(i).S.Data)
 
     //Mux spm/noc to master
-    when(io(i).M.Cmd =/= OcpCmd.IDLE && !busyReg(i)){
-      selSpmRplyReg(i) := io(i).M.Addr(27).toBool
+    when(io.cores(i).M.Cmd =/= OcpCmd.IDLE && !busyReg(i)){
+      selSpmRplyReg(i) := io.cores(i).M.Addr(27).toBool
     } .elsewhen(respSpmReg === OcpResp.DVA || respNoCReg ===OcpResp.DVA){
       selSpmRplyReg(i) := false.B
     }
-    io(i).S.Data := Mux(selSpmRplyReg(i), dataSpmReg, dataNoCReg)
-    io(i).S.Resp := Mux(selSpmRplyReg(i), respSpmReg, respNoCReg)
+    io.cores(i).S.Data := Mux(selSpmRplyReg(i), dataSpmReg, dataNoCReg)
+    io.cores(i).S.Resp := Mux(selSpmRplyReg(i), respSpmReg, respNoCReg)
 
     // NoC - Patmos
-    io(i).flags := argoNoc.io.irq
+    io.cores(i).asInstanceOf[OcpArgoSlavePort].flags := argoNoc.io.irq
 	}
 
   // Generate config.vhd

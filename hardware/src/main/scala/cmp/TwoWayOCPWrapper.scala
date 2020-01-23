@@ -36,7 +36,7 @@ class TwoWayOCPWrapper(nrCores: Int, memSizePrNI : Int) extends Module {
 
   println("TwoWayMem")
 
-  val io = Vec.fill(nrCores) { new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH) }
+  val io = IO(new CmpIO(nrCores))  //Vec.fill(nrCores) { new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH) }
 
   // Mapping between TwoWay memories and OCP
 
@@ -47,14 +47,14 @@ class TwoWayOCPWrapper(nrCores: Int, memSizePrNI : Int) extends Module {
     //val resp = Mux(io(i).M.Cmd === OcpCmd.RD || io(i).M.Cmd === OcpCmd.WR,
     //OcpResp.DVA, OcpResp.NULL)
     val resp = twowaymem.io.nodearray(i).in.valid
-    twowaymem.io.nodearray(i).out.address := io(i).M.Addr >> 2
-    twowaymem.io.nodearray(i).out.data := io(i).M.Data
-    twowaymem.io.nodearray(i).out.valid := io(i).M.Cmd === OcpCmd.WR || io(i).M.Cmd === OcpCmd.RD
-    twowaymem.io.nodearray(i).out.rw := io(i).M.Cmd === OcpCmd.WR
-    io(i).S.Data := twowaymem.io.nodearray(i).in.data
+    twowaymem.io.nodearray(i).out.address := io.cores(i).M.Addr >> 2
+    twowaymem.io.nodearray(i).out.data := io.cores(i).M.Data
+    twowaymem.io.nodearray(i).out.valid := io.cores(i).M.Cmd === OcpCmd.WR || io.cores(i).M.Cmd === OcpCmd.RD
+    twowaymem.io.nodearray(i).out.rw := io.cores(i).M.Cmd === OcpCmd.WR
+    io.cores(i).S.Data := twowaymem.io.nodearray(i).in.data
     
 	//Our version already delays resposse??
-    io(i).S.Resp := resp//Reg(init = OcpResp.NULL, next = resp)
+    io.cores(i).S.Resp := resp//Reg(init = OcpResp.NULL, next = resp)
 
 
 

@@ -87,14 +87,14 @@ class NodeSPM(id: Int, nrCores: Int) extends Module {
 
 class SharedSPM(nrCores: Int, size: Int) extends Module {
 
-  val io = Vec(nrCores, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))
+  val io = IO(new CmpIO(nrCores)) //Vec(nrCores, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))
 
   val spm = Module(new Spm(size))
 
   val nd = new Array[NodeSPM](nrCores)
   for (i <- 0 until nrCores) {
     nd(i) = Module(new NodeSPM(i, nrCores))
-    nd(i).io.fromCore <> io(i)
+    nd(i).io.fromCore <> io.cores(i)
     nd(i).io.toMem.S <> spm.io.S
   }
 

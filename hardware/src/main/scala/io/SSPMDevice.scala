@@ -45,7 +45,7 @@ class SSPM(val nCores: Int, val extendedSlotSize: Int, val singleExtendedSlot: B
   override val io = new CoreDeviceIO()
 
   // Connect one OCP interface from SSPM Aegean to the Patmos OCP
-  Module(new SSPMAegean(nCores, extendedSlotSize, singleExtendedSlot)).io(0) <> io.ocp
+  Module(new SSPMAegean(nCores, extendedSlotSize, singleExtendedSlot)).io.cores(0) <> io.ocp
 }
 
 /**
