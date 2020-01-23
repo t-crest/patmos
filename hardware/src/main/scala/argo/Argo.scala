@@ -70,7 +70,7 @@ class Argo(nrCores: Int, wrapped: Boolean = false, emulateBB: Boolean = false) e
     argoNoc.io.ocpPorts(i).M.Data := masterReg(i).Data
     argoNoc.io.ocpPorts(i).M.ByteEn := masterReg(i).ByteEn
     argoNoc.io.ocpPorts(i).M.Addr := masterReg(i).Addr
-    argoNoc.io.ocpPorts(i).M.RespAccept := (argoNoc.io.ocpPorts(i).S.Resp =/= OcpResp.NULL).toUInt //Accept all responses
+    argoNoc.io.ocpPorts(i).M.RespAccept := (argoNoc.io.ocpPorts(i).S.Resp =/= OcpResp.NULL).asUInt //Accept all responses
     argoNoc.io.ocpPorts(i).M.Cmd := Mux(masterReg(i).Addr(27) === Bits("b0"), masterReg(i).Cmd, OcpCmd.IDLE) //0xE000_0000
 
     //Argo SPM gets immediate access to io
