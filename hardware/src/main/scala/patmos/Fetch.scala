@@ -51,11 +51,11 @@ class Fetch(fileName : String) extends Module {
     val ispm_odd = memOdd.io(addrOdd(ispmAddrUInt, 1))
     instr_a_ispm := Mux(pcReg(0) === UInt(0), ispm_even, ispm_odd)
     instr_b_ispm := Mux(pcReg(0) === UInt(0), ispm_odd, ispm_even)
-  } else if (Driver.backend.isInstanceOf[CppBackend]) {
+  } /*else if (Driver.backend.isInstanceOf[CppBackend]) {
     // dummy blocks to keep the emulator happy
     val memEven = MemBlock(1, INSTR_WIDTH, bypass = false)
     val memOdd = MemBlock(1, INSTR_WIDTH, bypass = false)
-  }
+  }*/
 
   val selSpm = RegInit(Bool(false))
   val selCache = RegInit(Bool(false))
@@ -98,12 +98,12 @@ class Fetch(fileName : String) extends Module {
 
   val pc_cont = Mux(b_valid, pcReg + UInt(2), pcReg + UInt(1))
   val pc_next =
-    Mux(io.memfe.doCallRet, io.icachefe.relPc.toUInt,
+    Mux(io.memfe.doCallRet, io.icachefe.relPc.asUInt,
             Mux(io.exfe.doBranch, io.exfe.branchPc,
                 pc_cont))
   val pc_cont2 = Mux(b_valid, pcReg + UInt(4), pcReg + UInt(3))
   val pc_next2 =
-    Mux(io.memfe.doCallRet, io.icachefe.relPc.toUInt + UInt(2),
+    Mux(io.memfe.doCallRet, io.icachefe.relPc.asUInt + UInt(2),
         Mux(io.exfe.doBranch, io.exfe.branchPc + UInt(2),
             pc_cont2))
 
@@ -111,8 +111,8 @@ class Fetch(fileName : String) extends Module {
   addrEven := addrEvenReg
   addrOdd := addrOddReg
   when(io.ena && !reset) {
-    addrEven := Cat((pc_inc)(PC_SIZE - 1, 1), UInt(0)).toUInt
-    addrOdd := Cat((pc_next)(PC_SIZE - 1, 1), UInt(1)).toUInt
+    addrEven := Cat((pc_inc)(PC_SIZE - 1, 1), UInt(0)).asUInt
+    addrOdd := Cat((pc_next)(PC_SIZE - 1, 1), UInt(1)).asUInt
     pcReg := pc_next
   }
 
