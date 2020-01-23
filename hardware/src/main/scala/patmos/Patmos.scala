@@ -284,8 +284,8 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
             if (intio.interrupts.length != conf.intrs.length) {
               throw new Error("Inconsistent interrupt counts for IO device "+name)
             }
-            for (i <- 0 until conf.intrs.length) {
-              cores(i).io.interrupts(conf.intrs(i)) := intio.interrupts(i)
+            for (j <- 0 until conf.intrs.length) {
+              cores(i).io.interrupts(conf.intrs(j)) := intio.interrupts(j)
             }
           }
           new {
