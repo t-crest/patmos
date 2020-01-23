@@ -131,7 +131,7 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends Module {
       tagVMem2(masterReg.Addr(addrBits + 1, lineBits)) := Bool(true)
     }
 
-    missIndexReg := masterReg.Addr(lineBits-1, 2).toUInt
+    missIndexReg := masterReg.Addr(lineBits-1, 2).asUInt
     io.slave.M.Cmd := OcpCmd.RD
     when(io.slave.S.CmdAccept === Bits(1)) {
       stateReg := fill
