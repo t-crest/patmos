@@ -17,8 +17,8 @@ class TdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) ext
     val master = Vec.fill(cnt) { new OcpBurstSlavePort(addrWidth, dataWidth, burstLen) }
     val slave = new OcpBurstMasterPort(addrWidth, dataWidth, burstLen)
   })
-  debug(io.master)
-  debug(io.slave)
+  //debug(io.master) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
+  //debug(io.slave)
 
   val cntReg = Reg(init = UInt(0, log2Up(cnt*(burstLen + 2))))
   // slot length = burst size + 2 
@@ -30,19 +30,19 @@ class TdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) ext
   val sIdle :: sRead :: sWrite :: Nil = Enum(UInt(), 3)
   val stateReg = Vec.fill(cnt){Reg(init = sIdle)}
 
-  debug(cntReg)
+  /*debug(cntReg) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
   debug(cpuSlot(0))
   debug(cpuSlot(1))
   debug(cpuSlot(2))
   debug(stateReg(0))
   debug(stateReg(1))
-  debug(stateReg(2))
+  debug(stateReg(2))*/
 
   cntReg := Mux(cntReg === UInt(period - 1), UInt(0), cntReg + UInt(1))
 
   // Generater the slot Table for the whole period
   def slotTable(i: Int): UInt = {
-    (cntReg === UInt(i*slotLen)).toUInt
+    (cntReg === UInt(i*slotLen)).asUInt
   }
 
   for(i <- 0 until cnt) {
@@ -110,7 +110,7 @@ class TdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) ext
     } 
 
   //io.slave.M := io.master(masterIdReg).M
-  debug(io.slave.M)
+  //debug(io.slave.M) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
 
 }
 

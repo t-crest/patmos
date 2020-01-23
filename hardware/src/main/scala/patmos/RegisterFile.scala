@@ -50,7 +50,7 @@ class RegisterFile() extends Module {
   // register R0 are disabled in decode stage anyway
   for (k <- (0 until PIPE_COUNT).reverse) {
     when(io.rfWrite(k).valid) {
-      rf(io.rfWrite(k).addr.toUInt) := io.rfWrite(k).data
+      rf(io.rfWrite(k).addr.asUInt) := io.rfWrite(k).data
     }
   }
 
@@ -60,7 +60,7 @@ class RegisterFile() extends Module {
     rfDebug(i) := rf(UInt(i))
     // Keep signal alive
     //if(Driver.isVCD){
-    debug(rfDebug(i))
+    //debug(rfDebug(i)) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
     //}
   }
 }
