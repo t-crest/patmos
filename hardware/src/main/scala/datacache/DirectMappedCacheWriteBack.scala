@@ -127,7 +127,7 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends Module {
   // Start handling a miss
   when(!tagValid && (masterReg.Cmd === OcpCmd.RD || masterReg.Cmd === OcpCmd.WR)) {
     tagVMem(masterReg.Addr(addrBits + 1, lineBits)) := Bool(true)
-    missIndexReg := masterReg.Addr(lineBits-1, 2).toUInt
+    missIndexReg := masterReg.Addr(lineBits-1, 2).asUInt
     memWrAddrReg := Cat(tag, masterReg.Addr(addrBits + 1, lineBits), Fill(lineBits, Bits(0)))
 
     // start writing back if block is dirty
