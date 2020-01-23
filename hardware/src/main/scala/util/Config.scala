@@ -355,40 +355,4 @@ object Config {
     val rawDev = meth.invoke(null, dev.params)
     rawDev.asInstanceOf[Device]
   }
-
-  def connectIntrPins(dev : Config#DeviceConfig, outer : InOutIO, inner : Node) {
-    if (!dev.intrs.isEmpty) {
-      val name = dev.name
-      // get class for interrupt trait
-      val clazz = Class.forName("io."+name+"$Intrs")
-      // get method to retrieve interrupt bits
-      val methName = name(0).toLower + name.substring(1, name.length) + "Intrs"
-      for (m <- clazz.getMethods) {
-        if (m.getName != methName && !m.getName.endsWith("_$eq")) {
-
-          val isInherited = clazz.getInterfaces().foldLeft(false)(
-            _ || _.getMethods.map(_.getName).contains(m.getName))
-
-          if (!isInherited) {
-            throw new Error("Intrs trait for IO device "+name+
-                              " cannot declare non-inherited member "+m.getName+
-                              ", only member "+methName+" allowed")
-          }
-        }
-      }
-      val meth = clazz.getMethods.find(_.getName == methName)
-      if (meth == None) {
-        throw new Error("Interrupt pins not found for device "+name)
-      } else {
-        val intrPins = meth.get.invoke(clazz.cast(inner)).asInstanceOf[Vec[Bool]]
-        if (intrPins.length != dev.intrs.length) {
-          throw new Error("Inconsistent interrupt counts for IO device "+name)
-        } else {
-          for (i <- 0 until dev.intrs.length) {
-            outer.intrs(dev.intrs(i)) := intrPins(i)
-          }
-        }
-      }
-    }
-  }
 }

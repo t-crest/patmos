@@ -25,16 +25,12 @@ object AvalonMMBridge extends DeviceObject {
   def create(params: Map[String, String]) : AvalonMMBridge = {
     Module(new AvalonMMBridge(extAddrWidth=extAddrWidth, dataWidth=dataWidth, numIntrs=numIntrs))
   }
-
-  trait Intrs {
-    val avalonMMBridgeIntrs = Vec.fill(numIntrs) { Bool(OUTPUT) }
-  }
 }
 
 class AvalonMMBridge(extAddrWidth : Int = 32,
                      dataWidth : Int = 32,
                      numIntrs : Int = 1) extends CoreDevice() {
-  override val io = new CoreDeviceIO() with patmos.HasPins with AvalonMMBridge.Intrs {
+  override val io = new CoreDeviceIO() with patmos.HasPins with patmos.HasInterrupts {
     override val pins = new Bundle() {
       val avs_waitrequest = Bits(INPUT,1)
       val avs_readdata = UInt(INPUT,dataWidth)
@@ -48,6 +44,7 @@ class AvalonMMBridge(extAddrWidth : Int = 32,
       val avs_debugaccess = Bool(OUTPUT)
       val avs_intr = Bits(INPUT,numIntrs)
     }
+    override val interrupts = Vec.fill(numIntrs) { Bool(OUTPUT) }
   }
 
   val coreBus = Module(new OcpCoreBus(ADDR_WIDTH,dataWidth))
@@ -69,7 +66,7 @@ class AvalonMMBridge(extAddrWidth : Int = 32,
 
   // Generate interrupts on rising edges
   for (i <- 0 until numIntrs) {
-    io.avalonMMBridgeIntrs(i) := (intrVecReg0(i) === Bits("b1")) && (intrVecReg1(i) === Bits("b0"))
+    io.interrupts(i) := (intrVecReg0(i) === Bits("b1")) && (intrVecReg1(i) === Bits("b0"))
   }
 
   val cmdType = Reg(init = OcpCmd.IDLE)

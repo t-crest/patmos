@@ -26,7 +26,15 @@ import scala.collection.mutable
  */
 class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
 
-  val io = IO(new PatmosCoreIO())
+  val io = IO(new Bundle() with HasSuperMode with HasPerfCounter with HasInterrupts {
+    override val superMode = Bool(OUTPUT)
+    override val perf = new PerfCounterIO().asOutput
+    override val interrupts = Vec.fill(INTR_COUNT) { Bool(INPUT) }
+    val memPort = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+    val memInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
+    val excInOut = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
+    val mmuInOut = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
+  })
 
   val icache =
     if (ICACHE_SIZE <= 0)
@@ -82,11 +90,11 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
   // We store the return base in EX (in cycle corresponding to MEM)
   fetch.io.feex <> execute.io.feex
 
-  memory.io.localInOut <> io.inout.memInOut
+  memory.io.localInOut <> io.memInOut
 
   // Connect exception unit
-  exc.io.ocp <> io.inout.excInOut
-  exc.io.intrs <> io.inout.intrs
+  exc.io.ocp <> io.excInOut
+  exc.io.intrs <> io.interrupts
   exc.io.excdec <> decode.io.exc
   exc.io.memexc <> memory.io.exc
 
@@ -108,7 +116,7 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
 
   val mmu = Module(if (HAS_MMU) new MemoryManagement() else new NoMemoryManagement())
   mmu.io.exec <> selICache
-  mmu.io.ctrl <> io.inout.mmuInOut
+  mmu.io.ctrl <> io.mmuInOut
   mmu.io.virt <> burstBus.io.master
 
   // Enable signals for memory stage, method cache and stack cache
@@ -136,18 +144,17 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
   dcache.io.invalDCache := exc.io.invalDCache
 
   // Make privileged mode visible internally and externally
-  io.inout.superMode := exc.io.superMode
   mmu.io.superMode := exc.io.superMode
   io.superMode := exc.io.superMode
 
   // Internal "I/O" data
-  io.inout.internalIO.perf.ic := icache.io.perf
-  io.inout.internalIO.perf.dc := dcache.io.dcPerf
-  io.inout.internalIO.perf.sc := dcache.io.scPerf
-  io.inout.internalIO.perf.wc := dcache.io.wcPerf
-  io.inout.internalIO.perf.mem.read := (io.memPort.M.Cmd === OcpCmd.RD &&
+  io.perf.ic := icache.io.perf
+  io.perf.dc := dcache.io.dcPerf
+  io.perf.sc := dcache.io.scPerf
+  io.perf.wc := dcache.io.wcPerf
+  io.perf.mem.read := (io.memPort.M.Cmd === OcpCmd.RD &&
     io.memPort.S.CmdAccept === UInt(1))
-    io.inout.internalIO.perf.mem.write := (io.memPort.M.Cmd === OcpCmd.WR &&
+    io.perf.mem.write := (io.memPort.M.Cmd === OcpCmd.WR &&
     io.memPort.S.CmdAccept === UInt(1))
 
   // The inputs and outputs
@@ -161,6 +168,18 @@ trait HasPins {
   val pins = new Bundle
 }
 
+trait HasInterrupts {
+  val interrupts = Vec.fill(0){Bool()}
+}
+
+trait HasPerfCounter {
+  val perf = new PerfCounterIO()
+}
+
+trait HasSuperMode {
+  val superMode = Bool(INPUT);
+}
+
 /**
  * The main (top-level) component of Patmos.
  */
@@ -169,7 +188,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   Config.minPcWidth = util.log2Up((new File(binFile)).length.toInt / 4)
   Config.datFile = datFile
 
-  override val io = new PatmosIO()
+  override val io = new Bundle()
 
   val nrCores = Config.getConfig.coreCount
 
@@ -239,13 +258,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     val IO_DEVICE_ADDR_WIDTH = 16
 
     // Default values for interrupt pins
-    cores(i).io.inout.intrs := UInt(0)
-    
-    val connectDevice = (devio: CoreDeviceIO) => 
-      {
-        devio.superMode <> cores(i).io.inout.superMode
-        devio.internalPort <> cores(i).io.inout.internalIO
-      }
+    cores(i).io.interrupts := UInt(0)
 
     // Creation of IO devices
     val conf = Config.getConfig
@@ -253,7 +266,6 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     val cpuinfo = Module(new CpuInfo(Config.datFile, nrCores))
     cpuinfo.io.nr := i.U
     cpuinfo.io.cnt := nrCores.U
-    connectDevice(cpuinfo.io)
 
     val singledevios = 
       (Config.getConfig.Devs
@@ -261,8 +273,21 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       .filter(e => i == 0 || !e._2.io.isInstanceOf[HasPins])
       .map{case (conf,dev) => 
       {
-          connectDevice(dev.io)
-          Config.connectIntrPins(conf, cores(i).io.inout, dev.io)
+          if(dev.io.isInstanceOf[HasSuperMode]) {
+            dev.io.asInstanceOf[HasSuperMode].superMode <> cores(i).io.superMode
+          }
+          if(dev.io.isInstanceOf[HasPerfCounter]) {
+            dev.io.asInstanceOf[HasPerfCounter].perf <> cores(i).io.perf
+          }
+          if(dev.io.isInstanceOf[HasInterrupts]) {
+            val intio = dev.io.asInstanceOf[HasInterrupts]
+            if (intio.interrupts.length != conf.intrs.length) {
+              throw new Error("Inconsistent interrupt counts for IO device "+name)
+            }
+            for (i <- 0 until conf.intrs.length) {
+              cores(i).io.interrupts(conf.intrs(i)) := intio.interrupts(i)
+            }
+          }
           new {
             val off = conf.offset
             val io = dev.io.asInstanceOf[Bundle]
@@ -274,11 +299,11 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
         val name = cpuinfo.moduleName
       }, new {
         val off = EXC_IO_OFFSET
-        val io = cores(i).io.inout.excInOut
+        val io = cores(i).io.excInOut
         val name = "ExceptionUnit"
       }, if(HAS_MMU) new {
         val off = MMU_IO_OFFSET;
-        val io = cores(i).io.inout.mmuInOut
+        val io = cores(i).io.mmuInOut
         val name = "mmu"
       } else null).filter(e => e != null))
       .map(e => {
@@ -339,24 +364,24 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
         case __io: CoreDeviceIO => __io.ocp
       }
 
-    cores(i).io.inout.memInOut.S.Data := UInt(0)
+    cores(i).io.memInOut.S.Data := UInt(0)
     val validdev = Wire(Bool(), false.B)
     for(dev <- devios) {
       val ocp = getSlavePort(dev.io)
 
-      val addr = cores(i).io.inout.memInOut.M.Addr(ADDR_WIDTH-1, ADDR_WIDTH-dev.addrwidth)
-      ocp.M := cores(i).io.inout.memInOut.M
+      val addr = cores(i).io.memInOut.M.Addr(ADDR_WIDTH-1, ADDR_WIDTH-dev.addrwidth)
+      ocp.M := cores(i).io.memInOut.M
       ocp.M.Cmd := OcpCmd.IDLE
       when(addr === dev.addr.U) {
-        ocp.M.Cmd := cores(i).io.inout.memInOut.M.Cmd
+        ocp.M.Cmd := cores(i).io.memInOut.M.Cmd
         validdev := true.B
       }
       val selReg = RegInit(false.B)
-      when(cores(i).io.inout.memInOut.M.Cmd =/= OcpCmd.IDLE) {
+      when(cores(i).io.memInOut.M.Cmd =/= OcpCmd.IDLE) {
         selReg := addr === dev.addr.U
       }
       when(selReg) {
-        cores(i).io.inout.memInOut.S.Data := ocp.S.Data
+        cores(i).io.memInOut.S.Data := ocp.S.Data
       }
 
       // TODO: maybe a better way is for all interfaces to have the bits 'superMode' and 'flags'
@@ -367,8 +392,8 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
         argoslaveport.superMode(i) := cores(i).io.superMode
 
         // Hard-wire the sideband flags from the NI to interrupt pins
-        cores(i).io.inout.intrs(NI_MSG_INTR) := argoslaveport.flags(2*i)
-        cores(i).io.inout.intrs(NI_EXT_INTR) := argoslaveport.flags(2*i+1)
+        cores(i).io.interrupts(NI_MSG_INTR) := argoslaveport.flags(2*i)
+        cores(i).io.interrupts(NI_EXT_INTR) := argoslaveport.flags(2*i+1)
       }
 
       connectPins(dev.name, dev.io)
@@ -376,12 +401,12 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
     // Register for error response
     val errRespReg = Reg(init = OcpResp.NULL)
-    when(cores(i).io.inout.memInOut.M.Cmd =/= OcpCmd.IDLE && !validdev) {
+    when(cores(i).io.memInOut.M.Cmd =/= OcpCmd.IDLE && !validdev) {
       errRespReg := OcpResp.ERR
     }
 
     // Merge responses
-    cores(i).io.inout.memInOut.S.Resp := errRespReg | devios.map(e => getSlavePort(e.io).S.Resp).fold(OcpResp.NULL)(_|_)
+    cores(i).io.memInOut.S.Resp := errRespReg | devios.map(e => getSlavePort(e.io).S.Resp).fold(OcpResp.NULL)(_|_)
   }
 
   // Connect memory controller

@@ -21,18 +21,15 @@ object ExtIRQ extends DeviceObject {
   def create(params: Map[String, String]) : ExtIRQ = {
     Module(new ExtIRQ(IRQCount))
   }
-
-  trait Intrs {
-    val extIRQIntrs = Vec.fill(IRQCount) { Bool(OUTPUT) }
-  }
 }
 
 class ExtIRQ(IRQCount : Int) extends CoreDevice() {
 
-  override val io = new CoreDeviceIO() with patmos.HasPins with ExtIRQ.Intrs {
+  override val io = new CoreDeviceIO() with patmos.HasPins with patmos.HasInterrupts {
     override val pins = new Bundle() {
       val irq = Bits(INPUT, IRQCount)
     }
+    override val interrupts = Vec.fill(IRQCount) { Bool(OUTPUT) }
   }
 
   val IRQSyncReg = Reg(Bits(width = IRQCount))
@@ -54,6 +51,6 @@ class ExtIRQ(IRQCount : Int) extends CoreDevice() {
 
   // Generate interrupts on rising edges
   for (i <- 0 until IRQCount) {
-    io.extIRQIntrs(i) := IRQReg(i)
+    io.interrupts(i) := IRQReg(i)
   }
 }

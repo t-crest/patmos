@@ -21,15 +21,13 @@ object Timer extends DeviceObject {
   def create(params: Map[String, String]) : Timer = {
     Module(new Timer(CLOCK_FREQ))
   }
-
-  trait Intrs {
-	val timerIntrs = Vec.fill(2) { Bool(OUTPUT) }
-  }
 }
 
 class Timer(clk_freq: Int) extends CoreDevice() {
 
-  override val io = new CoreDeviceIO() with Timer.Intrs
+  override val io = new CoreDeviceIO() with patmos.HasInterrupts {
+    override val interrupts = Vec.fill(2) { Bool(OUTPUT) }
+  }
 
   val masterReg = Reg(next = io.ocp.M)
 
@@ -110,14 +108,14 @@ class Timer(clk_freq: Int) extends CoreDevice() {
   io.ocp.S.Data := data
 
   // No interrupts by default
-  io.timerIntrs(0) := Bool(false)
-  io.timerIntrs(1) := Bool(false)
+  io.interrupts(0) := Bool(false)
+  io.interrupts(1) := Bool(false)
 
   // Increment cycle counter
   cycleReg := cycleReg + UInt(1)
   // Trigger cycles interrupt
   when (cycleReg + UInt(1) === cycleIntrReg) {
-    io.timerIntrs(0) := Bool(true)
+    io.interrupts(0) := Bool(true)
   }
   // Increment usec counter
   usecSubReg := usecSubReg + UInt(1)
@@ -126,7 +124,7 @@ class Timer(clk_freq: Int) extends CoreDevice() {
     usecReg := usecReg + UInt(1)
     // Trigger usec interrupt
     when (usecReg + UInt(1) === usecIntrReg) {
-      io.timerIntrs(1) := Bool(true)
+      io.interrupts(1) := Bool(true)
     }
   }
 }

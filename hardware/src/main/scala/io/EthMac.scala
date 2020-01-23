@@ -78,10 +78,6 @@ object EthMac extends DeviceObject {
       // val rtcDisp = Vec.fill(8) {Bits(OUTPUT, 7)}
     }
   }
-
-  trait Intrs{
-    val ethMacIntrs = Vec.fill(1) { Bool(OUTPUT) }
-  }
 }
 
 class EthMacBB(extAddrWidth : Int = 32, dataWidth : Int = 32) extends BlackBox {
@@ -134,7 +130,9 @@ class EthMacBB(extAddrWidth : Int = 32, dataWidth : Int = 32) extends BlackBox {
 }
 
 class EthMac(extAddrWidth: Int = 32, dataWidth: Int = 32, withPTP: Boolean = false, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTime: BigInt = 0L, ppsDuration: Int = 10) extends CoreDevice() {
-  override val io = new CoreDeviceIO() with EthMac.Pins with EthMac.Intrs
+  override val io = new CoreDeviceIO() with EthMac.Pins with patmos.HasInterrupts {
+    override val interrupts = Vec.fill(1) { Bool(OUTPUT) }
+  }
 
   val eth = Module(new EthMacBB(extAddrWidth, dataWidth))
   //Wire IO pins straight through
@@ -145,7 +143,7 @@ class EthMac(extAddrWidth: Int = 32, dataWidth: Int = 32, withPTP: Boolean = fal
 
   // Generate interrupts on rising edges
   val pulseEthIntrReg = RegNext(RegNext(syncEthIntrReg) === Bits("b0") && syncEthIntrReg(0) === Bits("b1"))
-  io.ethMacIntrs := Cat(Bits("b0"), pulseEthIntrReg)
+  io.interrupts := Cat(Bits("b0"), pulseEthIntrReg)
 
   //Check for PTP features
   if(withPTP) {    
