@@ -24,21 +24,21 @@ class OneWayOCPWrapper(nrCores: Int) extends Module {
 
   val onewaymem = Module(new oneway.OneWayMem(dim, size))
 
-  val io = IO(Vec(nrCores, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)))
+  val io = IO(new CmpIO(nrCores))
 
   // Connection between OneWay memories and OCPcore ports
   for (i <- 0 until nrCores) {
 
-    val resp = Mux(io(i).M.Cmd === OcpCmd.RD || io(i).M.Cmd === OcpCmd.WR,
+    val resp = Mux(io.cores(i).M.Cmd === OcpCmd.RD || io.cores(i).M.Cmd === OcpCmd.WR,
       OcpResp.DVA, OcpResp.NULL)
 
     // addresses are in words
-    onewaymem.io.memPorts(i).rdAddr := io(i).M.Addr >> 2
-    onewaymem.io.memPorts(i).wrAddr := io(i).M.Addr >> 2
-    onewaymem.io.memPorts(i).wrData := io(i).M.Data
-    onewaymem.io.memPorts(i).wrEna := io(i).M.Cmd === OcpCmd.WR
+    onewaymem.io.memPorts(i).rdAddr := io.cores(i).M.Addr >> 2
+    onewaymem.io.memPorts(i).wrAddr := io.cores(i).M.Addr >> 2
+    onewaymem.io.memPorts(i).wrData := io.cores(i).M.Data
+    onewaymem.io.memPorts(i).wrEna := io.cores(i).M.Cmd === OcpCmd.WR
     // Memory has one cycle latency (read address is in register)
-    io(i).S.Data := onewaymem.io.memPorts(i).rdData
-    io(i).S.Resp := Reg(init = OcpResp.NULL, next = resp)
+    io.cores(i).S.Data := onewaymem.io.memPorts(i).rdData
+    io.cores(i).S.Resp := Reg(init = OcpResp.NULL, next = resp)
   }
 }

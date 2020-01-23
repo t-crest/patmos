@@ -13,7 +13,7 @@ import patmos._
 
 class CASPM(corecnt: Int, size: Int) extends Module {
 
-  val io = Vec(corecnt, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))
+  val io = IO(new CmpIO(corecnt)) //Vec(corecnt, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))
 
   val spm = Module(new Spm(size))
 
@@ -40,25 +40,25 @@ class CASPM(corecnt: Int, size: Int) extends Module {
 
   for (i <- 0 until corecnt) {
 
-    val respReg = Reg(io(i).S.Resp, OcpResp.NULL)
-    io(i).S.Resp := respReg
-    io(i).S.Data := spm.io.S.Data
+    val respReg = Reg(io.cores(i).S.Resp, OcpResp.NULL)
+    io.cores(i).S.Resp := respReg
+    io.cores(i).S.Data := spm.io.S.Data
 
     respReg := OcpResp.NULL
     cmdRegs(i) := OcpCmd.RD
 
     switch(states(i)) {
       is(sIdle) {
-        when(io(i).M.Cmd === OcpCmd.RD) {
+        when(io.cores(i).M.Cmd === OcpCmd.RD) {
           states(i) := sRead
-          addrRegs(i) := io(i).M.Addr
-          bytenRegs(i) := io(i).M.ByteEn
-        }.elsewhen(io(i).M.Cmd === OcpCmd.WR) {
-          when(io(i).M.Addr(2)) {
-            newvalRegs(i) := io(i).M.Data
+          addrRegs(i) := io.cores(i).M.Addr
+          bytenRegs(i) := io.cores(i).M.ByteEn
+        }.elsewhen(io.cores(i).M.Cmd === OcpCmd.WR) {
+          when(io.cores(i).M.Addr(2)) {
+            newvalRegs(i) := io.cores(i).M.Data
             respReg := OcpResp.DVA
           }.otherwise {
-            expvalRegs(i) := io(i).M.Data
+            expvalRegs(i) := io.cores(i).M.Data
             respReg := OcpResp.DVA
           }
         }
