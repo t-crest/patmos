@@ -103,8 +103,8 @@ class Exceptions extends Module {
     }
     when(masterReg.Addr(EXC_ADDR_WIDTH-1) === UInt("b1")) {
       checked {
-        vec(masterReg.Addr(EXC_ADDR_WIDTH-2, 2)) := masterReg.Data.toUInt
-        vecDup(masterReg.Addr(EXC_ADDR_WIDTH-2, 2)) := masterReg.Data.toUInt
+        vec(masterReg.Addr(EXC_ADDR_WIDTH-2, 2)) := masterReg.Data.asUInt
+        vecDup(masterReg.Addr(EXC_ADDR_WIDTH-2, 2)) := masterReg.Data.asUInt
       }
     }
   }
