@@ -22,14 +22,11 @@ object PerfCounters extends DeviceObject {
   def create(params: Map[String, String]) : PerfCounters = {
     Module(new PerfCounters())
   }
-
-  trait Pins {
-  }
 }
 
 class PerfCounters() extends CoreDevice() {
 
-  override val io = new CoreDeviceIO() with PerfCounters.Pins {
+  override val io = new CoreDeviceIO() {
     override val internalPort = new Bundle() {
       val perf = new PerfCounterIO().asInput
     }

@@ -34,8 +34,8 @@ object SRamCtrl extends DeviceObject {
     Module(new SRamCtrl(ocpAddrWidth,ocpBurstLen=BURST_LENGTH,sramAddrWidth=sramAddrWidth,sramDataWidth=sramDataWidth))
   }
 
-  trait Pins {
-    val sRamCtrlPins = new Bundle {
+  trait Pins extends patmos.HasPins {
+    override val pins = new Bundle {
       val ramOut = new Bundle {
         val addr = Bits(OUTPUT, width = sramAddrWidth)
         val doutEna = Bits(OUTPUT, width = 1)
@@ -142,7 +142,7 @@ class SRamCtrl( ocpAddrWidth    : Int,
       addrReg := mAddrReg + UInt(1)
       mAddrReg := mAddrReg + UInt(1)
       for (i <- 0 until TRANSPERCMD-1) { rdBufferReg(i) := rdBufferReg(i+1) }
-      rdBufferReg(TRANSPERCMD-1) := io.sRamCtrlPins.ramIn.din
+      rdBufferReg(TRANSPERCMD-1) := io.pins.ramIn.din
       transCountReg := transCountReg + UInt(1)
       stateReg := sReadExe
       when(transCountReg === UInt(TRANSPERCMD-1)){
@@ -161,7 +161,7 @@ class SRamCtrl( ocpAddrWidth    : Int,
     addrReg := mAddrReg + UInt(1)
     mAddrReg := mAddrReg + UInt(1)
     for (i <- 0 until TRANSPERCMD-1) { rdBufferReg(i) := rdBufferReg(i+1) }
-    rdBufferReg(TRANSPERCMD-1) := io.sRamCtrlPins.ramIn.din
+    rdBufferReg(TRANSPERCMD-1) := io.pins.ramIn.din
     transCountReg := transCountReg + UInt(1)
     stateReg := sReadExe
     when(transCountReg === UInt(TRANSPERCMD-1)){
@@ -245,14 +245,14 @@ class SRamCtrl( ocpAddrWidth    : Int,
     stateReg := sReady
   }
 
-  io.sRamCtrlPins.ramOut.addr := addrReg
-  io.sRamCtrlPins.ramOut.doutEna := doutEnaReg
-  io.sRamCtrlPins.ramOut.dout := doutReg
-  io.sRamCtrlPins.ramOut.nce := nceReg
-  io.sRamCtrlPins.ramOut.noe := noeReg
-  io.sRamCtrlPins.ramOut.nwe := nweReg
-  io.sRamCtrlPins.ramOut.nlb := nlbReg
-  io.sRamCtrlPins.ramOut.nub := nubReg
+  io.pins.ramOut.addr := addrReg
+  io.pins.ramOut.doutEna := doutEnaReg
+  io.pins.ramOut.dout := doutReg
+  io.pins.ramOut.nce := nceReg
+  io.pins.ramOut.noe := noeReg
+  io.pins.ramOut.nwe := nweReg
+  io.pins.ramOut.nlb := nlbReg
+  io.pins.ramOut.nub := nubReg
 
 
   class Trans(bytesEnaWidth: Int, dataWidth: Int) extends Bundle {

@@ -23,7 +23,7 @@ class LedsCmp(nrCores: Int, nrLedPerCore: Int) extends Module {
   for (i <- 0 until nrCores) {
     ledDevs(i).ocp.M := io.cores(i).M
     io.cores(i).S := ledDevs(i).ocp.S
-    io.pins.led(i) := ledDevs(i).ledsPins.led(0)
+    io.pins.led(i) := ledDevs(i).pins.led(0)
   }
 
 }

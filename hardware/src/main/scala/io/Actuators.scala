@@ -21,9 +21,12 @@ object Actuators extends DeviceObject {
   def create(params: Map[String, String]) : Actuators = {
     Module(new Actuators(extAddrWidth=extAddrWidth, dataWidth=dataWidth))
   }
+}
 
-  trait Pins {
-    val actuatorsPins = new Bundle() {
+class Actuators(extAddrWidth : Int = 32,
+                     dataWidth : Int = 32) extends CoreDevice() {
+  override val io = new CoreDeviceIO() with patmos.HasPins {
+    override val pins = new Bundle() {
       val MCmd = UInt(OUTPUT,3)
       val MAddr = UInt(OUTPUT,extAddrWidth)
       val MData = UInt(OUTPUT,dataWidth)
@@ -32,16 +35,11 @@ object Actuators extends DeviceObject {
       val SData = UInt(INPUT,dataWidth)
     }
   }
-}
-
-class Actuators(extAddrWidth : Int = 32,
-                     dataWidth : Int = 32) extends CoreDevice() {
-  override val io = new CoreDeviceIO() with Actuators.Pins
   //Assigments of inputs and outputs
-  io.actuatorsPins.MCmd := io.ocp.M.Cmd
-  io.actuatorsPins.MAddr := io.ocp.M.Addr(extAddrWidth-1, 0)
-  io.actuatorsPins.MData := io.ocp.M.Data
-  io.actuatorsPins.MByteEn := io.ocp.M.ByteEn
-  io.ocp.S.Resp := io.actuatorsPins.SResp
-  io.ocp.S.Data := io.actuatorsPins.SData
+  io.pins.MCmd := io.ocp.M.Cmd
+  io.pins.MAddr := io.ocp.M.Addr(extAddrWidth-1, 0)
+  io.pins.MData := io.ocp.M.Data
+  io.pins.MByteEn := io.ocp.M.ByteEn
+  io.ocp.S.Resp := io.pins.SResp
+  io.ocp.S.Data := io.pins.SData
 }

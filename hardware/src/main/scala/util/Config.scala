@@ -259,6 +259,7 @@ object Config {
         val emuConfig = new PrintWriter(new File("build/emulator_config.h"))
         emuConfig.write("#define CORE_COUNT "+coreCount+"\n")
         emuConfig.write("#define ICACHE_"+ICache.typ.toUpperCase+"\n")
+        emuConfig.write("#define IO_UART\n")
         for (d <- Devs) { emuConfig.write("#define IO_"+d.name.toUpperCase+"\n") }
         emuConfig.write("#define EXTMEM_"+ExtMem.ram.name.toUpperCase+"\n")
         emuConfig.close();
@@ -355,47 +356,6 @@ object Config {
     rawDev.asInstanceOf[Device]
   }
 
-  def connectIOPins(name : String, outer : Node, inner : Node, pack : String = "io.") = {
-      // get class for pin trait
-      val clazz = 
-      try {
-        Class.forName(pack+name+"$Pins")
-      } catch { case e: Exception => null}
-      if (clazz != null && clazz.isInstance(outer)) {
-        // get method to retrieve pin bundle
-        val methName = name(0).toLower + name.substring(1, name.length) + "Pins"
-        for (m <- clazz.getMethods) {
-          if (m.getName != methName && !m.getName.endsWith("_$eq")) {
-
-            val isInherited = clazz.getInterfaces().foldLeft(false)(
-              _ || _.getMethods.map(_.getName).contains(m.getName))
-
-            if (!isInherited) {
-              throw new Error("Pins trait for IO device "+name+
-                                " cannot declare non-inherited member "+m.getName+
-                                ", only member "+methName+" allowed")
-            }
-          }
-        }
-        val meth = clazz.getMethods.find(_.getName == methName)
-        if (meth == None) {
-          println("No pins for IO device "+name)
-        } else {
-          // retrieve pin bundles
-          val outerPins = meth.get.invoke(clazz.cast(outer))
-          val innerPins = meth.get.invoke(clazz.cast(inner))
-          // actually connect pins
-          outerPins.asInstanceOf[Bundle] <> innerPins.asInstanceOf[Bundle]
-        }
-      }
-  }
-
-  def connectAllIOPins(outer : Node, inner : Node) {
-    for (name <- conf.Devs.map(_.name)) {
-      connectIOPins(name, outer, inner)
-    }
-  }
-
   def connectIntrPins(dev : Config#DeviceConfig, outer : InOutIO, inner : Node) {
     if (!dev.intrs.isEmpty) {
       val name = dev.name
@@ -430,46 +390,5 @@ object Config {
         }
       }
     }
-  }
-
-  private def genTraitedClass[T](base : String, list : List[(String, String)]) : T = {
-    // build class definition
-    val _list = list.filter(e => 
-      try{
-        Class.forName(e._1+e._2+"$Pins")
-        true
-      }
-      catch { case e: Exception => false}
-    )
-    val traitClass = _list.foldLeft("Trait"+base)(_+"_"+_._2)
-    val traitClassDef = "class "+traitClass+" extends "+"patmos."+base
-    val classDef = _list.foldLeft(traitClassDef)((a,b) => a+" with "+b._1+b._2+".Pins")
-    // fire up a new Scala interpreter/compiler
-    val settings = new Settings()
-    settings.embeddedDefaults(this.getClass.getClassLoader())
-    val interpreter = new IMain(settings)
-    // define the new class
-    interpreter.compileString(classDef)
-    // load the new class
-    val clazz = interpreter.classLoader.loadClass(traitClass)
-    // get an instance with the right type
-    clazz.newInstance().asInstanceOf[T]
-  }
-
-  def getInOutIO(id: Int = 0) : InOutIO = {
-    genTraitedClass[InOutIO]("InOutIO", if(id == 0) {conf.Devs.map(e => ("io.",e.name))} else {List.empty})
-  }
-
-  def getPatmosCoreIO(id: Int = 0) : PatmosCoreIO = {
-    genTraitedClass[PatmosCoreIO]("PatmosCoreIO", if(id == 0) {conf.Devs.map(e => ("io.",e.name))} else {List.empty})
-  }
-
-  def getPatmosIO() : PatmosIO = {
-    genTraitedClass[PatmosIO]("PatmosIO", ("io.", conf.ExtMem.ram.name) 
-    :: conf.Devs.map(e => ("io.",e.name)) 
-    ++  conf.cmpDevices
-    .map(e => ("cmp.",e))
-    .toList
-    )
   }
 }

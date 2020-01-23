@@ -140,7 +140,7 @@ static void init_extmem(Patmos_t *c, bool random) {
   uint32_t cells = 1 << addr_bits;
 
   // Check data width and allocate buffer
-  assert(c->Patmos__io_sRamCtrlPins_ramOut_dout.width() == 16);
+  assert(c->Patmos__io_SRamCtrl_ramOut_dout.width() == 16);
   ram_buf = (uint16_t *)calloc(cells, sizeof(uint16_t));
   if (ram_buf == NULL) {
     cerr << program_name << ": error: Cannot allocate memory for SRAM emulation" << endl;
@@ -159,19 +159,19 @@ static void emu_extmem(Patmos_t *c) {
   uint32_t address = c->Patmos_ramCtrl__addrReg.to_ulong();
 
   // Read from external memory unconditionally
-  c->Patmos__io_sRamCtrlPins_ramIn_din = ram_buf[address];
+  c->Patmos__io_SRamCtrl_ramIn_din = ram_buf[address];
 
   // Write to external memory
-  if (!c->Patmos__io_sRamCtrlPins_ramOut_nwe.to_bool()) {
+  if (!c->Patmos__io_SRamCtrl_ramOut_nwe.to_bool()) {
     uint16_t mask = 0x0000;
-    if (!c->Patmos__io_sRamCtrlPins_ramOut_nub.to_bool()) {
+    if (!c->Patmos__io_SRamCtrl_ramOut_nub.to_bool()) {
       mask |= 0xff00;
     }
-    if (!c->Patmos__io_sRamCtrlPins_ramOut_nlb.to_bool()) {
+    if (!c->Patmos__io_SRamCtrl_ramOut_nlb.to_bool()) {
       mask |= 0x00ff;
     }
     ram_buf[address] &= ~mask;
-    ram_buf[address] |= mask & c->Patmos__io_sRamCtrlPins_ramOut_dout.to_ulong();
+    ram_buf[address] |= mask & c->Patmos__io_SRamCtrl_ramOut_dout.to_ulong();
   }
 }
 #endif /* EXTMEM_SRAMCTRL */
@@ -196,7 +196,7 @@ static void emu_cpuinfo(Patmos_t *c) {
 static void emu_keys(Patmos_t *c, bool enable) {
   if (enable) {
     if ((rand() % 0x10000) == 0) {
-      c->Patmos__io_keysPins_key = rand();
+      c->Patmos__io_Keys_key = rand();
     }
   }
 }

@@ -29,17 +29,15 @@ object Gpio extends DeviceObject {
   def create(params: Map[String, String]) : Gpio = {
           Module(new Gpio(bankCount, bankWidth, ioDirection))
   }
-
-  trait Pins {
-      val gpioPins = new Bundle() {
-          val gpios = Vec.fill(bankCount) {Bits(ioDirection, bankWidth)}
-      }
-  }
 }
 
 class Gpio(bankCount: Int, bankWidth: Int, ioDirection: IODirection) extends CoreDevice() {
   // Override
-  override val io = new CoreDeviceIO() with Gpio.Pins
+  override val io = new CoreDeviceIO() with patmos.HasPins {
+    override val pins = new Bundle() {
+      val gpios = Vec.fill(bankCount) {Bits(ioDirection, bankWidth)}
+    }
+  }
 
   //Constants
   val constAddressWidth : Int = log2Up(bankCount) + 2
@@ -93,7 +91,7 @@ class Gpio(bankCount: Int, bankWidth: Int, ioDirection: IODirection) extends Cor
   io.ocp.S.Data := dataReg
 
   // Connections to IO
-  io.gpioPins.gpios := gpioRegVec
+  io.pins.gpios := gpioRegVec
 
 }
 

@@ -43,8 +43,8 @@ object EthMac extends DeviceObject {
       Module(new EthMac(extAddrWidth, dataWidth))
   }
 
-  trait Pins {
-    val ethMacPins = new Bundle() {
+  trait Pins extends patmos.HasPins {
+    override val pins = new Bundle() {
       // Tx
       val mtx_clk_pad_i = Bool(INPUT)  // Transmit clock (from PHY)
       val mtxd_pad_o    = Bits(OUTPUT, width = 4) // Transmit niethle (to PHY)
@@ -138,10 +138,10 @@ class EthMac(extAddrWidth: Int = 32, dataWidth: Int = 32, withPTP: Boolean = fal
 
   val eth = Module(new EthMacBB(extAddrWidth, dataWidth))
   //Wire IO pins straight through
-  io.ethMacPins <> eth.io.ethMacPins
+  io.pins <> eth.io.pins
 
   // Connection to controller interrupt
-  val syncEthIntrReg = RegNext(eth.io.ethMacPins.int_o)
+  val syncEthIntrReg = RegNext(eth.io.pins.int_o)
 
   // Generate interrupts on rising edges
   val pulseEthIntrReg = RegNext(RegNext(syncEthIntrReg) === Bits("b0") && syncEthIntrReg(0) === Bits("b1"))
@@ -179,23 +179,23 @@ class EthMac(extAddrWidth: Int = 32, dataWidth: Int = 32, withPTP: Boolean = fal
       io.ocp.S.Data := 0.U                //NONE
     }
     //Rest of IO connections
-    ptp.io.ethMacRX.clk := io.ethMacPins.mrx_clk_pad_i
-    ptp.io.ethMacRX.data := io.ethMacPins.mrxd_pad_i
-    ptp.io.ethMacRX.dv := io.ethMacPins.mrxdv_pad_i
-    ptp.io.ethMacRX.err := io.ethMacPins.mrxerr_pad_i
-    ptp.io.ethMacTX.clk := eth.io.ethMacPins.mtx_clk_pad_i
-    ptp.io.ethMacTX.data := eth.io.ethMacPins.mtxd_pad_o
-    ptp.io.ethMacTX.dv := eth.io.ethMacPins.mtxen_pad_o
-    ptp.io.ethMacTX.err := eth.io.ethMacPins.mtxerr_pad_o
-    io.ethMacPins.ptpPPS := ptp.io.rtcPPS
-    io.ethMacPins.ledSOF := ptp.io.ledSOF
-    io.ethMacPins.ledEOF := ptp.io.ledEOF
-    io.ethMacPins.ledPHY := ptp.io.ledTS
+    ptp.io.ethMacRX.clk := io.pins.mrx_clk_pad_i
+    ptp.io.ethMacRX.data := io.pins.mrxd_pad_i
+    ptp.io.ethMacRX.dv := io.pins.mrxdv_pad_i
+    ptp.io.ethMacRX.err := io.pins.mrxerr_pad_i
+    ptp.io.ethMacTX.clk := eth.io.pins.mtx_clk_pad_i
+    ptp.io.ethMacTX.data := eth.io.pins.mtxd_pad_o
+    ptp.io.ethMacTX.dv := eth.io.pins.mtxen_pad_o
+    ptp.io.ethMacTX.err := eth.io.pins.mtxerr_pad_o
+    io.pins.ptpPPS := ptp.io.rtcPPS
+    io.pins.ledSOF := ptp.io.ledSOF
+    io.pins.ledEOF := ptp.io.ledEOF
+    io.pins.ledPHY := ptp.io.ledTS
   } else {
     println("EthMac (eth_addrWidth="+extAddrWidth+")")
     eth.io.M <> io.ocp.M
     eth.io.S <> io.ocp.S
-    io.ethMacPins.ptpPPS := false.B
+    io.pins.ptpPPS := false.B
   }
 }
 

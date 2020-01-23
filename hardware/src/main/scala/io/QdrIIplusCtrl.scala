@@ -37,9 +37,16 @@ object QdrIIplusCtrl extends DeviceObject {
                              ramAddrWidth = ramAddrWidth,
                              ramDataWidth = ramDataWidth))
   }
+}
 
-  trait Pins {
-    val qdrIIplusCtrlPins = new Bundle {
+class QdrIIplusCtrl(ocpAddrWidth   : Int,
+                    ocpBurstLen    : Int = BURST_LENGTH,
+                    ramAddrWidth   : Int = 19,
+                    ramDataWidth   : Int = 16,
+                    readWaitCycles : Int = 5) extends BurstDevice(ocpAddrWidth) {
+
+  override val io = new BurstDeviceIO(ocpAddrWidth) with patmos.HasPins {
+    override val pins = new Bundle {
       val addr  = Bits(OUTPUT, width = ramAddrWidth)
 
       val nrps  = Bits(OUTPUT, width = 1)
@@ -52,15 +59,6 @@ object QdrIIplusCtrl extends DeviceObject {
       val ndoff = Bits(OUTPUT, width = 1)
     }
   }
-}
-
-class QdrIIplusCtrl(ocpAddrWidth   : Int,
-                    ocpBurstLen    : Int = BURST_LENGTH,
-                    ramAddrWidth   : Int = 19,
-                    ramDataWidth   : Int = 16,
-                    readWaitCycles : Int = 5) extends BurstDevice(ocpAddrWidth) {
-
-  override val io = new BurstDeviceIO(ocpAddrWidth) with QdrIIplusCtrl.Pins
 
   // Checks for input parameters
   assert(Bool(DATA_WIDTH % ramDataWidth == 0),"DATA_WIDTH is not a multiple of ramDataWidth ")
@@ -151,8 +149,8 @@ class QdrIIplusCtrl(ocpAddrWidth   : Int,
   when(stateReg === sReadExe) {
     transCountReg := transCountReg + UInt(1)
     subTransCountReg := subTransCountReg + UInt(1)
-    rdBufferReg(transCountReg ## UInt(0)) := io.qdrIIplusCtrlPins.din(0)
-    rdBufferReg(transCountReg ## UInt(1)) := io.qdrIIplusCtrlPins.din(1)
+    rdBufferReg(transCountReg ## UInt(0)) := io.pins.din(0)
+    rdBufferReg(transCountReg ## UInt(1)) := io.pins.din(1)
     when(subTransCountReg === UInt((TRANSPERSEL+1)/2-1)) {
       stateReg := sReadSel
       mAddrReg := mAddrReg + UInt(1)
@@ -212,14 +210,14 @@ class QdrIIplusCtrl(ocpAddrWidth   : Int,
   }
 
   // Assign register values to pins
-  io.qdrIIplusCtrlPins.addr := addrReg
-  io.qdrIIplusCtrlPins.dout := doutReg
-  io.qdrIIplusCtrlPins.nrps := nrpsReg
-  io.qdrIIplusCtrlPins.nwps := nwpsReg
-  io.qdrIIplusCtrlPins.nbws := nbwsReg
+  io.pins.addr := addrReg
+  io.pins.dout := doutReg
+  io.pins.nrps := nrpsReg
+  io.pins.nwps := nwpsReg
+  io.pins.nbws := nbwsReg
 
   // Hard-wired pins
-  io.qdrIIplusCtrlPins.ndoff := Bits(1)
+  io.pins.ndoff := Bits(1)
 
   class Trans(bytesEnaWidth: Int, dataWidth: Int) extends Bundle {
     val byteEna = Bits(width = bytesEnaWidth)

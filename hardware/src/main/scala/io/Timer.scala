@@ -22,9 +22,6 @@ object Timer extends DeviceObject {
     Module(new Timer(CLOCK_FREQ))
   }
 
-  trait Pins {
-  }
-
   trait Intrs {
 	val timerIntrs = Vec.fill(2) { Bool(OUTPUT) }
   }
@@ -32,7 +29,7 @@ object Timer extends DeviceObject {
 
 class Timer(clk_freq: Int) extends CoreDevice() {
 
-  override val io = new CoreDeviceIO() with Timer.Pins with Timer.Intrs
+  override val io = new CoreDeviceIO() with Timer.Intrs
 
   val masterReg = Reg(next = io.ocp.M)
 

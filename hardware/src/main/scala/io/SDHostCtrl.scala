@@ -17,9 +17,11 @@ object SDHostCtrl extends DeviceObject {
   def create(params: Map[String, String]) : SDHostCtrl = {
     Module(new SDHostCtrl())
   }
+}
 
-  trait Pins {
-    val sDHostCtrlPins = new Bundle() {
+class SDHostCtrl() extends CoreDevice() {
+  override val io = new CoreDeviceIO() with patmos.HasPins {
+    override val pins = new Bundle() {
       val sdClk = Bits(OUTPUT, 1);
       val sdCs = Bits(OUTPUT, 1);
       val sdDatOut = Bits(INPUT, 1); // Data Out on the card
@@ -27,10 +29,6 @@ object SDHostCtrl extends DeviceObject {
       val sdWp = Bits(INPUT, 1);
     }
   }
-}
-
-class SDHostCtrl() extends CoreDevice() {
-  override val io = new CoreDeviceIO() with SDHostCtrl.Pins
 
   // Internals
   val enReg = Reg(Bool(false)) // Is the controller enabled?
@@ -114,7 +112,7 @@ class SDHostCtrl() extends CoreDevice() {
       clkReg := ~clkReg
 
       when(clkReg === Bool(true)) { // Falling edge -> Sample
-        bufInReg(bufIdx) := io.sDHostCtrlPins.sdDatOut
+        bufInReg(bufIdx) := io.pins.sdDatOut
 
         // Count clock cycles
         when (bufPntReg === UInt(1)) {
@@ -129,15 +127,15 @@ class SDHostCtrl() extends CoreDevice() {
       clkCntReg := clkCntReg - UInt(1)
     }
 
-    io.sDHostCtrlPins.sdClk := clkReg
+    io.pins.sdClk := clkReg
   }
   .otherwise { // Not enabled
-    io.sDHostCtrlPins.sdClk := Bool(false) 
+    io.pins.sdClk := Bool(false) 
     clkReg := Bool(false) // As to begin with a rising edge
   }
 
-  io.sDHostCtrlPins.sdDatIn := bufOutReg(bufIdx)
+  io.pins.sdDatIn := bufOutReg(bufIdx)
 
   // Always
-  io.sDHostCtrlPins.sdCs := csReg
+  io.pins.sdCs := csReg
 } 

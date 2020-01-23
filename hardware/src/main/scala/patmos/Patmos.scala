@@ -152,7 +152,6 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
 
   // The inputs and outputs
   io.memPort <> mmu.io.phys
-  //Config.connectAllIOPins(io, iocomp.io)
 
   // Keep signal alive for debugging
   debug(enableReg)
@@ -170,7 +169,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   Config.minPcWidth = util.log2Up((new File(binFile)).length.toInt / 4)
   Config.datFile = datFile
 
-  override val io = Config.getPatmosIO()
+  override val io = new PatmosIO()
 
   val nrCores = Config.getConfig.coreCount
 
@@ -200,7 +199,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
         for((pinid, pin) <- haspins.pins.elements) {
           var _pinid = name + postfix + "_" + pinid
-          io.elements(_pinid) = pin.clone()
+          io.elements(_pinid) = pin.cloneType()
           io.elements(_pinid) <> pin
         }
       }
@@ -389,7 +388,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   val ramConf = Config.getConfig.ExtMem.ram
   val ramCtrl = Config.createDevice(ramConf).asInstanceOf[BurstDevice]
 
-  Config.connectIOPins(ramConf.name, io, ramCtrl.io)
+  connectPins(ramConf.name, ramCtrl.io)
 
   // TODO: fix memory arbiter to have configurable memory timing.
   // E.g., it does not work with on-chip main memory.

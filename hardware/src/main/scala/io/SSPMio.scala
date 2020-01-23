@@ -23,8 +23,8 @@ object SSPMio extends DeviceObject {
   }
 
   // Pins are the external interfaces for Patmos
-  trait Pins {
-    val sSPMioPins = new Bundle() {
+  trait Pins extends patmos.HasPins {
+    override val pins = new Bundle() {
       val M = new Bundle() {
         val Cmd    = UInt(OUTPUT,3)
         val Addr   = UInt(OUTPUT,extAddrWidth)
@@ -46,11 +46,11 @@ class SSPMio(extAddrWidth : Int = 32,
 
   // Assigments of inputs and outputs
   // These are simply passed through as SSPMAegean contains the logic
-  io.sSPMioPins.M.Cmd  := io.ocp.M.Cmd
-  io.sSPMioPins.M.Addr := io.ocp.M.Addr(extAddrWidth-1, 0)
-  io.sSPMioPins.M.Data := io.ocp.M.Data
-  io.sSPMioPins.M.ByteEn := io.ocp.M.ByteEn
-  io.ocp.S.Data := io.sSPMioPins.S.Data
-  io.ocp.S.Resp := io.sSPMioPins.S.Resp
+  io.pins.M.Cmd  := io.ocp.M.Cmd
+  io.pins.M.Addr := io.ocp.M.Addr(extAddrWidth-1, 0)
+  io.pins.M.Data := io.ocp.M.Data
+  io.pins.M.ByteEn := io.ocp.M.ByteEn
+  io.ocp.S.Data := io.pins.S.Data
+  io.ocp.S.Resp := io.pins.S.Resp
 }
 

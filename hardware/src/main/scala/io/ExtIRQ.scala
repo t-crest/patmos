@@ -22,12 +22,6 @@ object ExtIRQ extends DeviceObject {
     Module(new ExtIRQ(IRQCount))
   }
 
-  trait Pins {
-    val extIRQPins = new Bundle() {
-      val irq = Bits(INPUT, IRQCount)
-    }
-  }
-
   trait Intrs {
     val extIRQIntrs = Vec.fill(IRQCount) { Bool(OUTPUT) }
   }
@@ -35,7 +29,11 @@ object ExtIRQ extends DeviceObject {
 
 class ExtIRQ(IRQCount : Int) extends CoreDevice() {
 
-  override val io = new CoreDeviceIO() with ExtIRQ.Pins with ExtIRQ.Intrs
+  override val io = new CoreDeviceIO() with patmos.HasPins with ExtIRQ.Intrs {
+    override val pins = new Bundle() {
+      val irq = Bits(INPUT, IRQCount)
+    }
+  }
 
   val IRQSyncReg = Reg(Bits(width = IRQCount))
   val IRQSyncedReg = Reg(Bits(width = IRQCount))
@@ -50,7 +48,7 @@ class ExtIRQ(IRQCount : Int) extends CoreDevice() {
   io.ocp.S.Resp := respReg
 
   // Connection to pins
-  IRQSyncReg := io.extIRQPins.irq
+  IRQSyncReg := io.pins.irq
   IRQSyncedReg := IRQSyncReg
   IRQReg := IRQSyncedReg
 

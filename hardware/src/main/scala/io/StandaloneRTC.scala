@@ -19,18 +19,14 @@ object StandaloneRTC extends DeviceObject {
   def create(params: Map[String, String]) : StandaloneRTC = {
     Module(new StandaloneRTC(secondsWidth, nanoWidth, initialTime))
   }
-
-  trait Pins {
-    val standaloneRTCPins: Bundle {
-      val hexDisp: Vec[UInt]
-    } = new Bundle() {
-      val hexDisp = Vec.fill(8) {Bits(OUTPUT, 7)}
-    }
-  }
 }
 
 class StandaloneRTC(secondsWidth: Int = 40, nanoWidth: Int = 24, initialTime: BigInt = 0L, timeStep: Int = 25) extends CoreDevice() {
-  override val io = new CoreDeviceIO() with StandaloneRTC.Pins with StandaloneRTC.Intrs
+  override val io = new CoreDeviceIO() with patmos.HasPins with StandaloneRTC.Intrs {
+    override val pins = new Bundle {
+      val hexDisp = Vec.fill(8) {Bits(OUTPUT, 7)}
+    }
+  }
 
   // Decode hardware
   def sevenSegBCDDecode(data : Bits, segmentPolarity: Int) : Bits = {
@@ -109,5 +105,5 @@ class StandaloneRTC(secondsWidth: Int = 40, nanoWidth: Int = 24, initialTime: Bi
   dispRegVec(6) := sevenSegBCDDecode(rtc.io.ptpTimestamp(59, 56), segmentPolarity = 0)
   dispRegVec(7) := sevenSegBCDDecode(rtc.io.ptpTimestamp(63, 60), segmentPolarity = 0)
 
-  io.standaloneRTCPins.hexDisp := dispRegVec
+  io.pins.hexDisp := dispRegVec
 }

@@ -17,7 +17,6 @@ abstract class DeviceObject() {
   // every device object must have methods "create" and "init", and a trait "Pins"
   def init(params: Map[String, String])
   def create(params: Map[String, String]) : Device
-  trait Pins
   trait Intrs
 
   // helper functions for parameter parsing
