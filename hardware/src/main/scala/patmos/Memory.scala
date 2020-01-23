@@ -209,7 +209,7 @@ class Memory() extends Module {
   io.exc.excAddr := Mux(memReg.mem.trap, memReg.relPc + UInt(1), memReg.relPc)
 
   // Keep signal alive for debugging
-  debug(io.memwb.pc)
+  //debug(io.memwb.pc) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
 
   // reset at end to override any computations
   when(reset) { memReg.flush() }

@@ -75,8 +75,8 @@ class NoCNodeDummy(argoConf: ArgoConfig, master: Boolean) extends Module {
   io.proc.S.CmdAccept := Mux(io.proc.M.Cmd===OcpCmd.WR, acceptReg, io.proc.M.Cmd===OcpCmd.RD)
   io.proc.S.Resp := Mux(io.proc.M.Cmd===OcpCmd.WR, respReg, Mux(io.proc.M.Cmd===OcpCmd.RD, OcpResp.DVA, OcpResp.NULL))
 
-  debug(io.proc.M.Addr)
-  debug(io.proc.M.RespAccept)
+  //debug(io.proc.M.Addr) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
+  //debug(io.proc.M.RespAccept)
 }
 
 /**

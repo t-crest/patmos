@@ -122,9 +122,9 @@ class EthMac2BB(extAddrWidth : Int = 32, dataWidth : Int = 32) extends BlackBox 
   setVerilogParameters("#(.BUFF_ADDR_WIDTH("+extAddrWidth+"))")
   */
   // keep some sigals for emulation
-  debug(io.M.Cmd)
-  debug(io.M.Addr)
-  debug(io.M.Data)
+  //debug(io.M.Cmd)  does nothing in chisel3 (no proning in frontend of chisel3 anyway)
+  //debug(io.M.Addr)
+  //debug(io.M.Data)
 
   // registers to help emulation
   val respReg = Reg(Bits(width = 2))

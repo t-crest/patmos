@@ -156,7 +156,7 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int, aegeanCompatible: Boolean) 
   Config.connectAllIOPins(io, iocomp.io)
 
   // Keep signal alive for debugging
-  debug(enableReg)
+  //debug(enableReg) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
 }
 
 /**

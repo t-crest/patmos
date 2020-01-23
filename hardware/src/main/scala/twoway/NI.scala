@@ -282,7 +282,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
     io.memPort.io.portB.wrEna := Bool(false)
   }
 
-  debug(io.testSignal)
+  //debug(io.testSignal) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
 
   io.testSignal := readBackValid(regDelay)
 

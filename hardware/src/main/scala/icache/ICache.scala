@@ -213,8 +213,8 @@ class ICacheReplDm() extends Module {
     fetchAddr := addrOddReg
   }
   // Keep signals alive for emulator
-  debug(hitEven)
-  debug(hitOdd)
+  //debug(hitEven) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
+  //debug(hitOdd)
 
   val wrAddrTag = io.ctrlrepl.wAddr(TAG_HIGH,TAG_LOW)
   // Index for vector of valid bits

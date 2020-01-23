@@ -37,7 +37,9 @@ class Node(n: Int, size: Int) extends Module {
   val regTxAddrLower = RegInit(UInt(0, blockAddrWidth))
 
   val valid = validTab(regTdmCounter)
-  debug(valid)
+  
+  //debug(valid) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
+  
   when(valid) {
     regTxAddrUpper := regTxAddrUpper + UInt(1)
     when(regTxAddrUpper === UInt(nrChannels - 1)) {
@@ -62,7 +64,8 @@ class Node(n: Int, size: Int) extends Module {
   val regRxAddrLower = RegInit(UInt(0, blockAddrWidth))
 
   val validRx = io.local.in.valid
-  debug(validRx)
+  
+  //debug(validRx) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
 
   when(validRx) {
     regRxAddrUpper := regRxAddrUpper + UInt(1)
@@ -73,7 +76,8 @@ class Node(n: Int, size: Int) extends Module {
   }
 
   val rxAddr = Cat(regRxAddrUpper, regRxAddrLower)
-  debug(rxAddr)
+  
+  //debug(rxAddr) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
 
   val memRx = Module(new DualPortMemory(size))
   memRx.io.port.wrAddr := rxAddr
