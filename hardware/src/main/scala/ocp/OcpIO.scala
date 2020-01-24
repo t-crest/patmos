@@ -15,7 +15,7 @@ class OcpIOMasterSignals(addrWidth: Int, dataWidth: Int)
   val RespAccept = UInt(width = 1)
 
   // This does not really clone, but Data.clone doesn't either
-  override def clone() = {
+  override def cloneType() = {
     val res = new OcpIOMasterSignals(addrWidth, dataWidth)
     res.asInstanceOf[this.type]
   }
@@ -27,7 +27,7 @@ class OcpIOSlaveSignals(dataWidth: Int)
   val CmdAccept = UInt(width = 1)
 
   // This does not really clone, but Data.clone doesn't either
-  override def clone() = {
+  override def cloneType() = {
     val res = new OcpIOSlaveSignals(dataWidth)
     res.asInstanceOf[this.type]
   }

@@ -40,7 +40,7 @@ class OcpMasterSignals(addrWidth : Int, dataWidth : Int) extends Bundle() {
   val Data = UInt(width = dataWidth)
 
   // This does not really clone, but Data.clone doesn't either
-  override def clone() = {
+  override def cloneType() = {
     val res = new OcpMasterSignals(addrWidth, dataWidth)
     res.asInstanceOf[this.type]
   }
@@ -52,7 +52,7 @@ class OcpSlaveSignals(dataWidth : Int) extends Bundle() {
   val Data = UInt(width = dataWidth)
 
   // This does not really clone, but Data.clone doesn't either
-  override def clone() = {
+  override def cloneType() = {
     val res = new OcpSlaveSignals(dataWidth)
     res.asInstanceOf[this.type]
   }

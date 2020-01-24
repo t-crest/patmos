@@ -15,7 +15,7 @@ class OcpCoreMasterSignals(addrWidth : Int, dataWidth : Int)
   val ByteEn = UInt(width = dataWidth/8)
 
   // This does not really clone, but Data.clone doesn't either
-  override def clone() = {
+  override def cloneType() = {
     val res = new OcpCoreMasterSignals(addrWidth, dataWidth)
     res.asInstanceOf[this.type]
   }
@@ -33,7 +33,7 @@ class OcpCoreSlavePort(addrWidth : Int, dataWidth : Int) extends Bundle() {
   val S = new OcpSlaveSignals(dataWidth).asOutput
 
   // This does not really clone, but Data.clone doesn't either
-  override def clone() = {
+  override def cloneType() = {
     val res = new OcpCoreSlavePort(addrWidth, dataWidth)
     res.asInstanceOf[this.type]
   }
