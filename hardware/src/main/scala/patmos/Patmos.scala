@@ -334,16 +334,16 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     ispmio.S.Data := 0.U
     ispmio.S.Resp := RegNext(Mux(ispmio.M.Cmd === OcpCmd.IDLE, OcpResp.NULL, OcpResp.DVA))
 
-    val devios = (singledevios ++ cmpdevios) ++ List( 
+    val devios = (singledevios ++ cmpdevios) ++ List(
       new {
-          val addr = 0x0000;
-          val addrwidth = IO_DEVICE_ADDR_WIDTH;
+          val addr = 0x0
+          val addrwidth = 4
           val io = spm.io
           val name = "spm"
         },
       new {
-          val addr = 0x0001;
-          val addrwidth = IO_DEVICE_ADDR_WIDTH;
+          val addr = 0x0001
+          val addrwidth = 16
           val io = ispmio
           val name = "ispm"
         }
@@ -369,16 +369,18 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     for(dev <- devios) {
       val ocp = getSlavePort(dev.io)
 
-      val addr = cores(i).io.memInOut.M.Addr(ADDR_WIDTH-1, ADDR_WIDTH-dev.addrwidth)
+      val sel = cores(i).io.memInOut.M.Addr(ADDR_WIDTH-1, ADDR_WIDTH-dev.addrwidth) === dev.addr.U && 
+        (if(dev.name == "spm") !cores(i).io.memInOut.M.Addr(ISPM_ONE_BIT) 
+         else true.B)
       ocp.M := cores(i).io.memInOut.M
       ocp.M.Cmd := OcpCmd.IDLE
-      when(addr === dev.addr.U) {
+      when(sel) {
         ocp.M.Cmd := cores(i).io.memInOut.M.Cmd
         validdev := true.B
       }
       val selReg = RegInit(false.B)
       when(cores(i).io.memInOut.M.Cmd =/= OcpCmd.IDLE) {
-        selReg := addr === dev.addr.U
+        selReg := sel
       }
       when(selReg) {
         cores(i).io.memInOut.S.Data := ocp.S.Data

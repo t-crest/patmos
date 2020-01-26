@@ -37,36 +37,20 @@ architecture rtl of patmos_top is
 			clk             : in  std_logic;
 			reset           : in  std_logic;
 
-			io_comConf_M_Cmd        : out std_logic_vector(2 downto 0);
-			io_comConf_M_Addr       : out std_logic_vector(31 downto 0);
-			io_comConf_M_Data       : out std_logic_vector(31 downto 0);
-			io_comConf_M_ByteEn     : out std_logic_vector(3 downto 0);
-			io_comConf_M_RespAccept : out std_logic;
-			io_comConf_S_Resp       : in std_logic_vector(1 downto 0);
-			io_comConf_S_Data       : in std_logic_vector(31 downto 0);
-			io_comConf_S_CmdAccept  : in std_logic;
+			io_Leds_led : out std_logic_vector(8 downto 0);
+			io_Keys_key : in  std_logic_vector(3 downto 0);
+			io_UartCmp_tx  : out std_logic;
+			io_UartCmp_rx  : in  std_logic;
 
-			io_comSpm_M_Cmd         : out std_logic_vector(2 downto 0);
-			io_comSpm_M_Addr        : out std_logic_vector(31 downto 0);
-			io_comSpm_M_Data        : out std_logic_vector(31 downto 0);
-			io_comSpm_M_ByteEn      : out std_logic_vector(3 downto 0);
-			io_comSpm_S_Resp        : in std_logic_vector(1 downto 0);
-			io_comSpm_S_Data        : in std_logic_vector(31 downto 0);
-
-			io_ledsPins_led : out std_logic_vector(8 downto 0);
-			io_keysPins_key : in  std_logic_vector(3 downto 0);
-			io_uartPins_tx  : out std_logic;
-			io_uartPins_rx  : in  std_logic;
-
-            io_sramCtrlPins_ramOut_addr : out std_logic_vector(19 downto 0);
-            io_sramCtrlPins_ramOut_doutEna : out std_logic;
-            io_sramCtrlPins_ramIn_din : in std_logic_vector(15 downto 0);
-            io_sramCtrlPins_ramOut_dout : out std_logic_vector(15 downto 0);
-            io_sramCtrlPins_ramOut_nce : out std_logic;
-            io_sramCtrlPins_ramOut_noe : out std_logic;
-            io_sramCtrlPins_ramOut_nwe : out std_logic;
-            io_sramCtrlPins_ramOut_nlb : out std_logic;
-            io_sramCtrlPins_ramOut_nub : out std_logic
+      io_SramCtrl_ramOut_addr : out std_logic_vector(19 downto 0);
+      io_SramCtrl_ramOut_doutEna : out std_logic;
+      io_SramCtrl_ramIn_din : in std_logic_vector(15 downto 0);
+      io_SramCtrl_ramOut_dout : out std_logic_vector(15 downto 0);
+      io_SramCtrl_ramOut_nce : out std_logic;
+      io_SramCtrl_ramOut_noe : out std_logic;
+      io_SramCtrl_ramOut_nwe : out std_logic;
+      io_SramCtrl_ramOut_nlb : out std_logic;
+      io_SramCtrl_ramOut_nub : out std_logic
 
 		);
 	end component;
@@ -132,10 +116,6 @@ begin
     end process;
 
     comp : Patmos port map(clk_int, int_res,
-           open, open, open, open, open,
-           (others => '0'), (others => '0'), '0',
-           open, open, open, open,
-           (others => '0'), (others => '0'),
            oLedsPins_led,
            iKeysPins_key,
            oUartPins_txd, iUartPins_rxd,
