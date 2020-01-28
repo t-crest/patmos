@@ -11,22 +11,23 @@
 #include "include/bootable.h"
 #include <machine/spm.h>
 
+#define LOOP_DELAY 2000
+
 int main() {
 
 	volatile _SPM int *led_ptr  = (volatile _SPM int *) PATMOS_IO_LED;
-	volatile _SPM int *uart_ptr = (volatile _SPM int *) PATMOS_IO_UART;
 	int i, j;
 
 	for (;;) {
-		*uart_ptr = '1';
-		for (i=2000; i!=0; --i)
-			for (j=2000; j!=0; --j)
+		UART_DATA = '1';
+		for (i=LOOP_DELAY; i!=0; --i)
+			for (j=LOOP_DELAY; j!=0; --j)
 				*led_ptr = 1;
 
 
-		*uart_ptr = '0';
-		for (i=2000; i!=0; --i)
-			for (j=2000; j!=0; --j)
+		UART_DATA = '0';
+		for (i=LOOP_DELAY; i!=0; --i)
+			for (j=LOOP_DELAY; j!=0; --j)
 				*led_ptr = 0;
 
 	}
