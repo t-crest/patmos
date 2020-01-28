@@ -47,6 +47,27 @@
 
 extern unsigned char my_ip[4];
 
+typedef struct
+{
+   unsigned char ver_headlen;
+   unsigned char dscp_ecn;
+   unsigned short length;
+   unsigned short identification;
+   unsigned short flags_fragmentoff;
+   unsigned char ttl;
+   unsigned char protocol;
+   unsigned short head_checksum;
+   unsigned short checksum;
+   unsigned char source_ip[4];
+   unsigned char destination_ip[4];
+} iphead_t;
+
+typedef struct{
+   iphead_t ip_head;
+   unsigned char* payload;
+} ip_t;
+
+
 ///////////////////////////////////////////////////////////////
 //Functions to get the IPv4 protocol field
 ///////////////////////////////////////////////////////////////
@@ -69,7 +90,7 @@ char ipv4_get_flags(unsigned int pkt_addr);
 //This function returns the IPv4 time to live if a received packet.
 char ipv4_get_ttl(unsigned int pkt_addr);
 
-//This function returns the IPv4 protocol of a received packet.
+//This function returns the IPv4 protocol of a received packet.   
 char ipv4_get_protocol(unsigned int pkt_addr);
 
 //This function returns the IPv4 checksum of a received packet.

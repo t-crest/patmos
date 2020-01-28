@@ -80,21 +80,25 @@ enum eth_protocol mac_packet_type(unsigned int addr){
 //This function retrieves the mac of the sender
 unsigned char* mac_addr_sender(unsigned int rx_addr){
 	unsigned char src_mac[6];
-	#pragma loopbound min 6 max 6
-	for (int i=0; i<6; i++){
-		src_mac[i] = mem_iord_byte(rx_addr + 6 + i);//ETH header mymac
-	}
-	return src_mac;
+	src_mac[0] = mem_iord_byte(rx_addr + 6 + 0);//ETH header mymac
+	src_mac[1] = mem_iord_byte(rx_addr + 6 + 1);//ETH header mymac
+	src_mac[2] = mem_iord_byte(rx_addr + 6 + 2);//ETH header mymac
+	src_mac[3] = mem_iord_byte(rx_addr + 6 + 3);//ETH header mymac
+	src_mac[4] = mem_iord_byte(rx_addr + 6 + 4);//ETH header mymac
+	src_mac[5] = mem_iord_byte(rx_addr + 6 + 5);//ETH header mymac
+	return (unsigned char*) src_mac;
 }
 
 //This function retrieves the mac of the destination
 unsigned char* mac_addr_dest(unsigned int rx_addr){
 	unsigned char dst_mac[6];
-	#pragma loopbound min 6 max 6
-	for (int i=0; i<6; i++){
-		dst_mac[i] = mem_iord_byte(rx_addr + i);//ETH header mymac
-	}
-	return dst_mac;
+	dst_mac[0] = mem_iord_byte(rx_addr + 0);//ETH header mymac
+	dst_mac[1] = mem_iord_byte(rx_addr + 1);//ETH header mymac
+	dst_mac[2] = mem_iord_byte(rx_addr + 2);//ETH header mymac
+	dst_mac[3] = mem_iord_byte(rx_addr + 3);//ETH header mymac
+	dst_mac[4] = mem_iord_byte(rx_addr + 4);//ETH header mymac
+	dst_mac[5] = mem_iord_byte(rx_addr + 5);//ETH header mymac
+	return (unsigned char*) dst_mac;
 }
 
 ///////////////////////////////////////////////////////////////

@@ -47,6 +47,24 @@
 #include "arp.h"
 #include "ipv4.h"
 
+typedef struct
+{
+   
+   unsigned short source_port;
+   unsigned short destination_port;
+   unsigned short data_length;
+   unsigned short checksum;
+} udphead_t;
+
+typedef struct 
+{
+   iphead_t ip_head;
+   udphead_t udp_head;
+   unsigned char* data;
+} udp_t;
+
+
+
 ///////////////////////////////////////////////////////////////
 //Functions to get the UDP protocol fields
 ///////////////////////////////////////////////////////////////
@@ -84,5 +102,8 @@ int udp_send(unsigned int tx_addr, unsigned int rx_addr, unsigned char destinati
 
 //This function sends an UDP packet to the destination IP and destination MAC.
 int udp_send_mac(unsigned int tx_addr, unsigned int rx_addr, unsigned char destination_mac[], unsigned char destination_ip[], unsigned short source_port, unsigned short destination_port, unsigned char data[], unsigned short data_length, long long timeout);
+
+//This function sends a UDP packet
+int udp_send_packet(unsigned int tx_addr, unsigned int rx_addr, udp_t packet, long long timeout);
 
 #endif

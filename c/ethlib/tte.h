@@ -18,17 +18,21 @@
 
 #define TTETIME_TO_NS 65536
 
-extern unsigned long long i_pcf_max_time;
-extern unsigned long long tte_receive_log_max_time;
-extern unsigned long long handle_integration_frame_log_max_time;
+extern unsigned long long tte_current_time;
+
+extern unsigned long tte_receive_log_max_time;
+extern unsigned long handle_integration_frame_log_max_time;
+extern unsigned long tte_clear_free_rx_buffer_max_time;
 
 unsigned long long send_times[2000];
+
+unsigned long long get_tte_time();
 
 unsigned char is_pcf(unsigned int addr);
 
 void tte_clear_free_rx_buffer(unsigned int addr);// __attribute__((noinline));
 
-void tte_wait_for_message(unsigned long long * receive_point);
+unsigned char tte_wait_for_message(unsigned long long * receive_point, unsigned long long timeout);
 
 unsigned char tte_receive(unsigned int addr,unsigned long long rec_start);// __attribute__((noinline));
 

@@ -19,28 +19,37 @@ $(LIBETH): $(patsubst ethlib/%.c,$(BUILDDIR)/ethlib/%.o,$(wildcard ethlib/*.c))
 # WCET analysis
 
 wcet_timestamp:
-	patmos-clang -O2 $(CFLAGS) $(LIBETH)/*.c -mserialize=tpip.pml timestamp_compare.c -o timestamp_compare.elf
-	platin wcet --disable-ait -i tpip.pml -b timestamp_compare.elf -e arp_process_received
-	platin wcet --disable-ait -i tpip.pml -b timestamp_compare.elf -e icmp_process_received
-	platin wcet --disable-ait -i tpip.pml -b timestamp_compare.elf -e receiveAndHandleFrame
-	platin wcet --disable-ait -i tpip.pml -b timestamp_compare.elf -e demoLoop
+	patmos-clang -O2 $(CFLAGS) $(LIBETH)/*.c -mserialize=tpip.pml timestamp_compare.c -o aion_demo.elf
+	platin wcet --disable-ait -i tpip.pml -b aion_demo.elf -e arp_process_received
+	platin wcet --disable-ait -i tpip.pml -b aion_demo.elf -e icmp_process_received
+	platin wcet --disable-ait -i tpip.pml -b aion_demo.elf -e receiveAndHandleFrame
+	platin wcet --disable-ait -i tpip.pml -b aion_demo.elf -e demoLoop
 
 wcet_tsnsync:
-	patmos-clang -O2 $(CFLAGS) $(LIBETH)/*.c -mserialize=tpip.pml tsn_timesyncdemo.c -o tsn_timesyncdemo.elf
-	platin wcet --disable-ait -i tpip.pml -b tsn_timesyncdemo.elf -e receiveAndHandleFrame
-	platin wcet --disable-ait -i tpip.pml -b tsn_timesyncdemo.elf -e ptp_correct_offset
-	platin wcet --disable-ait -i tpip.pml -b tsn_timesyncdemo.elf -e ptpv2_issue_msg
-	platin wcet --disable-ait -i tpip.pml -b tsn_timesyncdemo.elf -e ptpv2_handle_msg
-	platin wcet --disable-ait -i tpip.pml -b tsn_timesyncdemo.elf -e ptpv2_process_received
-	platin wcet --disable-ait -i tpip.pml -b tsn_timesyncdemo.elf -e slaveSyncLoop
-	platin wcet --disable-ait -i tpip.pml -b tsn_timesyncdemo.elf -e masterSyncLoop
+	patmos-clang -O2 $(CFLAGS) $(LIBETH)/*.c -mserialize=tpip.pml tsn_timesyncdemo.c -o aion_demo.elf
+	platin wcet --disable-ait -i tpip.pml -b aion_demo.elf -e receiveAndHandleFrame
+	platin wcet --disable-ait -i tpip.pml -b aion_demo.elf -e ptp_correct_offset
+	platin wcet --disable-ait -i tpip.pml -b aion_demo.elf -e ptpv2_issue_msg
+	platin wcet --disable-ait -i tpip.pml -b aion_demo.elf -e ptpv2_handle_msg
+	platin wcet --disable-ait -i tpip.pml -b aion_demo.elf -e ptpv2_process_received
+	platin wcet --disable-ait -i tpip.pml -b aion_demo.elf -e slaveSyncLoop
+	platin wcet --disable-ait -i tpip.pml -b aion_demo.elf -e masterSyncLoop
 	
 wcet_ttesync:
-	patmos-clang -O2 $(CFLAGS) $(LIBETH)/*.c -mserialize=tpip.pml tte_timesyncdemo.c -o tsn_timesyncdemo.elf
-	platin wcet --disable-ait -i tpip.pml -b tsn_timesyncdemo.elf -e demoLoop
-	platin wcet --disable-ait -i tpip.pml -b tsn_timesyncdemo.elf -e receiveAndHandleFrame
-	platin wcet --disable-ait -i tpip.pml -b tsn_timesyncdemo.elf -e tte_pcf_handle
-	platin wcet --disable-ait -i tpip.pml -b tsn_timesyncdemo.elf -e tte_get_time
+	patmos-clang -O2 $(CFLAGS) $(LIBETH)/*.c -mserialize=tpip.pml tte_timesyncdemo.c -o aion_demo.elf
+	platin wcet --disable-ait -i tpip.pml -b aion_demo.elf -e syncWindow
+	platin wcet --disable-ait -i tpip.pml -b aion_demo.elf -e receiveAndHandleFrame
+	platin wcet --disable-ait -i tpip.pml -b aion_demo.elf -e tte_pcf_handle
+	platin wcet --disable-ait -i tpip.pml -b aion_demo.elf -e syncMonitor
+	platin wcet --disable-ait -i tpip.pml -b aion_demo.elf -e demoEvent
+
+wcet_tte_executive:
+	patmos-clang -O2 $(CFLAGS) $(LIBETH)/*.c -mserialize=tpip.pml tte_sync_executive_demo.c -o aion_demo.elf
+	platin wcet --disable-ait -i tpip.pml -b aion_demo.elf -e syncWindow
+	platin wcet --disable-ait -i tpip.pml -b aion_demo.elf -e receiveAndHandleFrame
+	platin wcet --disable-ait -i tpip.pml -b aion_demo.elf -e tte_pcf_handle
+	platin wcet --disable-ait -i tpip.pml -b aion_demo.elf -e syncMonitor
+	platin wcet --disable-ait -i tpip.pml -b aion_demo.elf -e demoEvent
 	
 # running examples
 
@@ -52,6 +61,9 @@ tte_timesyncdemo:
 
 tsn_timesyncdemo:
 	patmos-clang -O2 $(CFLAGS) $(LIBETH)/*.c tsn_timesyncdemo.c -o aion_demo.elf
+
+tte_sync_executive_demo:
+	patmos-clang -O2 $(CFLAGS) $(LIBETH)/*.c tte_sync_executive_demo.c -o aion_demo.elf
 
 config:
 	cd $(PATMOSHOME) && $(MAKE) config BOARD=altde2-all

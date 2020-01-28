@@ -88,14 +88,6 @@ unsigned char udp_get_data(unsigned int pkt_addr, unsigned char data[], unsigned
 	_Pragma("loopbound min 0 max 64")
 	for (int i = 0; i<data_length; i+=1){
 		data[i] = mem_iord_byte(pkt_addr + 42 + i);
-		// unsigned int temp = mem_iord(pkt_addr + 40 + 2 + i);
-		// *((unsigned int*) (data+i)) = temp;
-		// if(i > 0){
-		// 	data[i-2] = (temp >> 24);
-		// 	data[i-1] = (temp >> 16) & 0xFF;
-		// }
-		// data[i+0] = (temp >> 8) & 0xFF;
-		// data[i+1] = temp & 0xFF;
 	}
 	return 1;
 }
@@ -189,9 +181,7 @@ int udp_send(unsigned int tx_addr, unsigned int rx_addr, unsigned char destinati
 	//Resolve the ip address
 	unsigned char destination_mac[6] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
 	if (arp_table_search(destination_ip, destination_mac) == 0){
-		if (arp_resolve_ip(rx_addr, tx_addr, destination_ip, timeout) == 0){
-			return 0;
-		}else{
+		if (arp_resolve_ip(rx_addr, tx_addr, destination_ip, timeout)){
 			arp_table_search(destination_ip, destination_mac);
 		}
 	}
@@ -232,6 +222,7 @@ int udp_send(unsigned int tx_addr, unsigned int rx_addr, unsigned char destinati
 	return 1;
 }
 
+//This function sends an UDP packet to the dstination IP and destination MAC.
 __attribute__((noinline))
 int udp_send_mac(unsigned int tx_addr, unsigned int rx_addr, unsigned char destination_mac[], unsigned char destination_ip[], unsigned short source_port, unsigned short destination_port, unsigned char data[], unsigned short data_length, long long timeout){
 	//Resolve the ip address
@@ -258,6 +249,52 @@ int udp_send_mac(unsigned int tx_addr, unsigned int rx_addr, unsigned char desti
 	_Pragma("loopbound min 0 max 64")
 	for (int i=0; i<data_length; i++){
 		mem_iowr_byte(tx_addr + 42 + i, data[i]);//Sender myip
+	}
+	//IPv4 checksum
+	unsigned short int checksum = ipv4_compute_checksum(tx_addr);
+	mem_iowr_byte(tx_addr + 24, (checksum >> 8));
+	mem_iowr_byte(tx_addr + 25, (checksum & 0xFF));
+	// UDP checksum
+	checksum = udp_compute_checksum(tx_addr);
+	mem_iowr_byte(tx_addr + 40, (checksum >> 8));
+	mem_iowr_byte(tx_addr + 41, (checksum & 0xFF));
+	eth_mac_send(tx_addr, frame_length);
+	ipv4_id+=0x10000;
+	return 1;
+}
+
+//This function sends a UDP packet
+int udp_send_packet(unsigned int tx_addr, unsigned int rx_addr, udp_t packet, long long timeout){
+	//Resolve the ip address
+	unsigned char destination_mac[6] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
+	if (arp_table_search(packet.ip_head.destination_ip, destination_mac) == 0){
+		if (arp_resolve_ip(rx_addr, tx_addr, packet.ip_head.destination_ip, timeout)){
+			arp_table_search(packet.ip_head.destination_ip, destination_mac);
+		}
+	}
+	unsigned short int udp_length = packet.udp_head.data_length+8;
+	unsigned short int ip_length = udp_length + 20;
+	unsigned short int frame_length = ip_length + 14;
+	//MAC addrs
+	mem_iowr(tx_addr, (destination_mac[0] << 24) | (destination_mac[1] << 16) | (destination_mac[2] << 8) | destination_mac[3]);
+	mem_iowr(tx_addr + 4, (destination_mac[4] << 24) | (destination_mac[5] << 16) | (my_mac[0] << 8) | my_mac[1]);
+	mem_iowr(tx_addr + 8, (my_mac[2] << 24) | (my_mac[3] << 16) | (my_mac[4] << 8) | my_mac[5]);
+	//MAC type + IP version + IP type
+	mem_iowr(tx_addr + 12, (0x0800 << 16) | 0x4500);
+	//Length + Identification
+	mem_iowr(tx_addr + 16, (ip_length << 16) | (ipv4_id));
+	//Flags + TTL + Protocol
+	mem_iowr(tx_addr + 20, 0x40004011);
+	//IP addrs + Ports + UDP Length
+	mem_iowr(tx_addr + 24, (packet.ip_head.source_ip[0] << 8) | packet.ip_head.source_ip[1]);
+	mem_iowr(tx_addr + 28, (packet.ip_head.source_ip[2] << 24) | (packet.ip_head.source_ip[3] << 16) | (packet.ip_head.destination_ip[0] << 8) | packet.ip_head.destination_ip[1]);
+	mem_iowr(tx_addr + 32, (packet.ip_head.destination_ip[2] << 24) | (packet.ip_head.destination_ip[3] << 16) | packet.udp_head.source_port);
+	mem_iowr(tx_addr + 36, (packet.udp_head.destination_port << 16) | udp_length);
+	mem_iowr(tx_addr + 40, 0x0000);
+	//UDP Data
+	_Pragma("loopbound min 0 max 64")
+	for (int i=0; i<packet.udp_head.data_length; i++){
+		mem_iowr_byte(tx_addr + 42 + i, packet.data[i]);//Sender myip
 	}
 	//IPv4 checksum
 	unsigned short int checksum = ipv4_compute_checksum(tx_addr);
