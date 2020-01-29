@@ -14,15 +14,15 @@ import ocp._
 object Gpio extends DeviceObject {
   var bankCount = 1
   var bankWidth = 1
-  var ioDirection : IODirection = OUTPUT //type declaration necessary otherwise scala complains
-
+  //var ioDirection : IODirection = OUTPUT //type declaration necessary otherwise scala complains
+  var ioDirection = false // Chisel3 removed IODiretion we now use bool - false: OUTPUT, true: TRUE
   def init(params: Map[String, String]) = {
     bankCount = getPosIntParam(params, "bankCount")
     bankWidth = getPosIntParam(params, "bankWidth")
     if("output" == getParam(params, "ioDirection")){
-      ioDirection = OUTPUT
+      ioDirection = false
     } else if ("input" == getParam(params, "ioDirection")){
-      ioDirection = INPUT
+      ioDirection = true
     }
   }
 
@@ -32,12 +32,12 @@ object Gpio extends DeviceObject {
 
   trait Pins {
       val gpioPins = new Bundle() {
-          val gpios = Vec.fill(bankCount) {Bits(ioDirection, bankWidth)}
+        val gpios = Vec.fill(bankCount) {Bits(if (ioDirection) INPUT else OUTPUT, bankWidth)}  //in-output workaround for chisel3
       }
   }
 }
 
-class Gpio(bankCount: Int, bankWidth: Int, ioDirection: IODirection) extends CoreDevice() {
+class Gpio(bankCount: Int, bankWidth: Int, ioDirection: Boolean) extends CoreDevice() {
   // Override
   override val io = new CoreDeviceIO() with Gpio.Pins
 
@@ -56,7 +56,7 @@ class Gpio(bankCount: Int, bankWidth: Int, ioDirection: IODirection) extends Cor
   // Display register
   val gpioRegVec = RegInit(Vec.fill(bankCount){Bits(0, width = bankWidth)})
 
-  if(ioDirection == OUTPUT){
+  if(ioDirection == false){
     // Read/Write gpios
     for(i <- 0 until bankCount by 1){
       when(masterReg.Addr(constAddressWidth-1, 2) === i.U){
@@ -71,7 +71,7 @@ class Gpio(bankCount: Int, bankWidth: Int, ioDirection: IODirection) extends Cor
       respReg := OcpResp.DVA
     }
 
-  } else if(ioDirection == INPUT) {
+  } else if(ioDirection == true) {
     // Read gpios
     for(i <- 0 until bankCount by 1){
       when(masterReg.Addr(constAddressWidth-1, 2) === i.U){

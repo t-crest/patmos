@@ -303,7 +303,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
 // this testing and main file should go into it's own folder
 //commented out Chisel3 tester has changed see https://github.com/schoeberl/chisel-examples/blob/master/TowardsChisel3.md 
-class PatmosTest(pat: Patmos) extends Tester(pat) {
+/*class PatmosTest(pat: Patmos) extends Tester(pat) 
 
   println("Patmos start")
 
@@ -316,7 +316,7 @@ class PatmosTest(pat: Patmos) extends Tester(pat) {
       print(peek(pat.cores(0).decode.rf.rf(UInt(j))) + " ")
     println()
   }
-}
+}*/
 
 object PatmosMain {
   def main(args: Array[String]): Unit = {
@@ -326,6 +326,6 @@ object PatmosMain {
     val binFile = args(1)
     val datFile = args(2)
 
-    chiselMainTest(chiselArgs, () => Module(new Patmos(configFile, binFile, datFile))) { f => new PatmosTest(f) }
+    chiselMain(chiselArgs, () => Module(new Patmos(configFile, binFile, datFile))) //{ f => new PatmosTest(f) }
   }
 }
