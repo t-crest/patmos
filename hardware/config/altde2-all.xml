@@ -11,27 +11,20 @@
 	<IO DevTypeRef="SegmentDisplay" offset="5"/>
 	<IO DevTypeRef="Uart2" offset="6"/>
 	<IO DevTypeRef="Uart3" offset="7"/>
-	<IO DevTypeRef="Uart" offset="8"/>
 	<IO DevTypeRef="Leds" offset="9"/>
 	<IO DevTypeRef="Keys" offset="10" intrs="2,3,4,5"/>
 	<IO DevTypeRef="EthMac" offset="13" intrs="6"/>
-	 <IO DevTypeRef="EthMac2" offset="14" intrs="8"/>
+	 <!-- <IO DevTypeRef="EthMac2" offset="14" intrs="8"/> -->
   </IOs>
 
   <Devs>
-		<Dev DevType="Uart" entity="Uart" iface="OcpCore">
-			<params>
-			<param name="baudRate" value="115200"/>
-			<param name="fifoDepth" value="16"/>
-			</params>
-		</Dev>
-		<Dev DevType="Uart2" entity="Uart2" iface="OcpCore">
+		<Dev DevType="Uart2" entity="Uart" iface="OcpCore">
 				<params>
 				<param name="baudRate" value="115200"/>
 				<param name="fifoDepth" value="512"/>
 				</params>
 			</Dev>
-		<Dev DevType="Uart3" entity="Uart3" iface="OcpCore">
+		<Dev DevType="Uart3" entity="Uart" iface="OcpCore">
 				<params>
 				<param name="baudRate" value="115200"/>
 				<param name="fifoDepth" value="512"/>
@@ -70,7 +63,7 @@
 				<param name="ppsDuration" value="1000"/>
 			</params>
 		</Dev>
-		<Dev DevType="EthMac2" entity="EthMac2" iface="OcpCore">
+		<Dev DevType="EthMac2" entity="EthMac" iface="OcpCore">
 			<params>
 				<param name="extAddrWidth" value="14" />
 				<param name="dataWidth" value="32" />

@@ -82,9 +82,8 @@ object EthMac extends DeviceObject {
 
 class EthMacBB(extAddrWidth : Int = 32, dataWidth : Int = 32) extends BlackBox {
   val io = new OcpCoreSlavePort(extAddrWidth, dataWidth) with EthMac.Pins
-  throw new Error("BlackBox wrapper for EthMac needs update for Chisel 3")
   // rename component
-  /*Commented out to compile for chisel3
+  // TODO: Commented out to compile for chisel3
   setModuleName("eth_controller_top")
 
   // rename signals
@@ -98,25 +97,25 @@ class EthMacBB(extAddrWidth : Int = 32, dataWidth : Int = 32) extends BlackBox {
   io.S.Resp.setName("SResp")
   io.S.Data.setName("SData")
 
-  io.ethMacPins.mtx_clk_pad_i.setName("mtx_clk_pad_i")
-  io.ethMacPins.mtxd_pad_o.setName("mtxd_pad_o")
-  io.ethMacPins.mtxen_pad_o.setName("mtxen_pad_o")
-  io.ethMacPins.mtxerr_pad_o.setName("mtxerr_pad_o")
-  io.ethMacPins.mrx_clk_pad_i.setName("mrx_clk_pad_i")
-  io.ethMacPins.mrxd_pad_i.setName("mrxd_pad_i")
-  io.ethMacPins.mrxdv_pad_i.setName("mrxdv_pad_i")
-  io.ethMacPins.mrxerr_pad_i.setName("mrxerr_pad_i")
-  io.ethMacPins.mcoll_pad_i.setName("mcoll_pad_i")
-  io.ethMacPins.mcrs_pad_i.setName("mcrs_pad_i")
-  io.ethMacPins.md_pad_i.setName("md_pad_i")
-  io.ethMacPins.mdc_pad_o.setName("mdc_pad_o")
-  io.ethMacPins.md_pad_o.setName("md_pad_o")
-  io.ethMacPins.md_padoe_o.setName("md_padoe_o")
-  io.ethMacPins.int_o.setName("int_o")
+  io.pins.mtx_clk_pad_i.setName("mtx_clk_pad_i")
+  io.pins.mtxd_pad_o.setName("mtxd_pad_o")
+  io.pins.mtxen_pad_o.setName("mtxen_pad_o")
+  io.pins.mtxerr_pad_o.setName("mtxerr_pad_o")
+  io.pins.mrx_clk_pad_i.setName("mrx_clk_pad_i")
+  io.pins.mrxd_pad_i.setName("mrxd_pad_i")
+  io.pins.mrxdv_pad_i.setName("mrxdv_pad_i")
+  io.pins.mrxerr_pad_i.setName("mrxerr_pad_i")
+  io.pins.mcoll_pad_i.setName("mcoll_pad_i")
+  io.pins.mcrs_pad_i.setName("mcrs_pad_i")
+  io.pins.md_pad_i.setName("md_pad_i")
+  io.pins.mdc_pad_o.setName("mdc_pad_o")
+  io.pins.md_pad_o.setName("md_pad_o")
+  io.pins.md_padoe_o.setName("md_padoe_o")
+  io.pins.int_o.setName("int_o")
   
   // set Verilog parameters
   setVerilogParameters("#(.BUFF_ADDR_WIDTH("+extAddrWidth+"))")
-  */
+  
   // keep some sigals for emulation
   debug(io.M.Cmd)
   debug(io.M.Addr)
@@ -193,7 +192,7 @@ class EthMac(extAddrWidth: Int = 32, dataWidth: Int = 32, withPTP: Boolean = fal
     println("EthMac (eth_addrWidth="+extAddrWidth+")")
     eth.io.M <> io.ocp.M
     eth.io.S <> io.ocp.S
-    io.pins.ptpPPS := false.B
+    io.pins.ptpPPS := true.B
   }
 }
 
