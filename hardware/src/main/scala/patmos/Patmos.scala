@@ -25,7 +25,7 @@ import scala.collection.immutable.Stream.Empty
  */
 class PatmosCore(binFile: String, nr: Int, cnt: Int, aegeanCompatible: Boolean) extends Module {
 
-  val io = IO(Config.getPatmosCoreIO(nr))
+  val io = IO(new PatmosCoreIO)
 
   val icache =
     if (ICACHE_SIZE <= 0)
