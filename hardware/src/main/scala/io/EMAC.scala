@@ -78,21 +78,16 @@ object EMAC extends DeviceObject {
   def create(params: Map[String, String]) : EMAC = {
     Module(new EMAC())
   }
-
-  trait Pins {
-    val eMACPins = new EMACPins()
-    // Remove "io_" prefix from connection
-    //val methods = classOf[EMACPins].getDeclaredMethods()
-    //methods.foreach{m => m.invoke(eMACPins).asInstanceOf[Chisel.Node].setName(m.getName())}
-  }
 }
 
 class EMAC() extends CoreDevice() {
 
-  override val io = new CoreDeviceIO() with EMAC.Pins
+  override val io = new CoreDeviceIO() with patmos.HasPins {
+    override val pins = new EMACPins()
+  }
   
   val bb = Module(new v6_emac_v2_3_wrapper())
-  io.eMACPins <> bb.io
+  io.pins <> bb.io
 
   val rx_axis_fifo_tready_Reg = Reg(init = Bool(false))
   rx_axis_fifo_tready_Reg := Bool(false)

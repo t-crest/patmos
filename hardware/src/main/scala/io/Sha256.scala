@@ -17,13 +17,11 @@ object Sha256 extends DeviceObject {
   def create(params: Map[String, String]) : Sha256 = {
     Module(new Sha256())
   }
-  trait Pins {
-  }
 }
 
 class Sha256() extends CoreDevice() {
 
-  override val io = new CoreDeviceIO() with Sha256.Pins
+  override val io = new CoreDeviceIO()
   
   // Register for requests from OCP master
   val masterReg = Reg(next = io.ocp.M)

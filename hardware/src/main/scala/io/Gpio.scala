@@ -14,8 +14,8 @@ import ocp._
 object Gpio extends DeviceObject {
   var bankCount = 1
   var bankWidth = 1
-  //var ioDirection : IODirection = OUTPUT //type declaration necessary otherwise scala complains
-  var ioDirection = false // Chisel3 removed IODiretion we now use bool - false: OUTPUT, true: TRUE
+  var ioDirection : Boolean = false //type declaration necessary otherwise scala complains
+
   def init(params: Map[String, String]) = {
     bankCount = getPosIntParam(params, "bankCount")
     bankWidth = getPosIntParam(params, "bankWidth")
@@ -29,17 +29,15 @@ object Gpio extends DeviceObject {
   def create(params: Map[String, String]) : Gpio = {
           Module(new Gpio(bankCount, bankWidth, ioDirection))
   }
-
-  trait Pins {
-      val gpioPins = new Bundle() {
-        val gpios = Vec.fill(bankCount) {Bits(if (ioDirection) INPUT else OUTPUT, bankWidth)}  //in-output workaround for chisel3
-      }
-  }
 }
 
-class Gpio(bankCount: Int, bankWidth: Int, ioDirection: Boolean) extends CoreDevice() {
+class Gpio(bankCount: Int, bankWidth: Int, ioDirection: Boolean = false) extends CoreDevice() {
   // Override
-  override val io = new CoreDeviceIO() with Gpio.Pins
+  override val io = new CoreDeviceIO() with patmos.HasPins {
+    override val pins = new Bundle() {
+      val gpios = Vec.fill(bankCount) {Bits(if (ioDirection) INPUT else OUTPUT, bankWidth)}
+    }
+  }
 
   //Constants
   val constAddressWidth : Int = log2Up(bankCount) + 2
@@ -93,7 +91,7 @@ class Gpio(bankCount: Int, bankWidth: Int, ioDirection: Boolean) extends CoreDev
   io.ocp.S.Data := dataReg
 
   // Connections to IO
-  io.gpioPins.gpios := gpioRegVec
+  io.pins.gpios := gpioRegVec
 
 }
 

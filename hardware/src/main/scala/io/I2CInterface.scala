@@ -21,9 +21,12 @@ object I2CInterface extends DeviceObject {
   def create(params: Map[String, String]) : I2CInterface = {
     Module(new I2CInterface(extAddrWidth=extAddrWidth, dataWidth=dataWidth))
   }
+}
 
-  trait Pins {
-    val i2CInterfacePins = new Bundle() {
+class I2CInterface(extAddrWidth : Int = 32,
+                     dataWidth : Int = 32) extends CoreDevice() {
+  override val io = new CoreDeviceIO() with patmos.HasPins {
+    override val pins = new Bundle() {
       val MCmd = UInt(OUTPUT,3)
       val MAddr = UInt(OUTPUT,extAddrWidth)
       val MData = UInt(OUTPUT,dataWidth)
@@ -32,16 +35,11 @@ object I2CInterface extends DeviceObject {
       val SData = UInt(INPUT,dataWidth)
     }
   }
-}
-
-class I2CInterface(extAddrWidth : Int = 32,
-                     dataWidth : Int = 32) extends CoreDevice() {
-  override val io = new CoreDeviceIO() with I2CInterface.Pins
   //Assigments of inputs and outputs
-  io.i2CInterfacePins.MCmd := io.ocp.M.Cmd
-  io.i2CInterfacePins.MAddr := io.ocp.M.Addr(extAddrWidth-1, 0)
-  io.i2CInterfacePins.MData := io.ocp.M.Data
-  io.i2CInterfacePins.MByteEn := io.ocp.M.ByteEn
-  io.ocp.S.Resp := io.i2CInterfacePins.SResp
-  io.ocp.S.Data := io.i2CInterfacePins.SData
+  io.pins.MCmd := io.ocp.M.Cmd
+  io.pins.MAddr := io.ocp.M.Addr(extAddrWidth-1, 0)
+  io.pins.MData := io.ocp.M.Data
+  io.pins.MByteEn := io.ocp.M.ByteEn
+  io.ocp.S.Resp := io.pins.SResp
+  io.ocp.S.Data := io.pins.SData
 }

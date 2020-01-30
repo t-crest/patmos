@@ -6,6 +6,7 @@
   <cores count="1" />
   <CmpDevs>
     <CmpDev name="Hardlock" />
+    <CmpDev name="UartCmp" />
   </CmpDevs>
   <bus burstLength="4" writeCombine="false" mmu="false" />
 

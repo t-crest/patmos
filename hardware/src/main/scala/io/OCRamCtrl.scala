@@ -25,14 +25,11 @@ object OCRamCtrl extends DeviceObject {
   def create(params: Map[String, String]) : OCRamCtrl = {
     Module(new OCRamCtrl(addrWidth,BURST_LENGTH))
   }
-
-  trait Pins {
-  }
 }
 
 class OCRamCtrl(addrWidth : Int, ocpBurstLen : Int=4) extends BurstDevice(addrWidth) {
 
-  override val io = new BurstDeviceIO(addrWidth) with OCRamCtrl.Pins
+  override val io = new BurstDeviceIO(addrWidth)
 
   val BYTE_WIDTH = 8
   val BYTES_PER_WORD = io.ocp.M.Data.getWidth / BYTE_WIDTH

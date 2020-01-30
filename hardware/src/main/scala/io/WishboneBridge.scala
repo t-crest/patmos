@@ -22,9 +22,12 @@ object WishboneBridge extends DeviceObject {
   def create(params: Map[String, String]) : WishboneBridge = {
     Module(new WishboneBridge(extAddrWidth=extAddrWidth, dataWidth=dataWidth))
   }
+}
 
-  trait Pins {
-    val wishboneBridgePins = new Bundle() {
+class WishboneBridge(extAddrWidth : Int = 32,
+                     dataWidth : Int = 32) extends CoreDevice() {
+  override val io = new CoreDeviceIO() with patmos.HasPins {
+    override val pins = new Bundle() {
       val wb_addr_o = UInt(OUTPUT,extAddrWidth)
       val wb_data_i = UInt(INPUT,dataWidth)
       val wb_err_i = Bool(INPUT)
@@ -36,11 +39,6 @@ object WishboneBridge extends DeviceObject {
       val wb_cyc_o = Bool(OUTPUT)
     }
   }
-}
-
-class WishboneBridge(extAddrWidth : Int = 32,
-                     dataWidth : Int = 32) extends CoreDevice() {
-  override val io = new CoreDeviceIO() with WishboneBridge.Pins
   // Registers
   val we_o_Reg = Reg(init = Bits(0,width=1))
   val stb_o_Reg = Reg(init = Bits(0,width=1))
@@ -55,12 +53,12 @@ class WishboneBridge(extAddrWidth : Int = 32,
   ocp_S_resp_Reg := OcpResp.NULL
   io.ocp.S.Resp := ocp_S_resp_Reg
   io.ocp.S.Data := ocp_S_data_Reg
-  io.wishboneBridgePins.wb_sel_o := Bits("b1111")
-  io.wishboneBridgePins.wb_we_o := we_o_Reg 
-  io.wishboneBridgePins.wb_stb_o := stb_o_Reg
-  io.wishboneBridgePins.wb_cyc_o := cyc_o_Reg
-  io.wishboneBridgePins.wb_addr_o := addr_o_Reg
-  io.wishboneBridgePins.wb_data_o := data_o_Reg
+  io.pins.wb_sel_o := Bits("b1111")
+  io.pins.wb_we_o := we_o_Reg 
+  io.pins.wb_stb_o := stb_o_Reg
+  io.pins.wb_cyc_o := cyc_o_Reg
+  io.pins.wb_addr_o := addr_o_Reg
+  io.pins.wb_data_o := data_o_Reg
 
   // Read command
   when(io.ocp.M.Cmd === OcpCmd.RD) {
@@ -80,11 +78,11 @@ class WishboneBridge(extAddrWidth : Int = 32,
   }
 
   // Transaltion of the WB's ack into OCP's DVA
-  when(io.wishboneBridgePins.wb_ack_i === Bits(1)) {
+  when(io.pins.wb_ack_i === Bits(1)) {
   we_o_Reg := Bool(false)
   stb_o_Reg := Bool(false)
   cyc_o_Reg := Bool(false)
   ocp_S_resp_Reg := OcpResp.DVA
-  ocp_S_data_Reg := io.wishboneBridgePins.wb_data_i
+  ocp_S_data_Reg := io.pins.wb_data_i
   }
 }

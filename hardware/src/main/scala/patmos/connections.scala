@@ -328,17 +328,6 @@ class ExecuteIO() extends Bundle() {
   val scex = new ScEx().asInput
 }
 
-class InOutIO() extends Bundle() {
-  val memInOut = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
-  val comConf = new OcpNIMasterPort(ADDR_WIDTH, DATA_WIDTH)
-  val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
-  val excInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
-  val mmuInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
-  val intrs = Vec.fill(INTR_COUNT) { Bool(OUTPUT) }
-  val superMode = Bool(INPUT)
-  val internalIO = new InternalIO().asInput
-}
-
 class BootMemIO() extends Bundle() {
   val memInOut = new OcpCacheSlavePort(ADDR_WIDTH, DATA_WIDTH)
   val extMem = new OcpCacheMasterPort(ADDR_WIDTH, DATA_WIDTH)
@@ -449,19 +438,6 @@ class MMUIO() extends Bundle() {
   val phys = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
 }
 
-class PatmosCoreIO() extends Bundle() {
-  val superMode = Bool(OUTPUT)
-  val comConf = new OcpNIMasterPort(ADDR_WIDTH, DATA_WIDTH)
-  val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
-  val memPort = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
-}
-
-class PatmosIO() extends Bundle() {
-  val comConf = new OcpNIMasterPort(ADDR_WIDTH, DATA_WIDTH)
-  val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
-}
-
-
 // Performance counters
 class InstructionCachePerf() extends Bundle() {
   val hit = Bool(OUTPUT)
@@ -489,8 +465,4 @@ class PerfCounterIO() extends Bundle() {
   val sc = new StackCachePerf().asInput
   val wc = new WriteCombinePerf().asInput
   val mem = new MemPerf().asInput
-}
-
-class InternalIO() extends Bundle() {
-  val perf = new PerfCounterIO()
 }

@@ -19,13 +19,22 @@ import ocp.{OcpCoreSlavePort, _}
 import argo._
 
 import scala.collection.immutable.Stream.Empty
+import scala.collection.mutable
 
 /**
  * Module for one Patmos core.
  */
-class PatmosCore(binFile: String, nr: Int, cnt: Int, aegeanCompatible: Boolean) extends Module {
+class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
 
-  val io = IO(Config.getPatmosCoreIO(nr))
+  val io = IO(new Bundle() with HasSuperMode with HasPerfCounter with HasInterrupts {
+    override val superMode = Bool(OUTPUT)
+    override val perf = new PerfCounterIO().asOutput
+    override val interrupts = Vec.fill(INTR_COUNT) { Bool(INPUT) }
+    val memPort = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+    val memInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
+    val excInOut = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
+    val mmuInOut = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
+  })
 
   val icache =
     if (ICACHE_SIZE <= 0)
@@ -49,7 +58,7 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int, aegeanCompatible: Boolean) 
   val memory = Module(new Memory())
   val writeback = Module(new WriteBack())
   val exc = Module(new Exceptions())
-  val iocomp = Module(new InOut(nr, cnt, aegeanCompatible))
+  
   val dcache = Module(new DataCache())
 
   //connect icache
@@ -81,11 +90,11 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int, aegeanCompatible: Boolean) 
   // We store the return base in EX (in cycle corresponding to MEM)
   fetch.io.feex <> execute.io.feex
 
-  memory.io.localInOut <> iocomp.io.memInOut
+  memory.io.localInOut <> io.memInOut
 
   // Connect exception unit
-  exc.io.ocp <> iocomp.io.excInOut
-  exc.io.intrs <> iocomp.io.intrs
+  exc.io.ocp <> io.excInOut
+  exc.io.intrs <> io.interrupts
   exc.io.excdec <> decode.io.exc
   exc.io.memexc <> memory.io.exc
 
@@ -107,7 +116,7 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int, aegeanCompatible: Boolean) 
 
   val mmu = Module(if (HAS_MMU) new MemoryManagement() else new NoMemoryManagement())
   mmu.io.exec <> selICache
-  mmu.io.ctrl <> iocomp.io.mmuInOut
+  mmu.io.ctrl <> io.mmuInOut
   mmu.io.virt <> burstBus.io.master
 
   // Enable signals for memory stage, method cache and stack cache
@@ -135,49 +144,40 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int, aegeanCompatible: Boolean) 
   dcache.io.invalDCache := exc.io.invalDCache
 
   // Make privileged mode visible internally and externally
-  iocomp.io.superMode := exc.io.superMode
   mmu.io.superMode := exc.io.superMode
   io.superMode := exc.io.superMode
 
   // Internal "I/O" data
-  iocomp.io.internalIO.perf.ic := icache.io.perf
-  iocomp.io.internalIO.perf.dc := dcache.io.dcPerf
-  iocomp.io.internalIO.perf.sc := dcache.io.scPerf
-  iocomp.io.internalIO.perf.wc := dcache.io.wcPerf
-  iocomp.io.internalIO.perf.mem.read := (io.memPort.M.Cmd === OcpCmd.RD &&
+  io.perf.ic := icache.io.perf
+  io.perf.dc := dcache.io.dcPerf
+  io.perf.sc := dcache.io.scPerf
+  io.perf.wc := dcache.io.wcPerf
+  io.perf.mem.read := (io.memPort.M.Cmd === OcpCmd.RD &&
     io.memPort.S.CmdAccept === UInt(1))
-  iocomp.io.internalIO.perf.mem.write := (io.memPort.M.Cmd === OcpCmd.WR &&
+    io.perf.mem.write := (io.memPort.M.Cmd === OcpCmd.WR &&
     io.memPort.S.CmdAccept === UInt(1))
 
   // The inputs and outputs
-  io.comConf <> iocomp.io.comConf
-  io.comSpm <> iocomp.io.comSpm
   io.memPort <> mmu.io.phys
-  Config.connectAllIOPins(io, iocomp.io)
 
   // Keep signal alive for debugging
   debug(enableReg)
 }
 
-/**
- * This is only used by aegean to strip off the memory
- * controller. Shall go with the new CMP configuration.
- */
-object PatmosCoreMain {
-  def main(args: Array[String]): Unit = {
+trait HasPins {
+  val pins = new Bundle
+}
 
-    val chiselArgs = args.slice(3, args.length)
-    val configFile = args(0)
-    val binFile = args(1)
-    val datFile = args(2)
+trait HasInterrupts {
+  val interrupts = Vec.fill(0){Bool()}
+}
 
-    Config.loadConfig(configFile)
-    Config.minPcWidth = util.log2Up((new File(binFile)).length.toInt / 4)
-    Config.datFile = datFile
-    chiselMain(chiselArgs, () => Module(new PatmosCore(binFile, 0, 0, true)))
-    // Print out the configuration
-    Utility.printConfig(configFile)
-  }
+trait HasPerfCounter {
+  val perf = new PerfCounterIO()
+}
+
+trait HasSuperMode {
+  val superMode = Bool(INPUT);
 }
 
 /**
@@ -188,102 +188,234 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   Config.minPcWidth = util.log2Up((new File(binFile)).length.toInt / 4)
   Config.datFile = datFile
 
-  val io = Config.getPatmosIO()
+  override val io = new Bundle()
 
   val nrCores = Config.getConfig.coreCount
-
-  val aegeanMode = !Config.getConfig.cmpDevices.contains("Argo")
 
   println("Config core count: " + nrCores)
 
   // Instantiate cores
-  val cores = (0 until nrCores).map(i => Module(new PatmosCore(binFile, i, nrCores, aegeanMode)))
+  val cores = (0 until nrCores).map(i => Module(new PatmosCore(binFile, i, nrCores)))
 
   // Forward ports to/from core
-  val cmpDevices = Config.getConfig.cmpDevices
   println("Config cmp: ")
-  val MAX_IO_DEVICES = 16
-  val cmpdevs = new Array[Module](MAX_IO_DEVICES)
-  
-  for(dev <- cmpDevices) {
-    println(dev)
-    dev match {
-      // Address 0 reserved for Argo
-      case "Argo" =>  cmpdevs(0) = Module(new argo.Argo(nrCores, wrapped=false, emulateBB=false))
-      case "Hardlock" => cmpdevs(1) = Module(new cmp.HardlockOCPWrapper(() => new cmp.Hardlock(nrCores, 1)))
-      case "SharedSPM" => cmpdevs(2) = Module(new cmp.SharedSPM(nrCores, (nrCores-1)*2*1024))
-      case "OneWay" => cmpdevs(3) = Module(new cmp.OneWayOCPWrapper(nrCores))
-      case "TdmArbiter" => cmpdevs(4) = Module(new cmp.TdmArbiter(nrCores))
-      case "OwnSPM" => cmpdevs(5) = Module(new cmp.OwnSPM(nrCores, (nrCores-1)*2, 1024))
-      case "SPMPool" => cmpdevs(6) = Module(new cmp.SPMPool(nrCores, (nrCores-1)*2, 1024))
-      case "S4noc" => cmpdevs(7) = Module(new cmp.S4nocOCPWrapper(nrCores, 4, 4))
-      case "CASPM" => cmpdevs(8) = Module(new cmp.CASPM(nrCores, nrCores * 8))
-      case "AsyncLock" => cmpdevs(9) = Module(new cmp.AsyncLock(nrCores, nrCores * 2))
-      case "UartCmp" => cmpdevs(10) = Module(new cmp.UartCmp(nrCores,CLOCK_FREQ,115200,16))
-      case "TwoWay" => cmpdevs(11) = Module(new cmp.TwoWayOCPWrapper(nrCores, 1024))
-      case "TransactionalMemory" => cmpdevs(12) = Module(new cmp.TransactionalMemory(nrCores, 512))
-      case "LedsCmp" => cmpdevs(13) = Module(new cmp.LedsCmp(nrCores, 1))
+
+  val pins = mutable.HashMap[String, Int]()
+
+  val connectPins = (name: String, _io: Data) =>  {
+    _io match {
+      case haspins: HasPins => {
+        println(name + " has pins")
+        var postfix = ""
+        if(pins.contains(name)) {
+          var tmp = pins(name)
+          tmp += 1
+          pins(name) = tmp
+          postfix = "_" + tmp
+        } else {
+          pins(name) = 0
+        }
+
+        for((pinid, pin) <- haspins.pins.elements) {
+          var _pinid = name + postfix + "_" + pinid
+          io.elements(_pinid) = pin.cloneType()
+          io.elements(_pinid) <> pin
+        }
+      }
       case _ =>
+    }}
+
+  val cmpdevs = Config.getConfig.cmpDevices.map(e => {
+    println(e)
+    val (off, _dev) = e match {
+      case "Argo" =>  (0xE800, Module(new argo.Argo(nrCores, wrapped=false, emulateBB=false)))
+      case "Hardlock" => (0xE801, Module(new cmp.HardlockOCPWrapper(() => new cmp.Hardlock(nrCores, 1))))
+      case "SharedSPM" => (0xE802, Module(new cmp.SharedSPM(nrCores, (nrCores-1)*2*1024)))
+      case "OneWay" => (0xE803, Module(new cmp.OneWayOCPWrapper(nrCores)))
+      case "TdmArbiter" => (0xE804, Module(new cmp.TdmArbiter(nrCores)))
+      case "OwnSPM" => (0xE805, Module(new cmp.OwnSPM(nrCores, (nrCores-1)*2, 1024)))
+      case "SPMPool" => (0xE806, Module(new cmp.SPMPool(nrCores, (nrCores-1)*2, 1024)))
+      case "S4noc" => (0xE807, Module(new cmp.S4nocOCPWrapper(nrCores, 4, 4)))
+      case "CASPM" => (0xE808, Module(new cmp.CASPM(nrCores, nrCores * 8)))
+      case "AsyncLock" => (0xE809, Module(new cmp.AsyncLock(nrCores, nrCores * 2)))
+      case "UartCmp" => (0xF008, Module(new cmp.UartCmp(nrCores,CLOCK_FREQ,115200,16)))
+      case "TwoWay" => (0xE80B, Module(new cmp.TwoWayOCPWrapper(nrCores, 1024)))
+      case "TransactionalMemory" => (0xE80C, Module(new cmp.TransactionalMemory(nrCores, 512)))
+      case "LedsCmp" => (0xE80D, Module(new cmp.LedsCmp(nrCores, 1)))
+      case _ => throw new Error("Unknown device " + e)
     }
-  }
-  
-  for(dev <- cmpdevs) {
-    if(dev != null) {
-      Config.connectIOPins(dev.getClass.getSimpleName, io, dev.io, "cmp.")
+
+    connectPins(_dev.getClass.getSimpleName, _dev.io)
+
+    new {
+      val offset = off
+      val dev = _dev
     }
-  }
+  })
 
   for (i <- (0 until nrCores)) {
 
-    // Dummy device for empty indexes
-    var dumio = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
-    dumio.S.Data := UInt(0)
-    val dumrespReg = Reg(init = OcpResp.NULL)
-    dumio.S.Resp := dumrespReg
-    dumrespReg := OcpResp.NULL
-    when(dumio.M.Cmd =/= OcpCmd.IDLE) {
-      dumrespReg := OcpResp.ERR
-    }
+    val IO_DEVICE_ADDR_WIDTH = 16
 
-    val cmpdevios = Vec(cmpdevs.map(e => 
-      if(e == null)
-        dumio
-      else
-        e.io match {
-          case cmpio: cmp.CmpIO => cmpio.cores(i)
-          case _ => e.io.asInstanceOf[Vec[OcpCoreSlavePort]](i)
+    // Default values for interrupt pins
+    cores(i).io.interrupts := UInt(0)
+
+    // Creation of IO devices
+    val conf = Config.getConfig
+
+    val cpuinfo = Module(new CpuInfo(Config.datFile, nrCores))
+    cpuinfo.io.nr := i.U
+    cpuinfo.io.cnt := nrCores.U
+
+    val singledevios = 
+      (Config.getConfig.Devs
+      .map(e => (e,Config.createDevice(e).asInstanceOf[CoreDevice]))
+      .filter(e => i == 0 || !e._2.io.isInstanceOf[HasPins])
+      .map{case (conf,dev) => 
+      {
+          if(dev.io.isInstanceOf[HasSuperMode]) {
+            dev.io.asInstanceOf[HasSuperMode].superMode <> cores(i).io.superMode
+          }
+          if(dev.io.isInstanceOf[HasPerfCounter]) {
+            dev.io.asInstanceOf[HasPerfCounter].perf <> cores(i).io.perf
+          }
+          if(dev.io.isInstanceOf[HasInterrupts]) {
+            val intio = dev.io.asInstanceOf[HasInterrupts]
+            if (intio.interrupts.length != conf.intrs.length) {
+              throw new Error("Inconsistent interrupt counts for IO device "+name)
+            }
+            for (j <- 0 until conf.intrs.length) {
+              cores(i).io.interrupts(conf.intrs(j)) := intio.interrupts(j)
+            }
+          }
+          new {
+            val off = conf.offset
+            val io = dev.io.asInstanceOf[Bundle]
+            val name = conf.name
+          }
+      }} ++ List(new {
+        val off = CPUINFO_OFFSET
+        val io = cpuinfo.io.asInstanceOf[Bundle]
+        val name = cpuinfo.moduleName
+      }, new {
+        val off = EXC_IO_OFFSET
+        val io = cores(i).io.excInOut
+        val name = "ExceptionUnit"
+      }, if(HAS_MMU) new {
+        val off = MMU_IO_OFFSET;
+        val io = cores(i).io.mmuInOut
+        val name = "mmu"
+      } else null).filter(e => e != null))
+      .map(e => {
+        new {
+          val addr = (0xF0 << 8) + e.off
+          val addrwidth = IO_DEVICE_ADDR_WIDTH
+          val io = e.io
+          val name = e.name
         }
-      ))
+      })
+    
+    val cmpdevios = cmpdevs
+      .map(e => new {
+        val addr = e.offset;
+        val addrwidth = IO_DEVICE_ADDR_WIDTH;
+        val io = (e.dev.io match {
+          case cmpio: cmp.CmpIO => cmpio.cores(i)
+          case _ => e.dev.io.asInstanceOf[Vec[OcpCoreSlavePort]](i)
+        }).asInstanceOf[Bundle]
+        val name = e.dev.moduleName
+      })
 
-    var addr = cores(i).io.comSpm.M.Addr(ADDR_WIDTH-1-12, ADDR_WIDTH-1-12-util.log2Up(MAX_IO_DEVICES)+1)
+    // The SPM
+    val spm = Module(new Spm(DSPM_SIZE))
 
-    val addrReg = RegInit(addr)
-    addrReg := Mux(cores(i).io.comSpm.M.Cmd =/= OcpCmd.IDLE, addr, addrReg)
+    // Dummy ISPM (create fake response)
+    val ispmio = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
+    ispmio.S.Data := 0.U
+    ispmio.S.Resp := RegNext(Mux(ispmio.M.Cmd === OcpCmd.IDLE, OcpResp.NULL, OcpResp.DVA))
 
-    cores(i).io.comSpm.S := cmpdevios(addrReg).S
-
-    for(j <- 0 until cmpdevios.length) {
-      cmpdevios(j).M := cores(i).io.comSpm.M
-      cmpdevios(j).M.Cmd := Mux(addr === UInt(j), cores(i).io.comSpm.M.Cmd, OcpCmd.IDLE)
+    val devios = (singledevios ++ cmpdevios) ++ List(
+      new {
+          val addr = 0x0
+          val addrwidth = 4
+          val io = spm.io
+          val name = "spm"
+        },
+      new {
+          val addr = 0x0001
+          val addrwidth = 16
+          val io = ispmio
+          val name = "ispm"
+        }
+    )
+    
+    for(dupldev <- devios
+                    .groupBy(e => e.addr)
+                    .collect { case (addr,e) if e.lengthCompare(1) > 0 => e}
+                    .flatten) {
+      throw new Error("Can't assign multiple devices to the same address. " +
+        "Device " + dupldev.name + " conflicting on address " +
+        dupldev.addr + ". ")
     }
 
-    // TODO: maybe a better way is for all interfaces to have the bits 'superMode' and 'flags'
-    // e.g., all IO devices should be possible to have interrupts
-    if(cmpdevs(0) != null && cmpdevs(0).isInstanceOf[Argo]){
-      cmpdevios(0).asInstanceOf[OcpArgoSlavePort].superMode := UInt(0)
-      cmpdevios(0).asInstanceOf[OcpArgoSlavePort].superMode(i) := cores(i).io.superMode
-      cores(i).io.comConf.S.Flag := cmpdevios(0).asInstanceOf[OcpArgoSlavePort].flags(2*i+1, 2*i)
+    val getSlavePort = (_io: Bundle) =>
+      _io match {
+        case __io: OcpCoreSlavePort => __io
+        case __io: CoreDeviceIO => __io.ocp
+      }
+
+    cores(i).io.memInOut.S.Data := UInt(0)
+    val validdev = Wire(Bool(), false.B)
+    for(dev <- devios) {
+      val ocp = getSlavePort(dev.io)
+
+      val sel = cores(i).io.memInOut.M.Addr(ADDR_WIDTH-1, ADDR_WIDTH-dev.addrwidth) === dev.addr.U && 
+        (if(dev.name == "spm") !cores(i).io.memInOut.M.Addr(ISPM_ONE_BIT) 
+         else true.B)
+      ocp.M := cores(i).io.memInOut.M
+      ocp.M.Cmd := OcpCmd.IDLE
+      when(sel) {
+        ocp.M.Cmd := cores(i).io.memInOut.M.Cmd
+        validdev := true.B
+      }
+      val selReg = RegInit(false.B)
+      when(cores(i).io.memInOut.M.Cmd =/= OcpCmd.IDLE) {
+        selReg := sel
+      }
+      when(selReg) {
+        cores(i).io.memInOut.S.Data := ocp.S.Data
+      }
+
+      // TODO: maybe a better way is for all interfaces to have the bits 'superMode' and 'flags'
+      // e.g., all IO devices should be possible to have interrupts
+      if(ocp.isInstanceOf[OcpArgoSlavePort]){
+        val argoslaveport = ocp.asInstanceOf[OcpArgoSlavePort]
+        argoslaveport.superMode := UInt(0)
+        argoslaveport.superMode(i) := cores(i).io.superMode
+
+        // Hard-wire the sideband flags from the NI to interrupt pins
+        cores(i).io.interrupts(NI_MSG_INTR) := argoslaveport.flags(2*i)
+        cores(i).io.interrupts(NI_EXT_INTR) := argoslaveport.flags(2*i+1)
+      }
+
+      connectPins(dev.name, dev.io)
     }
+
+    // Register for error response
+    val errRespReg = Reg(init = OcpResp.NULL)
+    when(cores(i).io.memInOut.M.Cmd =/= OcpCmd.IDLE && !validdev) {
+      errRespReg := OcpResp.ERR
+    }
+
+    // Merge responses
+    cores(i).io.memInOut.S.Resp := errRespReg | devios.map(e => getSlavePort(e.io).S.Resp).fold(OcpResp.NULL)(_|_)
   }
-
-  // Only core 0 gets its devices connected to pins
-  Config.connectAllIOPins(io, cores(0).io)
 
   // Connect memory controller
   val ramConf = Config.getConfig.ExtMem.ram
   val ramCtrl = Config.createDevice(ramConf).asInstanceOf[BurstDevice]
 
-  Config.connectIOPins(ramConf.name, io, ramCtrl.io)
+  connectPins(ramConf.name, ramCtrl.io)
 
   // TODO: fix memory arbiter to have configurable memory timing.
   // E.g., it does not work with on-chip main memory.

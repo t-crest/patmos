@@ -20,19 +20,6 @@ object MpuSensor extends DeviceObject {
     def create(params: Map[String, String]) : MpuSensor = {
       Module(new MpuSensor())
     }
-
-    trait Pins {
-      val mpuSensorPins = new Bundle() {
-          // I2C pins
-          val scl_out  = Bits(OUTPUT, width = 1)
-          // val sda_inout  = Bits(OUTPUT, width = 1)  // this is an inout pin
-          //val sda_inout  = Bits(INPUT, width = 1)
-          val sda_out  = Bits(OUTPUT, width = 1)
-          val sda_in  = Bits(INPUT, width = 1)
-          val we_out = Bits (OUTPUT, 1)
-          //val reset = Bits (INPUT,1)
-      }
-    }
 }
 
 //bundle for the blackbox
@@ -96,7 +83,18 @@ class MpuSensorBB() extends BlackBox {
 
 //wrapper
 class MpuSensor() extends CoreDevice() {
-      override val io = new CoreDeviceIO() with MpuSensor.Pins
+      override val io = new CoreDeviceIO() with patmos.HasPins {
+        override val pins = new Bundle() {
+          // I2C pins
+          val scl_out  = Bits(OUTPUT, width = 1)
+          // val sda_inout  = Bits(OUTPUT, width = 1)  // this is an inout pin
+          //val sda_inout  = Bits(INPUT, width = 1)
+          val sda_out  = Bits(OUTPUT, width = 1)
+          val sda_in  = Bits(INPUT, width = 1)
+          val we_out = Bits (OUTPUT, 1)
+          //val reset = Bits (INPUT,1)
+        }
+      }
 
       val bb = Module(new MpuSensorBB())
 
@@ -110,11 +108,11 @@ class MpuSensor() extends CoreDevice() {
       io.ocp.S.Data := ocpDataReg
 
       // pin connection between the blackbox and the wrapper
-      io.mpuSensorPins.scl_out := bb.io.scl_out
+      io.pins.scl_out := bb.io.scl_out
 
-      bb.io.sda_in := io.mpuSensorPins.sda_in
-      io.mpuSensorPins.sda_out := bb.io.sda_out
-      io.mpuSensorPins.we_out := bb.io.we_out // enable for tristate
+      bb.io.sda_in := io.pins.sda_in
+      io.pins.sda_out := bb.io.sda_out
+      io.pins.we_out := bb.io.we_out // enable for tristate
 
       // Address decoding for Reads
       when(io.ocp.M.Cmd === OcpCmd.RD) {

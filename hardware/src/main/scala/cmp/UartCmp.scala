@@ -12,29 +12,23 @@ import patmos.Constants._
 import patmos._
 import io.Uart
 
-object UartCmp {
-  trait Pins {
-    val uartCmpPins = new Bundle() {
-      val tx = Bits(OUTPUT, 1)
-      val rx = Bits(INPUT, 1)
-    }
-  }
-}
-
 class CmpIO(corecnt : Int) extends Bundle
 {
   val cores = Vec(corecnt, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))
-
-  override def clone = new CmpIO(corecnt).asInstanceOf[this.type]
 }
 
 class UartCmp(corecnt: Int, clk_freq: Int, baud_rate: Int, fifoDepth: Int) extends Module {
 
-  val io = new CmpIO(corecnt) with UartCmp.Pins
+  val io = new CmpIO(corecnt) with patmos.HasPins {
+    override val pins = new Bundle() {
+      val tx = Bits(OUTPUT, 1)
+      val rx = Bits(INPUT, 1)
+    }
+  }
   
   val uart = Module(new Uart(clk_freq,baud_rate,fifoDepth))
   
-  io.uartCmpPins <> uart.io.uartPins
+  io.pins <> uart.io.pins
 
   uart.io.ocp.M := PriorityMux(io.cores.map(e => (e.M.Cmd =/= OcpCmd.IDLE, e.M)))
   

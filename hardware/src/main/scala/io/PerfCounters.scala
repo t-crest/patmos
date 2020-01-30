@@ -22,17 +22,12 @@ object PerfCounters extends DeviceObject {
   def create(params: Map[String, String]) : PerfCounters = {
     Module(new PerfCounters())
   }
-
-  trait Pins {
-  }
 }
 
 class PerfCounters() extends CoreDevice() {
 
-  override val io = new CoreDeviceIO() with PerfCounters.Pins {
-    override val internalPort = new Bundle() {
-      val perf = new PerfCounterIO().asInput
-    }
+  override val io = new CoreDeviceIO() with patmos.HasPerfCounter {
+    override val perf = new PerfCounterIO().asInput
   }
 
   val masterReg = Reg(next = io.ocp.M)
@@ -51,16 +46,16 @@ class PerfCounters() extends CoreDevice() {
   val PERFCOUNTER_COUNT = 10
 
   val inputVec = Vec.fill(PERFCOUNTER_COUNT) { Reg(Bool()) }
-  inputVec(0) := io.internalPort.perf.ic.hit
-  inputVec(1) := io.internalPort.perf.ic.miss
-  inputVec(2) := io.internalPort.perf.dc.hit
-  inputVec(3) := io.internalPort.perf.dc.miss
-  inputVec(4) := io.internalPort.perf.sc.spill
-  inputVec(5) := io.internalPort.perf.sc.fill
-  inputVec(6) := io.internalPort.perf.wc.hit
-  inputVec(7) := io.internalPort.perf.wc.miss
-  inputVec(8) := io.internalPort.perf.mem.read
-  inputVec(9) := io.internalPort.perf.mem.write
+  inputVec(0) := io.perf.ic.hit
+  inputVec(1) := io.perf.ic.miss
+  inputVec(2) := io.perf.dc.hit
+  inputVec(3) := io.perf.dc.miss
+  inputVec(4) := io.perf.sc.spill
+  inputVec(5) := io.perf.sc.fill
+  inputVec(6) := io.perf.wc.hit
+  inputVec(7) := io.perf.wc.miss
+  inputVec(8) := io.perf.mem.read
+  inputVec(9) := io.perf.mem.write
 
   val counterVec = Vec.fill(PERFCOUNTER_COUNT) { Reg(init = UInt(0, width = DATA_WIDTH)) }
   for (i <- 0 until PERFCOUNTER_COUNT) {

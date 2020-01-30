@@ -33,8 +33,6 @@ object SSPM extends DeviceObject {
   }
 
   def create(params: Map[String, String]): SSPM = Module(new SSPM(nCores, extendedSlotSize, singleExtendedSlot))
-
-  trait Pins {}
 }
 
 /**

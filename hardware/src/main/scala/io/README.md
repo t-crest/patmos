@@ -21,16 +21,15 @@ object FooBar extends DeviceObject {
     val bar = ...
     Module(new FooBar(foo, bar))
   }
-  trait Pins {
-    val fooBarPins = new Bundle() {
+}
+
+class FooBar(foo : ..., bar: ...) extends CoreDevice() {
+  override val io = new CoreDeviceIO() with patmos.HasPins {
+    override pins =  = new Bundle() {
        val abc = ...
        val xyz = ...
     }
   }
-}
-
-class FooBar(foo : ..., bar: ...) extends CoreDevice() {
-  override val io = new CoreDeviceIO() with FooBar.Pins
   ...
 }
 ```

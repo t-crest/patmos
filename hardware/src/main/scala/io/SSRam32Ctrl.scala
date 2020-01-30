@@ -45,13 +45,6 @@ object SSRam32Ctrl extends DeviceObject {
   def create(params: Map[String, String]) : SSRam32Ctrl = {
     Module(new SSRam32Ctrl(addrBits = addrBits, burstLen = BURST_LENGTH))
   }
-
-  trait Pins {
-    val sSRam32CtrlPins = new Bundle() {
-      val ramOut = new RamOutType(addrBits-2).asOutput
-      val ramIn = new RamInType().asInput
-    }
-  }
 }
 
 /*
@@ -65,7 +58,12 @@ class SSRam32Ctrl (
    ramWsWr : Int = 0,
    burstLen : Int = 4
 ) extends BurstDevice(addrBits) {
-  override val io = new BurstDeviceIO(addrBits) with SSRam32Ctrl.Pins
+  override val io = new BurstDeviceIO(addrBits) with patmos.HasPins {
+    override val pins = new Bundle() {
+      val ramOut = new RamOutType(addrBits-2).asOutput
+      val ramIn = new RamInType().asInput
+    }
+  }
 
   val idle :: rd1 :: wr1 :: Nil = Enum(UInt(), 3)
   val ssramState = Reg(init = idle)
@@ -107,8 +105,8 @@ class SSRam32Ctrl (
   //following helps to output only when output data is valid
   io.ocp.S.Data := rdData
   when (rdDataEna === Bits(1)) {
-    io.ocp.S.Data := io.sSRam32CtrlPins.ramIn.din
-    rdData := io.sSRam32CtrlPins.ramIn.din //read data can be used depending how the top-level keeps register of input or not
+    io.ocp.S.Data := io.pins.ramIn.din
+    rdData := io.pins.ramIn.din //read data can be used depending how the top-level keeps register of input or not
   }
 
   when (ssramState === rd1) {
@@ -174,29 +172,29 @@ class SSRam32Ctrl (
     waitState := UInt(ramWsWr + 1)
   }
 
-  io.sSRam32CtrlPins.ramOut.dout := io.ocp.M.Data
+  io.pins.ramOut.dout := io.ocp.M.Data
   when (doutEna === Bits(1)) {
-    io.sSRam32CtrlPins.ramOut.dout := ramDout
+    io.pins.ramOut.dout := ramDout
   }
 
   //output registers
-  io.sSRam32CtrlPins.ramOut.nadsc := nadsc
-  io.sSRam32CtrlPins.ramOut.noe := noe
-  io.sSRam32CtrlPins.ramOut.nbwe := nbwe
-  io.sSRam32CtrlPins.ramOut.nbw := nbw
-  io.sSRam32CtrlPins.ramOut.nadv := nadv
-  io.sSRam32CtrlPins.ramOut.doutEna := doutEna
-  io.sSRam32CtrlPins.ramOut.addr := Cat(address(addrBits-3, log2Up(burstLen)), burstCnt)
+  io.pins.ramOut.nadsc := nadsc
+  io.pins.ramOut.noe := noe
+  io.pins.ramOut.nbwe := nbwe
+  io.pins.ramOut.nbw := nbw
+  io.pins.ramOut.nadv := nadv
+  io.pins.ramOut.doutEna := doutEna
+  io.pins.ramOut.addr := Cat(address(addrBits-3, log2Up(burstLen)), burstCnt)
   //output to master
   io.ocp.S.Resp := resp
   io.ocp.S.DataAccept := dataAccept
   io.ocp.S.CmdAccept := cmdAccept
   //output fixed signals
-  io.sSRam32CtrlPins.ramOut.ngw := Bits(1)
-  io.sSRam32CtrlPins.ramOut.nce1 := Bits(0)
-  io.sSRam32CtrlPins.ramOut.ce2 := Bits(1)
-  io.sSRam32CtrlPins.ramOut.nce3 := Bits(0)
-  io.sSRam32CtrlPins.ramOut.nadsp := Bits(1)
+  io.pins.ramOut.ngw := Bits(1)
+  io.pins.ramOut.nce1 := Bits(0)
+  io.pins.ramOut.ce2 := Bits(1)
+  io.pins.ramOut.nce3 := Bits(0)
+  io.pins.ramOut.nadsp := Bits(1)
 }
 
 /*

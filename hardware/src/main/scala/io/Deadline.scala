@@ -51,8 +51,6 @@ object Deadline extends DeviceObject {
   def init(params: Map[String, String]) = {}
 
   def create(params: Map[String, String]): Deadline = Module(new Deadline())
-
-  trait Pins {}
 }
 
 /*
