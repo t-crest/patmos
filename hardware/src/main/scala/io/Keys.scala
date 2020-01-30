@@ -23,19 +23,19 @@ object Keys extends DeviceObject {
   }
 
   trait Pins {
-    val keysPins = new Bundle() {
+    val keysPins = Wire(new Bundle() {
       val key = Bits(INPUT, keyCount)
-    }
+    })
   }
 
   trait Intrs {
-    val keysIntrs = Vec.fill(keyCount) { Bool(OUTPUT) }
+    val keysIntrs = Wire(Vec(keyCount, Bool().asOutput ))
   }
 }
 
 class Keys(keyCount : Int) extends CoreDevice() {
 
-  override val io = new CoreDeviceIO() with Keys.Pins with Keys.Intrs
+  override val io = IO(new CoreDeviceIO() with Keys.Pins with Keys.Intrs )
 
   val keySyncReg = Reg(Bits(width = keyCount))
   val keyReg = Reg(Bits(width = keyCount))

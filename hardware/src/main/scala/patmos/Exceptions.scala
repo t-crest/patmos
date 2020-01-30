@@ -39,10 +39,10 @@ class Exceptions extends Module {
   val sleepReg = RegInit(Bool(false))
 
   // Latches for incoming exceptions and interrupts
-  val excPend     = Vec(EXC_COUNT, Bool())
-  val excPendReg  = Vec(EXC_COUNT, RegInit(Bool(false)))
-  val intrPend    = Vec(EXC_COUNT, Bool())
-  val intrPendReg = Vec(EXC_COUNT, RegInit(Bool(false)))
+  val excPend     = Wire(Vec(EXC_COUNT, Bool()))
+  val excPendReg  = Wire(Vec(EXC_COUNT, RegInit(Bool(false))))
+  val intrPend    = Wire(Vec(EXC_COUNT, Bool()))
+  val intrPendReg = Wire(Vec(EXC_COUNT, RegInit(Bool(false))))
   excPend := excPendReg
   intrPend := intrPendReg
 

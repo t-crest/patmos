@@ -37,10 +37,10 @@ class InOut(nr: Int, cnt: Int, withComConf: Boolean) extends Module {
   assert(Bool(IO_DEVICE_ADDR_SIZE + IO_DEVICE_OFFSET < ADDR_WIDTH-4),
                                     "Conflicting addressspaces of IO devices")
 
-  val validDeviceVec = Vec.fill(MAX_IO_DEVICES) { Bool() }
+  val validDeviceVec = Wire(Vec(MAX_IO_DEVICES, Bool()))
   val validDevices = Array.fill(MAX_IO_DEVICES) { false }
-  val selDeviceVec = Vec.fill(MAX_IO_DEVICES) { Bool() }
-  val deviceSVec = Vec.fill(MAX_IO_DEVICES) { new OcpSlaveSignals(DATA_WIDTH) }
+  val selDeviceVec = Wire(Vec(MAX_IO_DEVICES, Bool()))
+  val deviceSVec = Wire(Vec(MAX_IO_DEVICES, new OcpSlaveSignals(DATA_WIDTH)))
   for (i <- 0 until MAX_IO_DEVICES) {
     validDeviceVec(i) := Bool(false)
     selDeviceVec(i) := selIO & io.memInOut.M.Addr(IO_DEVICE_ADDR_SIZE

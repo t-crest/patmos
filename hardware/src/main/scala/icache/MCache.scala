@@ -159,8 +159,8 @@ class MCacheReplFifo() extends Module {
   io.perf.miss := Bool(false)
 
   // hit detection
-  val hitVec = { Vec.fill(METHOD_COUNT) { Bool() } }
-  val mergePosVec = { Vec.fill(METHOD_COUNT) { UInt(width = MCACHE_SIZE_WIDTH) } }
+  val hitVec =  Wire(Vec(METHOD_COUNT, Bool() ))
+  val mergePosVec = Wire(Vec(METHOD_COUNT,  UInt(width = MCACHE_SIZE_WIDTH) ))
   for (i <- 0 until METHOD_COUNT) {
     hitVec(i) := Bool(false)
     mergePosVec(i) := UInt(0)
