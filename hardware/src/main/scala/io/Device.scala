@@ -60,7 +60,7 @@ abstract class DeviceObject() {
 }
 
 abstract class Device() extends Module() {
-  val io = new InternalIO()
+  val io = IO(new InternalIO())
 }
 
 class InternalIO() extends Bundle() {
