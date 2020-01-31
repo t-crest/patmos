@@ -13,9 +13,106 @@ import Constants._
 
 class Decode() extends Module {
   val io = IO(new DecodeIO())
+  // Itermidiate solution copying opcodes from Constants.scala as all chiseltype constants are giving runtime errors when importet from the constants file
+  val OPCODE_ALUI = UInt("b00")
+  val OPCODE_ALU = UInt("b01000")
+  val OPCODE_SPC = UInt("b01001")
+  val OPCODE_LDT = UInt("b01010")
+  val OPCODE_STT = UInt("b01011")
+
+  val OPCODE_STC = UInt("b01100")
+
+  val OPCODE_CFL_CALLND = UInt("b10000")
+  val OPCODE_CFL_BRND   = UInt("b10010")
+  val OPCODE_CFL_BRCFND = UInt("b10100")
+  val OPCODE_CFL_TRAP   = UInt("b10110")
+
+  val OPCODE_CFL_CALL   = UInt("b10001")
+  val OPCODE_CFL_BR     = UInt("b10011")
+  val OPCODE_CFL_BRCF   = UInt("b10101")
+
+  val OPCODE_CFL_CFLRND = UInt("b11000")
+  val OPCODE_CFL_CFLR   = UInt("b11001")
+
+  val OPCODE_ALUL = UInt("b11111")
+
+  val OPC_ALUR  = UInt("b000")
+  val OPC_ALUU  = UInt("b001")
+  val OPC_ALUM  = UInt("b010")
+  val OPC_ALUC  = UInt("b011")
+  val OPC_ALUP  = UInt("b100")
+  val OPC_ALUB  = UInt("b101")
+  val OPC_ALUCI = UInt("b110")
+
+  val OPC_MTS = UInt("b010")
+  val OPC_MFS = UInt("b011")
+
+  val MSIZE_W = UInt("b000")
+  val MSIZE_H = UInt("b001")
+  val MSIZE_B = UInt("b010")
+  val MSIZE_HU = UInt("b011")
+  val MSIZE_BU = UInt("b100")
+
+  val MTYPE_S = UInt("b00")
+  val MTYPE_L = UInt("b01")
+  val MTYPE_C = UInt("b10")
+  val MTYPE_M = UInt("b11")
+
+  val FUNC_ADD = UInt("b0000")
+  val FUNC_SUB = UInt("b0001")
+  val FUNC_XOR = UInt("b0010")
+  val FUNC_SL = UInt("b0011")
+  val FUNC_SR = UInt("b0100")
+  val FUNC_SRA = UInt("b0101")
+  val FUNC_OR = UInt("b0110")
+  val FUNC_AND = UInt("b0111")
+  val FUNC_NOR = UInt("b1011")
+  val FUNC_SHADD = UInt("b1100")
+  val FUNC_SHADD2 = UInt("b1101")
+
+  val MFUNC_MUL = UInt("b0000")
+  val MFUNC_MULU = UInt("b0001")
+
+  val CFUNC_EQ = UInt("b0000")
+  val CFUNC_NEQ = UInt("b0001")
+  val CFUNC_LT = UInt("b0010")
+  val CFUNC_LE = UInt("b0011")
+  val CFUNC_ULT = UInt("b0100")
+  val CFUNC_ULE = UInt("b0101")
+  val CFUNC_BTEST = UInt("b0110")
+
+  val PFUNC_OR = UInt("b00")
+  val PFUNC_AND = UInt("b01")
+  val PFUNC_XOR = UInt("b10")
+  val PFUNC_NOR = UInt("b11")
+
+  val JFUNC_RET   = UInt("b0000")
+  val JFUNC_XRET  = UInt("b0001")
+  val JFUNC_CALL  = UInt("b0100")
+  val JFUNC_BR    = UInt("b0101")
+  val JFUNC_BRCF  = UInt("b1010")
+
+  val SPEC_FL = UInt("b0000")
+  val SPEC_SL = UInt("b0010")
+  val SPEC_SH = UInt("b0011")
+  val SPEC_SS = UInt("b0101")
+  val SPEC_ST = UInt("b0110")
+
+  val SPEC_SRB = UInt("b0111")
+  val SPEC_SRO = UInt("b1000")
+  val SPEC_SXB = UInt("b1001")
+  val SPEC_SXO = UInt("b1010")
+
+  val STC_SRES   = UInt("b0000")
+  val STC_SENS   = UInt("b0100")
+  val STC_SFREE  = UInt("b1000")
+  val STC_SSPILL = UInt("b1100")
+
+  val STC_SENSR   = UInt("b0101")
+  val STC_SSPILLR = UInt("b1101")
+
 
   val rf = Module(new RegisterFile())
-
   // register file is connected with unregistered instruction word
   rf.io.rfRead.rsAddr(0) := io.fedec.instr_a(16, 12)
   rf.io.rfRead.rsAddr(1) := io.fedec.instr_a(11, 7)
@@ -56,9 +153,10 @@ class Decode() extends Module {
   }
 
   val decoded = Wire(Vec(PIPE_COUNT, Bool()))
-  decoded.map(_ := Bool(false))
+  decoded := Vec.fill(PIPE_COUNT) {Bool(false)}
 
   // Decoding of dual-issue operations
+  println("SofarSoGood")
   val dual = decReg.instr_a(INSTR_WIDTH - 1) && decReg.instr_a(26, 22) =/= OPCODE_ALUL;
   for (i <- 0 until PIPE_COUNT) {
     val instr   = if (i == 0) { decReg.instr_a } else { decReg.instr_b }
