@@ -50,8 +50,6 @@ object BranchPredictIO extends DeviceObject {
   def init(params: Map[String, String]) = {}
 
   def create(params: Map[String, String]): BranchPredictIO = Module(new BranchPredictIO())
-
-  trait Pins {}
 }
 
 /*

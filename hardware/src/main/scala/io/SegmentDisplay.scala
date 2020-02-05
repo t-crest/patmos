@@ -24,18 +24,16 @@ object SegmentDisplay extends DeviceObject {
   def create(params: Map[String, String]) : SegmentDisplay = {
     Module(new SegmentDisplay(displayCount, segmentPolarity))
   }
-
-  trait Pins {
-    val segmentDisplayPins = new Bundle() {
-      val hexDisp = Vec.fill(displayCount) {Bits(OUTPUT, 7)}
-    }
-  }
 }
 
 class SegmentDisplay(displayCount : Int, segmentPolarity: Int) extends CoreDevice() {
 
     // Override
-    override val io = new CoreDeviceIO() with SegmentDisplay.Pins
+    override val io = new CoreDeviceIO() with patmos.HasPins {
+      override val pins = new Bundle() {
+        val hexDisp = Vec.fill(displayCount) {Bits(OUTPUT, 7)}
+      }
+    }
 
     // Master register
     val masterReg = Reg(next = io.ocp.M)
@@ -79,6 +77,6 @@ class SegmentDisplay(displayCount : Int, segmentPolarity: Int) extends CoreDevic
     io.ocp.S.Data := dataReg
 
     // Connections to IO
-    io.segmentDisplayPins.hexDisp := dispRegVec
+    io.pins.hexDisp := dispRegVec
     
 }

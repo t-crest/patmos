@@ -159,8 +159,8 @@ int ptpv2_handle_msg(PTPPortInfo ptpPortInfo, unsigned tx_addr, unsigned rx_addr
 	unsigned int timestampSeconds =  (unsigned) PTP_RXCHAN_TIMESTAMP_SEC(ptpPortInfo.eth_base);
 	PTP_RXCHAN_STATUS(thisPtpPortInfo.eth_base) = 0x1; //Clear PTP flag
 	#else
-	unsigned int timestampNanoseconds = (unsigned) RTC_TIME_NS;
-	unsigned int timestampSeconds =  (unsigned) RTC_TIME_SEC;
+	unsigned int timestampNanoseconds = (unsigned) RTC_TIME_NS(ptpPortInfo.eth_base);
+	unsigned int timestampSeconds =  (unsigned) RTC_TIME_SEC(ptpPortInfo.eth_base);
 	#endif
 	ipv4_get_source_ip(rx_addr, source_ip);
 	udp_get_data(rx_addr, (unsigned char*) &rxPTPMsg, udp_get_data_length(rx_addr));
@@ -251,11 +251,11 @@ void ptp_correct_offset(PTPPortInfo ptpPortInfo){
 		if(PTP_RATE_CONTROL==0 || abs(ptpTimeRecord.offsetNanoseconds) > PTP_NS_OFFSET_THRESHOLD){
 			RTC_TIME_NS(ptpPortInfo.eth_base) = (unsigned) (-(ptpTimeRecord.offsetNanoseconds) + WCET_COMPENSATION + (int)RTC_TIME_NS(ptpPortInfo.eth_base));	//reverse order to load time operand last
 		} else {
-			// float driftCompens = (DRIFT_RATE * SYNC_INTERVAL_OPTIONS[-((signed char)ptpTimeRecord.syncInterval)]) / SEC_TO_USEC;
 			RTC_ADJUST_OFFSET(ptpPortInfo.eth_base) = (int) (ptpTimeRecord.offsetNanoseconds);
 		}
 	}
 }
+
 
 //Calculates the offset from the master clock based on timestamps T1, T2
 int ptp_calc_offset(int t1, int t2, int delay){
@@ -284,12 +284,24 @@ unsigned char ptp_filter_clockport(unsigned char sourceId[8], unsigned short sou
 	return ans;
 }
 
+unsigned long long get_ptp_nanos(unsigned int eth_base){
+	return (unsigned long long) ((unsigned long long) SEC_TO_NS * RTC_TIME_SEC(eth_base) + (unsigned long long) RTC_TIME_NS(eth_base));
+}
+
 unsigned long long get_ptp_usecs(unsigned int eth_base){
 	return (unsigned long long) (SEC_TO_USEC * RTC_TIME_SEC(eth_base)) + (NS_TO_USEC * (RTC_TIME_NS(eth_base)));
 }
 
 unsigned int get_ptp_secs(unsigned int eth_base){
 	return (unsigned int) (RTC_TIME_SEC(eth_base));
+}
+
+unsigned long long get_rx_timestamp_usecs(unsigned int eth_base){
+	return (unsigned long long) (SEC_TO_USEC * PTP_RXCHAN_TIMESTAMP_SEC(eth_base)) + (NS_TO_USEC * (PTP_RXCHAN_TIMESTAMP_NS(eth_base)));
+}
+
+unsigned long long get_tx_timestamp_usecs(unsigned int eth_base){
+	return (unsigned long long) (SEC_TO_USEC * PTP_TXCHAN_TIMESTAMP_SEC(eth_base)) + (NS_TO_USEC * (PTP_TXCHAN_TIMESTAMP_NS(eth_base)));
 }
 
 void print_bytes(unsigned char byte_buffer[], unsigned int len){

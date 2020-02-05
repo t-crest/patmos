@@ -21,9 +21,12 @@ object Nexys4DDRIO extends DeviceObject {
   def create(params: Map[String, String]) : Nexys4DDRIO = {
     Module(new Nexys4DDRIO(extAddrWidth=extAddrWidth, dataWidth=dataWidth))
   }
+}
 
-  trait Pins {
-    val nexys4DDRIOPins = new Bundle() {
+class Nexys4DDRIO(extAddrWidth : Int = 32,
+                     dataWidth : Int = 32) extends CoreDevice() {
+  override val io = new CoreDeviceIO() with patmos.HasPins {
+    override val pins = new Bundle() {
       val MCmd = UInt(OUTPUT,3)
       val MAddr = UInt(OUTPUT,extAddrWidth)
       val MData = UInt(OUTPUT,dataWidth)
@@ -32,16 +35,11 @@ object Nexys4DDRIO extends DeviceObject {
       val SData = UInt(INPUT,dataWidth)
     }
   }
-}
-
-class Nexys4DDRIO(extAddrWidth : Int = 32,
-                     dataWidth : Int = 32) extends CoreDevice() {
-  override val io = new CoreDeviceIO() with Nexys4DDRIO.Pins
   //Assigments of inputs and outputs
-  io.nexys4DDRIOPins.MCmd := io.ocp.M.Cmd
-  io.nexys4DDRIOPins.MAddr := io.ocp.M.Addr(extAddrWidth-1, 0)
-  io.nexys4DDRIOPins.MData := io.ocp.M.Data
-  io.nexys4DDRIOPins.MByteEn := io.ocp.M.ByteEn
-  io.ocp.S.Resp := io.nexys4DDRIOPins.SResp
-  io.ocp.S.Data := io.nexys4DDRIOPins.SData
+  io.pins.MCmd := io.ocp.M.Cmd
+  io.pins.MAddr := io.ocp.M.Addr(extAddrWidth-1, 0)
+  io.pins.MData := io.ocp.M.Data
+  io.pins.MByteEn := io.ocp.M.ByteEn
+  io.ocp.S.Resp := io.pins.SResp
+  io.ocp.S.Data := io.pins.SData
 }

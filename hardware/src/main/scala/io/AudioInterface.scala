@@ -41,9 +41,13 @@ object AudioInterface extends DeviceObject
     Module(new AudioInterface (AUDIOLENGTH, AUDIOFSDIVIDER, AUDIOCLKDIVIDER, MAXDACBUFFERPOWER, MAXADCBUFFERPOWER))
   }
 
-  trait Pins
-  {
-    val audioInterfacePins = new Bundle()
+
+
+}
+
+class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int, MAXDACBUFFERPOWER: Int, MAXADCBUFFERPOWER: Int) extends CoreDevice() {
+  override val io = new CoreDeviceIO() with patmos.HasPins {
+    override val pins = new Bundle()
     {
       // Digital Audio Interface
       val dacDat = Bits (OUTPUT, 1)
@@ -61,13 +65,6 @@ object AudioInterface extends DeviceObject
       val bclk = Bits (OUTPUT,1)
     }
   }
-
-
-
-}
-
-class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int, MAXDACBUFFERPOWER: Int, MAXADCBUFFERPOWER: Int) extends CoreDevice() {
-  override val io = new CoreDeviceIO() with AudioInterface.Pins
 
   val AUDIOFSDIVIDERReg	 = Reg(init = Bits(AUDIOFSDIVIDER,9))
   val AUDIOCLKDIVIDERReg = Reg(init = Bits(AUDIOCLKDIVIDER,5))
@@ -166,8 +163,8 @@ class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int
   val mAudioClk = Module(new AudioClkGen(AUDIOCLKDIVIDER))
   mAudioClk.io.enAdcI := audioAdcEnReg
   mAudioClk.io.enDacI := audioDacEnReg
-  io.audioInterfacePins.bclk := mAudioClk.io.bclkO
-  io.audioInterfacePins.xclk := mAudioClk.io.xclkO
+  io.pins.bclk := mAudioClk.io.bclkO
+  io.pins.xclk := mAudioClk.io.xclkO
 
 
   //DAC Buffer:
@@ -193,8 +190,8 @@ class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int
 
   // DAC to others:
   mAudioDac.io.bclkI := mAudioClk.io.bclkO
-  io.audioInterfacePins.dacLrc := mAudioDac.io.dacLrcO
-  io.audioInterfacePins.dacDat := mAudioDac.io.dacDatO
+  io.pins.dacLrc := mAudioDac.io.dacLrcO
+  io.pins.dacDat := mAudioDac.io.dacDatO
 
   //ADC Buffer:
   val mAudioAdcBuffer = Module(new AudioADCBuffer(AUDIOLENGTH, MAXADCBUFFERPOWER))
@@ -222,9 +219,9 @@ class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int
 
   // ADC to others:
   mAudioAdc.io.bclkI := mAudioClk.io.bclkO
-  io.audioInterfacePins.adcLrc := mAudioAdc.io.adcLrcO //comment for simulation
+  io.pins.adcLrc := mAudioAdc.io.adcLrcO //comment for simulation
   //mAudioWM8731AdcModel.io.adcLrc := mAudioAdc.io.adcLrcO //comment for FPGA
-  mAudioAdc.io.adcDatI := io.audioInterfacePins.adcDat //comment for simulation
+  mAudioAdc.io.adcDatI := io.pins.adcDat //comment for simulation
   //mAudioAdc.io.adcDatI := mAudioWM8731AdcModel.io.adcDat //comment for FPGA
 
   //IC2 Control Interface
@@ -234,8 +231,8 @@ class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int
   mAudioCtrl.io.reqI := i2cReqReg
   i2cAckReg := mAudioCtrl.io.ackO
 
-  mAudioCtrl.io.sdinI := io.audioInterfacePins.sdIn
-  io.audioInterfacePins.we := mAudioCtrl.io.weO
-  io.audioInterfacePins.sdOut := mAudioCtrl.io.sdinO
-  io.audioInterfacePins.sclkOut := mAudioCtrl.io.sclkO
+  mAudioCtrl.io.sdinI := io.pins.sdIn
+  io.pins.we := mAudioCtrl.io.weO
+  io.pins.sdOut := mAudioCtrl.io.sdinO
+  io.pins.sclkOut := mAudioCtrl.io.sclkO
 }

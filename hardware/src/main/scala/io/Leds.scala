@@ -21,17 +21,15 @@ object Leds extends DeviceObject {
   def create(params: Map[String, String]) : Leds = {
     Module(new Leds(ledCount))
   }
-
-  trait Pins {
-    val ledsPins = new Bundle() {
-      val led = Bits(OUTPUT, ledCount)
-    }
-  }
 }
 
 class Leds(ledCount : Int) extends CoreDevice() {
 
-  override val io = new CoreDeviceIO() with Leds.Pins
+  override val io = new CoreDeviceIO() with patmos.HasPins {
+    override val pins = new Bundle() {
+      val led = Bits(OUTPUT, ledCount)
+    }
+  }
 
   val ledReg = Reg(init = Bits(0, ledCount))
 
@@ -55,5 +53,5 @@ class Leds(ledCount : Int) extends CoreDevice() {
   io.ocp.S.Data := ledReg
 
   // Connection to pins
-  io.ledsPins.led := Reg(next = ledReg)
+  io.pins.led := Reg(next = ledReg)
 }

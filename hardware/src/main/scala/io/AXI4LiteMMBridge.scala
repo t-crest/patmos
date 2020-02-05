@@ -7,25 +7,25 @@ import ocp._
 object AXI4LiteMMBridge extends DeviceObject {
   var extAddrWidth = 32
   var dataWidth = 32
-  var bitsPerByte = 8
-  var bytesPerWord = dataWidth / bitsPerByte
 
   def init(params: Map[String, String]) = {
     extAddrWidth = getPosIntParam(params, "extAddrWidth")
     dataWidth = getPosIntParam(params, "dataWidth")
-    bytesPerWord = dataWidth / bitsPerByte
   }
 
   def create(params: Map[String, String]): AXI4LiteMMBridge = {
     Module(new AXI4LiteMMBridge(extAddrWidth, dataWidth))
   }
 
-  trait Pins {
-    val aXI4LiteMMBridgePins = new Bundle() {
-      val araddr = Bits(OUTPUT, extAddrWidth)
+}
+
+class AXI4LiteMMBridge(addrWidth: Int = 32, dataWidth: Int = 32) extends CoreDevice() {
+  override val io = new CoreDeviceIO() with patmos.HasPins {
+    override val pins = new Bundle() {
+      val araddr = Bits(OUTPUT, addrWidth)
       val arready = Bool(INPUT)
       val arvalid = Bool(OUTPUT)
-      val awaddr = Bits(OUTPUT, extAddrWidth)
+      val awaddr = Bits(OUTPUT, addrWidth)
       val awready = Bool(INPUT)
       val awvalid = Bool(OUTPUT)
       val bready = Bool(OUTPUT)
@@ -37,15 +37,10 @@ object AXI4LiteMMBridge extends DeviceObject {
       val rvalid = Bool(INPUT)
       val wdata = Bits(OUTPUT, dataWidth)
       val wready = Bool(INPUT)
-      val wstrb = Bits(OUTPUT, bytesPerWord)
+      val wstrb = Bits(OUTPUT, dataWidth / 8)
       val wvalid = Bool(OUTPUT)
     }
   }
-
-}
-
-class AXI4LiteMMBridge(addrWidth: Int = 32, dataWidth: Int = 32) extends CoreDevice() {
-  override val io = new CoreDeviceIO() with AXI4LiteMMBridge.Pins
 
   val mAxiPort = new AxiLiteMasterPort(addrWidth, dataWidth)
 
@@ -96,22 +91,22 @@ class AXI4LiteMMBridge(addrWidth: Int = 32, dataWidth: Int = 32) extends CoreDev
   // io.aXI4LiteMMBridgePins.wvalid.setName("m_axi_wvalid")
 
   // IO plumbing
-  io.aXI4LiteMMBridgePins.araddr := mAxiPort.ar.bits.addr
-  mAxiPort.ar.ready := io.aXI4LiteMMBridgePins.arready
-  io.aXI4LiteMMBridgePins.arvalid := mAxiPort.ar.valid
-  io.aXI4LiteMMBridgePins.awaddr := mAxiPort.aw.bits.addr
-  mAxiPort.aw.ready := io.aXI4LiteMMBridgePins.awready
-  io.aXI4LiteMMBridgePins.awvalid := mAxiPort.aw.valid
-  io.aXI4LiteMMBridgePins.bready := mAxiPort.b.ready
-  mAxiPort.b.bits.resp := io.aXI4LiteMMBridgePins.bresp
-  mAxiPort.b.valid := io.aXI4LiteMMBridgePins.bvalid
-  mAxiPort.r.bits.data := io.aXI4LiteMMBridgePins.rdata
-  io.aXI4LiteMMBridgePins.rready := mAxiPort.r.ready
-  mAxiPort.r.bits.resp := io.aXI4LiteMMBridgePins.rresp
-  mAxiPort.r.valid := io.aXI4LiteMMBridgePins.rvalid
-  io.aXI4LiteMMBridgePins.wdata := mAxiPort.w.bits.data
-  mAxiPort.w.ready := io.aXI4LiteMMBridgePins.wready
-  io.aXI4LiteMMBridgePins.wstrb := mAxiPort.w.bits.strb
-  io.aXI4LiteMMBridgePins.wvalid := mAxiPort.w.valid
+  io.pins.araddr := mAxiPort.ar.bits.addr
+  mAxiPort.ar.ready := io.pins.arready
+  io.pins.arvalid := mAxiPort.ar.valid
+  io.pins.awaddr := mAxiPort.aw.bits.addr
+  mAxiPort.aw.ready := io.pins.awready
+  io.pins.awvalid := mAxiPort.aw.valid
+  io.pins.bready := mAxiPort.b.ready
+  mAxiPort.b.bits.resp := io.pins.bresp
+  mAxiPort.b.valid := io.pins.bvalid
+  mAxiPort.r.bits.data := io.pins.rdata
+  io.pins.rready := mAxiPort.r.ready
+  mAxiPort.r.bits.resp := io.pins.rresp
+  mAxiPort.r.valid := io.pins.rvalid
+  io.pins.wdata := mAxiPort.w.bits.data
+  mAxiPort.w.ready := io.pins.wready
+  io.pins.wstrb := mAxiPort.w.bits.strb
+  io.pins.wvalid := mAxiPort.w.valid
 
 }

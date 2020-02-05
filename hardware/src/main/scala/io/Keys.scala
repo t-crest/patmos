@@ -21,21 +21,16 @@ object Keys extends DeviceObject {
   def create(params: Map[String, String]) : Keys = {
     Module(new Keys(keyCount))
   }
-
-  trait Pins {
-    val keysPins = Wire(new Bundle() {
-      val key = Bits(INPUT, keyCount)
-    })
-  }
-
-  trait Intrs {
-    val keysIntrs = Wire(Vec(keyCount, Bool().asOutput ))
-  }
 }
 
 class Keys(keyCount : Int) extends CoreDevice() {
 
-  override val io = IO(new CoreDeviceIO() with Keys.Pins with Keys.Intrs )
+  override val io = new CoreDeviceIO() with patmos.HasPins with patmos.HasInterrupts {
+    override val pins = new Bundle() {
+      val key = Bits(INPUT, keyCount)
+    }
+    override val interrupts = Vec.fill(keyCount) { Bool(OUTPUT) }
+  }
 
   val keySyncReg = Reg(Bits(width = keyCount))
   val keyReg = Reg(Bits(width = keyCount))
@@ -54,11 +49,11 @@ class Keys(keyCount : Int) extends CoreDevice() {
   io.ocp.S.Data := keyReg
 
   // Connection to pins
-  keySyncReg := io.keysPins.key
+  keySyncReg := io.pins.key
   keyReg := keySyncReg
 
   // Generate interrupts on falling edges
   for (i <- 0 until keyCount) {
-    io.keysIntrs(i) := keyReg(i) === Bits("b1") && keySyncReg(i) === Bits("b0")
+    io.interrupts(i) := keyReg(i) === Bits("b1") && keySyncReg(i) === Bits("b0")
   }
 }

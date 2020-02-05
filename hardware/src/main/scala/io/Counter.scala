@@ -51,8 +51,6 @@ object Counter extends DeviceObject {
   def init(params: Map[String, String]) = {}
 
   def create(params: Map[String, String]): Counter = Module(new Counter())
-
-  trait Pins {}
 }
 
 class Counter() extends CoreDevice() {

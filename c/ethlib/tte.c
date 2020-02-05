@@ -8,25 +8,23 @@
 */
 
 #include "tte.h"
-#include "ptp1588.h"
 
-unsigned int TTE_MAX_TRANS_DELAY;
-unsigned int TTE_COMP_DELAY;
-unsigned int TTE_PRECISION;
+static unsigned int TTE_MAX_TRANS_DELAY;
+static unsigned int TTE_COMP_DELAY;
+static unsigned int TTE_PRECISION;
 
 unsigned int integration_period; //clock cycles at 80Mhz (12.5 ns)
 unsigned int integration_cycle; 
 unsigned int cluster_period;
-static unsigned long long start_time; //clock cycles at 80MHz (12.5 ns)
-static unsigned long long timer_time; //clock cycles at 80MHz (12.5 ns)
-signed long long prev_error;
+unsigned long long tte_current_time; //clock cycles at 80MHz (12.5 ns)
+unsigned long long timer_time; //clock cycles at 80MHz (12.5 ns)
+signed long long clock_err;
+signed long long clock_err_integral;
 unsigned char CT_marker[4];
 unsigned char max_sched;
 unsigned char mac[6];
 unsigned long long send_times[2000];
 int send_time_i=0;
-signed long long last_err;
-signed long long int_err;
 
 struct VL{
    unsigned char max_queue;
@@ -47,10 +45,9 @@ unsigned char schedplace;
 void tte_clock_tick(void) __attribute__((naked));
 void tte_clock_tick_log(void) __attribute__((naked));
 
-unsigned long long i_pcf_max_time;
-unsigned long long tte_receive_log_max_time;
-unsigned long long handle_integration_frame_log_max_time;
-
+unsigned long tte_receive_log_max_time;
+unsigned long handle_integration_frame_log_max_time;
+unsigned long tte_clear_free_rx_buffer_max_time;
 __attribute__((noinline))
 unsigned char is_pcf(unsigned int addr){
 	unsigned type_1 = mem_iord_byte(addr + 12);
@@ -62,26 +59,48 @@ unsigned char is_pcf(unsigned int addr){
 }
 
 __attribute__((noinline))
-void tte_wait_for_message(unsigned long long * receive_point){
-	do{
-		*receive_point = *(_iodev_ptr_t)(__PATMOS_TIMER_LOCLK); //to avoid delay error
-	}while ((eth_iord(0x04) & 0x4)==0);
-	// unsigned long long ts = ((SEC_TO_NS * PTP_RXCHAN_TIMESTAMP_SEC(PATMOS_IO_ETH)) + PTP_RXCHAN_TIMESTAMP_NS(PATMOS_IO_ETH))/12;
-	// printf("%llu, %llu\n", ts, *receive_point);
-	// PTP_RXCHAN_STATUS(PATMOS_IO_ETH) = 0x1; //Clear PTP flag
+unsigned char tte_wait_for_message(unsigned long long * receive_point, unsigned long long timeout){
+	unsigned char ans = 0;
+	if (timeout == 0){
+        _Pragma("loopbound min 0 max 80") //1us
+		do{
+			continue;
+			*receive_point = *(_iodev_ptr_t)(__PATMOS_TIMER_LOCLK); //to avoid delay error
+		}while ((eth_iord(0x04) & 0x4)==0);
+		ans = 1;
+	}else{
+		unsigned long long int start_time = get_cpu_cycles();
+        _Pragma("loopbound min 0 max 80") //1us	
+		do{
+			continue;
+			*receive_point = *(_iodev_ptr_t)(__PATMOS_TIMER_LOCLK); //to avoid delay error
+            if((get_cpu_cycles()-start_time > timeout)){
+                return 0;
+			}
+        }while ((eth_iord(0x04) & 0x4)==0);
+		ans = 1;
+	}
+	
+	return ans;
 }
 
 __attribute__((noinline))
 void tte_clear_free_rx_buffer(unsigned int addr){
+	unsigned long initMeasurement = *(_iodev_ptr_t)(__PATMOS_TIMER_LOCLK);
 	eth_iowr(0x04, 0x00000004);
 	unsigned cur_data = eth_iord(addr);
     	eth_iowr(addr, cur_data | (1<<15));
+	unsigned long diffTemp = (*(_iodev_ptr_t)(__PATMOS_TIMER_LOCLK)) - initMeasurement;
+    if(diffTemp > tte_clear_free_rx_buffer_max_time)
+	{
+      tte_clear_free_rx_buffer_max_time =  diffTemp;
+	}
 }
 
 __attribute__((noinline))
 unsigned char tte_receive_log(unsigned int addr,unsigned long long rec_start,signed long long error[],int i){
 	unsigned char ans = 3;
-    unsigned long long initMeasurement = *(_iodev_ptr_t)(__PATMOS_TIMER_LOCLK);
+    unsigned long initMeasurement = *(_iodev_ptr_t)(__PATMOS_TIMER_LOCLK);
 	if(is_pcf(addr))
 	{
 		if((mem_iord_byte(addr + 28)) == 0x2) //integration frame
@@ -100,7 +119,7 @@ unsigned char tte_receive_log(unsigned int addr,unsigned long long rec_start,sig
 	{
 	  ans= 2;
     }
-    unsigned long long diffTemp = (*(_iodev_ptr_t)(__PATMOS_TIMER_LOCLK)) - initMeasurement;
+    unsigned long diffTemp = (*(_iodev_ptr_t)(__PATMOS_TIMER_LOCLK)) - initMeasurement;
     if(diffTemp > tte_receive_log_max_time)
 	{
       tte_receive_log_max_time =  diffTemp;
@@ -132,10 +151,8 @@ int handle_integration_frame_log(unsigned int addr, unsigned long long receive_p
 	unsigned long long permanence_pit;
 	unsigned long long sched_rec_pit;
 	unsigned long long trans_clock;
-	signed long long err;
-	signed long long der_err;
 	unsigned char ans = 0;
-	unsigned long long initMeasurement = (*(_iodev_ptr_t)(__PATMOS_TIMER_LOCLK));
+	unsigned long initMeasurement = (*(_iodev_ptr_t)(__PATMOS_TIMER_LOCLK));
 
 	trans_clock = mem_iord_byte(addr + 34);
 	trans_clock = (trans_clock << 8) | (mem_iord_byte(addr + 35));
@@ -154,35 +171,28 @@ int handle_integration_frame_log(unsigned int addr, unsigned long long receive_p
 
 	permanence_pit = receive_pit + (TTE_MAX_TRANS_DELAY-trans_clock); 
 
-	if(start_time==0){
-		start_time=permanence_pit-(2*TTE_MAX_TRANS_DELAY + TTE_COMP_DELAY);
+	if(tte_current_time==0){
+		tte_current_time=permanence_pit-(2*TTE_MAX_TRANS_DELAY + TTE_COMP_DELAY);
 	}
-
-	sched_rec_pit = start_time + 2*TTE_MAX_TRANS_DELAY + TTE_COMP_DELAY;
-
-	error[i]=err=(permanence_pit - sched_rec_pit);
-
+	sched_rec_pit = tte_current_time + 2*TTE_MAX_TRANS_DELAY + TTE_COMP_DELAY;
+	error[i]=clock_err=(permanence_pit - sched_rec_pit);
 	//check scheduled receive window
-	if(permanence_pit>(sched_rec_pit-TTE_PRECISION) && permanence_pit<(sched_rec_pit+TTE_PRECISION)){
+	if(permanence_pit>(sched_rec_pit-TTE_PRECISION) && permanence_pit<(sched_rec_pit+TTE_PRECISION))
+	{
 		
-		int_err = int_err + err;
+		clock_err_integral = clock_err_integral + clock_err;
 
-		// start_time = start_time + err;
-
-		start_time = start_time + (300*err >> 10) + (700*int_err >> 10);
+		tte_current_time = tte_current_time + (300*clock_err >> 10) + (700*clock_err_integral >> 10);
 		
 		if(integration_cycle==0){
-		  schedplace=0;
-		  timer_time = start_time+(CYCLES_PER_UNIT*startTick); 
-		  arm_clock_timer(timer_time);
+			schedplace=0;
+			timer_time = tte_current_time+(CYCLES_PER_UNIT*startTick); 
+			arm_clock_timer(timer_time);
 		}
-		start_time += integration_period;
+		tte_current_time += integration_period;
 		ans = 1;
 	}
-	else{
-	    start_time = 0;
-	}
-	unsigned long long diffTemp = (*(_iodev_ptr_t)(__PATMOS_TIMER_LOCLK)) - initMeasurement;
+	unsigned long diffTemp = (*(_iodev_ptr_t)(__PATMOS_TIMER_LOCLK)) - initMeasurement;
     if(diffTemp > handle_integration_frame_log_max_time)
 	{
       handle_integration_frame_log_max_time =  diffTemp;
@@ -214,11 +224,11 @@ int handle_integration_frame(unsigned int addr,unsigned long long receive_pit){
 
 	permanence_pit = receive_pit + (TTE_MAX_TRANS_DELAY-trans_clock); 
 
-	if(start_time==0){
-		start_time=permanence_pit-(2*TTE_MAX_TRANS_DELAY + TTE_COMP_DELAY);
+	if(tte_current_time==0){
+		tte_current_time=permanence_pit-(2*TTE_MAX_TRANS_DELAY + TTE_COMP_DELAY);
 	}
 
-	sched_rec_pit = start_time + 2*TTE_MAX_TRANS_DELAY + TTE_COMP_DELAY;
+	sched_rec_pit = tte_current_time + 2*TTE_MAX_TRANS_DELAY + TTE_COMP_DELAY;
 
 	err=(permanence_pit - sched_rec_pit);
 	
@@ -226,20 +236,20 @@ int handle_integration_frame(unsigned int addr,unsigned long long receive_pit){
 	    permanence_pit<(sched_rec_pit+TTE_PRECISION)){
 		
 		// int_err = int_err + err;
-		start_time = start_time+err;
-		// start_time = start_time + (300*err >> 10) + (700*int_err >> 10);
+		tte_current_time = tte_current_time+err;
+		// tte_current_time = tte_current_time + (300*err >> 10) + (700*int_err >> 10);
 
 		if(integration_cycle==0){
 		  schedplace=0;
-		  timer_time = start_time+(CYCLES_PER_UNIT*startTick);
+		  timer_time = tte_current_time+(CYCLES_PER_UNIT*startTick);
 		  arm_clock_timer(timer_time);
 		}
-		start_time += integration_period;
+		tte_current_time += integration_period;
 
 		return 1;
 	}
 	else{
-	    start_time = 0;
+	    tte_current_time = 0;
 	}
 	return 0;
 }
@@ -360,7 +370,7 @@ void tte_start_ticking(char log_sending,char enable_int, void (int_handler)(void
   	intr_clear_all_pending();
   	intr_enable();
 
-  	start_time = 0; 
+  	tte_current_time = 0; 
 }
 
 __attribute__((noinline))
@@ -464,7 +474,7 @@ void tte_clock_tick(void) {
   schedplace++;
   if(schedplace<max_sched){ 
     if(VLsched[schedplace]==(VLsize-1)){
-      timer_time = start_time;
+      timer_time = tte_current_time;
     }
     arm_clock_timer(timer_time);
   }
@@ -481,7 +491,7 @@ void tte_clock_tick_log(void) {
   schedplace++;
   if(schedplace<max_sched){ 
     if(VLsched[schedplace]==(VLsize-1)){
-      timer_time = start_time;
+      timer_time = tte_current_time;
     }
     arm_clock_timer(timer_time);
   }

@@ -46,6 +46,57 @@
 #include <machine/rtc.h>
 #include "eth_patmos_io.h"
 
+#define MODER        0x00  //Mode
+#define INT_SOURCE   0x04  //Interrupt source
+#define INT_MASK     0x08  //Interrupt mask
+#define IPGT         0x0C  //Back to back inter packet gap
+#define IPGR1        0x10  //Non back to back inter packet gap
+#define IPGR2        0x14  //Non back to back inter packet gap
+#define PACKETLEN    0x18  //Packet length (minimum and maximum)
+#define COLLCONF     0x1C  //Collision and retry configuration
+#define TX_BD_NUM    0x20  //Transmit buffer descriptor number
+#define CTRLMODER    0x24  //Control module mode
+#define MIIMODER     0x28  //MII mode register
+#define MIICOMMAND   0x2C  //MII command
+#define MIIADDRESS   0x30  //MII address register containts the phy address 
+                           //and the register with the phy address
+
+#define TX_BD_ADDR_BASE             0x400
+#define TX_BD_ADDR_END(TX_BD_NUM)   TX_BD_ADDR_BASE + TX_BD_NUM * 8
+
+#define RX_BD_ADDR_BASE(TX_BD_NUM)  TX_BD_ADDR_BASE + TX_BD_NUM * 8
+#define RX_BD_ADDR_END              0x7FF
+
+#define INT_SOURCE_RXC_BIT          0x0040
+#define INT_SOURCE_TXC_BIT          0x0020
+#define INT_SOURCE_BUSY_BIT         0x0010
+#define INT_SOURCE_RXE_BIT          0x0008
+#define INT_SOURCE_RXB_BIT          0x0004
+#define INT_SOURCE_TXE_BIT          0x0002
+#define INT_SOURCE_TXB_BIT          0x0001
+
+#define RX_BD_EMPTY_BIT             0x8000
+#define RX_BD_IRQEN_BIT             0x4000
+#define RX_BD_WRAP_BIT              0x2000
+#define RX_BD_CF_BIT                0x0100
+#define RX_BD_MISS_BIT              0x0080
+#define RX_BD_OR_BIT                0x0040
+#define RX_BD_IS_BIT                0x0020
+#define RX_BD_DN_BIT                0x0010
+#define RX_BD_TL_BIT                0x0008
+#define RX_BD_SF_BIT                0x0004
+#define RX_BD_CRCERR_BIT            0x0002
+#define RX_BD_LC_BIT                0x0001               
+
+// Pointers to the base addresses, all the addressing (addr as arguments)
+// in the library are an offset on these addresses
+#define ETH_BASE  ((volatile _IODEV unsigned *) (PATMOS_IO_ETH + 0xF000))
+#define BUFF_BASE ((volatile _IODEV unsigned *) (PATMOS_IO_ETH + 0x0000))
+
+// Base addresses of second Ethernet controller (when present)
+#define ETH1_BASE  ((volatile _IODEV unsigned *) (PATMOS_IO_ETH1 + 0xF000))
+#define BUFF1_BASE ((volatile _IODEV unsigned *) (PATMOS_IO_ETH1 + 0x0000))
+
 ///////////////////////////////////////////////////////////////
 //High level functions (for the demo)
 ///////////////////////////////////////////////////////////////

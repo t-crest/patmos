@@ -54,7 +54,7 @@ void eth_mac_send(unsigned int tx_addr, unsigned int frame_length){
 	while (free==1){
          free = (eth_iord(0x400) & 0x8000);
     };
-    eth_iowr(0x04, 0x00000001);
+    eth_iowr(INT_SOURCE, 0x00000001);
 	eth_iowr(0x404, tx_addr);
 	eth_iowr(0x400, ((frame_length<<16)|(0xF000)));
     //Wait until is is done
@@ -79,23 +79,22 @@ unsigned eth_mac_send_nb(unsigned int tx_addr, unsigned int frame_length){
 
 //This function receive an ethernet frame and put it in rx_addr.
 unsigned eth_mac_receive(unsigned int rx_addr, unsigned long long int timeout){
-	eth_iowr(0x04, 0x00000004);
-	eth_iowr(0x604, rx_addr);
-	eth_iowr(0x600, 0x0000E000);
-
+    eth_iowr(RX_BD_ADDR_BASE(eth_iord(TX_BD_NUM))+4, rx_addr);
 	if (timeout == 0){
-        _Pragma("loopbound min 0 max 80") //1us
-		while ((eth_iord(0x04) & 0x4)==0){;};
-		return 1;
+        _Pragma("loopbound min 1 max 1")   //1us - 10ms
+		while ((eth_iord(INT_SOURCE) & INT_SOURCE_RXB_BIT)==0){;};
+		
 	}else{
 		unsigned long long int start_time = get_cpu_usecs();
-        _Pragma("loopbound min 0 max 80") //1us	
-		while (((eth_iord(0x04) & 0x4)==0)){
-            if((get_cpu_usecs()-start_time > timeout))
+        _Pragma("loopbound min 1 max 1")   //1us
+		while (((eth_iord(INT_SOURCE) & INT_SOURCE_RXB_BIT)==0)){
+            if((get_cpu_usecs()-start_time >= timeout))
                 return 0;
         }
-        return 1;
 	}
+    eth_iowr(INT_SOURCE, INT_SOURCE_RXB_BIT);
+    eth_iowr(RX_BD_ADDR_BASE(eth_iord(TX_BD_NUM)), RX_BD_EMPTY_BIT | RX_BD_IRQEN_BIT | RX_BD_WRAP_BIT);
+    return 1;
 }
 
 //This function receive an ethernet frame and put it in rx_addr (NON-BLOCKING call).
@@ -116,6 +115,7 @@ unsigned eth_mac_receive_nb(unsigned int rx_addr){
 void eth_mac_initialize(){ 
 	eth_iowr(0x40, 0xEEF0DA42);
 	eth_iowr(0x44, 0x000000FF);
+	//MODEREG: PAD|HUGEN|CRCEN|DLYCRCEN|-|FULLD|EXDFREN|NOBCKOF|LOOPBCK|IFG|PRO|IAM|BRO|NOPRE|TXEN|RXEN
 	eth_iowr(0x00, 0x0000A423);
 	return;
 }

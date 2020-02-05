@@ -74,8 +74,8 @@
 //Time in us
 #define PTP_SYNC_PERIOD 3906
 #define PTP_SYNC_TIMEOUT 1000000
-#define PTP_REQ_TIMEOUT 10000
-#define PTP_RPLY_TIMEOUT 10000
+#define PTP_REQ_TIMEOUT 1000
+#define PTP_RPLY_TIMEOUT 1000
 #define NS_TO_SEC 0.000000001
 #define NS_TO_USEC 0.001
 #define USEC_TO_NS 1000
@@ -87,17 +87,20 @@
 #define SEC_TO_USEC 1000000
 #define SEC_TO_HOUR 0.000277777778
 
+#define PTP_TIME_TO_USEC(seconds, nanos) (unsigned long long) ((unsigned long long)(SEC_TO_USEC * seconds) + (unsigned long long)(NS_TO_USEC * nanos))
+#define PTP_TIME_TO_NS(seconds, nanos) (unsigned long long) ((unsigned long long)(SEC_TO_NS * (unsigned long long)seconds) + (unsigned long long)nanos)
+
 //Thresholds
 #define PTP_NS_OFFSET_THRESHOLD 500000*USEC_TO_NS
 #define PTP_SEC_OFFSET_THRESHOLD 0
 
 //Drift
-#define WCET_COMPENSATION 787 //usec
-#define DRIFT_RATE 9.828f //usec
-#define PTP_DRIFT_AMOUNT(syncInterval) (int) (syncInterval*DRIFT_RATE/SEC_TO_USEC)*USEC_TO_NS
+#define WCET_COMPENSATION 3*USEC_TO_NS
+#define DRIFT_RATE 10 //usec
+#define PTP_DRIFT_AMOUNT(syncInterval) (int) (syncInterval*(DRIFT_RATE*USEC_TO_SEC))*USEC_TO_NS
 
 //Constants & Options
-#define PTP_DELAY_FOLLOWUP 500000
+#define PTP_DELAY_FOLLOWUP 31000 //cc
 #define USE_HW_TIMESTAMP
 #define PTP_RATE_CONTROL 1
 #define PTP_CORRECTION_EN 1
@@ -204,6 +207,8 @@ unsigned char ptp_filter_clockport(unsigned char sourceId[8], unsigned short sou
 ///////////////////////////////////////////////////////////////
 //Help Functions
 ///////////////////////////////////////////////////////////////
+
+unsigned long long get_ptp_nanos(unsigned int eth_base);
 
 unsigned long long get_ptp_usecs(unsigned int eth_base);
 

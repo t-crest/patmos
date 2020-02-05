@@ -14,11 +14,9 @@ import ocp._
 import patmos.Constants._
 
 abstract class DeviceObject() {
-  // every device object must have methods "create" and "init", and a trait "Pins"
+  // every device object must have methods "create" and "init"
   def init(params: Map[String, String])
   def create(params: Map[String, String]) : Device
-  trait Pins
-  trait Intrs
 
   // helper functions for parameter parsing
 
@@ -63,10 +61,7 @@ abstract class Device() extends Module() {
   val io = IO(new InternalIO())
 }
 
-class InternalIO() extends Bundle() {
-  val superMode = Bool(INPUT);
-  val internalPort = new Bundle() {  }
-}
+class InternalIO() extends Bundle() with patmos.HasSuperMode
 
 class CoreDevice() extends Device() {
   override val io = new CoreDeviceIO()
