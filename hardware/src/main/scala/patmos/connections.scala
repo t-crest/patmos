@@ -98,8 +98,6 @@ class MemOp() extends Bundle() {
 }
 
 class DecEx() extends Bundle() {
-  val PRED_IFFALSE = UInt("b1") ## UInt(0, width = PRED_BITS) //Not the way to do this! this comes from Constant.scala - but for reasons i havnt found, chisel constants can not be properly imported.
-
   val pc = UInt(width = PC_SIZE)
   val base = UInt(width = PC_SIZE)
   val relPc = UInt(width = PC_SIZE)
