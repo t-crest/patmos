@@ -17,20 +17,24 @@
 #define TTE_MAX_TRANS_DELAY	135600			//ns from net_config (eclipse project)
 #define TTE_INT_PERIOD		10000000		//ns 10 ms
 #define TTE_CYC_PERIOD		200000000		//ns 200 ms
-#define TTE_PRECISION		1000000			//ns from network_description (eclipse project)
+#define TTE_PRECISION		10000			//ns from network_description (eclipse project)
 
 // TTE PID synchronization
-#define TTE_SYNC_Kp 350LL
-#define TTE_SYNC_Ki 850LL
-#define TTE_SYNC_Kd 0LL
+#define TTE_SYNC_Kp 1000LL
+#define TTE_SYNC_Ki 0LL
 
 // Demo configuration
-#define SYNC_WINDOW_HALF	10000		//ns
-#define SYNC_PERIOD			5000000		//ns
-#define PULSE_PERIOD 		20000000	//ns
+#define NO_RX_PACKETS 		6000
 #define CPU_PERIOD			12.5		//ns
-#define NO_RX_PACKETS 		3000
+#define SYNC_WINDOW_HALF	10000		//ns
+#define SYNC_PERIOD			10000000	//ns
+#define SYNC_THRES			100
+#define PULSE_PERIOD 		50000000	//ns
+#define PULSE_WIDTH			1000000		//ns
 #define HW_TIMESTAMPING
+
+#define SYNC_START_TIME		321200
+#define PULSE_START_TIME	41548912
 
 //IO
 volatile _SPM int *uart_ptr = (volatile _SPM int *)	 PATMOS_IO_UART;
@@ -55,13 +59,23 @@ static unsigned long long target_time = 0;
 static long long clkDiff = 0;
 static long long clkDiffLast = 0;
 static long long clkDiffSum = 0;
-static unsigned int rxPcfCount = 0;
-static unsigned int inScheduleReceptions = 0;
-static unsigned char nodeIsSynced = 0;
+static unsigned short rxPcfCount = 0;
+static unsigned short pulseCount = 0;
+static unsigned int totalScheduledReceptions = 0;
+static unsigned int stableCycles = 0;
+static unsigned int unstableCycles = 0;
 static unsigned char firstPCF = 1;
 static unsigned short integration_cycle = 0;
-unsigned long long initNanoseconds = 0;
-unsigned long long initSeconds = 0;
+static unsigned long long initNanoseconds = 0;
+static unsigned long long initSeconds = 0;
+
+//Counters
+
+
+//Flags
+static unsigned char nodeIntegrated = 0;
+static unsigned char nodeSyncStable = 0;
+static unsigned char nodeColdStarted = 0;
 
 #ifdef LOGGING
 static PTPv2Time rxTimestampLog[NO_RX_PACKETS];
@@ -74,8 +88,8 @@ static unsigned long long deltaTimeLog[NO_RX_PACKETS];
 static unsigned long long tteTransClkLog[NO_RX_PACKETS];
 static unsigned short tteIntCycleLog[NO_RX_PACKETS];
 #endif
-static unsigned long long syncLoopDeltaLog = 0;
-static unsigned long long pulseDeltaLog = 0;
+static unsigned long long syncLoopDeltaLog[NO_RX_PACKETS];
+static unsigned long long pulseDeltaLog[NO_RX_PACKETS/(PULSE_PERIOD/SYNC_PERIOD)];
 
 void print_general_info(){
 	printf("\nGeneral info:\n");
@@ -151,12 +165,10 @@ int tte_pcf_handle(unsigned long long sched_rec_pit, unsigned long long schedule
 	clkDiffSum += clkDiff;
 
 	//check scheduled receive window
-	
 	if(permanence_pit>(sched_rec_pit-TTE_PRECISION) && permanence_pit<(sched_rec_pit+TTE_PRECISION)){
-		inScheduleReceptions++;
-		*led_ptr |= 1U << 8;
+		stableCycles++;
 	} else {
-		*led_ptr &= 0U << 8;
+		unstableCycles++;
 	}
 
 	#ifdef LOGGING
@@ -174,6 +186,7 @@ __attribute__((noinline))
 int receiveAndHandleFrame(unsigned long long timeout, unsigned long long current_time, unsigned long long schedule_start){
 	unsigned short dest_port;
 	//receive
+	PTP_RXCHAN_STATUS(thisPtpPortInfo.eth_base) = 0x1; //Clear PTP timestampAvail flag
 	if(eth_mac_receive(rx_addr, (unsigned long long) timeout*NS_TO_USEC)){
 		#ifdef HW_TIMESTAMPING
 		hardTimestamp.nanoseconds = PTP_RXCHAN_TIMESTAMP_NS(thisPtpPortInfo.eth_base);
@@ -199,28 +212,12 @@ int receiveAndHandleFrame(unsigned long long timeout, unsigned long long current
 	}
 }
 
-void syncPulse(){
-	*gpio_ptr = 0x1;	//signal high time
-	*dead_ptr = 80000;	//wait 1ms
-	int val = *dead_ptr;                                            
-	*gpio_ptr = 0x0;
-}
-
-void syncMoninor(){
-	printSegmentInt(abs(clkDiff));
-	*led_ptr |= (integration_cycle & 0x0F) << 4;
-	if(nodeIsSynced){
-		*led_ptr |= 1U << 7;
-	} else {
-		*led_ptr &= 0U << 7;
-	}
-}
-
 __attribute__((noinline))
 unsigned char syncWindow(unsigned long long timeout, unsigned long long current_time, unsigned long long schedule_start){
 	int packetType = receiveAndHandleFrame(timeout, current_time, schedule_start);
 	*led_ptr |= packetType & 0x0F;
-	nodeIsSynced = packetType > 0 && inScheduleReceptions > 0 && abs(clkDiff) < TTE_PRECISION;
+	nodeIntegrated = (packetType > 0 && (stableCycles - unstableCycles) > 0 && abs(clkDiff) < TTE_PRECISION);
+	nodeSyncStable = nodeIntegrated && (stableCycles - unstableCycles) > SYNC_THRES;
 	#ifdef LOGGING
 	rxPacketLog[rxPcfCount] = packetType;
 	#ifdef HW_TIMESTAMPING
@@ -240,20 +237,56 @@ unsigned char syncWindow(unsigned long long timeout, unsigned long long current_
 
 unsigned long long get_tte_aligned_time(unsigned long long current_time){
 	long long clock_corr = (((TTE_SYNC_Kp*clkDiff)>>10) 
-                        + ((TTE_SYNC_Ki*clkDiffSum)>>10) 
-                        + ((TTE_SYNC_Kd*(clkDiff-clkDiffLast))>>10));
+                        + ((TTE_SYNC_Ki*clkDiffSum)>>10));
 	#ifdef LOGGING
 		timeFixNsLog[rxPcfCount-1] = clock_corr;
 	#endif
 	return (unsigned long long) ((long long) current_time + clock_corr);
 }
 
-void demoExecutiveLoop(){
-	*gpio_ptr = 0x0;
-	unsigned long long sync_activation = 321200;			//initial values generated by scheduler
-	unsigned long long pulse_activation = 17577991;			//initial values generated by scheduler
-	unsigned long long sync_last_time = 0;				//keep track of the last executed time
-	unsigned long long pulse_last_time = 0;				//keep track of the last executed time
+__attribute__((noinline))
+void task_sync(unsigned long long start_time, unsigned long long schedule_time, unsigned long long* activation, unsigned long long *nxt_task_activation, unsigned long long* last_time){
+	*gpio_ptr |= 1U << 0;
+	rxPcfCount += syncWindow(nodeIntegrated ? 2*SYNC_WINDOW_HALF : TTE_CYC_PERIOD, schedule_time, start_time);
+	*activation += get_tte_aligned_time(SYNC_PERIOD);
+	*nxt_task_activation = get_tte_aligned_time(*nxt_task_activation);
+	printSegmentInt(abs(clkDiff));
+	*led_ptr |= (integration_cycle & 0x0F) << 4;
+	if(nodeIntegrated){
+		*led_ptr |= 1U << 7;
+	} else {
+		*led_ptr &= 0U << 7;
+	}
+	if(rxPcfCount > NO_RX_PACKETS){
+		rxPcfCount = 0;
+	}
+	syncLoopDeltaLog[rxPcfCount-1] = schedule_time - get_tte_aligned_time(*last_time);
+	*last_time = schedule_time;
+	*gpio_ptr &= 0U << 0;
+}
+
+__attribute__((noinline))
+void task_pulse(unsigned long long start_time, unsigned long long schedule_time, unsigned long long* activation, unsigned long long* last_time){
+	*gpio_ptr |= 1U << 1;
+	*led_ptr |= 1U << 8;
+	*dead_ptr = (int) (PULSE_WIDTH/12.5);	//wait 1ms
+	int val = *dead_ptr;
+	*led_ptr &= 0U << 8;
+	*activation += PULSE_PERIOD;
+	if(pulseCount >= NO_RX_PACKETS/(PULSE_PERIOD/SYNC_PERIOD)){
+		pulseCount = 0;
+	}
+	pulseDeltaLog[pulseCount] = schedule_time - *last_time;
+	*last_time = schedule_time;
+	pulseCount++;
+	*gpio_ptr &= 0U << 1;
+}
+
+void cyclicExecutiveLoop(){
+	unsigned long long sync_activation = SYNC_START_TIME;			//initial values generated by scheduler
+	unsigned long long pulse_activation = PULSE_START_TIME;			//initial values generated by scheduler
+	unsigned long long sync_last_time = 0;							//keep track of the last executed time
+	unsigned long long pulse_last_time = 0;							//keep track of the last executed time
 	unsigned long long start_time = get_ptp_nanos(thisPtpPortInfo.eth_base);
 	#ifdef LOGGING
 	_Pragma("loopbound min 1 max 1")
@@ -263,20 +296,11 @@ void demoExecutiveLoop(){
 	while(*key_ptr != 0xE){
 	#endif
 		register unsigned long long schedule_time = get_tte_aligned_time(get_ptp_nanos(thisPtpPortInfo.eth_base) - start_time);
-		if(schedule_time + SYNC_WINDOW_HALF >= sync_activation){
-			// *gpio_ptr = 0x1;
-			rxPcfCount += syncWindow(nodeIsSynced ? 2*SYNC_WINDOW_HALF : 0, schedule_time, start_time);
-			syncMoninor();
-			sync_activation += get_tte_aligned_time(SYNC_PERIOD);
-			syncLoopDeltaLog = schedule_time - sync_last_time;
-			sync_last_time = schedule_time;
-			// *gpio_ptr = 0x0;
+		if(schedule_time >= sync_activation){
+			task_sync(start_time, schedule_time, &sync_activation, &pulse_activation, &sync_last_time);
 		} 
-		else if(nodeIsSynced && schedule_time >= pulse_activation) {
-			syncPulse();
-			pulse_activation += get_tte_aligned_time(PULSE_PERIOD);
-			pulseDeltaLog = pulse_last_time;
-			pulse_last_time = schedule_time;
+		else if(nodeSyncStable && schedule_time >= pulse_activation) {
+			task_pulse(start_time, schedule_time, &pulse_activation, &pulse_last_time);
 		}
 	}
 }
@@ -304,29 +328,48 @@ int main(int argc, char **argv){
 	initSeconds = 0;
 	*led_ptr = 0x000;
 	
-	// Executive Loop 
-	demoExecutiveLoop();
+	//Init
+	*gpio_ptr = 0x0;
+	eth_iowr(INT_SOURCE, INT_SOURCE_RXB_BIT);
+    eth_iowr(RX_BD_ADDR_BASE(eth_iord(TX_BD_NUM)), RX_BD_EMPTY_BIT | RX_BD_IRQEN_BIT | RX_BD_WRAP_BIT);
+	PTP_RXCHAN_STATUS(thisPtpPortInfo.eth_base) = 0x1; //Clear PTP timestampAvail flag
+
+	// Executive Loop
+	cyclicExecutiveLoop();
 
 	//Report
 	puts("------------------------------------------");
 	puts("Clock Sync Quality Log:");
 	#ifdef LOGGING
+	long long sumClkOffset = 0;
 	puts("------------------------------------------");
 	puts("Timestamp(ns);\tDelta Time(ns);\tEth Type;\tCycle#;\tTransClk(ns);\tPermaPIT(ns);\tSchedPIT(ns);\tOffset(ns);\tPIFix(ns);");
-	for(int i=0;i<NO_RX_PACKETS;i++){
+	for(int i=0;i<rxPcfCount;i++){
 		printf("%10llu;\t%llu;\t%s;\t%04hx;\t%10llu;\t%10lld;\t%10lld;\t%10lld;\t%10lld;\n", 
 																PTP_TIME_TO_NS(rxTimestampLog[i].seconds, rxTimestampLog[i].nanoseconds),
 		 														deltaTimeLog[i], eth_protocol_names[rxPacketLog[i]], tteIntCycleLog[i], tteTransClkLog[i],
 																permaPITLog[i], schedPITLog[i], clkOffsetNsLog[i], timeFixNsLog[i]);
+		sumClkOffset += abs(clkOffsetNsLog[i]);
 	}
+	printf("Avg. clock offset = %lld ns\n", sumClkOffset / NO_RX_PACKETS);
 	#endif
+	unsigned long long sumSyncDelta = 0;
+	unsigned long long sumPulseDelta = 0;
+	for(int i=0;i<rxPcfCount;i++){
+		sumSyncDelta += syncLoopDeltaLog[i];
+	}
+	unsigned long long avgSyncDelta = sumSyncDelta/rxPcfCount;
+	for(int i=0;i<pulseCount;i++){
+		sumPulseDelta += pulseDeltaLog[i];
+	}
 	puts("---------------------------------------------------------------------------");
 	printf("--Received No. Packets = %u / %u \n", rxPcfCount, NO_RX_PACKETS);
-	printf("--In-Sched No. Packets = %u (loss = %.3f %%) \n", inScheduleReceptions, 100-((float)inScheduleReceptions/(float)rxPcfCount)*100);
+	printf("--In-Sched No. Packets = %u (loss = %.3f %%) \n", totalScheduledReceptions, 100-((float)totalScheduledReceptions/(float)rxPcfCount)*100);
 	puts("---------------------------------------------------------------------------");
 	puts("Task log:");
-	printf("--Sync Activation dt= %llu (jitter = %d ns)\n", syncLoopDeltaLog, abs(SYNC_PERIOD - syncLoopDeltaLog));
-	printf("--Pulse Activation dt = %llu (jitter = %d ns)\n", pulseDeltaLog, abs(PULSE_PERIOD - pulseDeltaLog));
+	printf("--task_syn()   avg. dt = %llu\t(avg. jitter = %d ns)\n", avgSyncDelta, abs(SYNC_PERIOD - avgSyncDelta));
+	unsigned long long avgPulseDelta = sumPulseDelta/pulseCount;
+	printf("--task_pulse() avg. dt = %llu\t(avg. jitter = %d ns)\n", avgPulseDelta, abs(PULSE_PERIOD - avgPulseDelta));
 	puts("------------------------------------------");
 	puts("\nExiting!");
 	return 0;

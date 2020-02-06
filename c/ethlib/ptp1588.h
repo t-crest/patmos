@@ -10,10 +10,6 @@
 #include <machine/patmos.h>
 #include <machine/exceptions.h>
 #include <machine/spm.h>
-#include <string.h>
-#include <stdlib.h>
-#include <math.h>
-#include "udp.h"
 
 //Hardware
 #define PTP_CHAN_VALID_TS_MASK 0x100
@@ -203,6 +199,14 @@ int ptp_calc_delay(int t1, int t2, int t3, int t4);
 
 //Returns 1 if the source clock port identity matches the filter identity 
 unsigned char ptp_filter_clockport(unsigned char sourceId[8], unsigned short sourcePortId, unsigned char matchId[8], unsigned short matchPortId);
+
+unsigned long long get_rx_timestamp_nanos(unsigned int eth_base);
+
+unsigned long long get_rx_timestamp_usecs(unsigned int eth_base);
+
+unsigned long long get_tx_timestamp_nanos(unsigned int eth_base);
+
+unsigned long long get_tx_timestamp_usecs(unsigned int eth_base);
 
 ///////////////////////////////////////////////////////////////
 //Help Functions

@@ -125,6 +125,7 @@ class MIITimestampUnit(timestampWidth: Int) extends Module {
         when (!timestampAvailReg) {
           rtcTimestampReg := io.rtcTimestamp
         }
+        timestampAvailReg := true.B
         ptpMsgTypeReg := 0.U
         printf("[stCollectSFD]->[stDstMAC]\n")
       }
@@ -134,9 +135,6 @@ class MIITimestampUnit(timestampWidth: Int) extends Module {
       when(byteCntReg === 6.U) { //6 bytes
         stateReg := stSrcMAC
         byteCntReg := 0.U
-//        when((dstMACReg & Cat(filterDstMacHiReg, filterDstMacLoReg)) === dstMACReg) {
-//          timestampAvailReg := true.B
-//        }
         printf("[stDstMAC]->[stSrcMAC]\n")
       }
     }
@@ -213,7 +211,6 @@ class MIITimestampUnit(timestampWidth: Int) extends Module {
     }
     is(stPTPhead) {
       when(byteCntReg === 1.U) { //2 byte to get msgType
-        timestampAvailReg := true.B
         ptpMsgTypeReg := regBuffer(7, 0)
       }.elsewhen(byteCntReg > 2.U) {
         when((ptpMsgTypeReg === constPTPDlyReqType && byteCntReg === 44.U) || (ptpMsgTypeReg =/= constPTPDlyReqType && byteCntReg === 34.U)) {
@@ -271,11 +268,10 @@ class MIITimestampUnit(timestampWidth: Int) extends Module {
 
   // Write response
   when(masterReg.Cmd === OcpCmd.WR) {
-    respReg := OcpResp.ERR
     switch(masterReg.Addr(4, 0)){
       is(Bits("h08")){
-        timestampAvailReg := false.B
         respReg := OcpResp.DVA
+        timestampAvailReg := false.B
       }
       is(Bits("h0C")){
         respReg := OcpResp.DVA
