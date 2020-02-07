@@ -54,13 +54,13 @@ class RegisterFile() extends Module {
     }
   }
 
-  // Signal for debugging register values
-  val rfDebug = Vec(REG_COUNT, Reg(UInt(width = DATA_WIDTH)))
+  // Signal for debugging register values - Chisel3: wierdly gave errors in chisel3 as it was used for debugging it has been commented out
+  /*val rfDebug = Vec(REG_COUNT, Reg(UInt(width = DATA_WIDTH)))
   for(i <- 0 until REG_COUNT) {
     rfDebug(i) := rf(UInt(i))
     // Keep signal alive
     //if(Driver.isVCD){
     //debug(rfDebug(i)) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
     //}
-  }
+  }*/
 }
