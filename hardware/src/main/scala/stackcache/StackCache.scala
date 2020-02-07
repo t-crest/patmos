@@ -94,11 +94,11 @@ class StackCache() extends Module {
     memoryBlock(i) = MemBlock(SCACHE_SIZE / BYTES_PER_WORD, BYTE_WIDTH, bypass = false).io
   }
 
-  val mb_rdAddr = UInt(width = scSizeBits)
+  val mb_rdAddr = Wire(UInt(width = scSizeBits))
   val mb_rdData = memoryBlock.map(_.rdData).reduceLeft((x,y) => y ## x)
-  val mb_wrAddr = UInt(width = scSizeBits)
-  val mb_wrEna = UInt(width = BYTES_PER_WORD)
-  val mb_wrData = UInt(width = DATA_WIDTH)
+  val mb_wrAddr = Wire(UInt(width = scSizeBits))
+  val mb_wrEna = Wire(UInt(width = BYTES_PER_WORD))
+  val mb_wrData = Wire(UInt(width = DATA_WIDTH))
 
   // register addr for MemBlock
   val rdAddrReg = Reg(next = memoryBlock(0).rdAddr)

@@ -44,7 +44,7 @@ abstract class AbstractHardlock(coreCnt : Int,lckCnt : Int) extends Module {
   
   val curReg = Vec.fill(lckCnt){RegInit(UInt(0, log2Up(coreCnt)))}
   
-  val blocks = Vec.fill(coreCnt)(Bits(width = lckCnt))
+  val blocks = Wire(Vec(coreCnt, Bits(width = lckCnt)))
   
   for (i <- 0 until coreCnt) {
     blocks(i) := UInt(0)
@@ -57,8 +57,8 @@ abstract class AbstractHardlock(coreCnt : Int,lckCnt : Int) extends Module {
 
 class Hardlock(coreCnt : Int,lckCnt : Int) extends AbstractHardlock(coreCnt, lckCnt) {  
   // Circular priority encoder
-  val hi = Vec.fill(lckCnt){Bits(width = coreCnt)}
-  val lo = Vec.fill(lckCnt){Bits(width = coreCnt)}
+  val hi = Wire(Vec(lckCnt, Bits(width = coreCnt)))
+  val lo = Wire(Vec(lckCnt, Bits(width = coreCnt)))
   
   for (i <- 0 until lckCnt) {
     lo(i) := UInt(0)

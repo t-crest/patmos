@@ -18,16 +18,16 @@ import ocp._
 
 class CpuInfo(datFile: String, cpucnt: Int) extends CoreDevice() {
 
-  override val io = new CoreDeviceIO() {
+  override val io = IO(new CoreDeviceIO() {
     val nr = UInt(INPUT, log2Up(cpucnt))
     val cnt = UInt(INPUT, log2Floor(cpucnt) + 1)
-  }
+  })
 
   val masterReg = Reg(next = io.ocp.M)
 
   // Default response
-  val resp = Bits()
-  val data = Bits(width = DATA_WIDTH)
+  val resp = Wire(Bits())
+  val data = Wire(Bits(width = DATA_WIDTH))
   resp := OcpResp.NULL
   data := Bits(0)
 
