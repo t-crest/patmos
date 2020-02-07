@@ -19,12 +19,12 @@ class CmpIO(corecnt : Int) extends Bundle
 
 class UartCmp(corecnt: Int, clk_freq: Int, baud_rate: Int, fifoDepth: Int) extends Module {
 
-  val io = new CmpIO(corecnt) with patmos.HasPins {
-    override val pins = new Bundle() {
+  override val io = IO(new CmpIO(corecnt) with patmos.HasPins {
+    override val pins = new Bundle {
       val tx = Bits(OUTPUT, 1)
       val rx = Bits(INPUT, 1)
     }
-  }
+  })
   
   val uart = Module(new Uart(clk_freq,baud_rate,fifoDepth))
   
