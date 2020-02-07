@@ -219,6 +219,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
         for((pinid, pin) <- haspins.pins.elements) {
           var _pinid = name + postfix + "_" + pinid
             //io.elements(_pinid) = pin.cloneType()
+            //io.elements(_pinid) <> pin
         }
       }
       case _ =>
