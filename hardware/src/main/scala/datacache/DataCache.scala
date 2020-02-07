@@ -86,7 +86,8 @@ class DataCache extends Module {
 
   // Combine writes
   val wc = Module(if (WRITE_COMBINE) new WriteCombineBuffer() else new WriteNoBuffer())
-  wc.io.readMaster <> burstReadBus2.io.master
+  wc.io.readMaster.M <> burstReadBus2.io.master.M
+  wc.io.readMaster.S <> burstReadBus2.io.master.S
   wc.io.writeMaster.M := io.master.M
   wc.io.writeMaster.M.Cmd := Mux(!selSC && (Bool(DCACHE_WRITETHROUGH) || !selDC),
                                  io.master.M.Cmd, OcpCmd.IDLE)

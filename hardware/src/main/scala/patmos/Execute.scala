@@ -170,14 +170,14 @@ class Execute() extends Module {
     val op1H = Cat(Mux(signed, op(0)(DATA_WIDTH-1), UInt("b0")),
                    op(0)(DATA_WIDTH-1, DATA_WIDTH/2)).asSInt
     val op1L = op(0)(DATA_WIDTH/2-1, 0)
-    val op2H = Cat(Mux(signed, op(1)(DATA_WIDTH-1), UInt("b0")), 
+    val op2H = Cat(Mux(signed, op(1)(DATA_WIDTH-1), UInt("b0")),
                    op(1)(DATA_WIDTH-1, DATA_WIDTH/2)).asSInt
     val op2L = op(1)(DATA_WIDTH/2-1, 0)
 
     mulLLReg := op1L * op2L
     mulLHReg := op1L * op2H
     mulHLReg := op1H * op2L
-    mulHHReg := op1H * op2H
+    mulHHReg := (op1H * op2H).asUInt
 
     val mulResult = (Cat(mulHHReg, mulLLReg).asSInt
                      + Cat(mulHLReg, SInt(0, width = DATA_WIDTH/2)).asSInt
@@ -226,7 +226,10 @@ class Execute() extends Module {
 
       switch(exReg.aluOp(i).func) {
         is(SPEC_FL) {
-          predReg := op(2*i)(PRED_COUNT-1, 0)
+          for (j <- 0 until PRED_COUNT) {
+            predReg(j) := op(2*i)(j)
+          }
+          //predReg := op(2*i)(PRED_COUNT-1, 0)
           predReg(0) := Bool(true)
         }
         is(SPEC_SL) {
