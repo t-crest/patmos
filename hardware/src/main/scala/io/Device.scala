@@ -58,7 +58,7 @@ abstract class DeviceObject() {
 }
 
 abstract class Device() extends Module() {
-  val io = IO(new InternalIO())
+  //override val io = IO(new InternalIO()) // Nested IO wrapping gives issues. As io is overriden alsways it has been commented out
 }
 
 class InternalIO() extends Bundle() with patmos.HasSuperMode
@@ -72,7 +72,7 @@ class CoreDeviceIO() extends InternalIO() {
 }
 
 class IODevice() extends Device() {
-  override val io = new IODeviceIO()
+  override val io = IO(new IODeviceIO())
 }
 
 class IODeviceIO() extends InternalIO() {
