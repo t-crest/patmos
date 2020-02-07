@@ -188,7 +188,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   Config.minPcWidth = util.log2Up((new File(binFile)).length.toInt / 4)
   Config.datFile = datFile
 
-  override val io = new Bundle()
+  override val io = new Bundle {}
 
   val nrCores = Config.getConfig.coreCount
 
@@ -218,8 +218,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
         for((pinid, pin) <- haspins.pins.elements) {
           var _pinid = name + postfix + "_" + pinid
-          io.elements(_pinid) = pin.cloneType()
-          io.elements(_pinid) <> pin
+            //io.elements(_pinid) = pin.cloneType()
         }
       }
       case _ =>
@@ -430,7 +429,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   }
 
   // Print out the configuration
-  Utility.printConfig(configFile)
+  //Utility.printConfig(configFile) Chisel3 have overriden printf - this method must be fixed
 }
 
 // this testing and main file should go into it's own folder
