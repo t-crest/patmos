@@ -14,14 +14,14 @@ import Chisel._
 import patmos.Constants._
 import ocp._
 
-class HardlockIO(lckCnt : Int) extends Bundle {
+class HardlockIO(val lckCnt : Int) extends Bundle {
   val sel = UInt(INPUT, log2Up(lckCnt))
   val op = Bool(INPUT)
   val en = Bool(INPUT)
   val blck = Bool(OUTPUT)
 }
 
-class HardlockIOVec(coreCnt : Int, lckCnt : Int) extends Bundle {
+class HardlockIOVec(val coreCnt : Int, val lckCnt : Int) extends Bundle {
   val cores = Vec(coreCnt, new HardlockIO(lckCnt))
 }
 
