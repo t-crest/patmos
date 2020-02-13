@@ -88,17 +88,17 @@ class MCache() extends Module {
   //val repl = Module(new MCacheReplFifo2())
   val mem = Module(new MCacheMem())
   //connect inputs to method cache ctrl unit
-  ctrl.io.ctrlrepl <> repl.io.ctrlrepl
+  repl.io.ctrlrepl <> ctrl.io.ctrlrepl
   ctrl.io.femcache <> io.feicache
   ctrl.io.exmcache <> io.exicache
-  ctrl.io.ocp_port <> io.ocp_port
+  io.ocp_port <> ctrl.io.ocp_port
   //connect inputs to method cache repl unit
   repl.io.exmcache <> io.exicache
-  repl.io.mcachefe <> io.icachefe
-  repl.io.replctrl <> ctrl.io.replctrl
-  repl.io.perf <> io.perf
+  io.icachefe <> repl.io.mcachefe
+  ctrl.io.replctrl <> repl.io.replctrl
+  io.perf <> repl.io.perf
   //connect repl to on chip memory
-  repl.io.memIn <> mem.io.memIn
+  mem.io.memIn <> repl.io.memIn
   repl.io.memOut <> mem.io.memOut
   //connect enables
   ctrl.io.ena_in <> io.ena_in
