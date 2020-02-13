@@ -78,10 +78,10 @@ class Execute() extends Module {
   }
 
   // data forwarding
-  val fwReg  = Wire(Vec(2*PIPE_COUNT, Reg(UInt(width = 3))))
-  val fwSrcReg  = Wire(Vec(2*PIPE_COUNT, Reg(UInt(width = log2Up(PIPE_COUNT)))))
-  val memResultDataReg = Wire(Vec(PIPE_COUNT, Reg(UInt(width = DATA_WIDTH))))
-  val exResultDataReg  = Wire(Vec(PIPE_COUNT, Reg(UInt(width = DATA_WIDTH))))
+  val fwReg  = Reg(Vec(2*PIPE_COUNT, UInt(3.W)))
+  val fwSrcReg  = Reg(Vec(2*PIPE_COUNT, UInt(width = log2Up(PIPE_COUNT))))
+  val memResultDataReg = Reg(Vec(PIPE_COUNT, UInt(DATA_WIDTH.W)))
+  val exResultDataReg  = Reg(Vec(PIPE_COUNT, UInt(DATA_WIDTH.W)))
   val op = Wire(Vec(2*PIPE_COUNT, UInt(width = DATA_WIDTH)))
 
   // precompute forwarding
@@ -129,7 +129,7 @@ class Execute() extends Module {
   }
 
   // predicates
-  val predReg = Wire(Vec(PRED_COUNT, Reg(Bool())))
+  val predReg = Reg(Vec(PRED_COUNT, Bool()))
 
   val doExecute = Wire(Vec(PIPE_COUNT, Bool()))
   for (i <- 0 until PIPE_COUNT) {
