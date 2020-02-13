@@ -18,7 +18,7 @@ class S4nocTrafficGen(nrNodes: Int, txFifo: Int, rxFifo: Int) extends Module {
     val data = Output(UInt(width = 32))
   })
 
-  val outReg = Vec(nrNodes, Reg(init = UInt(0, width = 32)))
+  val outReg = RegInit(Vec.fill(nrNodes) {UInt(0, width = 32)})
 
 
   for (i <- 0 until nrNodes) {

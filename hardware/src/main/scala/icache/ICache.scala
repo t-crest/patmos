@@ -148,7 +148,7 @@ class ICacheReplDm() extends Module {
   // Tag memory and vector for valid bits
   val tagMemEven = MemBlock(LINE_COUNT / 2, TAG_SIZE)
   val tagMemOdd = MemBlock(LINE_COUNT / 2, TAG_SIZE)
-  val validVec = Vec(LINE_COUNT, RegInit(Bool(false)))
+  val validVec = RegInit(Vec.fill(LINE_COUNT) {Bool(false)})
 
   // Variables for call/return
   val callRetBaseReg = RegInit(UInt(1, DATA_WIDTH))

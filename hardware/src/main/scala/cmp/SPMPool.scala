@@ -80,7 +80,7 @@ class SPMPool(corecnt:Int, spmcnt:Int, spmsize:Int, spmcntmax:Int = 15, spmsizem
 
   val spmios = Wire(Vec(spms.map(e => e.io.cores)))
 
-  val spmscheds = Wire(Vec(spms.map(e => Reg(UInt(width = corecnt)))))
+  val spmscheds = Reg(Vec(spms.map(e => UInt(width = corecnt))))
 
   for(i <- 0 until spms.length)
     spms(i).io.sched := spmscheds(i)
@@ -93,8 +93,8 @@ class SPMPool(corecnt:Int, spmcnt:Int, spmsize:Int, spmcntmax:Int = 15, spmsizem
   val nxtavail = PriorityEncoder(avails)
   val anyavail = avails.orR
 
-  val respRegs = Wire(Vec(corecnt, RegInit(OcpResp.NULL)))
-  val dataRegs = Wire(Vec(corecnt, Reg(io.cores(0).S.Data)))
+  val respRegs = RegInit(Vec.fill(corecnt) { OcpResp.NULL})
+  val dataRegs = Reg(Vec(corecnt, io.cores(0).S.Data))
 
   val dumio = Wire(Vec(corecnt, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)))
 

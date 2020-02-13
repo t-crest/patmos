@@ -75,12 +75,12 @@ class TdmArbiter(cnt:Int) extends Module {
 
  //val inBuffer = Reg(Vec(cnt,bufferBundle))
 
-    val regCmd = Vec.fill(cnt) { Reg(UInt(3)) }
-    val regAddr = Vec.fill(cnt) { Reg(UInt(ADDR_WIDTH)) }
-    val regWrData = Vec.fill(cnt) { Reg(UInt(ADDR_WIDTH)) }
-    val regRdData = Vec.fill(cnt) { Reg(UInt(DATA_WIDTH)) }
-    val regMemResp = Vec.fill(cnt) { Reg(UInt(1)) }
-    val regResp = Vec.fill(cnt) { Reg(UInt(2)) }
+    val regCmd = Reg(Vec(cnt, UInt(3)))
+    val regAddr = Reg(Vec(cnt, UInt(ADDR_WIDTH)))
+    val regWrData = Reg(Vec(cnt, UInt(ADDR_WIDTH)))
+    val regRdData = Reg(Vec(cnt, UInt(DATA_WIDTH)))
+    val regMemResp = Reg(Vec(cnt, UInt(1)))
+    val regResp = Reg(Vec(cnt, UInt(2)))
 
 //default values (idle state)
 

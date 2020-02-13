@@ -54,9 +54,9 @@ class Argo(nrCores: Int, wrapped: Boolean = false, emulateBB: Boolean = false) e
     argoNoc.io.supervisor(i) := io.cores(i).asInstanceOf[OcpArgoSlavePort].superMode(i)
   }
 
-  val masterReg = Vec.fill(argoConf.CORES){Reg(new OcpArgoSlavePort(ADDR_WIDTH, DATA_WIDTH, argoConf)).M}
-  val busyReg = Vec.fill(argoConf.CORES){Reg(init = Bool(false))}
-  val selSpmRplyReg = Vec.fill(argoConf.CORES){Reg(init = Bool(false))}
+  val masterReg = Reg(Vec(argoConf.CORES, new OcpArgoSlavePort(ADDR_WIDTH, DATA_WIDTH, argoConf).M))
+  val busyReg = RegInit(Vec.fill(argoConf.CORES){Bool(false)})
+  val selSpmRplyReg = RegInit(Vec.fill(argoConf.CORES){Bool(false)})
 
 	// Wire up Patmos - NoC + SPM
 	for(i <- 0 until argoConf.CORES){

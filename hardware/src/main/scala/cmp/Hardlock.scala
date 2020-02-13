@@ -33,7 +33,7 @@ abstract class AbstractHardlock(coreCnt : Int,lckCnt : Int) extends Module {
   override val io = IO(new HardlockIOVec(coreCnt, lckCnt)) // Vec.fill(coreCnt){new HardlockIO(lckCnt)}
   
   
-  val queueReg = Vec.fill(lckCnt){RegInit(UInt(0, coreCnt))}
+  val queueReg = RegInit(Vec.fill(lckCnt){UInt(0, coreCnt)})
   for (i <- 0 until lckCnt) {
     for (j <- 0 until coreCnt) {
       when(io.cores(j).sel === UInt(i) && io.cores(j).en === Bool(true)) {
@@ -42,7 +42,7 @@ abstract class AbstractHardlock(coreCnt : Int,lckCnt : Int) extends Module {
     }
   }
   
-  val curReg = Vec.fill(lckCnt){RegInit(UInt(0, log2Up(coreCnt)))}
+  val curReg = RegInit(Vec.fill(lckCnt){UInt(0, log2Up(coreCnt))})
   
   val blocks = Wire(Vec(coreCnt, Bits(width = lckCnt)))
   

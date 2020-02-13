@@ -27,7 +27,7 @@ class OwnSPM(nrCores: Int, nrSPMs: Int, size: Int) extends Module {
 
   val masters = Wire(Vec(nrSPMs, Vec(nrCores, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))))
   val spms = (0 until nrSPMs).map(i => Module(new Spm(size)))
-  val cmdOutReg = Vec(nrCores, Reg(init = Bool(false)))
+  val cmdOutReg = RegInit(Vec.fill(nrCores) {Bool(false)})
 
   for (s <- 0 until nrSPMs) {
     // And gate non-active masters.

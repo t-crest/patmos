@@ -81,8 +81,8 @@ class SRamCtrl( ocpAddrWidth    : Int,
 
   // Internal Registers
   val mAddrReg = Reg(Bits(width = sramAddrWidth))
-  val rdBufferReg = Vec.fill(TRANSPERCMD){Reg(Bits(width=sramDataWidth))}
-  val wrBufferReg = Vec.fill(TRANSPERCMD){Reg(new Trans(BYTESPERTRAN,sramDataWidth))}
+  val rdBufferReg = Reg(Vec(TRANSPERCMD, Bits(width=sramDataWidth)))
+  val wrBufferReg = Reg(Vec(TRANSPERCMD, new Trans(BYTESPERTRAN,sramDataWidth)))
   val transCountReg = Reg(init = UInt(0,width=log2upNew(TRANSPERCMD)))
   val wordCountReg = Reg(init = UInt(0,width=log2upNew(ocpBurstLen)))
   val waitCountReg = Reg(init = UInt(0,width=log2upNew(writeWaitCycles+1)))
