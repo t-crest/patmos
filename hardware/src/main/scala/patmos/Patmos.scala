@@ -475,8 +475,8 @@ object PatmosMain extends App {
     val binFile = args(1)
     val datFile = args(2)
 
-    //Config.loadConfig(configFile)
+    Config.loadConfig(configFile)
     //chiselMain(chiselArgs, () => Module(new Patmos(configFile, binFile, datFile))) //{ f => new PatmosTest(f) }
-    chisel3.Driver.execute(chiselArgs, () => new Patmos(configFile, binFile, datFile))////new Patmos(configFile, binFile, datFile)) //TestTrait())//
+    chisel3.Driver.execute(chiselArgs, () => new PatmosCore(configFile, 0, 1)) //new Patmos(configFile, binFile, datFile)) //TestTrait())//
   }
 }
