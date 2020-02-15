@@ -182,6 +182,15 @@ trait HasSuperMode {
   val superMode = Bool(INPUT);
 }
 
+final class PatmosBundle(elts: (String, Data)*) extends Record {
+  override val elements = scala.collection.immutable.ListMap(elts: _*)
+  def apply(elt: String): Data = elements(elt)
+  override def cloneType: this.type = {
+    val cloned = elts map { case (n, d) => n -> d.cloneType }
+    (new PatmosBundle(cloned: _*)).asInstanceOf[this.type]
+  }
+}
+
 /**
  * The main (top-level) component of Patmos.
  */
@@ -189,8 +198,6 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   Config.loadConfig(configFile)
   Config.minPcWidth = util.log2Up((new File(binFile)).length.toInt / 4)
   Config.datFile = datFile
-
-  override val io = new Bundle {}
 
   val nrCores = Config.getConfig.coreCount
 
@@ -202,26 +209,26 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   // Forward ports to/from core
   println("Config cmp: ")
 
-  val pins = mutable.HashMap[String, Int]()
-
+  val pinids = scala.collection.mutable.ListMap[String, Int]()
+  val pins = scala.collection.mutable.ListMap[String, Data]()
   val connectPins = (name: String, _io: Data) =>  {
     _io match {
       case haspins: HasPins => {
         println(name + " has pins")
         var postfix = ""
-        if(pins.contains(name)) {
-          var tmp = pins(name)
+        if(pinids.contains(name)) {
+          var tmp = pinids(name)
           tmp += 1
-          pins(name) = tmp
+          pinids(name) = tmp
           postfix = "_" + tmp
         } else {
-          pins(name) = 0
+          pinids(name) = 0
         }
 
         for((pinid, pin) <- haspins.pins.elements) {
           var _pinid = name + postfix + "_" + pinid
-            //io.elements(_pinid) = pin.cloneType()
-            //io.elements(_pinid) <> pin
+          pins(_pinid) = pin.cloneType
+          pins(_pinid) <> pin
         }
       }
       case _ =>
@@ -432,6 +439,8 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     ramCtrl.io.ocp <> memarbiter.io.slave
   }
 
+  override val io = new PatmosBundle(pins.toSeq: _*)
+
   // Print out the configuration
   //Utility.printConfig(configFile) Chisel3 have overriden printf - this method must be fixed
 }
@@ -477,6 +486,6 @@ object PatmosMain extends App {
 
     Config.loadConfig(configFile)
     //chiselMain(chiselArgs, () => Module(new Patmos(configFile, binFile, datFile))) //{ f => new PatmosTest(f) }
-    chisel3.Driver.execute(chiselArgs, () => new PatmosCore(configFile, 0, 1)) //new Patmos(configFile, binFile, datFile)) //TestTrait())//
+    chisel3.Driver.execute(chiselArgs, () => new Patmos(configFile, binFile, datFile)) //TestTrait())//
   }
 }

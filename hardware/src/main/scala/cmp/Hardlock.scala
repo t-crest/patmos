@@ -10,7 +10,6 @@
 package cmp
  
 import Chisel._
-import chisel3.core.VecInit
 import patmos.Constants._
 import ocp._
 
@@ -33,55 +32,39 @@ abstract class AbstractHardlock(coreCnt : Int,lckCnt : Int) extends Module {
   override val io = IO(new HardlockIOVec(coreCnt, lckCnt)) // Vec.fill(coreCnt){new HardlockIO(lckCnt)}
   
   
-  val queueReg = RegInit(Vec.fill(lckCnt){UInt(0, coreCnt)})
-  val queueBools = Wire(Vec(lckCnt, Vec(coreCnt, Bool()))) //Chisel3 - Subword assignment unsupported
+  val queueReg = RegInit(Vec.fill(lckCnt){Vec.fill(coreCnt){false.B}})
   for (i <- 0 until lckCnt) {
-    queueBools(i) := queueReg(i).toBools
     for (j <- 0 until coreCnt) {
       when(io.cores(j).sel === UInt(i) && io.cores(j).en === Bool(true)) {
-        queueBools(i)(j) := io.cores(j).op
-        queueReg(i) := queueBools(i).asUInt()
+        queueReg(i)(j) := io.cores(j).op
       }
     }
   }
   
   val curReg = RegInit(Vec.fill(lckCnt){UInt(0, log2Up(coreCnt))})
   
-  val blocks = Wire(Vec(coreCnt, Bits(width = lckCnt)))
-  val blockBools = Wire(Vec(coreCnt, Vec(lckCnt, Bool()))) //subword assignment workaround
+  val blocks = Wire(Vec(coreCnt, Vec(lckCnt, Bool())))
   
   for (i <- 0 until coreCnt) {
-    blockBools(i) := UInt(0).toBools
-    blocks(i) := UInt(0)
     for (j <- 0 until lckCnt) {
-      blockBools(i)(j) := queueReg(j)(i) && (curReg(j) =/= UInt(i))
-      blocks(i) := blockBools(i).asUInt()
+      blocks(i)(j) := queueReg(j)(i) && (curReg(j) =/= UInt(i))
     }
-
-    io.cores(i).blck := blocks(i).orR
+    io.cores(i).blck := blocks(i).asUInt.orR
   }
 }
 
 class Hardlock(coreCnt : Int,lckCnt : Int) extends AbstractHardlock(coreCnt, lckCnt) {  
   // Circular priority encoder
-  val hi = Wire(Vec(lckCnt, Bits(width = coreCnt)))
-  val hiBools = Wire(Vec(lckCnt, Vec(coreCnt, Bool())))//subword assignment workaround
-  val lo = Wire(Vec(lckCnt, Bits(width = coreCnt)))
-  val loBools = Wire(Vec(lckCnt, Vec(coreCnt, Bool())))//subword assignment workaround
+  val hi = Wire(Vec(lckCnt, Vec(coreCnt, Bool())))
+  val lo = Wire(Vec(lckCnt, Vec(coreCnt, Bool())))
   
   for (i <- 0 until lckCnt) {
-    lo(i) := UInt(0)
-    hiBools(i) := UInt(0).toBools
-    hi(i) := UInt(0)
-    loBools(i) := UInt(0).toBools
     for (j <- 0 until coreCnt) {
-      loBools(i)(j) := queueReg(i)(j) && (curReg(i) > UInt(j))
-      hiBools(i)(j) := queueReg(i)(j) && (curReg(i) <= UInt(j))
-      lo(i) := loBools(i).asUInt()
-      hi(i) := hiBools(i).asUInt()
+      lo(i)(j) := queueReg(i)(j) && (curReg(i) > UInt(j))
+      hi(i)(j) := queueReg(i)(j) && (curReg(i) <= UInt(j))  
     }
     
-    when(hi(i).orR) {
+    when(hi(i).asUInt.orR) {
       curReg(i) := PriorityEncoder(hi(i))
     }
     .otherwise {
