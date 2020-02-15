@@ -45,9 +45,9 @@ class OCRamCtrl(addrWidth : Int, ocpBurstLen : Int=4) extends BurstDevice(addrWi
   val burstCntReg = Reg(init = UInt(0, width = log2Up(ocpBurstLen)))
   val burstCntNext = burstCntReg + UInt(1);
 
-  val addr = UInt()
+  val addr = Wire(UInt())
   addr := addrReg ## burstCntNext
-  val wrEn = Bool()
+  val wrEn = Wire(Bool())
   wrEn := stateReg === write
 
   burstCntReg := burstCntNext
