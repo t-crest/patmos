@@ -25,7 +25,7 @@ x1:	addi    r10 = r0, 1 # this is just to jump!
 	subi	r1 = r0, 3 # just arbitrary value
 ####################
 # predicated store
-#	Test the p0 seperately, assuming it might be handled specially
+#	Test the p0 separately, assuming it might be handled specially
 (p0)	swl	[r10+0] = r1
 	lwl	r2 = [r10+0]
 	subi	r1 = r1, 1
@@ -42,7 +42,7 @@ x1:	addi    r10 = r0, 1 # this is just to jump!
 
 ####################	
 # predicated load
-#	Test the p0 seperately, assuming it might be handled specially
+#	Test the p0 separately, assuming it might be handled specially
 	subi	r1 = r1, 1
 	swl	[r10+0] = r1
 (p0)	lwl	r2 = [r10+0]
@@ -62,7 +62,7 @@ x1:	addi    r10 = r0, 1 # this is just to jump!
 ####################	
 # predicated branches (other jump instructions should probably be added also)
 ####################	
-#	Test the p0 seperately, assuming it might be handled specially
+#	Test the p0 separately, assuming it might be handled specially
 	(p0)	br	pb1
 		  addi	r0 = r0, 0
 		  addi	r0 = r0, 0
