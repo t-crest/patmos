@@ -10,6 +10,7 @@ package patmos
 
 import Chisel._
 import java.io.File
+import chisel3.experimental.{DataMirror, requireIsChiselType}
 
 import Constants._
 import util._
@@ -183,10 +184,13 @@ trait HasSuperMode {
 }
 
 final class PatmosBundle(elts: (String, Data)*) extends Record {
-  override val elements = scala.collection.immutable.ListMap(elts: _*)
+  override val elements = scala.collection.immutable.ListMap(elts map { case (field, elt) =>
+    requireIsChiselType(elt)
+    field -> elt
+  }: _*)
   def apply(elt: String): Data = elements(elt)
   override def cloneType: this.type = {
-    val cloned = elts map { case (n, d) => n -> d.cloneType }
+    val cloned = elts map { case (n, d) => n -> DataMirror.internal.chiselTypeClone(d) }
     (new PatmosBundle(cloned: _*)).asInstanceOf[this.type]
   }
 }
@@ -211,7 +215,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
   val pinids = scala.collection.mutable.ListMap[String, Int]()
   val pins = scala.collection.mutable.ListMap[String, Data]()
-  val connectPins = (name: String, _io: Data) =>  {
+  val registerPins = (name: String, _io: Data) =>  {
     _io match {
       case haspins: HasPins => {
         println(name + " has pins")
@@ -227,8 +231,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
         for((pinid, pin) <- haspins.pins.elements) {
           var _pinid = name + postfix + "_" + pinid
-          pins(_pinid) = pin.cloneType
-          pins(_pinid) <> pin
+          pins(_pinid) = pin
         }
       }
       case _ =>
@@ -254,7 +257,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       case _ => throw new Error("Unknown device " + e)
     }
 
-    connectPins(_dev.getClass.getSimpleName, _dev.io)
+    registerPins(_dev.getClass.getSimpleName, _dev.io)
 
     new {
       val offset = off
@@ -407,7 +410,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
         cores(i).io.interrupts(NI_EXT_INTR) := argoslaveport.flags(2*i+1)
       }
 
-      connectPins(dev.name, dev.io)
+      registerPins(dev.name, dev.io)
     }
 
     // Register for error response
@@ -424,7 +427,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   val ramConf = Config.getConfig.ExtMem.ram
   val ramCtrl = Config.createDevice(ramConf).asInstanceOf[BurstDevice]
 
-  connectPins(ramConf.name, ramCtrl.io)
+  registerPins(ramConf.name, ramCtrl.io)
 
   // TODO: fix memory arbiter to have configurable memory timing.
   // E.g., it does not work with on-chip main memory.
@@ -439,7 +442,15 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     ramCtrl.io.ocp <> memarbiter.io.slave
   }
 
-  override val io = new PatmosBundle(pins.toSeq: _*)
+  override val io = IO(new PatmosBundle(pins.map{case (pinid, devicepin) => pinid -> DataMirror.internal.chiselTypeClone(devicepin)}.toSeq: _*))
+
+  for((pinid, devicepin) <- pins) {
+    val patmospin = io.elements(pinid)
+    DataMirror.specifiedDirectionOf(devicepin).toString match {
+        case "Input" => devicepin := patmospin
+        case "Output" => patmospin := devicepin
+    }
+  }
 
   // Print out the configuration
   //Utility.printConfig(configFile) Chisel3 have overriden printf - this method must be fixed
