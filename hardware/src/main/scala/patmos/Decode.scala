@@ -166,7 +166,7 @@ class Decode() extends Module {
   val isStack = Wire(Bool())
 
   val isSTC = Wire(Bool())
-  val stcImm = Cat(UInt(0), instr(17, 0), Bits("b00"))
+  val stcImm = Cat(UInt(0), instr(17, 0), 0.U(2.W))
 
   // Long immediates set this
   longImm := Bool(false)
@@ -358,7 +358,7 @@ class Decode() extends Module {
   // we could mux the imm / register here as well
 
   // Immediate for absolute calls
-  io.decex.callAddr := Cat(UInt(0), instr(21, 0), Bits("b00"))
+  io.decex.callAddr := Cat(UInt(0), instr(21, 0), 0.U(2.W))
 
   // Immediate for branch is sign extended, not extended for call
   // PC-relative value is precomputed here

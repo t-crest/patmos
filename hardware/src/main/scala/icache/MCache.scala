@@ -316,7 +316,7 @@ class MCacheCtrl() extends Module {
   }
 
   //output to external memory
-  io.ocp_port.M.Addr := Cat(ocpAddrReg, UInt("b00"))
+  io.ocp_port.M.Addr := Cat(ocpAddrReg, 0.U(2.W))
   io.ocp_port.M.Cmd := ocpCmdReg
   io.ocp_port.M.Data := UInt(0)
   io.ocp_port.M.DataByteEn := UInt("b1111")
@@ -366,7 +366,7 @@ class MCacheCtrl() extends Module {
           when (io.ocp_port.S.CmdAccept === UInt(0)) {
             ocpCmdReg := OcpCmd.RD
           }
-          io.ocp_port.M.Addr := Cat(callRetBaseReg, UInt("b00"))
+          io.ocp_port.M.Addr := Cat(callRetBaseReg, 0.U(2.W))
           ocpAddrReg := callRetBaseReg
           burstCntReg := UInt(0)
         }
@@ -395,7 +395,7 @@ class MCacheCtrl() extends Module {
             when (io.ocp_port.S.CmdAccept === UInt(0)) {
               ocpCmdReg := OcpCmd.RD
             }
-            io.ocp_port.M.Addr := Cat(callRetBaseReg + fetchCntReg + UInt(1), UInt("b00"))
+            io.ocp_port.M.Addr := Cat(callRetBaseReg + fetchCntReg + UInt(1), 0.U(2.W))
             ocpAddrReg := callRetBaseReg + fetchCntReg + UInt(1) //need +1 because start fetching with the size of method
             burstCntReg := UInt(0)
           }

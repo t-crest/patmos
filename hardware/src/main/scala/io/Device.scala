@@ -83,6 +83,6 @@ class BurstDevice(addrBits: Int) extends Device() {
   override val io = new BurstDeviceIO(addrBits)
 }
 
-class BurstDeviceIO(addrBits: Int) extends InternalIO() {
+class BurstDeviceIO(val addrBits: Int) extends InternalIO() {
   val ocp = new OcpBurstSlavePort(addrBits, DATA_WIDTH, BURST_LENGTH)
 }
