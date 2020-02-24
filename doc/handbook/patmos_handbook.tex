@@ -605,23 +605,15 @@ in the configuration file:
   </CmpDevs>
 \end{verbatim}
 
-
-For the Argo NoC a schedule needs to be generated. This is done from within the
-aegean repository with:
-
-\begin{verbatim}
-make noc-sched
-\end{verbatim}
-
+The Argo NoC schedule is automatically generated when building Patmos.
 This generates a C file, \code{nocinit.c}, containing the NoC schedule that is
 loaded into the network interfaces during booting.
 
 The default platform is a 4-core multicore for the DE2-115 FPGA board.
-To use the 9 core version set \code{AEGEAN\_PLATFORM} to \code{altde2-115-9core}.
+To use the 9 core version set \code{cores count} to 9.
 
 The synthesize, compilation, and download of the application is done as usual in
 the \code{patmos} directory.
-
 
 \todo{We shall have here three simple hello world applications: (1) just plain shared memory 4 cores saying hello - DONE -,
 (2) a CMP program that uses shared memory, and (3) a simple NoC setup.}
