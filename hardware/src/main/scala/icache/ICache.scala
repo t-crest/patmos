@@ -384,7 +384,7 @@ class ICacheCtrl() extends Module {
   io.fetchEna := fetchEna
 
   // Outputs to external memory
-  io.ocp_port.M.Addr := Cat(ocpAddr, UInt("b00"))
+  io.ocp_port.M.Addr := Cat(ocpAddr, 0.U(2.W))
   io.ocp_port.M.Cmd := ocpCmd
   io.ocp_port.M.Data := UInt(0) //read-only
   io.ocp_port.M.DataByteEn := UInt("b1111") //read-only
