@@ -36,6 +36,7 @@
 #define ALIGN_TO_REALTIME	//TODO: reset time on every new cluster
 
 // Demo parameters
+#define NO_TASKS			4
 #define NO_RX_PACKETS 		2000		//packets
 #define CPU_PERIOD			12.5		//ns	
 #define SYNC_WINDOW_HALF	10000		//ns
@@ -43,12 +44,26 @@
 #define ASYNC2SYNC_THRES	10			//clusters
 #define PULSE_PERIOD 		50000000	//ns
 #define PULSE_WIDTH			1000000		//ns
+#define SEND_PERIOD			4000000
+#define RECV_PERIOD			4000000
+
+#define SYNC_START_TIME		0
+#define PULSE_START_TIME	295001
+#define SEND_START_TIME     3324415
+#define RECV_START_TIME     3367016
 
 #define SYNCTASK_GPIO_BIT	0
 #define PULSETASK_GPIO_BIT	1
+#define SENDTASK_GPIO_BIT	2
+#define RECVTASK_GPIO_BIT	3
 
-#define SYNC_START_TIME		321200
-#define PULSE_START_TIME	17924225
+#define PRODUCER 1
+#define CONSUMER 2
+
+//Types
+typedef struct{
+	unsigned long long val;
+} SimpleTTMessage;
 
 //Constants
 const char* eth_protocol_names[] = {"UFF", "IP", "ICMP", "UDP", "TCP", "PTP", "ARP", "LLDP", "MDNS", "TTE_PCF", "TTE"};
@@ -56,6 +71,8 @@ const unsigned int rx_addr = 0x000;
 const unsigned int tx_addr = 0x800;
 const unsigned char multicastip[4] = {224, 0, 0, 255};
 const unsigned char TTE_CT[] = { 0xAB, 0xAD, 0xBA, 0xBE };
+const unsigned char TTE_VL[] = { 0x0F, 0xA1 };
+const unsigned char TTE_MAC[] = {0x02, 0x89, 0x1D, 0x00, 0x04, 0x00};
 
 //Hardware timestamping provided through ptp1588assist unit
 PTPPortInfo thisPtpPortInfo;
@@ -86,19 +103,15 @@ static unsigned char nodeSyncStable = 0;	//is used to enable task execution when
 static unsigned char nodeColdStart = 1;		//is used to indicate that a node has just booted and has not received a single PCF
 static unsigned char nodeFirstSync = 1;
 
-#ifdef LOGGING
-static PTPv2Time rxTimestampLog[NO_RX_PACKETS];
-static unsigned short rxPacketLog[NO_RX_PACKETS];
-static long long clkOffsetNsLog[NO_RX_PACKETS];
-static long long timeFixNsLog[NO_RX_PACKETS];
-static unsigned long long schedPITLog[NO_RX_PACKETS];
-static unsigned long long permaPITLog[NO_RX_PACKETS];
-static unsigned long long deltaTimeLog[NO_RX_PACKETS];
-static unsigned long long tteTransClkLog[NO_RX_PACKETS];
-static unsigned short tteIntCycleLog[NO_RX_PACKETS];
-#endif
+//Logging
 static unsigned long long syncLoopDeltaSum;
 static unsigned long long pulseLoopDeltaSum;
+
+//Communication
+unsigned int txMsgCount = 0;
+unsigned int rxMsgCount = 0;
+SimpleTTMessage theMessage = {.val=0};
+
 
 void print_general_info(){
 	printf("\nGeneral info:\n");
@@ -226,9 +239,11 @@ int tte_pcf_handle(unsigned long long sched_rec_pit, unsigned long long* schedul
 __attribute__((noinline))
 int waitAndReceiveFrame(unsigned long long timeout){
 	unsigned short dest_port;
+	unsigned char frame_dest_mac[6];
 	//receive
 	PTP_RXCHAN_STATUS(thisPtpPortInfo.eth_base) = 0x1; //Clear PTP timestampAvail flag
-	if(eth_mac_receive(rx_addr, (unsigned long long) timeout*NS_TO_USEC)){
+	if(eth_mac_receive(rx_addr, (unsigned long long) timeout * NS_TO_USEC)){
+		mac_addr_dest(rx_addr, frame_dest_mac);
 		#ifdef HW_TIMESTAMPING
 		hardTimestamp.nanoseconds = PTP_RXCHAN_TIMESTAMP_NS(thisPtpPortInfo.eth_base);
 		hardTimestamp.seconds = PTP_RXCHAN_TIMESTAMP_SEC(thisPtpPortInfo.eth_base);
@@ -239,11 +254,13 @@ int waitAndReceiveFrame(unsigned long long timeout){
 		PTP_RXCHAN_STATUS(thisPtpPortInfo.eth_base) = 0x1; //Clear PTP timestampAvail flag
 		//handle
 		if (mem_iord_byte(rx_addr + 12) == 0x89 && mem_iord_byte(rx_addr + 13) == 0x1d){
-			// if((mem_iord_byte(rx_addr + 28)) == 0x2){
-					
-			// }
-			return TTE_PCF;
-		} else if(mac_compare_mac(mac_addr_dest(rx_addr), (unsigned char*) &TTE_CT)) {
+			if((mem_iord_byte(rx_addr + 28)) == 0x2){
+				return TTE_PCF;		
+			} else {
+				return TTE_MSG;
+			}
+		} else if(frame_dest_mac[0] == TTE_CT[0] && frame_dest_mac[1] == TTE_CT[1] && frame_dest_mac[2] == TTE_CT[2] 
+				&& frame_dest_mac[3] == TTE_CT[3] && frame_dest_mac[4] == TTE_VL[0] && frame_dest_mac[5] == TTE_VL[1]) {
 			return TTE_MSG;
 		} else {
 			return UNSUPPORTED;
@@ -254,7 +271,7 @@ int waitAndReceiveFrame(unsigned long long timeout){
 }
 
 __attribute__((noinline))
-void task_sync(unsigned long long* start_time, unsigned long long schedule_time, unsigned long long* activation, unsigned long long *nxt_task_activation, unsigned long long* last_time){
+void task_sync(unsigned long long* start_time, unsigned long long schedule_time, unsigned long long* activation, unsigned long long *nxt_activations[NO_TASKS], unsigned long long* last_time){
 	GPIO |= (1U << SYNCTASK_GPIO_BIT);
 	int ethFrameType = waitAndReceiveFrame(2*SYNC_WINDOW_HALF);
 	if(ethFrameType == TTE_PCF){
@@ -287,7 +304,9 @@ void task_sync(unsigned long long* start_time, unsigned long long schedule_time,
 	#endif
 	#endif
 	*activation = *activation + get_tte_aligned_time(SYNC_PERIOD);
-	*nxt_task_activation = get_tte_aligned_time(*nxt_task_activation);
+	for(int i=1; i<NO_TASKS; i++){
+		*nxt_activations[i] = get_tte_aligned_time(*nxt_activations[i]);
+	}
 	syncLoopDeltaSum += schedule_time - get_tte_aligned_time(*last_time);
 	rxPcfCount += ethFrameType == TTE_PCF ? 1 : 0;
 	*last_time = schedule_time;
@@ -310,11 +329,76 @@ void task_pulse(unsigned long long schedule_time, unsigned long long* activation
 	GPIO &= (0U << PULSETASK_GPIO_BIT);
 }
 
-void cyclicExecutiveLoop(){
+__attribute__((noinline))
+void task_send(SimpleTTMessage* message, int length, unsigned long long* activation){
+	GPIO |= (1U << SENDTASK_GPIO_BIT);
+	if(nodeSyncStable){
+		unsigned char ethType[2];
+		ethType[0]=((4+length)>>8) & 0xFF;
+		ethType[1]=(4+length) & 0xFF;
+		
+		//Header
+		#pragma loopbound min 4 max 4
+		for(int i=0; i<4; i++){
+			mem_iowr_byte(tx_addr + i, TTE_CT[i]);
+		}
+		mem_iowr_byte(tx_addr + 4, TTE_VL[0]);
+		mem_iowr_byte(tx_addr + 5, TTE_VL[1]);
+
+		#pragma loopbound min 6 max 6
+		for(int i=6; i<12; i++){
+			mem_iowr_byte(tx_addr + i, TTE_MAC[i-6]);
+		}
+
+		mem_iowr_byte(tx_addr + 12, ethType[0]);
+		mem_iowr_byte(tx_addr + 13, ethType[1]);
+
+		//Data
+		#pragma loopbound min 4 max 8
+		for(int i=0; i<length; i++){
+			mem_iowr_byte(tx_addr + 18 + i, *((unsigned char*) message + i));
+		}
+		message->val += 1;
+		txMsgCount++;
+		eth_mac_send_nb(tx_addr, 18+4+length);
+	}
+	*activation += SEND_PERIOD;
+	GPIO &= (0U << SENDTASK_GPIO_BIT);
+}
+
+
+__attribute__((noinline))
+void task_recv(SimpleTTMessage* message, int length, unsigned long long* activation){
+	GPIO |= (1U << RECVTASK_GPIO_BIT);
+	if(nodeSyncStable){
+		int ethFrameType = waitAndReceiveFrame(2*SYNC_WINDOW_HALF);
+		LEDS &= 0xF0;
+		LEDS |= (ethFrameType & 0xF);
+		if(ethFrameType == TTE_MSG){
+			//Data
+			#pragma loopbound min 0 max 8
+			for(int i=0; i<length; i++){
+				*((unsigned char*)message + i) = mem_iord_byte(rx_addr + 18 + i);
+			}
+			printf("%llu,", message->val);
+		} else if(ethFrameType == TIMEOUT){
+			puts("x");
+		}
+	}
+	*activation += RECV_PERIOD;
+	GPIO &= (0U << RECVTASK_GPIO_BIT);
+}
+
+
+void cyclicExecutiveLoop(unsigned char exec_role){
 	unsigned long long sync_activation = SYNC_START_TIME;			//initial values generated by scheduler
 	unsigned long long pulse_activation = PULSE_START_TIME;			//initial values generated by scheduler
+	unsigned long long send_activation = SEND_START_TIME;			//initial values generated by scheduler
+	unsigned long long recv_activation = RECV_START_TIME;			//initial values generated by scheduler
+	unsigned long long *activations[NO_TASKS] = {&sync_activation, &pulse_activation, &send_activation, &recv_activation};
 	unsigned long long sync_last_time = 0;							//keep track of the last executed time
 	unsigned long long pulse_last_time = 0;							//keep track of the last executed time
+	SimpleTTMessage the_message = {.val = 0};
 	unsigned long long start_time = get_ptp_nanos(thisPtpPortInfo.eth_base);
 	#ifdef LOGGING
 	_Pragma("loopbound min 1 max 1")
@@ -325,28 +409,36 @@ void cyclicExecutiveLoop(){
 	#endif
 		register unsigned long long schedule_time = get_tte_aligned_time(get_ptp_nanos(thisPtpPortInfo.eth_base) - start_time);
 		if(schedule_time >= sync_activation){
-			task_sync(&start_time, schedule_time, &sync_activation, &pulse_activation, &sync_last_time);
+			task_sync(&start_time, schedule_time, &sync_activation, activations, &sync_last_time);
 		} 
-		else if(KEYS != 0xD && schedule_time >= pulse_activation) {
+		else 
+		if(schedule_time >= pulse_activation) {
 			task_pulse(schedule_time, &pulse_activation, &pulse_last_time);
 		}
+		else
+		if(exec_role==PRODUCER && schedule_time >= send_activation) {
+            task_send(&the_message, 8, &send_activation);
+        }
+        else 
+		if(exec_role==CONSUMER && schedule_time >= recv_activation) {
+            task_recv(&the_message, 8, &recv_activation);
+        }
 	}
 }
 
 int main(int argc, char **argv){
 	// Start
+	unsigned char role;
 	LEDS = 0x1FF;
-	puts("\nTTEthernet Clock Sync Demo Started");
+	puts("\nTTEthernet Ping Demo Started");
 	
 	//MAC controller settings
 	set_mac_address(0x1D000400, 0x00000289);
-	//MODER: PAD|HUGEN|CRCEN|DLYCRCEN|-|FULLD|EXDFREN|NOBCKOF|LOOPBCK|IFG|PRO|IAM|BRO|NOPRE|TXEN|RXEN
-	eth_iowr(MODER, 0x0000A423);
+	eth_iowr(MODER, (RECSMALL_BIT | CRCEN_BIT | FULLD_BIT | PRO_BIT | TXEN_BIT | RXEN_BIT));
 	eth_iowr(INT_SOURCE, INT_SOURCE_RXB_BIT);
     eth_iowr(RX_BD_ADDR_BASE(eth_iord(TX_BD_NUM)), RX_BD_EMPTY_BIT | RX_BD_IRQEN_BIT | RX_BD_WRAP_BIT);
-	ipv4_set_my_ip((unsigned char[4]) {192, 168, 2, 69});
-	arp_table_init();
-	print_general_info();
+	eth_iowr(INT_SOURCE, INT_SOURCE_TXB_BIT);
+	eth_iowr(TX_BD_ADDR_BASE, TX_BD_READY_BIT | TX_BD_IRQEN_BIT | TX_BD_PAD_EN_BIT);
 	thisPtpPortInfo = ptpv2_intialize_local_port(PATMOS_IO_ETH, PTP_SLAVE, my_mac, my_ip, 1, 0);
 	
 	// Test offset
@@ -357,24 +449,16 @@ int main(int argc, char **argv){
 	
 	//Init
 	GPIO = 0x0;
+	printf("Select execution role (PRODUCER=%d, CONSUMER=%d): ", PRODUCER, CONSUMER);
+	scanf("%02x", (unsigned int*) &role);
 	PTP_RXCHAN_STATUS(thisPtpPortInfo.eth_base) = 0x1; //Clear PTP timestampAvail flag
 
 	// Executive Loop
-	cyclicExecutiveLoop();
+	cyclicExecutiveLoop(role);
 
 	//Report
 	puts("------------------------------------------");
 	puts("Clock Sync Quality Log:");
-	#ifdef LOGGING
-	puts("------------------------------------------");
-	puts("Timestamp(ns);\tDelta Time(ns);\tEth Type;\tCycle#;\tTransClk(ns);\tPermaPIT(ns);\tSchedPIT(ns);\tOffset(ns);\tPIFix(ns);");
-	for(int i=0;i<rxPcfCount;i++){
-		printf("%10llu;\t%llu;\t%s;\t%04hx;\t%10llu;\t%10lld;\t%10lld;\t%10lld;\t%10lld;\n", 
-																PTP_TIME_TO_NS(rxTimestampLog[i].seconds, rxTimestampLog[i].nanoseconds),
-		 														deltaTimeLog[i], eth_protocol_names[rxPacketLog[i]], tteIntCycleLog[i], tteTransClkLog[i],
-																permaPITLog[i], schedPITLog[i], clkOffsetNsLog[i], timeFixNsLog[i]);
-	}
-	#endif
 	printf("--Avg. clock offset = %lld ns\n", clkDiffSum / rxPcfCount);
 	puts("---------------------------------------------------------------------------");
 	printf("--Received No. of Packets = %u\n", rxPcfCount);

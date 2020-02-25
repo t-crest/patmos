@@ -2,7 +2,7 @@
   <description>configuration for DE2-115 board with IEEE 1588v2 PTP</description>
 
   <frequency Hz="80000000"/>
-  <pipeline dual="false"/>
+  <pipeline dual="true"/>
 	
   <ExtMem size="2M" DevTypeRef="Sram16" />
 
@@ -73,7 +73,7 @@
     <Dev DevType="Gpio" entity="Gpio" iface="OcpCore">
       <params>
           <param name="bankCount" value="1"/>
-          <param name="bankWidth" value="1"/>
+          <param name="bankWidth" value="6"/>
           <param name="ioDirection" value="output"/>
       </params>
     </Dev>

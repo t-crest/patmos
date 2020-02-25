@@ -122,6 +122,12 @@ set_location_assignment PIN_N21 -to iKeysPins_key[2]
 set_location_assignment PIN_M21 -to iKeysPins_key[1]
 set_location_assignment PIN_M23 -to iKeysPins_key[0]
 set_location_assignment PIN_AC15 -to oGpioPins_gpio_0[0]
+set_location_assignment PIN_Y17 -to oGpioPins_gpio_0[1]
+set_location_assignment PIN_Y16 -to oGpioPins_gpio_0[2]
+set_location_assignment PIN_AE16 -to oGpioPins_gpio_0[3]
+set_location_assignment PIN_AC19 -to oGpioPins_gpio_0[4]
+set_location_assignment PIN_AD19 -to oGpioPins_gpio_0[5]
+set_location_assignment PIN_AF24 -to oGpioPins_gpio_0[6]
 set_location_assignment PIN_C20 -to ENET0_MDC
 set_location_assignment PIN_B21 -to ENET0_MDIO
 set_location_assignment PIN_C19 -to ENET0_RST_N

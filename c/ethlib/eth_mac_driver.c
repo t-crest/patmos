@@ -67,12 +67,13 @@ return;
 
 //This function sends an ethernet frame located at tx_addr and of length frame_length (NON-BLOCKING call).
 unsigned eth_mac_send_nb(unsigned int tx_addr, unsigned int frame_length){
-    if(eth_iord(0x400) & 0x8000){
+    if((eth_iord(TX_BD_ADDR_BASE) & TX_BD_READY_BIT)==1){
         return 0;
     } else {
-        eth_iowr(0x04, 0x00000001);
-	    eth_iowr(0x404, tx_addr);
-	    eth_iowr(0x400, ((frame_length<<16)|(0xF000)));
+	    eth_iowr((TX_BD_ADDR_BASE+4), tx_addr);
+	    eth_iowr(TX_BD_ADDR_BASE, ((frame_length<<16)|(0xF000)));
+	    eth_iowr(INT_SOURCE, INT_SOURCE_TXB_BIT);
+	    eth_iowr(TX_BD_ADDR_BASE, TX_BD_READY_BIT | TX_BD_IRQEN_BIT | TX_BD_WRAP_BIT | TX_BD_PAD_EN_BIT);
     }
     return 1;
 }
