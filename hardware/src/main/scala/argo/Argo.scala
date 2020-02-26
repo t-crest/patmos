@@ -12,7 +12,7 @@ import patmos.Constants._
 import ocp._
 import cmp._
 
-class OcpArgoSlavePort(val addrWidth : Int, val dataWidth : Int, argoConf: ArgoConfig) 
+class OcpArgoSlavePort(addrWidth : Int, dataWidth : Int, argoConf: ArgoConfig)
   extends OcpCoreSlavePort(addrWidth, dataWidth) {
   val superMode = Bits(INPUT, argoConf.CORES)
   val flags = Bits(OUTPUT, 2*argoConf.CORES)
