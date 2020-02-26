@@ -12,7 +12,7 @@ import patmos.Constants._
 import ocp._
 import cmp._
 
-class OcpArgoSlavePort(addrWidth : Int, dataWidth : Int, argoConf: ArgoConfig)
+class OcpArgoSlavePort(addrWidth : Int, dataWidth : Int, val argoConf: ArgoConfig)
   extends OcpCoreSlavePort(addrWidth, dataWidth) {
   val superMode = Bits(INPUT, argoConf.CORES)
   val flags = Bits(OUTPUT, 2*argoConf.CORES)
@@ -22,7 +22,7 @@ class CmpArgoIO(corecnt : Int, argoConf: ArgoConfig) extends CmpIO(corecnt : Int
 {
   override val cores = Vec(corecnt, new OcpArgoSlavePort(ADDR_WIDTH, DATA_WIDTH, argoConf)).asInstanceOf[Vec[OcpCoreSlavePort]]
 
-  override def clone = new CmpArgoIO(corecnt, argoConf).asInstanceOf[this.type]
+  //override def clone = new CmpArgoIO(corecnt, argoConf).asInstanceOf[this.type]
 }
 
 class Argo(nrCores: Int, wrapped: Boolean = false, emulateBB: Boolean = false) extends Module {

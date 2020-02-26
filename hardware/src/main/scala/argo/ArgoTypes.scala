@@ -50,7 +50,7 @@ class OutputPort(argoConf: ArgoConfig) extends Bundle {
   val b = Input(new ChannelBackward(argoConf))
 }
 
-class NodeInterconnection(argoConf: ArgoConfig) extends Bundle {
+class NodeInterconnection(val argoConf: ArgoConfig) extends Bundle {
   val north_wire_in = Wire(init = UInt(0, width = argoConf.LINK_WIDTH))
   val east_wire_in = Wire(init = UInt(0, width = argoConf.LINK_WIDTH))
   val south_wire_in = Wire(init = UInt(0, width = argoConf.LINK_WIDTH))

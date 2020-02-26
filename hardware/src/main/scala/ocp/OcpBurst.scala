@@ -33,7 +33,7 @@ class OcpBurstMasterPort(addrWidth : Int, dataWidth : Int, burstLen : Int) exten
 }
 
 // Slave port is reverse of master port
-class OcpBurstSlavePort(addrWidth : Int, dataWidth : Int, burstLen : Int) extends Bundle() {
+class OcpBurstSlavePort(val addrWidth : Int, val dataWidth : Int, val burstLen : Int) extends Bundle() {
   val burstLength = burstLen
   // Clk is implicit in Chisel
   val M = Input(new OcpBurstMasterSignals(addrWidth, dataWidth))
