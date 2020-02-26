@@ -34,7 +34,7 @@ end entity patmos_top;
 architecture rtl of patmos_top is
 	component Patmos is
 		port(
-			clk             : in  std_logic;
+			clock           : in  std_logic;
 			reset           : in  std_logic;
 
 			io_Leds_led : out std_logic_vector(8 downto 0);
