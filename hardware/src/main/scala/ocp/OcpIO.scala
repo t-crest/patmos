@@ -34,14 +34,14 @@ class OcpIOSlaveSignals(dataWidth: Int)
 }
 
 // Master port
-class OcpIOMasterPort(addrWidth: Int, dataWidth: Int) extends Bundle() {
+class OcpIOMasterPort(val addrWidth: Int, val dataWidth: Int) extends Bundle() {
   // Clk is implicit in Chisel
   val M = new OcpIOMasterSignals(addrWidth, dataWidth).asOutput
   val S = new OcpIOSlaveSignals(dataWidth).asInput
 }
 
 // Slave port is reverse of master port
-class OcpIOSlavePort(addrWidth: Int, dataWidth: Int) extends Bundle() {
+class OcpIOSlavePort(val addrWidth: Int, val dataWidth: Int) extends Bundle() {
   // Clk is implicit in Chisel
   val M = new OcpIOMasterSignals(addrWidth, dataWidth).asInput
   val S = new OcpIOSlaveSignals(dataWidth).asOutput
