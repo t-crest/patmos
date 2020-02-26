@@ -12,16 +12,12 @@ import ocp.OcpIOSlavePort
 import patmos.Constants.{ADDR_WIDTH, DATA_WIDTH}
 
 class ArgoNoC(argoConf: ArgoConfig, wrapped: Boolean = false, emulateBB: Boolean = false) extends Module {
-  val io = new Bundle {
+  val io = IO(new Bundle {
     val irq = Bits(OUTPUT, width = argoConf.CORES*2)
     val supervisor = Bits(INPUT, width = argoConf.CORES)
-    val ocpPorts = Vec.fill(argoConf.CORES) {
-      new OcpIOSlavePort(ADDR_WIDTH, DATA_WIDTH)
-    }
-    val spmPorts = Vec.fill(argoConf.CORES) {
-      new SPMMasterPort(argoConf.HEADER_FIELD_WIDTH, argoConf.HEADER_CTRL_WIDTH)
-    }
-  }
+    val ocpPorts = Vec(argoConf.CORES, new OcpIOSlavePort(ADDR_WIDTH, DATA_WIDTH))
+    val spmPorts = Vec(argoConf.CORES, new SPMMasterPort(argoConf.HEADER_FIELD_WIDTH, argoConf.HEADER_CTRL_WIDTH))
+  })
 
   io.irq := 0.U
   //Interconnect
