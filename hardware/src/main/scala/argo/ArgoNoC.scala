@@ -22,11 +22,11 @@ class ArgoNoC(argoConf: ArgoConfig, wrapped: Boolean = false, emulateBB: Boolean
   io.irq := 0.U
   //Interconnect
   if(!wrapped) {
-    val masterRunWire = Bits(width=1)
+    val masterRunWire = Wire(Bits(width=1))
     val argoNodes = (0 until argoConf.M).map(j =>
       (0 until argoConf.N).map(i =>
         if (emulateBB) Module(new NoCNodeDummy(argoConf, i == 0 && j == 0)).io else Module(new NoCNodeWrapper(argoConf, i == 0 && j == 0)).io))
-    val argoMesh = Vec.fill(argoConf.M){Vec.fill(argoConf.N){new NodeInterconnection(argoConf)}}
+    val argoMesh = Vec(argoConf.M, Vec(argoConf.N, new NodeInterconnection(argoConf)))
     /*
     * Nodes Port Interconnect
     *
