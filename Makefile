@@ -116,6 +116,13 @@ emulator:
 	-mkdir -p $(HWINSTALLDIR)/bin
 	cp $(HWBUILDDIR)/emulator $(HWINSTALLDIR)/bin/patemu
 
+# Temporary chisel3/verilator emulator
+tempemu:
+	$(MAKE) -C hardware verilog BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
+	-cd $(HWBUILDDIR) && verilator --cc Patmos.v --assert -Wno-fatal -Wno-WIDTH -Wno-STMTDLY -O1 --top-module Patmos +define+TOP_TYPE=VPatmos +define+PRINTF_COND='!Patmos.reset' +define+STOP_COND='!Patmos.reset' -CFLAGS "-Wno-undefined-bool-conversion -O1 -DTOP_TYPE=VPatmos -DVL_USER_FINISH -include VPatmos.h" -Mdir $(HWBUILDDIR) --exe ../Patmos-harness.cpp --trace 
+	-cd $(HWBUILDDIR) && make -j -f VPatmos.mk
+	-cd $(HWBUILDDIR) && ./VPatmos
+
 # Assemble a program
 asm: asm-$(BOOTAPP)
 
