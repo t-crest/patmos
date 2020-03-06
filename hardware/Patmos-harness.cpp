@@ -16,20 +16,33 @@ void vl_finish(const char* filename, int linenum, const char* hier) {
 
 int main(int argc, char **argv, char **env) {
     Verilated::commandArgs(argc, argv);
+    VerilatedVcdC *m_trace;
     VPatmos* top = new VPatmos;
     std::string vcdfile = "build/Patmos.vcd";
     std::vector<std::string> args(argv+1, argv+argc);
     std::vector<std::string>::const_iterator it;
+    Verilated::traceEverOn(true);
     int cnt = 0;
-    int cntu = 0;
-    unsigned char uartc = 'f';
+    top->reset = 1;
+    top->eval();
+    top->clock = 1;
+    top->eval();
+    top->clock = 0;
+    top->eval();
+    top->clock = 1;
+    top->eval();
+    top->clock = 0;
+    top->eval();
+    top->reset = 0;
+    top->eval();
     // Tick the clock until we are done
     printf("This is a hacked harness \n");
-    while(!Verilated::gotFinish() && cnt != 10) {
-	top->clock = 1;
-	top->eval();
-	top->clock = 0;
-	top->eval();
+    while(!Verilated::gotFinish() && cnt != 20) {
+	    top->clock = 1;
+	    top->eval();
+        printf("pc: %d \n", top->Patmos__DOT__cores_0__DOT__fetch__DOT__pcReg);
+	    top->clock = 0;
+	    top->eval();
         cnt++;
     }
 
