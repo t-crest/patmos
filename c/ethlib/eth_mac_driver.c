@@ -101,14 +101,14 @@ unsigned eth_mac_receive(unsigned int rx_addr, unsigned long long int timeout){
 //This function receive an ethernet frame and put it in rx_addr (NON-BLOCKING call).
 unsigned eth_mac_receive_nb(unsigned int rx_addr){
     unsigned ans = 0;
-    eth_iowr(0x04, 0x00000004);
-	eth_iowr(0x604, rx_addr);
-	eth_iowr(0x600, 0x0000E000);
-    if ((eth_iord(0x04) & 0x4)==0){
+    eth_iowr(RX_BD_ADDR_BASE(eth_iord(TX_BD_NUM))+4, rx_addr);
+    if ((eth_iord(INT_SOURCE) & INT_SOURCE_RXB_BIT)==0){
         ans = 0;
     }else{
         ans = 1;
     }
+    eth_iowr(INT_SOURCE, INT_SOURCE_RXB_BIT);
+    eth_iowr(RX_BD_ADDR_BASE(eth_iord(TX_BD_NUM)), RX_BD_EMPTY_BIT | RX_BD_IRQEN_BIT | RX_BD_WRAP_BIT);
     return ans;
 }
 

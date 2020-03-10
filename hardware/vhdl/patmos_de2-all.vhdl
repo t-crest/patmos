@@ -25,7 +25,8 @@ entity patmos_top is
         oLedsPins_led : out   std_logic_vector(8 downto 0);
         oLedsPins_ledR : out  std_logic_vector(17 downto 0);
         iKeysPins_key : in    std_logic_vector(3 downto 0);
-        oGpioPins_gpio_0 : out std_logic_vector(6 downto 0);
+        oGpioPins_gpio_0 : out std_logic_vector(7 downto 0);
+        oDebug_MII_RX   : out std_logic_vector(5 downto 0);
         oSegmentDisplayPins_hexDisp_7 : out std_logic_vector(6 downto 0);
 		oSegmentDisplayPins_hexDisp_6 : out std_logic_vector(6 downto 0);
 		oSegmentDisplayPins_hexDisp_5 : out std_logic_vector(6 downto 0);
@@ -243,17 +244,19 @@ begin
     end process;
 
     oLedsPins_ledR(17) <=  debug_timestamp_int;
-    oGpioPins_gpio_0(4) <= ENET0_RX_DV;
-    oGpioPins_gpio_0(5) <= debug_mii_tx_en_int;
-    oGpioPins_gpio_0(6) <= debug_timestamp_int;
+    oGpioPins_gpio_0(5) <= ENET0_RX_DV;
+    oGpioPins_gpio_0(6) <= debug_mii_tx_en_int;
+    oGpioPins_gpio_0(7) <= debug_timestamp_int;
     ENET0_TX_EN <= debug_mii_tx_en_int;
+
+    oDebug_MII_RX <= ENET0_RX_DATA & ENET0_RX_DV & ENET0_RX_CLK;
 
     patmos_inst : Patmos port map(
         clk => clk_int, 
         reset => int_res,
         io_Leds_led => oLedsPins_led,
         io_Keys_key => iKeysPins_key,
-        io_Gpio_gpios_0(3 downto 0) => oGpioPins_gpio_0(3 downto 0),
+        io_Gpio_gpios_0(4 downto 0) => oGpioPins_gpio_0(4 downto 0),
         io_UartCmp_tx => oUartPins_txd, 
         io_UartCmp_rx => iUartPins_rxd,
         io_Uart_tx => oUart2Pins_txd,

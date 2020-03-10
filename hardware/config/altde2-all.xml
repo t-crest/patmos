@@ -73,7 +73,7 @@
     <Dev DevType="Gpio" entity="Gpio" iface="OcpCore">
       <params>
           <param name="bankCount" value="1"/>
-          <param name="bankWidth" value="6"/>
+          <param name="bankWidth" value="8"/>
           <param name="ioDirection" value="output"/>
       </params>
     </Dev>

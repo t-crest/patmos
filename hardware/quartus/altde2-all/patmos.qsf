@@ -60,7 +60,7 @@ set_global_assignment -name RESERVE_ALL_UNUSED_PINS_NO_OUTPUT_GND "AS INPUT TRI-
 
 set_location_assignment PIN_Y2 -to clk
 set_location_assignment PIN_AB22 -to oEthPPS
-set_location_assignment PIN_AB21 -to oEth2PPS
+set_location_assignment PIN_AC19 -to oEth2PPS
 set_location_assignment PIN_T8 -to oSRAM_A[19]
 set_location_assignment PIN_AB8 -to oSRAM_A[18]
 set_location_assignment PIN_AB9 -to oSRAM_A[17]
@@ -125,9 +125,16 @@ set_location_assignment PIN_AC15 -to oGpioPins_gpio_0[0]
 set_location_assignment PIN_Y17 -to oGpioPins_gpio_0[1]
 set_location_assignment PIN_Y16 -to oGpioPins_gpio_0[2]
 set_location_assignment PIN_AE16 -to oGpioPins_gpio_0[3]
-set_location_assignment PIN_AC19 -to oGpioPins_gpio_0[4]
-set_location_assignment PIN_AD19 -to oGpioPins_gpio_0[5]
-set_location_assignment PIN_AF24 -to oGpioPins_gpio_0[6]
+set_location_assignment PIN_AE15 -to oGpioPins_gpio_0[4]
+set_location_assignment PIN_AB21 -to oGpioPins_gpio_0[5]
+set_location_assignment PIN_AC21 -to oGpioPins_gpio_0[6]
+set_location_assignment PIN_AD21 -to oGpioPins_gpio_0[7]
+set_location_assignment PIN_AH25 -to oDebug_MII_RX[0]
+set_location_assignment PIN_AG22 -to oDebug_MII_RX[1]
+set_location_assignment PIN_AH22 -to oDebug_MII_RX[2]
+set_location_assignment PIN_AE20 -to oDebug_MII_RX[3]
+set_location_assignment PIN_AE24 -to oDebug_MII_RX[4]
+set_location_assignment PIN_AF26 -to oDebug_MII_RX[5]
 set_location_assignment PIN_C20 -to ENET0_MDC
 set_location_assignment PIN_B21 -to ENET0_MDIO
 set_location_assignment PIN_C19 -to ENET0_RST_N
