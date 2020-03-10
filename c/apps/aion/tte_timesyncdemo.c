@@ -224,39 +224,30 @@ int tte_pcf_handle(unsigned long long sched_rec_pit, unsigned long long* schedul
 }
 
 __attribute__((noinline))
-int waitAndReceiveFrame(unsigned long long timeout){
-	unsigned short dest_port;
-	//receive
-	PTP_RXCHAN_STATUS(thisPtpPortInfo.eth_base) = 0x1; //Clear PTP timestampAvail flag
-	if(eth_mac_receive(rx_addr, (unsigned long long) timeout*NS_TO_USEC)){
-		#ifdef HW_TIMESTAMPING
-		hardTimestamp.nanoseconds = PTP_RXCHAN_TIMESTAMP_NS(thisPtpPortInfo.eth_base);
-		hardTimestamp.seconds = PTP_RXCHAN_TIMESTAMP_SEC(thisPtpPortInfo.eth_base);
-		#else
-		softTimestamp.nanoseconds = (unsigned) RTC_TIME_NS(thisPtpPortInfo.eth_base);
-		softTimestamp.seconds = (unsigned) RTC_TIME_SEC(thisPtpPortInfo.eth_base);
-		#endif
-		PTP_RXCHAN_STATUS(thisPtpPortInfo.eth_base) = 0x1; //Clear PTP timestampAvail flag
-		//handle
-		if (mem_iord_byte(rx_addr + 12) == 0x89 && mem_iord_byte(rx_addr + 13) == 0x1d){
-			// if((mem_iord_byte(rx_addr + 28)) == 0x2){
-					
-			// }
-			return TTE_PCF;
-		} else if(mac_compare_mac(mac_addr_dest(rx_addr), (unsigned char*) &TTE_CT)) {
-			return TTE_MSG;
-		} else {
-			return UNSUPPORTED;
-		}
-	} else {
-		return TIMEOUT;
-	}
-}
-
-__attribute__((noinline))
 void task_sync(unsigned long long* start_time, unsigned long long schedule_time, unsigned long long* activation, unsigned long long *nxt_task_activation, unsigned long long* last_time){
 	GPIO |= (1U << SYNCTASK_GPIO_BIT);
-	int ethFrameType = waitAndReceiveFrame(2*SYNC_WINDOW_HALF);
+	int ethFrameType;
+	PTP_RXCHAN_STATUS(thisPtpPortInfo.eth_base) = 0x1; //Clear PTP timestampAvail flag
+	unsigned long long listen_start = get_cpu_usecs(); //keep track when we started listening
+	#pragma loopbound min 1 max 1
+	do
+	{
+		if(eth_mac_receive_nb(rx_addr))
+		{
+			if((unsigned short) ((mem_iord_byte(rx_addr + 12) << 8) + (mem_iord_byte(rx_addr + 13))) == 0x891D)
+			{
+				#ifdef HW_TIMESTAMPING
+				hardTimestamp.nanoseconds = PTP_RXCHAN_TIMESTAMP_NS(thisPtpPortInfo.eth_base);
+				hardTimestamp.seconds = PTP_RXCHAN_TIMESTAMP_SEC(thisPtpPortInfo.eth_base);
+				#else
+				softTimestamp.nanoseconds = (unsigned) RTC_TIME_NS(thisPtpPortInfo.eth_base);
+				softTimestamp.seconds = (unsigned) RTC_TIME_SEC(thisPtpPortInfo.eth_base);
+				#endif
+				ethFrameType = TTE_PCF;
+			}
+			PTP_RXCHAN_STATUS(thisPtpPortInfo.eth_base) = 0x1; //Clear PTP timestampAvail flag
+		}
+	} while(ethFrameType != TTE_PCF && get_cpu_usecs() - listen_start < 2*SYNC_WINDOW_HALF*NS_TO_USEC);
 	if(ethFrameType == TTE_PCF){
 		tte_pcf_handle(schedule_time, start_time);
 		nodeIntegrated = !nodeColdStart && ethFrameType > 0 && (stableCycles - unstableCycles) > 0 && abs(clkDiff) < TTE_PRECISION;
@@ -265,10 +256,13 @@ void task_sync(unsigned long long* start_time, unsigned long long schedule_time,
 			nodeFirstSync = 0;
 		}
 	} else if(ethFrameType == TIMEOUT){
+		stableCycles = 0;
+		unstableCycles = 0;
 		nodeFirstSync = 1;
 		nodeColdStart = 1;
 		nodeIntegrated = 0;
 		nodeSyncStable = 0;
+		clkDiffLast = 0;
 		clkDiffSum = 0;
 		clkDiff = 0;
 	}

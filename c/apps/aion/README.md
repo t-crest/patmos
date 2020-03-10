@@ -1,5 +1,5 @@
 # A I O N
-## Time synchronization applications for real-time Ethernet using Patmos
+## Time synchronization experiments for real-time Ethernet using Patmos
 
 # Experiments
 * ```timestamp_compare.c``` : compares hardware timestamping against software timestamping
