@@ -7,6 +7,114 @@
 #include <iostream>
 
 
+class Emulator {
+	unsigned long	m_tickcount;
+	VPatmos *c;
+
+  // For Uart:
+  bool UART_on;
+  int baudrate;
+  int freq;
+  char in_byte;
+  char out_byte;
+  int sample_counter;
+  int bit_counter;
+  char state;
+
+	public: Emulator(void) {
+		c = new VPatmos;
+		m_tickcount = 0l;
+
+    //for UART
+    UART_on = false;
+    baudrate = 0;
+    freq = 0;
+    in_byte = 0;
+    out_byte = 0;
+    sample_counter = 0;
+    bit_counter = 0;
+    state = 'i'; // 0:idle 1:receiving
+	}
+
+	~Emulator(void) {
+		delete c;
+		c = NULL;
+	}
+
+	void reset(void) {
+		c->reset = 1;
+		// Make sure any inheritance gets applied
+		this->tick();
+		c->reset = 0;
+	}
+
+	void tick(void) {
+		// Increment our own internal time reference
+		m_tickcount++;
+
+		// Make sure any combinatorial logic depending upon
+		// inputs that may have changed before we called tick()
+		// has settled before the rising edge of the clock.
+		c->clock = 0;
+		c->eval();
+
+		// Toggle the clock
+
+		// Rising edge
+		c->clock = 1;
+		c->eval();
+
+		// Falling edge
+		c->clock = 0;
+		c->eval();
+
+
+    //UART emulation
+    
+    if(UART_on){
+      if(state == 'i'){ // idle wait for start bit
+        if(c->io_UartCmp_tx == 0){
+          state = 'r'; //receiving
+        }
+      }else if(state == 'r'){
+        sample_counter++;
+        if(sample_counter == ((freq/baudrate)+1)){ //+1 as i to go one clock tick to futher before sampling
+          UART_read_bit();
+          sample_counter = 0;
+        }
+      }
+    }
+	}
+
+    long int get_tick_count(void){
+        return m_tickcount;
+    }
+
+	bool done(void) { return (Verilated::gotFinish()); }
+
+  // UART methods below
+  void UART_init(int set_baudrate, int set_freq){
+    baudrate = set_baudrate;
+    freq = set_freq;
+    UART_on = true;
+  }
+
+  void UART_read_bit(void){
+    bit_counter++;
+    if(bit_counter == 9){
+      printf("%c", out_byte);
+      out_byte = 0;
+      bit_counter = 0;
+      state = 'i';
+    }else{
+      out_byte = (c->io_UartCmp_tx << (bit_counter-1)) | out_byte ;
+    }
+
+  }
+
+};
+
+
 // Override Verilator definition so first $finish ends simulation
 // Note: VL_USER_FINISH needs to be defined when compiling Verilator code
 void vl_finish(const char* filename, int linenum, const char* hier) {
@@ -16,37 +124,18 @@ void vl_finish(const char* filename, int linenum, const char* hier) {
 
 int main(int argc, char **argv, char **env) {
     Verilated::commandArgs(argc, argv);
-    VerilatedVcdC *m_trace;
-    VPatmos* top = new VPatmos;
-    std::string vcdfile = "build/Patmos.vcd";
-    std::vector<std::string> args(argv+1, argv+argc);
-    std::vector<std::string>::const_iterator it;
-    Verilated::traceEverOn(true);
-    int cnt = 0;
-    top->reset = 1;
-    top->eval();
-    top->clock = 1;
-    top->eval();
-    top->clock = 0;
-    top->eval();
-    top->clock = 1;
-    top->eval();
-    top->clock = 0;
-    top->eval();
-    top->reset = 0;
-    top->eval();
-    // Tick the clock until we are done
-    printf("This is a hacked harness \n");
-    while(!Verilated::gotFinish() && cnt != 20) {
-	    top->clock = 1;
-	    top->eval();
-        printf("pc: %d \n", top->Patmos__DOT__cores_0__DOT__fetch__DOT__pcReg);
-	    top->clock = 0;
-	    top->eval();
-        cnt++;
-    }
+    Emulator *emu = new Emulator();
+    emu->reset();
+    emu->tick();
+    emu->UART_init(115200, 80000000);
 
-    exit(0);
+	while(!emu->done() && emu->get_tick_count() !=10000000) {
+		emu->tick();
+    //printf("%d \n", emu->get_tick_count());
+	} 
+    printf("This is a hacked harness \n");
+    exit(EXIT_SUCCESS);
+
 /*#if VM_TRACE
     Verilated::traceEverOn(true);
     VL_PRINTF("Enabling waves..");
