@@ -103,8 +103,7 @@ void slave() {
 int main(void) __attribute__((noreturn));
 
 int main() {
-	noc_configure();
-	noc_enable();
+	noc_init();
 
 	// Clear scratch pad in all cores
 	// 16+16 integers

@@ -321,17 +321,17 @@ void noc_wait_dma(coreset_t receivers);
 #define IRQ_BANK      BANK(4)
 
 /// The base address for DMA entries
-#define NOC_DMA_BASE    ((volatile unsigned int _IODEV *)(0xE0000000+DMA_BANK))
+#define NOC_DMA_BASE    ((volatile unsigned int _IODEV *)(PATMOS_IO_ARGO+DMA_BANK))
 /// The base address for DMA routing information
-#define NOC_SCHED_BASE  ((volatile unsigned int _IODEV *)(0xE0000000+SCHED_BANK))
+#define NOC_SCHED_BASE  ((volatile unsigned int _IODEV *)(PATMOS_IO_ARGO+SCHED_BANK))
 /// The base address for the slot table
-#define NOC_TDM_BASE    ((volatile unsigned int _IODEV *)(0xE0000000+TDM_BANK))
+#define NOC_TDM_BASE    ((volatile unsigned int _IODEV *)(PATMOS_IO_ARGO+TDM_BANK))
 /// The base address for the slot table
-#define NOC_MC_BASE     ((volatile unsigned int _IODEV *)(0xE0000000+MC_BANK))
+#define NOC_MC_BASE     ((volatile unsigned int _IODEV *)(PATMOS_IO_ARGO+MC_BANK))
 /// The base address for the slot table
-#define NOC_IRQ_BASE    ((volatile unsigned int _IODEV *)(0xE0000000+IRQ_BANK))
+#define NOC_IRQ_BASE    ((volatile unsigned int _IODEV *)(PATMOS_IO_ARGO+IRQ_BANK))
 /// The base address of the communication SPM
-#define NOC_SPM_BASE    ((volatile unsigned int _SPM   *)0xE8000000)
+#define NOC_SPM_BASE    ((volatile unsigned int _SPM   *)(PATMOS_IO_ARGO+0x4000000))
 
 #endif /* _NOC_H_ */
 /** @}*/
