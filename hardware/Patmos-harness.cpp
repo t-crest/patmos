@@ -225,7 +225,7 @@ int main(int argc, char **argv, char **env)
   emu->reset();
   emu->tick();
   emu->UART_init(115200, 80000000);
-  emu->UART_to_file("uart_dump.txt");
+  //emu->UART_to_file("uart_dump.txt");
   emu->tick();
   emu->UART_write("hej");
 
