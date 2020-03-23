@@ -13,8 +13,8 @@ import Chisel._
 // Burst masters provide handshake signals
 class OcpBurstMasterSignals(addrWidth : Int, dataWidth : Int)
   extends OcpMasterSignals(addrWidth, dataWidth) {
-  val DataValid = UInt(width = 1)
-  val DataByteEn = UInt(width = dataWidth/8)
+  val DataValid = Output(UInt(width = 1))
+  val DataByteEn = Output(UInt(width = dataWidth/8))
 
   // This does not really clone, but Data.clone doesn't either
   override def clone() = {
@@ -26,8 +26,8 @@ class OcpBurstMasterSignals(addrWidth : Int, dataWidth : Int)
 // Burst slaves provide handshake signal
 class OcpBurstSlaveSignals(dataWidth : Int)
   extends OcpSlaveSignals(dataWidth) {
-  val CmdAccept = UInt(width = 1)
-  val DataAccept = UInt(width = 1)
+  val CmdAccept = Input(UInt(width = 1))
+  val DataAccept = Input(UInt(width = 1))
 
   // This does not really clone, but Data.clone doesn't either
   override def clone() = {

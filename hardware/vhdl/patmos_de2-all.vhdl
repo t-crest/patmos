@@ -28,13 +28,13 @@ entity patmos_top is
         oGpioPins_gpio_0 : out std_logic_vector(7 downto 0);
         oDebug_MII_RX   : out std_logic_vector(5 downto 0);
         oSegmentDisplayPins_hexDisp_7 : out std_logic_vector(6 downto 0);
-		oSegmentDisplayPins_hexDisp_6 : out std_logic_vector(6 downto 0);
-		oSegmentDisplayPins_hexDisp_5 : out std_logic_vector(6 downto 0);
-		oSegmentDisplayPins_hexDisp_4 : out std_logic_vector(6 downto 0);
-		oSegmentDisplayPins_hexDisp_3 : out std_logic_vector(6 downto 0);
-		oSegmentDisplayPins_hexDisp_2 : out std_logic_vector(6 downto 0);
-		oSegmentDisplayPins_hexDisp_1 : out std_logic_vector(6 downto 0);
-		oSegmentDisplayPins_hexDisp_0 : out std_logic_vector(6 downto 0);
+    oSegmentDisplayPins_hexDisp_6 : out std_logic_vector(6 downto 0);
+    oSegmentDisplayPins_hexDisp_5 : out std_logic_vector(6 downto 0);
+    oSegmentDisplayPins_hexDisp_4 : out std_logic_vector(6 downto 0);
+    oSegmentDisplayPins_hexDisp_3 : out std_logic_vector(6 downto 0);
+    oSegmentDisplayPins_hexDisp_2 : out std_logic_vector(6 downto 0);
+    oSegmentDisplayPins_hexDisp_1 : out std_logic_vector(6 downto 0);
+    oSegmentDisplayPins_hexDisp_0 : out std_logic_vector(6 downto 0);
         oUartPins_txd : out   std_logic;
         iUartPins_rxd : in    std_logic;
         oUart2Pins_txd : out   std_logic;
@@ -173,8 +173,8 @@ architecture rtl of patmos_top is
     -- DE2-70: 50 MHz clock => 100 MHz
     -- BeMicro: 16 MHz clock => 25.6 MHz
     constant pll_infreq : real    := 50.0;
-	constant pll_mult   : natural := 8;
-	constant pll_div    : natural := 5;
+    constant pll_mult   : natural := 8;
+    constant pll_div    : natural := 5;
 
     signal clk_int : std_logic;
 

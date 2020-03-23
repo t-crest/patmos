@@ -3,78 +3,72 @@
 
   <frequency Hz="80000000"/>
   <pipeline dual="true"/>
-	
+
   <ExtMem size="2M" DevTypeRef="Sram16" />
 
   <IOs>
-	<IO DevTypeRef="Gpio" offset="4"/>
-	<IO DevTypeRef="SegmentDisplay" offset="5"/>
-	<IO DevTypeRef="Uart2" offset="6"/>
-	<IO DevTypeRef="Uart3" offset="7"/>
-	<IO DevTypeRef="Leds" offset="9"/>
-	<IO DevTypeRef="Keys" offset="10" intrs="2,3,4,5"/>
-	<IO DevTypeRef="EthMac" offset="13" intrs="6"/>
-	 <!-- <IO DevTypeRef="EthMac2" offset="14" intrs="8"/> -->
+    <IO DevTypeRef="Gpio" offset="4"/>
+    <IO DevTypeRef="SegmentDisplay" offset="5"/>
+    <IO DevTypeRef="Uart" offset="6"/>
+    <IO DevTypeRef="Uart" offset="7"/>
+    <IO DevTypeRef="Leds" offset="9"/>
+    <IO DevTypeRef="Keys" offset="10" intrs="2,3,4,5"/>
+    <IO DevTypeRef="EthMac" offset="13" intrs="6"/>
+    <!-- <IO DevTypeRef="EthMac2" offset="14" intrs="8"/> -->
   </IOs>
 
   <Devs>
-		<Dev DevType="Uart2" entity="Uart" iface="OcpCore">
-				<params>
-				<param name="baudRate" value="115200"/>
-				<param name="fifoDepth" value="512"/>
-				</params>
-			</Dev>
-		<Dev DevType="Uart3" entity="Uart" iface="OcpCore">
-				<params>
-				<param name="baudRate" value="115200"/>
-				<param name="fifoDepth" value="512"/>
-				</params>
-			</Dev>
-		<Dev DevType="Leds" entity="Leds" iface="OcpCore">
-			<params>
-			<param name="ledCount" value="9"/>
-			</params>
-		</Dev>
-		<Dev DevType="Keys" entity="Keys" iface="OcpCore">
-			<params>
-			<param name="keyCount" value="4"/>
-			</params>
-		</Dev>
-		<Dev DevType="Sram16" entity="SRamCtrl" iface="OcpBurst">
-		<params>
-				<param name="ocpAddrWidth" value="21" />
-				<param name="sramAddrWidth" value="20" />
-				<param name="sramDataWidth" value="16" />
-		</params>
-		</Dev>
-		<Dev DevType="SegmentDisplay" entity="SegmentDisplay" iface="OcpCore">
-			<params>
-				<param name="displayCount" value="8"/>
-				<param name="segmentPolarity" value="0"/>
-			</params>
-		</Dev>
-		<Dev DevType="EthMac" entity="EthMac" iface="OcpCore">
-			<params>
-				<param name="extAddrWidth" value="14" />
-				<param name="dataWidth" value="32" />
-				<param name="withPTP" value="true" />
-				<param name="secondsWidth" value="32"/>
-				<param name="nanoWidth" value="32"/>
-				<param name="ppsDuration" value="1000"/>
-			</params>
-		</Dev>
-		<Dev DevType="EthMac2" entity="EthMac" iface="OcpCore">
-			<params>
-				<param name="extAddrWidth" value="14" />
-				<param name="dataWidth" value="32" />
-				<param name="withPTP" value="false" />
-			</params>
-		</Dev>
+    <Dev DevType="Uart" entity="Uart" iface="OcpCore">
+      <params>
+        <param name="baudRate" value="115200"/>
+        <param name="fifoDepth" value="512"/>
+      </params>
+    </Dev>
+    <Dev DevType="Leds" entity="Leds" iface="OcpCore">
+      <params>
+        <param name="ledCount" value="9"/>
+      </params>
+    </Dev>
+    <Dev DevType="Keys" entity="Keys" iface="OcpCore">
+      <params>
+        <param name="keyCount" value="4"/>
+      </params>
+    </Dev>
+    <Dev DevType="Sram16" entity="SRamCtrl" iface="OcpBurst">
+    <params>
+      <param name="ocpAddrWidth" value="21" />
+      <param name="sramAddrWidth" value="20" />
+      <param name="sramDataWidth" value="16" />
+    </params>
+    </Dev>
+    <Dev DevType="SegmentDisplay" entity="SegmentDisplay" iface="OcpCore">
+      <params>
+        <param name="displayCount" value="8"/>
+        <param name="segmentPolarity" value="0"/>
+      </params>
+    </Dev>
+    <Dev DevType="EthMac" entity="EthMac" iface="OcpCore">
+      <params>
+        <param name="extAddrWidth" value="14" />
+        <param name="dataWidth" value="32" />
+        <param name="withPTP" value="true" />
+        <param name="secondsWidth" value="32"/>
+        <param name="nanoWidth" value="32"/>
+        <param name="ppsDuration" value="1000"/>
+      </params>
+    </Dev>
+    <Dev DevType="EthMac2" entity="EthMac" iface="OcpCore">
+      <params>
+        <param name="extAddrWidth" value="14" />
+        <param name="dataWidth" value="32" />
+        <param name="withPTP" value="false" />
+      </params>
+    </Dev>
     <Dev DevType="Gpio" entity="Gpio" iface="OcpCore">
       <params>
-          <param name="bankCount" value="1"/>
-          <param name="bankWidth" value="8"/>
-          <param name="ioDirection" value="output"/>
+        <param name="bankCount" value="1"/>
+        <param name="bankWidth" value="8"/>
+        <param name="ioDirection" value="output"/>
       </params>
     </Dev>
   </Devs>
