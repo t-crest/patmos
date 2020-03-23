@@ -27,27 +27,9 @@ architecture rtl of patmos_top is
 		port(
 			clk             : in  std_logic;
 			reset           : in  std_logic;
-
-			io_comConf_M_Cmd        : out std_logic_vector(2 downto 0);
-			io_comConf_M_Addr       : out std_logic_vector(31 downto 0);
-			io_comConf_M_Data       : out std_logic_vector(31 downto 0);
-			io_comConf_M_ByteEn     : out std_logic_vector(3 downto 0);
-			io_comConf_M_RespAccept : out std_logic;
-			io_comConf_S_Resp       : in std_logic_vector(1 downto 0);
-			io_comConf_S_Data       : in std_logic_vector(31 downto 0);
-			io_comConf_S_CmdAccept  : in std_logic;
-
-			io_comSpm_M_Cmd         : out std_logic_vector(2 downto 0);
-			io_comSpm_M_Addr        : out std_logic_vector(31 downto 0);
-			io_comSpm_M_Data        : out std_logic_vector(31 downto 0);
-			io_comSpm_M_ByteEn      : out std_logic_vector(3 downto 0);
-			io_comSpm_S_Resp        : in std_logic_vector(1 downto 0);
-			io_comSpm_S_Data        : in std_logic_vector(31 downto 0);
-
-			io_ledsPins_led : out std_logic_vector(7 downto 0);
-			io_uartPins_tx  : out std_logic;
-			io_uartPins_rx  : in  std_logic
-
+			io_UartCmp_rx  : in  std_logic;
+			io_UartCmp_tx  : out std_logic;
+			io_Leds_led : out std_logic_vector(7 downto 0)
 		);
 	end component;
 
@@ -98,12 +80,11 @@ begin
 	end process;
 
 
-    comp : Patmos port map(clk_int, int_res,
-           open, open, open, open, open,
-           (others => '0'), (others => '0'), '0',
-           open, open, open, open,
-           (others => '0'), (others => '0'),
-           oLedsPins_led,
-           oUartPins_txd, iUartPins_rxd);
+    comp : Patmos port map(clk => clk_int,
+      reset => int_res,
+      io_UartCmp_rx => iUartPins_rxd,
+      io_UartCmp_tx => oUartPins_txd,
+      io_Leds_led => oLedsPins_led
+    );
 
 end architecture rtl;
