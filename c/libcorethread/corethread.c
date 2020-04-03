@@ -115,6 +115,3 @@ int corethread_join(int core_id, void **retval) {
   boot_info->slave[core_id].funcpoint = NULL;
   return 0;
 }
-
-#include "pthread_mutex.c"
-#include "pthread_cond.c"
