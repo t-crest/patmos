@@ -29,7 +29,7 @@ int main() {
 				print = '0'+hex;
 				
 			}else{
-				print = 'A' + (hex-10)
+				print = 'A' + (hex-10);
 			}
 			WRITECHAR(print);
 		}
