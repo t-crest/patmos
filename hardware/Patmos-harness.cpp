@@ -737,7 +737,6 @@ static void help(ostream &out) {
       << "  -h            Print this help" << endl
       << "  -l <N>        Stop after <N> cycles" << endl
       << "  -v            Dump wave forms file \"Patmos.vcd\"" << endl
-      << "  -I <file>     Read input for UART from file <file>" << endl
       << "  -O <file>     Write output from UART to file <file>" << endl
   ;
 }
@@ -814,5 +813,7 @@ int main(int argc, char **argv, char **env)
       halt = true;
     }
   }
+
+  emu->stopTrace();
   exit(EXIT_SUCCESS);
 }
