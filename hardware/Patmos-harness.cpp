@@ -21,6 +21,11 @@ NOTES ON STUFF MISSING FROM THE OLD EMULATOR
 #define EXTMEM_ADDR_BITS 20
 //HARDCODED FROM emulator_config
 
+//OTHER INTEMEDIATE HARDCODE
+
+
+
+
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -43,7 +48,7 @@ class Emulator
 {
   unsigned long m_tickcount;
   public: VPatmos *c;
-
+  VerilatedVcdC	*c_trace;
   // For Uart:
   bool UART_on;
   int baudrate;
@@ -70,11 +75,14 @@ class Emulator
   uint16_t *ram_buf; 
   #endif /* EXTMEM_SRAMCTRL */
 
+  bool trace;
   //DEBUG STUFF
   int prints;
+  int extcnt;
 public:
   Emulator(void)
   {
+    Verilated::traceEverOn(true);
     c = new VPatmos;
     m_tickcount = 0l;
 
@@ -103,14 +111,44 @@ public:
     ram_buf = (uint16_t *)calloc(1 << EXTMEM_ADDR_BITS, sizeof(uint16_t));
     #endif /* EXTMEM_SRAMCTRL */
 
+    trace = false;
+    
+    
     //DEBUF STUFF
     prints = 0;
+    extcnt = 0;
   }
 
   ~Emulator(void)
   {
     delete c;
     c = NULL;
+
+    if (trace){
+      if (c_trace) {
+        c_trace->close();
+        c_trace = NULL;
+      }
+    }
+  }
+
+  void setTrace(){
+    trace = true;
+    if (!c_trace){
+      c_trace = new VerilatedVcdC;
+			c->trace(c_trace, 99);
+			c_trace->open("Patmos.vcd");
+    }
+  }
+
+  void stopTrace(){
+    if (trace){
+      if (c_trace) {
+        c_trace->close();
+        c_trace = NULL;
+      }
+    }
+    trace = false;
   }
 
   void reset(int cycles)
@@ -135,20 +173,23 @@ public:
     c->clock = 0;
     c->eval();
 
+    if (trace) {
+      c_trace->dump(10*m_tickcount+5);
+    }
     // Toggle the clock
     // Rising edge
     c->clock = 1;
     c->eval();
 
-    //printf("debug: addr: %d, data %d\n", 150000+m_tickcount, ram_buf[150000+m_tickcount]);
-    if(prints < 1020){
-      printf("debug: pc %d\n", c->Patmos__DOT__cores_0__DOT__fetch__DOT__pcReg);
-      prints++;
-    }
     //UART emulation
     if (UART_on)
     {
       UART_tick();
+    }
+
+    if (trace) {
+      c_trace->dump(10*m_tickcount+10);
+      c_trace->flush();
     }
   }
 
@@ -393,13 +434,13 @@ public:
     return entry;
   }
 
-  #ifdef EXTMEM_SSRAM32CTRL
+  #ifdef EXTMEM_SSRAM32CTRL //TODO rewrite this
   void write_extmem(val_t address, val_t word)
   {
     ram_buf[address] = word; // This gives segmentation fault dumb on second run!
   }
 
-  /*void init_extmem(bool random) {
+  void init_extmem(bool random) {
     // Get SRAM properties
     uint32_t addr_bits = c->Patmos__io_sSRam32CtrlPins_ramOut_addr.width();
     uint32_t cells = 1 << addr_bits;
@@ -418,7 +459,7 @@ public:
         write_extmem(i, rand());
       }
     }
-  } */
+  } 
 
 static void emu_extmem(Patmos_t *c) {
   static uint32_t addr_cnt;
@@ -498,13 +539,16 @@ static void emu_extmem(Patmos_t *c) {
 
   void emu_extmem() {
     uint32_t address = (uint32_t) c->Patmos__DOT__ramCtrl__DOT__addrReg;
+    //printf("DEBUG EXTADD: %d\n", address);
 
     // Read from external memory unconditionally
     c->io_SRamCtrl_ramIn_din = ram_buf[address];
 
     // Write to external memory
-    //printf("DEBUG: %d\n", address);
+    //printf("DEBUG NWE: %d\n", c->io_SRamCtrl_ramOut_nwe);
     if (c->io_SRamCtrl_ramOut_nwe != 1) {
+      //printf("\nMem WRITE :%d\n", extcnt);
+      extcnt++;
       uint16_t mask = 0x0000;
       if (c->io_SRamCtrl_ramOut_nub != 1) {
         mask |= 0xff00;
@@ -512,6 +556,7 @@ static void emu_extmem(Patmos_t *c) {
       if (c->io_SRamCtrl_ramOut_nlb != 1) {
         mask |= 0x00ff;
       }
+      //printf("DEBUG EXTADD: %d\n", address);
       ram_buf[address] &= ~mask;
       ram_buf[address] |= mask & ((unsigned long int) c->io_SRamCtrl_ramOut_dout);
     }
@@ -520,155 +565,157 @@ static void emu_extmem(Patmos_t *c) {
 
   void init_icache(val_t entry)
   {
+    
+    tick();
     if (entry != 0)
     {
       if (entry >= 0x20000)
       {
 #ifdef ICACHE_METHOD
         //init for method cache
-        c->Patmos__DOT__cores_0__DOT__fetch__DOT__pcReg = -1;
-        printf("DDBUG pc: %d\n", c->Patmos__DOT__cores_0__DOT__fetch__DOT__pcReg);
-        c->Patmos__DOT__cores_0__DOT__icache__DOT__repl__DOT__hitReg = 0;
+        c->Patmos__DOT__cores_0__DOT__fetch__DOT__pcNext = -1;
+        c->Patmos__DOT__cores_0__DOT__icache__DOT__repl__DOT__hitNext = 0;
 // add multicore support, at the moment only for the method cache and not the ISPM
 #if CORE_COUNT > 1
-        c->Patmos__DOT__cores_1__DOT__fetch__DOT__pcReg = -1;
-        c->Patmos__DOT__cores_1__DOT__icache__DOT__repl__DOT__hitReg = 0;
+        c->Patmos__DOT__cores_1__DOT__fetch__DOT__pcNext = -1;
+        c->Patmos__DOT__cores_1__DOT__icache__DOT__repl__DOT__hitNext = 0;
 #endif
 #if CORE_COUNT > 2
-        c->Patmos__DOT__cores_2__DOT__fetch__DOT__pcReg = -1;
-        c->Patmos__DOT__cores_2__DOT__icache__DOT__repl__DOT__hitReg = 0;
+        c->Patmos__DOT__cores_2__DOT__fetch__DOT__pcNext = -1;
+        c->Patmos__DOT__cores_2__DOT__icache__DOT__repl__DOT__hitNext = 0;
 #endif
 #if CORE_COUNT > 3
-        c->Patmos__DOT__cores_3__DOT__fetch__DOT__pcReg = -1;
-        c->Patmos__DOT__cores_3__DOT__icache__DOT__repl__DOT__hitReg = 0;
+        c->Patmos__DOT__cores_3__DOT__fetch__DOT__pcNext = -1;
+        c->Patmos__DOT__cores_3__DOT__icache__DOT__repl__DOT__hitNext = 0;
 #endif
 #if CORE_COUNT > 4
-        c->Patmos__DOT__cores_4__DOT__fetch__DOT__pcReg = -1;
-        c->Patmos__DOT__cores_4__DOT__icache__DOT__repl__DOT__hitReg = 0;
+        c->Patmos__DOT__cores_4__DOT__fetch__DOT__pcNext = -1;
+        c->Patmos__DOT__cores_4__DOT__icache__DOT__repl__DOT__hitNext = 0;
 #endif
 #if CORE_COUNT > 5
-        c->Patmos__DOT__cores_5__DOT__fetch__DOT__pcReg = -1;
-        c->Patmos__DOT__cores_5__DOT__icache__DOT__repl__DOT__hitReg = 0;
+        c->Patmos__DOT__cores_5__DOT__fetch__DOT__pcNext = -1;
+        c->Patmos__DOT__cores_5__DOT__icache__DOT__repl__DOT__hitNext = 0;
 #endif
 #if CORE_COUNT > 6
-        c->Patmos__DOT__cores_6__DOT__fetch__DOT__pcReg = -1;
-        c->Patmos__DOT__cores_6__DOT__icache__DOT__repl__DOT__hitReg = 0;
+        c->Patmos__DOT__cores_6__DOT__fetch__DOT__pcNext = -1;
+        c->Patmos__DOT__cores_6__DOT__icache__DOT__repl__DOT__hitNext = 0;
 #endif
 #if CORE_COUNT > 7
-        c->Patmos__DOT__cores_7__DOT__fetch__DOT__pcReg = -1;
-        c->Patmos__DOT__cores_7__DOT__icache__DOT__repl__DOT__hitReg = 0;
+        c->Patmos__DOT__cores_7__DOT__fetch__DOT__pcNext = -1;
+        c->Patmos__DOT__cores_7__DOT__icache__DOT__repl__DOT__hitNext = 0;
 #endif
 #endif /* ICACHE_METHOD */
 #ifdef ICACHE_LINE
         //init for icache
-        c->Patmos__DOT__cores_0__DOT__fetch__DOT__pcReg = (entry >> 2) - 1;
+        c->Patmos__DOT__cores_0__DOT__fetch__DOT__pcNext = (entry >> 2) - 1;
 #endif /* ICACHE_LINE */
-        c->Patmos__DOT__cores_0__DOT__fetch__DOT__relBaseReg = 0;
-        c->Patmos__DOT__cores_0__DOT__fetch__DOT__relocReg = (entry >> 2) - 1;
-        c->Patmos__DOT__cores_0__DOT__fetch__DOT__selCache = 1;
-        c->Patmos__DOT__cores_0__DOT__icache__DOT__repl__DOT__selCacheReg = 1;
+        c->Patmos__DOT__cores_0__DOT__fetch__DOT__relBaseNext = 0;
+        c->Patmos__DOT__cores_0__DOT__fetch__DOT__relocNext = (entry >> 2) - 1;
+        c->Patmos__DOT__cores_0__DOT__fetch__DOT__selCacheNext = 1;
+        c->Patmos__DOT__cores_0__DOT__icache__DOT__repl__DOT__selCacheNext = 1;
 #if CORE_COUNT > 1
-        c->Patmos__DOT__cores_1__DOT__fetch__DOT__relBaseReg = 0;
-        c->Patmos__DOT__cores_1__DOT__fetch__DOT__relocReg = (entry >> 2) - 1;
-        c->Patmos__DOT__cores_1__DOT__fetch__DOT__selCache = 1;
-        c->Patmos__DOT__cores_1__DOT__icache__DOT__repl__DOT__selCacheReg = 1;
+        c->Patmos__DOT__cores_1__DOT__fetch__DOT__relBaseNext = 0;
+        c->Patmos__DOT__cores_1__DOT__fetch__DOT__relocNext = (entry >> 2) - 1;
+        c->Patmos__DOT__cores_1__DOT__fetch__DOT__selCacheNext = 1;
+        c->Patmos__DOT__cores_1__DOT__icache__DOT__repl__DOT__selCacheNext = 1;
 #endif
 #if CORE_COUNT > 2
-        c->Patmos__DOT__cores_2__DOT__fetch__DOT__relBaseReg = 0;
-        c->Patmos__DOT__cores_2__DOT__fetch__DOT__relocReg = (entry >> 2) - 1;
-        c->Patmos__DOT__cores_2__DOT__fetch__DOT__selCache = 1;
-        c->Patmos__DOT__cores_2__DOT__icache__DOT__repl__DOT__selCacheReg = 1;
+        c->Patmos__DOT__cores_2__DOT__fetch__DOT__relBaseNext = 0;
+        c->Patmos__DOT__cores_2__DOT__fetch__DOT__relocNext = (entry >> 2) - 1;
+        c->Patmos__DOT__cores_2__DOT__fetch__DOT__selCacheNext = 1;
+        c->Patmos__DOT__cores_2__DOT__icache__DOT__repl__DOT__selCacheNext = 1;
 #endif
 #if CORE_COUNT > 3
-        c->Patmos__DOT__cores_3__DOT__fetch__DOT__relBaseReg = 0;
-        c->Patmos__DOT__cores_3__DOT__fetch__DOT__relocReg = (entry >> 2) - 1;
-        c->Patmos__DOT__cores_3__DOT__fetch__DOT__selCache = 1;
-        c->Patmos__DOT__cores_3__DOT__icache__DOT__repl__DOT__selCacheReg = 1;
+        c->Patmos__DOT__cores_3__DOT__fetch__DOT__relBaseNext = 0;
+        c->Patmos__DOT__cores_3__DOT__fetch__DOT__relocNext = (entry >> 2) - 1;
+        c->Patmos__DOT__cores_3__DOT__fetch__DOT__selCacheNext = 1;
+        c->Patmos__DOT__cores_3__DOT__icache__DOT__repl__DOT__selCacheNext = 1;
 #endif
 #if CORE_COUNT > 4
-        c->Patmos__DOT__cores_4__DOT__fetch__DOT__relBaseReg = 0;
-        c->Patmos__DOT__cores_4__DOT__fetch__DOT__relocReg = (entry >> 2) - 1;
-        c->Patmos__DOT__cores_4__DOT__fetch__DOT__selCache = 1;
-        c->Patmos__DOT__cores_4__DOT__icache__DOT__repl__DOT__selCacheReg = 1;
+        c->Patmos__DOT__cores_4__DOT__fetch__DOT__relBaseNext = 0;
+        c->Patmos__DOT__cores_4__DOT__fetch__DOT__relocNext = (entry >> 2) - 1;
+        c->Patmos__DOT__cores_4__DOT__fetch__DOT__selCacheNext = 1;
+        c->Patmos__DOT__cores_4__DOT__icache__DOT__repl__DOT__selCacheNext = 1;
 #endif
 #if CORE_COUNT > 5
-        c->Patmos__DOT__cores_5__DOT__fetch__DOT__relBaseReg = 0;
-        c->Patmos__DOT__cores_5__DOT__fetch__DOT__relocReg = (entry >> 2) - 1;
-        c->Patmos__DOT__cores_5__DOT__fetch__DOT__selCache = 1;
-        c->Patmos__DOT__cores_5__DOT__icache__DOT__repl__DOT__selCacheReg = 1;
+        c->Patmos__DOT__cores_5__DOT__fetch__DOT__relBaseNext = 0;
+        c->Patmos__DOT__cores_5__DOT__fetch__DOT__relocNext = (entry >> 2) - 1;
+        c->Patmos__DOT__cores_5__DOT__fetch__DOT__selCacheNext = 1;
+        c->Patmos__DOT__cores_5__DOT__icache__DOT__repl__DOT__selCacheNext = 1;
 #endif
 #if CORE_COUNT > 6
-        c->Patmos__DOT__cores_6__DOT__fetch__DOT__relBaseReg = 0;
-        c->Patmos__DOT__cores_6__DOT__fetch__DOT__relocReg = (entry >> 2) - 1;
-        c->Patmos__DOT__cores_6__DOT__fetch__DOT__selCache = 1;
-        c->Patmos__DOT__cores_6__DOT__icache__DOT__repl__DOT__selCacheReg = 1;
+        c->Patmos__DOT__cores_6__DOT__fetch__DOT__relBaseNext = 0;
+        c->Patmos__DOT__cores_6__DOT__fetch__DOT__relocNext = (entry >> 2) - 1;
+        c->Patmos__DOT__cores_6__DOT__fetch__DOT__selCacheNext = 1;
+        c->Patmos__DOT__cores_6__DOT__icache__DOT__repl__DOT__selCacheNext = 1;
 #endif
 #if CORE_COUNT > 7
-        c->Patmos__DOT__cores_7__DOT__fetch__DOT__relBaseReg = 0;
-        c->Patmos__DOT__cores_7__DOT__fetch__DOT__relocReg = (entry >> 2) - 1;
-        c->Patmos__DOT__cores_7__DOT__fetch__DOT__selCache = 1;
-        c->Patmos__DOT__cores_7__DOT__icache__DOT__repl__DOT__selCacheReg = 1;
+        c->Patmos__DOT__cores_7__DOT__fetch__DOT__relBaseNext = 0;
+        c->Patmos__DOT__cores_7__DOT__fetch__DOT__relocNext = (entry >> 2) - 1;
+        c->Patmos__DOT__cores_7__DOT__fetch__DOT__selCacheNext = 1;
+        c->Patmos__DOT__cores_7__DOT__icache__DOT__repl__DOT__selCacheNext = 1;
 #endif
       }
       else
       {
         // pcReg for ispm starts at entry point - ispm base
-        c->Patmos__DOT__cores_0__DOT__fetch__DOT__pcReg = ((entry - 0x10000) >> 2) - 1;
-        c->Patmos__DOT__cores_0__DOT__fetch__DOT__relBaseReg = (entry - 0x10000) >> 2;
-        c->Patmos__DOT__cores_0__DOT__fetch__DOT__relocReg = 0x10000 >> 2;
-        c->Patmos__DOT__cores_0__DOT__fetch__DOT__selSpm = 1;
-        c->Patmos__DOT__cores_0__DOT__icache__DOT__repl__DOT__selSpmReg = 1;
+        c->Patmos__DOT__cores_0__DOT__fetch__DOT__pcNext = ((entry - 0x10000) >> 2) - 1;
+        c->Patmos__DOT__cores_0__DOT__fetch__DOT__relBaseNext = (entry - 0x10000) >> 2;
+        c->Patmos__DOT__cores_0__DOT__fetch__DOT__relocNext = 0x10000 >> 2;
+        c->Patmos__DOT__cores_0__DOT__fetch__DOT__selSpmNext = 1;
+        c->Patmos__DOT__cores_0__DOT__icache__DOT__repl__DOT__selSpmNext = 1;
       }
-      c->Patmos__DOT__cores_0__DOT__icache__DOT__repl__DOT__callRetBaseReg = (entry >> 2);
+      c->Patmos__DOT__cores_0__DOT__icache__DOT__repl__DOT__callRetBaseNext = (entry >> 2);
 #if CORE_COUNT > 1
-      c->Patmos__DOT__cores_1__DOT__icache__DOT__repl__DOT__callRetBaseReg = (entry >> 2);
+      c->Patmos__DOT__cores_1__DOT__icache__DOT__repl__DOT__callRetBaseNext = (entry >> 2);
 #endif
 #if CORE_COUNT > 2
-      c->Patmos__DOT__cores_2__DOT__icache__DOT__repl__DOT__callRetBaseReg = (entry >> 2);
+      c->Patmos__DOT__cores_2__DOT__icache__DOT__repl__DOT__callRetBaseNext = (entry >> 2);
 #endif
 #if CORE_COUNT > 3
-      c->Patmos__DOT__cores_3__DOT__icache__DOT__repl__DOT__callRetBaseReg = (entry >> 2);
+      c->Patmos__DOT__cores_3__DOT__icache__DOT__repl__DOT__callRetBaseNext = (entry >> 2);
 #endif
 #if CORE_COUNT > 4
-      c->Patmos__DOT__cores_4__DOT__icache__DOT__repl__DOT__callRetBaseReg = (entry >> 2);
+      c->Patmos__DOT__cores_4__DOT__icache__DOT__repl__DOT__callRetBaseNext = (entry >> 2);
 #endif
 #if CORE_COUNT > 5
-      c->Patmos__DOT__cores_5__DOT__icache__DOT__repl__DOT__callRetBaseReg = (entry >> 2);
+      c->Patmos__DOT__cores_5__DOT__icache__DOT__repl__DOT__callRetBaseNext = (entry >> 2);
 #endif
 #if CORE_COUNT > 6
-      c->Patmos__DOT__cores_6__DOT__icache__DOT__repl__DOT__callRetBaseReg = (entry >> 2);
+      c->Patmos__DOT__cores_6__DOT__icache__DOT__repl__DOT__callRetBaseNext = (entry >> 2);
 #endif
 #if CORE_COUNT > 7
-      c->Patmos__DOT__cores_7__DOT__icache__DOT__repl__DOT__callRetBaseReg = (entry >> 2);
+      c->Patmos__DOT__cores_7__DOT__icache__DOT__repl__DOT__callRetBaseNext = (entry >> 2);
 #endif
 #ifdef ICACHE_METHOD
-      c->Patmos__DOT__cores_0__DOT__icache__DOT__ctrl__DOT__callRetBaseReg = (entry >> 2);
+      c->Patmos__DOT__cores_0__DOT__icache__DOT__ctrl__DOT__callRetBaseNext = (entry >> 2);
 #if CORE_COUNT > 1
-      c->Patmos__DOT__cores_1__DOT__icache__DOT__ctrl__DOT__callRetBaseReg = (entry >> 2);
+      c->Patmos__DOT__cores_1__DOT__icache__DOT__ctrl__DOT__callRetBaseNext = (entry >> 2);
 #endif
 #if CORE_COUNT > 2
-      c->Patmos__DOT__cores_2__DOT__icache__DOT__ctrl__DOT__callRetBaseReg = (entry >> 2);
+      c->Patmos__DOT__cores_2__DOT__icache__DOT__ctrl__DOT__callRetBaseNext = (entry >> 2);
 #endif
 #if CORE_COUNT > 3
-      c->Patmos__DOT__cores_3__DOT__icache__DOT__ctrl__DOT__callRetBaseReg = (entry >> 2);
+      c->Patmos__DOT__cores_3__DOT__icache__DOT__ctrl__DOT__callRetBaseNext = (entry >> 2);
 #endif
 #if CORE_COUNT > 4
-      c->Patmos__DOT__cores_4__DOT__icache__DOT__ctrl__DOT__callRetBaseReg = (entry >> 2);
+      c->Patmos__DOT__cores_4__DOT__icache__DOT__ctrl__DOT__callRetBaseNext = (entry >> 2);
 #endif
 #if CORE_COUNT > 5
-      c->Patmos__DOT__cores_5__DOT__icache__DOT__ctrl__DOT__callRetBaseReg = (entry >> 2);
+      c->Patmos__DOT__cores_5__DOT__icache__DOT__ctrl__DOT__callRetBaseNext = (entry >> 2);
 #endif
 #if CORE_COUNT > 6
-      c->Patmos__DOT__cores_6__DOT__icache__DOT__ctrl__DOT__callRetBaseReg = (entry >> 2);
+      c->Patmos__DOT__cores_6__DOT__icache__DOT__ctrl__DOT__callRetBaseNext = (entry >> 2);
 #endif
 #if CORE_COUNT > 7
-      c->Patmos__DOT__cores_7__DOT__icache__DOT__ctrl__DOT__callRetBaseReg = (entry >> 2);
+      c->Patmos__DOT__cores_7__DOT__icache__DOT__ctrl__DOT__callRetBaseNext = (entry >> 2);
 #endif
 #endif /* ICACHE_METHOD */
 #ifdef ICACHE_LINE
-      c->Patmos__DOT__cores_0__DOT__fetch__DOT__relBaseReg = (entry >> 2);
+      c->Patmos__DOT__cores_0__DOT__fetch__DOT__relBaseNext = (entry >> 2);
 #endif /* ICACHE_LINE */
     }
+    c->reset=0;
   }
 };
 
@@ -680,20 +727,63 @@ void vl_finish(const char *filename, int linenum, const char *hier)
   exit(0);
 }
 
+static void usage(ostream &out, const char *name) {
+  out << "Usage: " << name
+      << " <options> [file]" << endl;
+}
+
+static void help(ostream &out) {
+  out << endl << "Options:" << endl
+      << "  -h            Print this help" << endl
+      << "  -l <N>        Stop after <N> cycles" << endl
+      << "  -v            Dump wave forms file \"Patmos.vcd\"" << endl
+      << "  -I <file>     Read input for UART from file <file>" << endl
+      << "  -O <file>     Write output from UART to file <file>" << endl
+  ;
+}
+   
+
 int main(int argc, char **argv, char **env)
 {
   Verilated::commandArgs(argc, argv);
   Emulator *emu = new Emulator();
+  int opt;
+  int limit = -1;
+  bool halt = false;
+
+  //Parse Arguments
+  while ((opt = getopt(argc, argv, "hvl:O:")) != -1){
+    switch (opt) {
+      case 'v':
+        emu->setTrace();
+        break;
+      case 'l':
+        limit = atoi(optarg);
+        break;
+      case 'O':
+        emu->UART_to_file(optarg);
+        break;
+      case 'h':
+        usage(cout, argv[0]);
+        help(cout);
+        exit(EXIT_SUCCESS);
+      default: /* '?' */
+        usage(cerr, argv[0]);
+        cerr << "Try '" << argv[0] << " -h' for more information" << endl;
+        exit(EXIT_FAILURE);
+    }
+  }
+
+  
   emu->reset(1);
   emu->tick();
-  emu->UART_init(115200, 80000000);
-  //emu->UART_to_file("uart_dump.txt");
-  emu->UART_write("TEST");
+  emu->UART_init(115200, 80000000); // do this from config
+  emu->UART_write("TEST");//fix this
 
   val_t entry = 0;
-  if (true)
+  if (optind < argc)
   { //CHANGE TO LOOK FOR ARGUMENTS AND USE ELF
-    ifstream *fs = new ifstream("/home/anthon/t-crest/patmos/tmp/blinking.elf");
+    ifstream *fs = new ifstream(argv[optind]);
     if (!fs->good())
     {
       cerr << "Error: Cannot open elf file " << endl;
@@ -702,42 +792,27 @@ int main(int argc, char **argv, char **env)
     entry = emu->readelf(*fs);
   }
 
-  printf("Debug: %d\n", (int) entry);
-
   emu->reset(5);
+  emu->tick();
 
   emu->init_icache(entry);
 
 
   int cnt = 0;
-  while (!emu->done() && emu->get_tick_count() != 10000000)
+  while (limit < 0 || emu->get_tick_count() < limit)
   {
-    if(cnt < 100){
-      printf("%d", cnt);
-    }else{
-      break;
-    }
     cnt++;
     emu->tick();
-    printf("DDBUG pc: %d\n", emu->c->Patmos__DOT__cores_0__DOT__fetch__DOT__pcReg);
     emu->emu_extmem();
-    //printf("%d \n", emu->get_tick_count());
+     // Return to address 0 halts the execution after one more iteration
+    if (halt) {
+      break;
+    }
+    if ((emu->c->Patmos__DOT__cores_0__DOT__memory__DOT__memReg_mem_brcf == 1
+         || emu->c->Patmos__DOT__cores_0__DOT__memory__DOT__memReg_mem_ret == 1)
+        && emu->c->Patmos__DOT__cores_0__DOT__icache__DOT__repl__DOT__callRetBaseReg == 0) {
+      halt = true;
+    }
   }
-  printf("This is a hacked harness \n");
   exit(EXIT_SUCCESS);
-
-  /*#if VM_TRACE
-    Verilated::traceEverOn(true);
-    VL_PRINTF("Enabling waves..");
-    VerilatedVcdC* tfp = new VerilatedVcdC;
-    top->trace(tfp, 99);
-    tfp->open(vcdfile.c_str());
-#endif
-
-#if VM_TRACE
-    if (tfp) tfp->close();
-    delete tfp;
-#endif
-    delete top;
-    exit(0);*/
 }
