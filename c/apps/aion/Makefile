@@ -46,16 +46,19 @@ wcet_ttesync:
 wcet_tteproduceconsume:
 	patmos-clang -O2 $(CFLAGS) $(LIBETH)/*.c -mserialize=aion_wcet.pml tte_produceconsume.c -o aion_wcet.elf
 	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e task_sync
-	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e task_pulse
-	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e task_calc
 	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e task_send
 	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e task_recv
+	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e task_pulse
+	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e task_calc
+	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e sort_asc_ttetasks
+	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e cyclic_executive_loop
+	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e get_tte_aligned_time
 
 	
 # running examples
 
 aion_sanity_check:
-	patmos-clang -O2 $(FLAGS) $(LIBETH)/*.c aion_sanity_check.c -o aion.elf
+	patmos-clang -O2 $(CFLAGS) $(LIBETH)/*.c aion_sanity_check.c -o aion.elf
 
 timestamp_compare:
 	patmos-clang -O2 $(CFLAGS) $(LIBETH)/*.c timestamp_compare.c -o aion.elf
