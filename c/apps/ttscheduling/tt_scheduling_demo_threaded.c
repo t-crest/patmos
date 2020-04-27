@@ -1,17 +1,17 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <unistd.h>
+#include <string.h>
+#include <math.h>
 #include <machine/rtc.h>
 #include "libcorethread/corethread.h"
 #include "tt_minimal_scheduler.h"
 #include "demo_tasks.h"
-#include <unistd.h>
-#include <string.h>
-#include <math.h>
 
-#define HYPER_PERIOD 100000
-#define NUM_OF_TASKS 5
-#define EXEC_HYPERPERIODS 2
+#define HYPER_PERIOD 20000
+#define NUM_OF_TASKS 4
+#define EXEC_HYPERPERIODS 1
 #define RUN_INFINITE false
 
 void threaded_schedule_work(void *params)
@@ -30,24 +30,20 @@ int main()
     int err = 0;
     int sumTasksThread1 = 0;
     int sumTasksThread2 = 0;
-    int numExecTasks[2];
-    unsigned long long scheduleTime;
-    unsigned long long startTime;
+    uint32_t numExecTasks[2];
+    uint64_t scheduleTime;
+    uint64_t startTime;
 
     // Define set of tasks
-    MinimalTTTask taskSet_1[3];
-    init_minimal_tttask(&taskSet_1[0], 20000, 1695, &task_act);
-    init_minimal_tttask(&taskSet_1[1], 5000, 4699, &task_rcv);
-    init_minimal_tttask(&taskSet_1[2], 10000, 6476, &task_snd);
-    MinimalTTSchedule scheduleSet_1 = init_minimal_ttschedule(HYPER_PERIOD, 3, taskSet_1, &get_cpu_usecs);
+    MinimalTTTask taskSet_1[2];
+    init_minimal_tttask(&taskSet_1[0], 5000, T1_sched_insts, 4, &task_1);
+    init_minimal_tttask(&taskSet_1[1], 10000, T2_sched_insts, 2, &task_2);
+    MinimalTTSchedule scheduleSet_1 = init_minimal_ttschedule(HYPER_PERIOD, 2, taskSet_1, &get_cpu_usecs);
 
     MinimalTTTask taskSet_2[2];
-    init_minimal_tttask(&taskSet_2[0], 100000, 6715, &task_mon);
-    init_minimal_tttask(&taskSet_2[1], 4000, 0, &task_syn);
+    init_minimal_tttask(&taskSet_2[0], 2500, T3_sched_insts, 8, &task_3);
+    init_minimal_tttask(&taskSet_2[1], 20000, T4_sched_insts, 1, &task_4);
     MinimalTTSchedule scheduleSet_2 = init_minimal_ttschedule (HYPER_PERIOD, 2, taskSet_2, &get_cpu_usecs);
-
-    maxJitter = 0;
-    sumJitter = 0;
 
     printf("Creating threads\n");
 
@@ -81,11 +77,19 @@ int main()
     printf("--No. of hyper periods =\t%d\n", EXEC_HYPERPERIODS);
     printf("--Theoritic duration =\t%d μs\n", EXEC_HYPERPERIODS*HYPER_PERIOD);
     printf("--Total execution time =\t%llu μs\n", scheduleTime);
-    printf("--Total no. of executed tasks =\t%d\n", (numExecTasks[0]+numExecTasks[1]));
-    printf("----Thread #1 no. of executed tasks =\t%d\n", numExecTasks[0]);
-    printf("----Thread #2 no. of executed tasks =\t%d\n", numExecTasks[1]);
-    printf("--Max. Jitter =\t%+lld μs\n", maxJitter);
-    printf("--Avg. Jitter =\t%+f μs\n", (double) sumJitter/(numExecTasks[0]+numExecTasks[1]));
+    printf("--Total no. of executed tasks =\t%ld\n", (numExecTasks[0]+numExecTasks[1]));
+    printf("----Thread #1 no. of executed tasks =\t%ld\n", numExecTasks[0]);
+    for(int i=0; i<2; i++){
+        uint64_t avgDelta = scheduleSet_1.tasks[i].delta_sum/scheduleSet_1.tasks[i].exec_count;
+        printf("--task[%d].period = %lld, executed with avg. dt = %llu (avg. jitter = %d) from a total of %lu executions\n", i, scheduleSet_1.tasks[i].period, 
+        avgDelta, (int) scheduleSet_1.tasks[i].period - (int) avgDelta, scheduleSet_1.tasks[i].exec_count);
+    }
+    printf("----Thread #2 no. of executed tasks =\t%ld\n", numExecTasks[1]);
+    for(int i=0; i<2; i++){
+        uint64_t avgDelta = scheduleSet_2.tasks[i].delta_sum/scheduleSet_2.tasks[i].exec_count;
+        printf("--task[%d].period = %lld, executed with avg. dt = %llu (avg. jitter = %d) from a total of %lu executions\n", i, scheduleSet_2.tasks[i].period, 
+        avgDelta, (int) scheduleSet_2.tasks[i].period - (int) avgDelta, scheduleSet_2.tasks[i].exec_count);
+    }
 
     return 0;
 }

@@ -60,10 +60,13 @@ tt_scheduling_demo_debug:
 tt_scheduling_demo_threaded:
 	patmos-clang $(CFLAGS) tt_scheduling_demo_threaded.c tt_minimal_scheduler.c -o tt_scheduling_demo.elf -L$(BUILDDIR) -lcorethread
 
+tt_scheduling_demo_debug_threaded:
+	patmos-clang $(CFLAGS) tt_scheduling_demo_threaded.c tt_minimal_scheduler.c -D DEBUG -o tt_scheduling_demo.elf -L$(BUILDDIR) -lcorethread
+
 # running examples
 
 sim:
-	pasim --cores 9 -b tt_scheduling_demo.elf
+	pasim --cores 4 -b tt_scheduling_demo.elf
 
 emu:
 	patemu tt_scheduling_demo.elf
