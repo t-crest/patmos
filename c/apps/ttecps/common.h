@@ -45,7 +45,9 @@ typedef void (*generic_task_fp)(void);
 typedef struct
 {
 	unsigned long long period;
-    unsigned long long activation_time;
+    unsigned long long *release_times;
+    unsigned long release_inst;
+    unsigned long nr_releases;
 	unsigned long long last_time;
 	unsigned long long delta_sum;
 	unsigned long exec_count;
