@@ -30,20 +30,21 @@ $(LIBCORETHREAD): $(BUILDDIR)/libcorethread/corethread.o
 # WCET analysis
 
 wcet_scheduler:
-	patmos-clang -O2 $(CFLAGS) $(LIBETH)/*.c -mserialize=tpip.pml -D WCET tt_scheduling_demo.c tt_minimal_scheduler.c -o tt_scheduling_demo.elf
+	patmos-clang $(CFLAGS) $(LIBETH)/*.c -mserialize=tpip.pml -D WCET tt_scheduling_demo.c tt_minimal_scheduler.c -o tt_scheduling_demo.elf
 	platin wcet --disable-ait -i tpip.pml -b tt_scheduling_demo.elf -e init_minimal_tttask
 	platin wcet --disable-ait -i tpip.pml -b tt_scheduling_demo.elf -e init_minimal_ttschedule
 	platin wcet --disable-ait -i tpip.pml -b tt_scheduling_demo.elf -e sort_asc_minimal_tttasks
 	platin wcet --disable-ait -i tpip.pml -b tt_scheduling_demo.elf -e tt_minimal_dispatcher
 	platin wcet --disable-ait -i tpip.pml -b tt_scheduling_demo.elf -e tt_minimal_schedule_loop
+	platin wcet --disable-ait -i tpip.pml -b tt_scheduling_demo.elf -e get_rtc_usecs()
+	platin wcet --disable-ait -i tpip.pml -b tt_scheduling_demo.elf -e get_time()
 
 wcet_demo_tasks:
-	patmos-clang -O2 $(CFLAGS) $(LIBETH)/*.c -mserialize=tpip.pml -D WCET tt_scheduling_demo.c tt_minimal_scheduler.c -o tt_scheduling_demo.elf
-	platin wcet --disable-ait -i tpip.pml -b tt_scheduling_demo.elf -e task_act
-	platin wcet --disable-ait -i tpip.pml -b tt_scheduling_demo.elf -e task_rcv
-	platin wcet --disable-ait -i tpip.pml -b tt_scheduling_demo.elf -e task_snd
-	platin wcet --disable-ait -i tpip.pml -b tt_scheduling_demo.elf -e task_mon
-	platin wcet --disable-ait -i tpip.pml -b tt_scheduling_demo.elf -e task_syn
+	patmos-clang $(CFLAGS) $(LIBETH)/*.c -mserialize=tpip.pml -D WCET tt_scheduling_demo.c tt_minimal_scheduler.c -o tt_scheduling_demo.elf
+	platin wcet --disable-ait -i tpip.pml -b tt_scheduling_demo.elf -e task_1
+	platin wcet --disable-ait -i tpip.pml -b tt_scheduling_demo.elf -e task_2
+	platin wcet --disable-ait -i tpip.pml -b tt_scheduling_demo.elf -e task_3
+	platin wcet --disable-ait -i tpip.pml -b tt_scheduling_demo.elf -e task_4
 	
 # compiling examples
 
@@ -51,13 +52,13 @@ force:
 	touch tt_scheduling_demo.c
 
 tt_scheduling_demo:
-	patmos-clang -O2 $(CFLAGS) tt_scheduling_demo.c tt_minimal_scheduler.c -o tt_scheduling_demo.elf
+	patmos-clang $(CFLAGS) tt_scheduling_demo.c tt_minimal_scheduler.c -o tt_scheduling_demo.elf
 
 tt_scheduling_demo_debug:
-	patmos-clang -O2 $(CFLAGS) tt_scheduling_demo.c tt_minimal_scheduler.c -D DEBUG -o tt_scheduling_demo.elf
+	patmos-clang $(CFLAGS) tt_scheduling_demo.c tt_minimal_scheduler.c -D DEBUG -o tt_scheduling_demo.elf
 
 tt_scheduling_demo_threaded:
-	patmos-clang -O2 $(CFLAGS) tt_scheduling_demo_threaded.c tt_minimal_scheduler.c -o tt_scheduling_demo.elf -L$(BUILDDIR) -lcorethread
+	patmos-clang $(CFLAGS) tt_scheduling_demo_threaded.c tt_minimal_scheduler.c -o tt_scheduling_demo.elf -L$(BUILDDIR) -lcorethread
 
 # running examples
 
@@ -68,7 +69,7 @@ emu:
 	patemu tt_scheduling_demo.elf
 
 config:
-	cd $(PATMOSHOME) && $(MAKE) config BOARD=altde2-all
+	cd $(PATMOSHOME) && $(MAKE) config BOARD=altde2-115
 
 download:
 	patserdow -v $(SERIAL) tt_scheduling_demo.elf
