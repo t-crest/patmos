@@ -3,8 +3,8 @@
 #ifdef WCET
 __attribute__((noinline))
 #endif
-void init_minimal_tttask(MinimalTTTask *newTask, const uint64_t period, uint64_t *release_times, 
-                        const uint64_t nr_releases, void (*func)(const void *self))
+void init_minimal_tttask(MinimalTTTask *newTask, const schedtime_t period, schedtime_t *release_times, 
+                        const schedtime_t nr_releases, void (*func)(const void *self))
 {
   (newTask->func) = func;
   newTask->period = period;
@@ -19,7 +19,7 @@ void init_minimal_tttask(MinimalTTTask *newTask, const uint64_t period, uint64_t
 #ifdef WCET
 __attribute__((noinline))
 #endif
-MinimalTTSchedule init_minimal_ttschedule(const uint64_t hyperperiod, const uint16_t num_tasks, MinimalTTTask *tasks, uint64_t (*get_time)(void))
+MinimalTTSchedule init_minimal_ttschedule(const schedtime_t hyperperiod, const uint32_t num_tasks, MinimalTTTask *tasks, schedtime_t (*get_time)(void))
 {
   MinimalTTSchedule newSchedule;
   newSchedule.hyper_period = hyperperiod;
@@ -33,11 +33,11 @@ MinimalTTSchedule init_minimal_ttschedule(const uint64_t hyperperiod, const uint
 #ifdef WCET
 __attribute__((noinline))
 #endif
-uint32_t tt_minimal_schedule_loop(MinimalTTSchedule *schedule, const uint16_t noLoops, const bool infinite)
+uint32_t tt_minimal_schedule_loop(MinimalTTSchedule *schedule, const uint32_t noLoops, const bool infinite)
 {
   uint32_t scheduleExecutedTasks = 0;
-  uint64_t start_time = schedule->get_time();
-  uint64_t schedule_time = schedule->get_time() - start_time;
+  schedtime_t start_time = schedule->get_time();
+  schedtime_t schedule_time = (schedule->get_time() - start_time);
   #pragma loopbound min 1 max 1
   while(infinite || schedule_time < noLoops*schedule->hyper_period) 
   {
@@ -51,19 +51,20 @@ uint32_t tt_minimal_schedule_loop(MinimalTTSchedule *schedule, const uint16_t no
 #ifdef WCET
 __attribute__((noinline))
 #endif
-uint8_t tt_minimal_dispatcher(MinimalTTSchedule *schedule, const uint64_t schedule_time)
+uint8_t tt_minimal_dispatcher(MinimalTTSchedule *schedule, const schedtime_t schedule_time)
 {
   uint8_t ans = 0;
   #pragma loopbound min 1 max 1
   for(unsigned i=0; i < schedule->num_tasks; i++)
   {
-      if(schedule_time + WCET_DISPATCHER_US >= schedule->tasks[i].release_times[schedule->tasks[i].release_inst])
+      if(schedule_time + (uint64_t)(WCET_DISPATCHER * CLKS_TO_US) >= schedule->tasks[i].release_times[schedule->tasks[i].release_inst])
       {
           schedule->tasks[i].func(&schedule->tasks[i]);
           schedule->tasks[i].release_times[schedule->tasks[i].release_inst] += schedule->hyper_period;
           schedule->tasks[i].release_inst = (schedule->tasks[i].release_inst + 1) % schedule->tasks[i].nr_releases;
-				  schedule->tasks[i].delta_sum += (schedule->get_time() - schedule->tasks[i].last_release_time);
-          schedule->tasks[i].last_release_time = schedule->get_time();
+				  schedule->tasks[i].delta_sum += schedule->tasks[i].last_release_time == 0 ? 0 :
+                                          (schedule_time - schedule->tasks[i].last_release_time);
+          schedule->tasks[i].last_release_time = schedule_time;
           schedule->tasks[i].exec_count++;
           ans = 1;
           break;
@@ -75,7 +76,7 @@ uint8_t tt_minimal_dispatcher(MinimalTTSchedule *schedule, const uint64_t schedu
 #ifdef WCET
 __attribute__((noinline))
 #endif
-void sort_asc_minimal_tttasks(MinimalTTTask *tasks, const unsigned short num_tasks)
+void sort_asc_minimal_tttasks(MinimalTTTask *tasks, const uint32_t num_tasks)
 {
   #pragma loopbound min 1 max 1
   for (int i = 0; i < num_tasks; i++)                     

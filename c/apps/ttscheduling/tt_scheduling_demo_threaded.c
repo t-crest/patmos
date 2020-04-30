@@ -8,87 +8,90 @@
 #include "libcorethread/corethread.h"
 #include "tt_minimal_scheduler.h"
 #include "demo_tasks.h"
+#include "schedule.h"
 
-#define HYPER_PERIOD 20000
-#define NUM_OF_TASKS 4
-#define EXEC_HYPERPERIODS 1
+#define NUM_OF_THREADS 4
+#define TASKS_PER_THREAD (unsigned) (NUM_OF_TASKS/NUM_OF_THREADS)
+#define HYPER_ITERATIONS 100
 #define RUN_INFINITE false
 
-void threaded_schedule_work(void *params)
+void thread_worker(void *params)
 {
+    uint32_t executedTasks = 0;
     sort_asc_minimal_tttasks(((MinimalTTSchedule *)params)->tasks, ((MinimalTTSchedule *)params)->num_tasks);
-
-    uint32_t executedTasks = tt_minimal_schedule_loop((MinimalTTSchedule *)params, EXEC_HYPERPERIODS, RUN_INFINITE);
-
+    executedTasks = tt_minimal_schedule_loop((MinimalTTSchedule *)params, HYPER_ITERATIONS, RUN_INFINITE);
     corethread_exit((void*) executedTasks);
+}
+
+void convert_sched_to_timebase(uint64_t *sched_insts, uint32_t nr_insts, double timebase){
+    for(int i=0; i<nr_insts; i++){
+        sched_insts[i] = (uint64_t) (sched_insts[i] * timebase);
+    }
 }
 
 int main()
 {
-    printf("\nPatmos Time-Triggered Executive Demo (Threaded)\n\n");
+    LED = 0;
+    printf("\nPatmos Time-Triggered Executive Demo (Threaded)\n");
+    
+    uint32_t numExecTasks[TASKS_PER_THREAD];
+    MinimalTTTask threadTaskSet[NUM_OF_THREADS][TASKS_PER_THREAD];
+    MinimalTTSchedule threadSchedules[NUM_OF_THREADS];
 
-    int err = 0;
-    int sumTasksThread1 = 0;
-    int sumTasksThread2 = 0;
-    uint32_t numExecTasks[2];
-    uint64_t scheduleTime;
-    uint64_t startTime;
+    static void (*tasks_func_ptrs[NUM_OF_TASKS])(const void*) = {task_1, task_2, task_3, task_4, task_5, task_6, task_7, task_8};
 
+    printf("\nAssigning tasks to threads (id,task): "); 
     // Define set of tasks
-    MinimalTTTask taskSet_1[2];
-    init_minimal_tttask(&taskSet_1[0], 5000, T1_sched_insts, 4, &task_1);
-    init_minimal_tttask(&taskSet_1[1], 10000, T2_sched_insts, 2, &task_2);
-    MinimalTTSchedule scheduleSet_1 = init_minimal_ttschedule(HYPER_PERIOD, 2, taskSet_1, &get_cpu_usecs);
+    for(unsigned t=0; t<NUM_OF_THREADS; t++)
+    {
+        for(unsigned int i=t*TASKS_PER_THREAD; i<(t+1)*TASKS_PER_THREAD; i++)
+        {
+            printf("(%d, %d)", t, i);
+            convert_sched_to_timebase(tasks_schedules[i], tasks_insts_counts[i], NS_TO_US);
+            init_minimal_tttask(&threadTaskSet[t][i-t*TASKS_PER_THREAD], (uint64_t)(tasks_periods[i] * NS_TO_US), 
+                                tasks_schedules[i], tasks_insts_counts[i], tasks_func_ptrs[i]);
+        }
+        threadSchedules[t] = init_minimal_ttschedule((uint64_t) (HYPER_PERIOD * NS_TO_US), TASKS_PER_THREAD, threadTaskSet[t], &get_cpu_usecs);
+    }
 
-    MinimalTTTask taskSet_2[2];
-    init_minimal_tttask(&taskSet_2[0], 2500, T3_sched_insts, 8, &task_3);
-    init_minimal_tttask(&taskSet_2[1], 20000, T4_sched_insts, 1, &task_4);
-    MinimalTTSchedule scheduleSet_2 = init_minimal_ttschedule (HYPER_PERIOD, 2, taskSet_2, &get_cpu_usecs);
+    printf("\n\nScheduled threads start_time(us)=%llu\n", get_cpu_usecs());
 
-    printf("Creating threads\n");
-
-    startTime = get_cpu_usecs();
+    uint64_t startTime = get_cpu_usecs();
 
     // Create threads
-    err |= corethread_create(1, &threaded_schedule_work, (void *) &scheduleSet_1);
-    err |= corethread_create(2, &threaded_schedule_work, (void *) &scheduleSet_2);
-
-    if(err != 0){
-        printf("Threads could not be created\nExiting...\n");
-        return 1;
+    for(unsigned t=0; t<NUM_OF_THREADS; t++){
+        if(corethread_create(t+1, &thread_worker, (void *) &threadSchedules[t])){
+            return 1;
+        } else {
+            LED += 1;
+        }
     }
     
     // Wait for threads to finish
-    if(corethread_join(1, (void*) &numExecTasks[0]) != 0){
-        printf("Thread 1 could not be joined");
-        return 2;
-    }
-    
-    if(corethread_join(2, (void*) &numExecTasks[1]) != 0){
-        printf("Thread 2 could not be joined");
-        return 3;
+    for(unsigned t=0; t<NUM_OF_THREADS; t++){
+        if(corethread_join(t+1, (void*) &numExecTasks[t]) != 0){
+            return 1+t+1;
+        } else {
+            LED -= 1;
+        }
     }
 
-    scheduleTime = get_cpu_usecs() - startTime;
-
-    printf("Threads finished\n");
+    uint64_t endTime = get_cpu_usecs() - startTime;
 
     printf("\nGathered Statistics\n");
-    printf("--No. of hyper periods =\t%d\n", EXEC_HYPERPERIODS);
-    printf("--Theoritic duration =\t%d μs\n", EXEC_HYPERPERIODS*HYPER_PERIOD);
-    printf("--Total execution time =\t%llu μs\n", scheduleTime);
-    printf("--Total no. of executed tasks =\t%ld\n", (numExecTasks[0]+numExecTasks[1]));
-    printf("----Thread #1 no. of executed tasks =\t%ld\n", numExecTasks[0]);
-    for(int i=0; i<2; i++){
-        uint64_t avgDelta = scheduleSet_1.tasks[i].delta_sum/scheduleSet_1.tasks[i].exec_count;
-        printf("--task[%d].period = %lld, executed with avg. dt = %llu (avg. jitter = %d) from a total of %lu executions\n", i, scheduleSet_1.tasks[i].period, 
-        avgDelta, (int) scheduleSet_1.tasks[i].period - (int) avgDelta, scheduleSet_1.tasks[i].exec_count);
-    }
-    printf("----Thread #2 no. of executed tasks =\t%ld\n", numExecTasks[1]);
-    for(int i=0; i<2; i++){
-        uint64_t avgDelta = scheduleSet_2.tasks[i].delta_sum/scheduleSet_2.tasks[i].exec_count;
-        printf("--task[%d].period = %lld, executed with avg. dt = %llu (avg. jitter = %d) from a total of %lu executions\n", i, scheduleSet_2.tasks[i].period, 
-        avgDelta, (int) scheduleSet_2.tasks[i].period - (int) avgDelta, scheduleSet_2.tasks[i].exec_count);
+    printf("--No. of hyper periods = %u\n", HYPER_ITERATIONS);
+    printf("--Theoritic duration = %llu μs\n", HYPER_ITERATIONS * (uint64_t) (HYPER_PERIOD * NS_TO_US));
+    printf("--Total execution time = %llu μs\n", endTime);
+    for(unsigned t=0; t<NUM_OF_THREADS; t++)
+    {
+        printf("--Thread #%u no. of executed tasks = %ld\n", t, numExecTasks[t]);
+        for(unsigned int i=0; i<TASKS_PER_THREAD; i++)
+        {
+            uint64_t avgDelta = threadSchedules[t].tasks[i].delta_sum/threadSchedules[t].tasks[i].exec_count;
+            printf("----task[%d].period = %lld, executed with avg. dt = %llu (jitter = %d) from a total of %lu executions\n", i, 
+            threadSchedules[t].tasks[i].period, avgDelta, (int) threadSchedules[t].tasks[i].period - (int) avgDelta, 
+            threadSchedules[t].tasks[i].exec_count);
+        }
     }
 
     return 0;

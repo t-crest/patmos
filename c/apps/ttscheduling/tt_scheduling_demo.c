@@ -4,16 +4,21 @@
 #include <machine/rtc.h>
 #include "tt_minimal_scheduler.h"
 #include "demo_tasks.h"
+#include "schedule.h"
 
-#define HYPER_PERIOD 20000
-#define NUM_OF_TASKS 4
-#define HYPER_ITERATIONS 1
+#define HYPER_ITERATIONS 100
 #define RUN_INFINITE false
-#define RUNS 1
+
+void convert_sched_to_timebase(uint64_t *sched_insts, uint32_t nr_insts, double timebase){
+    for(int i=0; i<nr_insts; i++){
+        sched_insts[i] = (uint64_t) (sched_insts[i] * timebase);
+    }
+}
 
 int main()
 {
-    printf("\nPatmos Time-Triggered Executive Demo\n\n");
+    LED = 0;
+    printf("\nPatmos Time-Triggered Executive Demo\n");
     
     uint16_t numExecTasks;
     uint64_t scheduleTime;
@@ -21,35 +26,35 @@ int main()
     MinimalTTTask taskSet[NUM_OF_TASKS];
     MinimalTTSchedule schedule;
 
-    for(int i=0; i<RUNS; i++){
-        // Tasks are defined in a set with the activation times according to the schedule generation
-        init_minimal_tttask(&taskSet[0], 5000, T1_sched_insts, 4, &task_1);
-        init_minimal_tttask(&taskSet[1], 10000, T2_sched_insts, 2, &task_2);
-        init_minimal_tttask(&taskSet[2], 2500, T3_sched_insts, 8, &task_3);
-        init_minimal_tttask(&taskSet[3], 20000, T4_sched_insts, 1, &task_4);
+    static void (*tasks_func_ptrs[NUM_OF_TASKS])(const void*) = {task_1, task_2, task_3, task_4, task_5, task_6, task_7, task_8};
 
-        sort_asc_minimal_tttasks(taskSet, NUM_OF_TASKS);
+    // Tasks are defined in a set with the activation times according to the schedule generation
+    for(unsigned int i=0; i<NUM_OF_TASKS; i++){
+        convert_sched_to_timebase(tasks_schedules[i], tasks_insts_counts[i], NS_TO_US);
+        init_minimal_tttask(&taskSet[i], (uint64_t)(tasks_periods[i] * NS_TO_US), tasks_schedules[i], tasks_insts_counts[i], tasks_func_ptrs[i]);
+    }
 
-        schedule = init_minimal_ttschedule(HYPER_PERIOD, NUM_OF_TASKS, taskSet, &get_cpu_usecs);
+    sort_asc_minimal_tttasks(taskSet, NUM_OF_TASKS);
 
-        printf("Execute Schedule @start_time(us)=%llu\n\n", get_cpu_usecs());
+    schedule = init_minimal_ttschedule((uint64_t)(HYPER_PERIOD * NS_TO_US), NUM_OF_TASKS, taskSet, &get_cpu_usecs);
 
-        startTime = get_cpu_usecs();
+    printf("\nSchedule start_time(us)=%llu\n", get_cpu_usecs());
 
-        numExecTasks = tt_minimal_schedule_loop(&schedule, HYPER_ITERATIONS, RUN_INFINITE);
+    startTime = get_cpu_usecs();
 
-        scheduleTime = get_cpu_usecs() - startTime;
+    numExecTasks = tt_minimal_schedule_loop(&schedule, HYPER_ITERATIONS, RUN_INFINITE);
 
-        printf("\nGathered Statistics (Run# %d)\n", i);
-        printf("--No. of hyper period iterations = %d\n", HYPER_ITERATIONS);
-        printf("--Theoritic duration = %d μs\n", HYPER_ITERATIONS*HYPER_PERIOD);
-        printf("--Total execution time = %llu μs\n", scheduleTime);
-        printf("--Total no. of executed tasks = %d\n", numExecTasks);
-        for(int i=0; i<NUM_OF_TASKS; i++){
-            uint64_t avgDelta = schedule.tasks[i].delta_sum/schedule.tasks[i].exec_count;
-            printf("--task[%d].period = %lld, executed with avg. dt = %llu (avg. jitter = %d) from a total of %lu executions\n", i, schedule.tasks[i].period, 
-            avgDelta, (int) schedule.tasks[i].period - (int) avgDelta, schedule.tasks[i].exec_count);
-        }
+    scheduleTime = get_cpu_usecs() - startTime;
+
+    printf("\nGathered Statistics\n");
+    printf("--No. of hyper period iterations = %u\n", HYPER_ITERATIONS);
+    printf("--Theoritic duration = %llu μs\n", (uint64_t) HYPER_ITERATIONS * schedule.hyper_period);
+    printf("--Total execution time = %llu μs\n", scheduleTime);
+    printf("--Total no. of executed tasks = %d\n", numExecTasks);
+    for(int i=0; i<NUM_OF_TASKS; i++){
+        uint64_t avgDelta = (uint64_t) (schedule.tasks[i].delta_sum/ (uint64_t)schedule.tasks[i].exec_count);
+        printf("--task[%d].period = %lld, executed with avg. dt = %llu (jitter = %d) from a total of %lu executions\n", i, schedule.tasks[i].period, 
+        avgDelta, (int) schedule.tasks[i].period - (int) avgDelta, schedule.tasks[i].exec_count);
     }
 
     return 0;
