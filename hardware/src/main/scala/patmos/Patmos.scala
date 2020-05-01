@@ -436,9 +436,11 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   } else {
     val memarbiter = Module(new ocp.TdmArbiterWrapper(nrCores, ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
     for (i <- (0 until cores.length)) {
-      memarbiter.io.master(i) <> cores(i).io.memPort
+      memarbiter.io.master(i).M <> cores(i).io.memPort.M
+      cores(i).io.memPort.S <> memarbiter.io.master(i).S
     }
-    ramCtrl.io.ocp <> memarbiter.io.slave
+    ramCtrl.io.ocp.M <> memarbiter.io.slave.M
+    memarbiter.io.slave.S <> ramCtrl.io.ocp.S
   }
 
   override val io = IO(new PatmosBundle(pins.map{case (pinid, devicepin) => pinid -> DataMirror.internal.chiselTypeClone(devicepin)}.toSeq: _*))
