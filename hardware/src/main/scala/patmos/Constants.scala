@@ -12,6 +12,10 @@ import Chisel._
 
 import util.log2Up
 
+object ConstantsForConf { // TODO Remove when baud is obtained from configuration .xml
+  val UART_BAUD = 115200
+}
+
 object Constants {
 
   val CLOCK_FREQ = util.Config.getConfig.frequency
@@ -29,6 +33,8 @@ object Constants {
   val DCACHE_SIZE = util.Config.getConfig.DCache.size
   val DCACHE_ASSOC = util.Config.getConfig.DCache.assoc
   val DCACHE_REPL = util.Config.getConfig.DCache.repl
+
+  val UART_BAUD = ConstantsForConf.UART_BAUD // TODO obtain from configuration .xml through Config.scala
 
   val CACHE_REPL_LRU  = "lru"
   val CACHE_REPL_FIFO = "fifo"

@@ -68,7 +68,7 @@ void _start(void) {
 
 #ifdef _NOC_H_
   // configure network interface
-  noc_configure();
+  noc_init();
 #endif /* _NOC_H_ */
 
   // call main()

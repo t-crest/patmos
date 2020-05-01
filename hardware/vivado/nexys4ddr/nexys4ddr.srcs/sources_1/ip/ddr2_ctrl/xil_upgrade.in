@@ -1,0 +1,24 @@
+SET_FLAG MODE BATCH
+SET_FLAG STANDALONE_MODE TRUE
+SET_PREFERENCE upgrade_mode yes
+SET_PREFERENCE ipi_mode no
+SET_PREFERENCE devicefamily artix7
+SET_PREFERENCE device xc7a100t
+SET_PREFERENCE speedgrade -1
+SET_PREFERENCE package csg324
+SET_PREFERENCE verilogsim true
+SET_PREFERENCE vhdlsim false
+SET_PREFERENCE designentry Verilog
+SET_PREFERENCE outputdirectory /home/elky/t-crest/patmos/hardware/vivado/nexys4ddr/nexys4ddr.srcs/sources_1/ip/ddr2_ctrl/_tmp/
+SET_PREFERENCE subworkingdirectory /home/elky/t-crest/patmos/hardware/vivado/nexys4ddr/nexys4ddr.srcs/sources_1/ip/ddr2_ctrl/_tmp/
+SET_PREFERENCE flowvendor Other
+SET_PREFERENCE tool vivado
+SET_PREFERENCE compnamestatus 0
+SET_PARAMETER component_name ddr2_ctrl
+SET_PARAMETER xml_input_file /home/elky/t-crest/patmos/hardware/vivado/nexys4ddr/nexys4ddr.srcs/sources_1/ip/ddr2_ctrl/mig_a.prj
+SET_PARAMETER data_dir_path /media/elky/Data/Programs/Xilinx/Vivado/2019.2/data/ip/xilinx/mig_7series_v4_2
+SET_CORE_NAME Memory Interface Generator (MIG 7 Series)
+SET_CORE_VERSION 4.2
+SET_CORE_VLNV xilinx.com:ip:mig_7series:4.2
+SET_CORE_PATH /media/elky/Data/Programs/Xilinx/Vivado/2019.2/data/ip/xilinx/mig_7series_v4_2
+SET_CORE_DATASHEET /media/elky/Data/Programs/Xilinx/Vivado/2019.2/data/ip/xilinx/mig_7series_v4_2/data/docs/ds176_7series_MIS.pdf

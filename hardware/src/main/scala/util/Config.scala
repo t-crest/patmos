@@ -36,6 +36,8 @@ import java.io._
 
 import Chisel._
 import patmos._
+//import patmos.Constants._
+//import Constants._
 import io.CoreDevice
 import io.Device
 
@@ -43,6 +45,7 @@ import scala.tools.nsc.interpreter.IMain
 import scala.tools.nsc.Settings
 import java.io.DataInputStream
 import java.io.File
+
 
 
 /**
@@ -282,7 +285,7 @@ object Config {
       for (d <- Devs) { emuConfig.write("#define IO_"+d.name.toUpperCase+"\n") }
       emuConfig.write("#define EXTMEM_"+ExtMem.ram.name.toUpperCase+"\n")
       emuConfig.write("#define EXTMEM_ADDR_BITS "+ ExtMemAddrWidth +"\n")
-      if (UartParamsMap.get("baudRate") != None) {emuConfig.write("#define BAUDRATE " + UartParamsMap.get("baudRate").get+"\n")}
+      emuConfig.write("#define BAUDRATE " + ConstantsForConf.UART_BAUD.toString + "\n") //TODO take baud from configuration .XML
       emuConfig.write("#define FREQ "+ frequency +"\n")
       emuConfig.close();
       

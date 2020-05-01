@@ -4,107 +4,117 @@
 #define CPU_PERIOD 12.5
 #define LED (*((volatile _IODEV unsigned *)PATMOS_IO_LED))
 #define DEAD (*((volatile _IODEV int *) PATMOS_IO_DEADLINE))
-#define US_TO_CLKS(timeout) (timeout*US_TO_NS/CPU_PERIOD)
 
-long long maxJitter = 0;
-unsigned long long sumJitter = 0;
-
-long long task_act(const void *self)
+__attribute__((noinline))
+void task_1(const void *self)
 {
-    unsigned long long now = get_cpu_usecs();
     //Fake work
-    DEAD = 176000 + 8229;
-    int val = DEAD;
-    //Report
-    long delta = ((MinimalTTTask *) self)->last_start_time > 0 ? now - ((MinimalTTTask *) self)->last_start_time : 0;
-    long jitter = delta > 0 ? delta - ((MinimalTTTask *) self)->period : 0;
+    if(get_cpuid() == 0) LED = 0x1;
 #ifdef DEBUG
-    printf("ACT(!),\tdelta=%8ld μs,\tjitter=%+4ld μs\n", delta, jitter);
+    printf("{T1,%lu}", ((MinimalTTTask*) self)->release_inst);
+#else
+    DEAD = (unsigned)(250000/CPU_PERIOD) - 10;   //clock cycles
+    int val = DEAD;
 #endif
-    if(jitter > maxJitter){
-        maxJitter = jitter;
-    }
-    sumJitter += jitter;
-    LED = 0x1;
-    return jitter;
+    if(get_cpuid() == 0) LED = 0x0;
 }
 
-long long task_snd(const void *self)
+
+__attribute__((noinline))
+void task_2(const void *self)
 {
-    unsigned long long now = get_cpu_usecs();
     //Fake work
-    DEAD = 10708;
-    int val = DEAD;
-    //Report
-    long delta = ((MinimalTTTask *) self)->last_start_time > 0 ? now - ((MinimalTTTask *) self)->last_start_time : 0;
-    long jitter = delta > 0 ? delta - ((MinimalTTTask *) self)->period : 0;
+    if(get_cpuid() == 0) LED = 0x2;
 #ifdef DEBUG
-    printf("SND(>),\tdelta=%8ld μs,\tjitter=%+4ld μs\n", delta, jitter);
+    printf("{T2,%lu}", ((MinimalTTTask*) self)->release_inst);
+#else
+    DEAD = (unsigned)(500000/CPU_PERIOD) - 10;  //clock cycles
+    int val = DEAD;
 #endif
-    if(jitter > maxJitter){
-        maxJitter = jitter;
-    }
-    sumJitter += jitter;
-    LED = 0x2;
-    return jitter;
+    if(get_cpuid() == 0) LED = 0x0;
 }
 
-long long task_rcv(const void *self)
+__attribute__((noinline))
+void task_3(const void *self)
 {
-    unsigned long long now = get_cpu_usecs();
     //Fake work
-    DEAD = 15717;
-    int val = DEAD;
-    //Report
-    long delta = ((MinimalTTTask *) self)->last_start_time > 0 ? now - ((MinimalTTTask *) self)->last_start_time : 0;
-    long jitter = delta > 0 ? delta - ((MinimalTTTask *) self)->period : 0;
+    if(get_cpuid() == 0) LED = 0x4;
 #ifdef DEBUG
-    printf("RCV(<),\tdelta=%8ld μs,\tjitter=%+4ld μs\n", delta, jitter);
+    printf("{T3,%lu}", ((MinimalTTTask*) self)->release_inst);
+#else
+    DEAD = (unsigned)(200000/CPU_PERIOD) - 10;  //clock cycles
+    int val = DEAD;
 #endif
-    if(jitter > maxJitter){
-        maxJitter = jitter;
-    }
-    sumJitter += jitter;
-    LED = 0x4;
-    return jitter;
+    if(get_cpuid() == 0) LED = 0x0;
 }
 
-long long task_mon(const void *self)
+__attribute__((noinline))
+void task_4(const void *self)
 {
-    unsigned long long now = get_cpu_usecs();
     //Fake work
-    DEAD = 273;
-    int val = DEAD;
-    //Report
-    long delta = ((MinimalTTTask *) self)->last_start_time > 0 ? now - ((MinimalTTTask *) self)->last_start_time : 0;
-    long jitter = delta > 0 ? delta - ((MinimalTTTask *) self)->period : 0;
+    if(get_cpuid() == 0) LED = 0x8;
 #ifdef DEBUG
-    printf("MON(?),\tdelta=%8ld μs,\tjitter=%+4ld μs\n", delta, jitter);
+    printf("{T4,%lu}\n", ((MinimalTTTask*) self)->release_inst);
+#else
+    DEAD = (unsigned)(500000/CPU_PERIOD) - 10;  //clock cycles
+    int val = DEAD;
 #endif
-    if(jitter > maxJitter){
-        maxJitter = jitter;
-    }
-    sumJitter += jitter;
-    LED = 0x8;
-    return jitter;
+    if(get_cpuid() == 0) LED = 0x0;
 }
 
-long long task_syn(const void *self)
+__attribute__((noinline))
+void task_5(const void *self)
 {
-    unsigned long long now = get_cpu_usecs();
     //Fake work
-    DEAD = 29551;
-    int val = DEAD;
-    //Report
-    long delta = ((MinimalTTTask *) self)->last_start_time > 0 ? now - ((MinimalTTTask *) self)->last_start_time : 0;
-    long jitter = delta > 0 ? delta - ((MinimalTTTask *) self)->period : 0;
+    if(get_cpuid() == 0) LED = 0x10;
 #ifdef DEBUG
-    printf("SYN(=),\tdelta=%8ld μs,\tjitter=%+4ld μs\n", delta, jitter);
+    printf("{T5,%lu}", ((MinimalTTTask*) self)->release_inst);
+#else
+    DEAD = (unsigned)(825000/CPU_PERIOD) - 10;   //clock cycles
+    int val = DEAD;
 #endif
-    if(jitter > maxJitter){
-        maxJitter = jitter;
-    }
-    sumJitter += jitter;
-    LED = 0x10;
-    return jitter;
+    if(get_cpuid() == 0) LED = 0x0;
+}
+
+
+__attribute__((noinline))
+void task_6(const void *self)
+{
+    //Fake work
+    if(get_cpuid() == 0) LED = 0x20;
+#ifdef DEBUG
+    printf("{T6,%lu}", ((MinimalTTTask*) self)->release_inst);
+#else
+    DEAD = (unsigned)(1000000/CPU_PERIOD) - 10;  //clock cycles
+    int val = DEAD;
+#endif
+    if(get_cpuid() == 0) LED = 0x0;
+}
+
+__attribute__((noinline))
+void task_7(const void *self)
+{
+    //Fake work
+    if(get_cpuid() == 0) LED = 0x40;
+#ifdef DEBUG
+    printf("{T7,%lu}", ((MinimalTTTask*) self)->release_inst);
+#else
+    DEAD = (unsigned)(640000/CPU_PERIOD) - 10;  //clock cycles
+    int val = DEAD;
+#endif
+    if(get_cpuid() == 0) LED = 0x0;
+}
+
+__attribute__((noinline))
+void task_8(const void *self)
+{
+    //Fake work
+    if(get_cpuid() == 0) LED = 0x80;
+#ifdef DEBUG
+    printf("{T8,%lu}\n", ((MinimalTTTask*) self)->release_inst);
+#else
+    DEAD = (unsigned)(1500000/CPU_PERIOD) - 10;  //clock cycles
+    int val = DEAD;
+#endif
+    if(get_cpuid() == 0) LED = 0x0;
 }

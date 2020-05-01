@@ -12,56 +12,79 @@
 #define MAX(a, b) (a > b) ? a : b
 #define MIN(a, b) (a < b) ? a : b
 
+//IO
+#define LEDS *((volatile _SPM unsigned int *) (PATMOS_IO_LED))
+#define KEYS *((volatile _SPM unsigned int *) (PATMOS_IO_KEYS))
+#define GPIO *((volatile _SPM unsigned int *) (PATMOS_IO_GPIO))
+#define DEAD *((volatile _SPM unsigned int *) (PATMOS_IO_DEADLINE))
+#define SEGDISP *((volatile _SPM unsigned int *) (PATMOS_IO_SEGDISP))
+
 // TTE Configuration
 #define TTETIME_TO_NS		65536
 #define TTE_MAX_TRANS_DELAY	135600			//ns from net_config (eclipse project)
-#define TTE_INT_PERIOD		10000000		//ns 10 ms
-#define TTE_CYC_PERIOD		200000000		//ns 200 ms
-#define TTE_PRECISION		1000000			//ns from network_description (eclipse project)
+#define TTE_INT_PERIOD		10000000		//ns
+#define TTE_CYC_PERIOD		1000000000		//ns
+#define TTE_PRECISION		10000			//ns from network_description (eclipse project)
 
 // TTE PID synchronization
-#define TTE_SYNC_Kp 350LL
-#define TTE_SYNC_Ki 850LL
-#define TTE_SYNC_Kd 0LL
+#define TTE_SYNC_Kp 1000LL
+#define TTE_SYNC_Ki 0LL
 
-// Demo configuration
-#define SYNC_WINDOW_HALF	10000		//ns
-#define SYNC_PERIOD			5000000		//ns
-#define PULSE_PERIOD 		20000000	//ns
-#define CPU_PERIOD			12.5		//ns
-#define NO_RX_PACKETS 		3000
+// Demo directives
 #define HW_TIMESTAMPING
+#define TIME_CORRECTION_EN
+#define ALIGN_TO_REALTIME	//TODO: reset time on every new cluster
 
-//IO
-volatile _SPM int *uart_ptr = (volatile _SPM int *)	 PATMOS_IO_UART;
-volatile _SPM int *led_ptr  = (volatile _SPM int *)  PATMOS_IO_LED;
-volatile _SPM int *key_ptr = (volatile _SPM int *)	 PATMOS_IO_KEYS;
-volatile _SPM int *gpio_ptr = (volatile _SPM int *)	 PATMOS_IO_GPIO;
-volatile _SPM int *dead_ptr = (volatile _SPM int *)	 PATMOS_IO_DEADLINE;
-volatile _SPM unsigned *disp_ptr = (volatile _SPM unsigned *) PATMOS_IO_SEGDISP;
+// Demo parameters
+#define NO_RX_PACKETS 		2000		//packets
+#define CPU_PERIOD			12.5		//ns	
+#define SYNC_WINDOW_HALF	10000		//ns
+#define SYNC_PERIOD			10000000	//ns
+#define ASYNC2SYNC_THRES	10			//clusters
+#define PULSE_PERIOD 		50000000	//ns
+#define PULSE_WIDTH			1000000		//ns
 
-//Variables
+#define SYNCTASK_GPIO_BIT	0
+#define PULSETASK_GPIO_BIT	1
+
+#define SYNC_START_TIME		321200
+#define PULSE_START_TIME	17924225
+
+//Constants
 const char* eth_protocol_names[] = {"UFF", "IP", "ICMP", "UDP", "TCP", "PTP", "ARP", "LLDP", "MDNS", "TTE_PCF", "TTE"};
 const unsigned int rx_addr = 0x000;
 const unsigned int tx_addr = 0x800;
 const unsigned char multicastip[4] = {224, 0, 0, 255};
 const unsigned char TTE_CT[] = { 0xAB, 0xAD, 0xBA, 0xBE };
 
+//Hardware timestamping provided through ptp1588assist unit
 PTPPortInfo thisPtpPortInfo;
 PTPv2Time softTimestamp;
 PTPv2Time hardTimestamp;
 
-static unsigned long long target_time = 0;
+//Clock related variables
 static long long clkDiff = 0;
 static long long clkDiffLast = 0;
 static long long clkDiffSum = 0;
-static unsigned int rxPcfCount = 0;
-static unsigned int inScheduleReceptions = 0;
-static unsigned char nodeIsSynced = 0;
-static unsigned char firstPCF = 1;
 static unsigned short integration_cycle = 0;
-unsigned long long initNanoseconds = 0;
-unsigned long long initSeconds = 0;
+static unsigned long long coldStartIntegrationTime = 0;
+static unsigned long long initNanoseconds = 0;
+static unsigned long long initSeconds = 0;
+
+//Counters
+static unsigned short rxPcfCount = 0;
+static unsigned short pulseCount = 0;
+static unsigned int stableCycles = 0;
+static unsigned int unstableCycles = 0;
+static unsigned int stableClusters = 0;
+static unsigned int unstableClusters = 0;
+static unsigned int totalScheduledReceptions = 0;
+
+//Flags
+static unsigned char nodeIntegrated = 0;	//is used to indicate when the node has achieved sufficient syncrhonization
+static unsigned char nodeSyncStable = 0;	//is used to enable task execution when the node is in a stable sync
+static unsigned char nodeColdStart = 1;		//is used to indicate that a node has just booted and has not received a single PCF
+static unsigned char nodeFirstSync = 1;
 
 #ifdef LOGGING
 static PTPv2Time rxTimestampLog[NO_RX_PACKETS];
@@ -74,8 +97,8 @@ static unsigned long long deltaTimeLog[NO_RX_PACKETS];
 static unsigned long long tteTransClkLog[NO_RX_PACKETS];
 static unsigned short tteIntCycleLog[NO_RX_PACKETS];
 #endif
-static unsigned long long syncLoopDeltaLog = 0;
-static unsigned long long pulseDeltaLog = 0;
+static unsigned long long syncLoopDeltaSum;
+static unsigned long long pulseLoopDeltaSum;
 
 void print_general_info(){
 	printf("\nGeneral info:\n");
@@ -89,14 +112,14 @@ void print_general_info(){
 }
 
 void printSegmentInt(unsigned number) {
-    *(disp_ptr+0) = number & 0xF;
-    *(disp_ptr+1) = (number >> 4) & 0xF;
-    *(disp_ptr+2) = (number >> 8) & 0xF;
-    *(disp_ptr+3) = (number >> 12) & 0xF;
-    *(disp_ptr+4) = (number >> 16) & 0xF;
-    *(disp_ptr+5) = (number >> 20) & 0xF;
-    *(disp_ptr+6) = (number >> 24) & 0xF;
-    *(disp_ptr+7) = (number >> 28) & 0xF;
+    *(&SEGDISP+0) = number & 0xF;
+    *(&SEGDISP+1) = (number >> 4) & 0xF;
+    *(&SEGDISP+2) = (number >> 8) & 0xF;
+    *(&SEGDISP+3) = (number >> 12) & 0xF;
+    *(&SEGDISP+4) = (number >> 16) & 0xF;
+    *(&SEGDISP+5) = (number >> 20) & 0xF;
+    *(&SEGDISP+6) = (number >> 24) & 0xF;
+    *(&SEGDISP+7) = (number >> 28) & 0xF;
 }
 
 void testRTCAdjustment(){
@@ -105,8 +128,8 @@ void testRTCAdjustment(){
 	RTC_ADJUST_OFFSET(thisPtpPortInfo.eth_base) = 0x1000;
 	do
 	{
-		printSegmentInt(*led_ptr);
-	}while((*led_ptr=RTC_ADJUST_OFFSET(thisPtpPortInfo.eth_base)) != 0);
+		printSegmentInt(LEDS);
+	}while((LEDS=RTC_ADJUST_OFFSET(thisPtpPortInfo.eth_base)) != 0);
 	printSegmentInt(RTC_ADJUST_OFFSET(thisPtpPortInfo.eth_base));
 	RTC_TIME_NS(thisPtpPortInfo.eth_base) = initNanoseconds;
 	RTC_TIME_SEC(thisPtpPortInfo.eth_base) = initSeconds;
@@ -120,8 +143,21 @@ unsigned long long elapsed_nanos(long long start, long long stop){
 	}
 }
 
+unsigned long long get_tte_aligned_time(unsigned long long current_time){
+	long long clock_corr = (((TTE_SYNC_Kp*clkDiff)>>10) 
+                        + ((TTE_SYNC_Ki*clkDiffSum)>>10));
+	#ifdef LOGGING
+		timeFixNsLog[rxPcfCount-1] = clock_corr;
+	#endif
+	#ifdef TIME_CORRECTION_EN
+	return (unsigned long long) ((long long) current_time + clock_corr);
+	#else
+	return (unsigned long long) current_time;
+	#endif
+}
+
 __attribute__((noinline))
-int tte_pcf_handle(unsigned long long sched_rec_pit, unsigned long long schedule_start){
+int tte_pcf_handle(unsigned long long sched_rec_pit, unsigned long long* schedule_start){
 	unsigned long long trans_clock;
 	unsigned long long permanence_pit;
 
@@ -141,88 +177,97 @@ int tte_pcf_handle(unsigned long long sched_rec_pit, unsigned long long schedule
 	integration_cycle = (integration_cycle << 8) | (mem_iord_byte(rx_addr + 17));
 
 	#ifdef HW_TIMESTAMPING
-	permanence_pit = PTP_TIME_TO_NS(hardTimestamp.seconds, hardTimestamp.nanoseconds) - schedule_start + ((unsigned long long) TTE_MAX_TRANS_DELAY - trans_clock);
+	permanence_pit = PTP_TIME_TO_NS(hardTimestamp.seconds, hardTimestamp.nanoseconds) - *schedule_start + ((unsigned long long) TTE_MAX_TRANS_DELAY - trans_clock);
 	#else
-	permanence_pit = PTP_TIME_TO_NS(softTimestamp.seconds, softTimestamp.nanoseconds) - schedule_start + ((unsigned long long) TTE_MAX_TRANS_DELAY - trans_clock);
+	permanence_pit = PTP_TIME_TO_NS(softTimestamp.seconds, softTimestamp.nanoseconds) - *schedule_start + ((unsigned long long) TTE_MAX_TRANS_DELAY - trans_clock);
 	#endif
 
-	clkDiffLast = clkDiff;
+
+#ifndef ALIGN_TO_REALTIME
+	if(integration_cycle == 0 && nodeIntegrated){
+		*schedule_start = sched_rec_pit;
+	}
+#else
+	if((nodeColdStart && integration_cycle==0) || !nodeColdStart){
+#endif
+
+	nodeColdStart = 0;
+
 	clkDiff = (long long) (permanence_pit - sched_rec_pit);
 	clkDiffSum += clkDiff;
-
-	//check scheduled receive window
 	
+	//check scheduled receive window
 	if(permanence_pit>(sched_rec_pit-TTE_PRECISION) && permanence_pit<(sched_rec_pit+TTE_PRECISION)){
-		inScheduleReceptions++;
-		*led_ptr |= 1U << 8;
+		stableCycles++;
+		if(integration_cycle == 0){
+			stableClusters++;
+		}
 	} else {
-		*led_ptr &= 0U << 8;
+		unstableCycles++;
+		if(integration_cycle == 0){
+			unstableClusters++;
+		}
 	}
+#ifdef ALIGN_TO_REALTIME
+	}
+#endif
 
 	#ifdef LOGGING
-		tteTransClkLog[rxPcfCount] = trans_clock;
-		tteIntCycleLog[rxPcfCount] = integration_cycle;
-		permaPITLog[rxPcfCount] = permanence_pit;
-		schedPITLog[rxPcfCount] = sched_rec_pit;
-		clkOffsetNsLog[rxPcfCount] = clkDiff;
+	tteTransClkLog[rxPcfCount] = trans_clock;
+	tteIntCycleLog[rxPcfCount] = integration_cycle;
+	permaPITLog[rxPcfCount] = permanence_pit;
+	schedPITLog[rxPcfCount] = sched_rec_pit;
+	clkOffsetNsLog[rxPcfCount] = clkDiff;
 	#endif
 
 	return 1;
 }
 
 __attribute__((noinline))
-int receiveAndHandleFrame(unsigned long long timeout, unsigned long long current_time, unsigned long long schedule_start){
-	unsigned short dest_port;
-	//receive
-	if(eth_mac_receive(rx_addr, (unsigned long long) timeout*NS_TO_USEC)){
-		#ifdef HW_TIMESTAMPING
-		hardTimestamp.nanoseconds = PTP_RXCHAN_TIMESTAMP_NS(thisPtpPortInfo.eth_base);
-		hardTimestamp.seconds = PTP_RXCHAN_TIMESTAMP_SEC(thisPtpPortInfo.eth_base);
-		PTP_RXCHAN_STATUS(thisPtpPortInfo.eth_base) = 0x1; //Clear PTP timestampAvail flag
-		#else
-		softTimestamp.nanoseconds = (unsigned) RTC_TIME_NS(thisPtpPortInfo.eth_base);
-		softTimestamp.seconds = (unsigned) RTC_TIME_SEC(thisPtpPortInfo.eth_base);
-		#endif
-		//handle
-		if (mem_iord_byte(rx_addr + 12) == 0x89 && mem_iord_byte(rx_addr + 13) == 0x1d){
-			if((mem_iord_byte(rx_addr + 28)) == 0x2){
-				tte_pcf_handle(current_time, schedule_start);
+void task_sync(unsigned long long* start_time, unsigned long long schedule_time, unsigned long long* activation, unsigned long long *nxt_task_activation, unsigned long long* last_time){
+	GPIO |= (1U << SYNCTASK_GPIO_BIT);
+	int ethFrameType;
+	PTP_RXCHAN_STATUS(thisPtpPortInfo.eth_base) = 0x1; //Clear PTP timestampAvail flag
+	unsigned long long listen_start = get_cpu_usecs(); //keep track when we started listening
+	#pragma loopbound min 1 max 1
+	do
+	{
+		if(eth_mac_receive_nb(rx_addr))
+		{
+			if((unsigned short) ((mem_iord_byte(rx_addr + 12) << 8) + (mem_iord_byte(rx_addr + 13))) == 0x891D)
+			{
+				#ifdef HW_TIMESTAMPING
+				hardTimestamp.nanoseconds = PTP_RXCHAN_TIMESTAMP_NS(thisPtpPortInfo.eth_base);
+				hardTimestamp.seconds = PTP_RXCHAN_TIMESTAMP_SEC(thisPtpPortInfo.eth_base);
+				#else
+				softTimestamp.nanoseconds = (unsigned) RTC_TIME_NS(thisPtpPortInfo.eth_base);
+				softTimestamp.seconds = (unsigned) RTC_TIME_SEC(thisPtpPortInfo.eth_base);
+				#endif
+				ethFrameType = TTE_PCF;
 			}
-			return TTE_PCF;
-		} else if(mac_compare_mac(mac_addr_dest(rx_addr), (unsigned char*) &TTE_CT)) {
-			return TTE_MSG;
-		} else {
-			return UNSUPPORTED;
+			PTP_RXCHAN_STATUS(thisPtpPortInfo.eth_base) = 0x1; //Clear PTP timestampAvail flag
 		}
-	} else {
-		return -1;
+	} while(ethFrameType != TTE_PCF && get_cpu_usecs() - listen_start < 2*SYNC_WINDOW_HALF*NS_TO_USEC);
+	if(ethFrameType == TTE_PCF){
+		tte_pcf_handle(schedule_time, start_time);
+		nodeIntegrated = !nodeColdStart && ethFrameType > 0 && (stableCycles - unstableCycles) > 0 && abs(clkDiff) < TTE_PRECISION;
+		if((nodeFirstSync && integration_cycle == 0 && nodeIntegrated) || !nodeFirstSync){
+			nodeSyncStable = nodeIntegrated && (stableClusters - unstableClusters) > ASYNC2SYNC_THRES;	
+			nodeFirstSync = 0;
+		}
+	} else if(ethFrameType == TIMEOUT){
+		stableCycles = 0;
+		unstableCycles = 0;
+		nodeFirstSync = 1;
+		nodeColdStart = 1;
+		nodeIntegrated = 0;
+		nodeSyncStable = 0;
+		clkDiffLast = 0;
+		clkDiffSum = 0;
+		clkDiff = 0;
 	}
-}
-
-void syncPulse(){
-	*gpio_ptr = 0x1;	//signal high time
-	*dead_ptr = 80000;	//wait 1ms
-	int val = *dead_ptr;                                            
-	*gpio_ptr = 0x0;
-}
-
-void syncMoninor(){
-	printSegmentInt(abs(clkDiff));
-	*led_ptr |= (integration_cycle & 0x0F) << 4;
-	if(nodeIsSynced){
-		*led_ptr |= 1U << 7;
-	} else {
-		*led_ptr &= 0U << 7;
-	}
-}
-
-__attribute__((noinline))
-unsigned char syncWindow(unsigned long long timeout, unsigned long long current_time, unsigned long long schedule_start){
-	int packetType = receiveAndHandleFrame(timeout, current_time, schedule_start);
-	*led_ptr |= packetType & 0x0F;
-	nodeIsSynced = packetType > 0 && inScheduleReceptions > 0 && abs(clkDiff) < TTE_PRECISION;
 	#ifdef LOGGING
-	rxPacketLog[rxPcfCount] = packetType;
+	rxPacketLog[rxPcfCount] = ethFrameType;
 	#ifdef HW_TIMESTAMPING
 	rxTimestampLog[rxPcfCount].nanoseconds = hardTimestamp.nanoseconds;
 	rxTimestampLog[rxPcfCount].seconds = hardTimestamp.seconds;
@@ -235,57 +280,57 @@ unsigned char syncWindow(unsigned long long timeout, unsigned long long current_
 	initNanoseconds = softTimestamp.nanoseconds;
 	#endif
 	#endif
-	return packetType == TTE_PCF ? 1 : 0;
+	*activation = *activation + get_tte_aligned_time(SYNC_PERIOD);
+	*nxt_task_activation = get_tte_aligned_time(*nxt_task_activation);
+	syncLoopDeltaSum += schedule_time - get_tte_aligned_time(*last_time);
+	rxPcfCount += ethFrameType == TTE_PCF ? 1 : 0;
+	*last_time = schedule_time;
+	printSegmentInt(abs(clkDiff));
+	LEDS = (nodeSyncStable << 7) + (nodeIntegrated << 6) + (ethFrameType & 0xF);
+	GPIO &= (0U << SYNCTASK_GPIO_BIT);
 }
 
-unsigned long long get_tte_aligned_time(unsigned long long current_time){
-	long long clock_corr = (((TTE_SYNC_Kp*clkDiff)>>10) 
-                        + ((TTE_SYNC_Ki*clkDiffSum)>>10) 
-                        + ((TTE_SYNC_Kd*(clkDiff-clkDiffLast))>>10));
-	#ifdef LOGGING
-		timeFixNsLog[rxPcfCount-1] = clock_corr;
-	#endif
-	return (unsigned long long) ((long long) current_time + clock_corr);
+__attribute__((noinline))
+void task_pulse(unsigned long long schedule_time, unsigned long long* activation, unsigned long long* last_time){
+	GPIO |= (1U << PULSETASK_GPIO_BIT);
+	LEDS |= (1U << 8);
+	DEAD = (int) (PULSE_WIDTH/12.5);	//wait 1ms
+	int val = DEAD;
+	LEDS &= (0U << 8);
+	*activation = *activation + PULSE_PERIOD;
+	pulseLoopDeltaSum += schedule_time - get_tte_aligned_time(*last_time);
+	*last_time = schedule_time;
+	pulseCount++;
+	GPIO &= (0U << PULSETASK_GPIO_BIT);
 }
 
-void demoExecutiveLoop(){
-	*gpio_ptr = 0x0;
-	unsigned long long sync_activation = 321200;			//initial values generated by scheduler
-	unsigned long long pulse_activation = 17577991;			//initial values generated by scheduler
-	unsigned long long sync_last_time = 0;				//keep track of the last executed time
-	unsigned long long pulse_last_time = 0;				//keep track of the last executed time
+void cyclicExecutiveLoop(){
+	unsigned long long sync_activation = SYNC_START_TIME;			//initial values generated by scheduler
+	unsigned long long pulse_activation = PULSE_START_TIME;			//initial values generated by scheduler
+	unsigned long long sync_last_time = 0;							//keep track of the last executed time
+	unsigned long long pulse_last_time = 0;							//keep track of the last executed time
 	unsigned long long start_time = get_ptp_nanos(thisPtpPortInfo.eth_base);
 	#ifdef LOGGING
 	_Pragma("loopbound min 1 max 1")
-	while(rxPcfCount < NO_RX_PACKETS && *key_ptr != 0xE){
+	while(rxPcfCount < NO_RX_PACKETS && KEYS != 0xE){
 	#else
 	_Pragma("loopbound min 1 max 1")
-	while(*key_ptr != 0xE){
+	while(KEYS != 0xE){
 	#endif
 		register unsigned long long schedule_time = get_tte_aligned_time(get_ptp_nanos(thisPtpPortInfo.eth_base) - start_time);
-		if(schedule_time + SYNC_WINDOW_HALF >= sync_activation){
-			// *gpio_ptr = 0x1;
-			rxPcfCount += syncWindow(nodeIsSynced ? 2*SYNC_WINDOW_HALF : 0, schedule_time, start_time);
-			syncMoninor();
-			sync_activation += get_tte_aligned_time(SYNC_PERIOD);
-			syncLoopDeltaLog = schedule_time - sync_last_time;
-			sync_last_time = schedule_time;
-			// *gpio_ptr = 0x0;
+		if(schedule_time >= sync_activation){
+			task_sync(&start_time, schedule_time, &sync_activation, &pulse_activation, &sync_last_time);
 		} 
-		else if(nodeIsSynced && schedule_time >= pulse_activation) {
-			syncPulse();
-			pulse_activation += get_tte_aligned_time(PULSE_PERIOD);
-			pulseDeltaLog = pulse_last_time;
-			pulse_last_time = schedule_time;
+		else if(KEYS != 0xD && schedule_time >= pulse_activation) {
+			task_pulse(schedule_time, &pulse_activation, &pulse_last_time);
 		}
 	}
 }
 
-
 int main(int argc, char **argv){
 	// Start
-	*led_ptr = 0x1FF;
-	puts("\nEthernet Timestamping Demo Started");
+	LEDS = 0x1FF;
+	puts("\nTTEthernet Clock Sync Demo Started");
 	
 	//MAC controller settings
 	set_mac_address(0x1D000400, 0x00000289);
@@ -302,10 +347,14 @@ int main(int argc, char **argv){
 	testRTCAdjustment();
 	initNanoseconds = 0;
 	initSeconds = 0;
-	*led_ptr = 0x000;
+	LEDS = 0x000;
 	
-	// Executive Loop 
-	demoExecutiveLoop();
+	//Init
+	GPIO = 0x0;
+	PTP_RXCHAN_STATUS(thisPtpPortInfo.eth_base) = 0x1; //Clear PTP timestampAvail flag
+
+	// Executive Loop
+	cyclicExecutiveLoop();
 
 	//Report
 	puts("------------------------------------------");
@@ -313,20 +362,24 @@ int main(int argc, char **argv){
 	#ifdef LOGGING
 	puts("------------------------------------------");
 	puts("Timestamp(ns);\tDelta Time(ns);\tEth Type;\tCycle#;\tTransClk(ns);\tPermaPIT(ns);\tSchedPIT(ns);\tOffset(ns);\tPIFix(ns);");
-	for(int i=0;i<NO_RX_PACKETS;i++){
+	for(int i=0;i<rxPcfCount;i++){
 		printf("%10llu;\t%llu;\t%s;\t%04hx;\t%10llu;\t%10lld;\t%10lld;\t%10lld;\t%10lld;\n", 
 																PTP_TIME_TO_NS(rxTimestampLog[i].seconds, rxTimestampLog[i].nanoseconds),
 		 														deltaTimeLog[i], eth_protocol_names[rxPacketLog[i]], tteIntCycleLog[i], tteTransClkLog[i],
 																permaPITLog[i], schedPITLog[i], clkOffsetNsLog[i], timeFixNsLog[i]);
 	}
 	#endif
+	printf("--Avg. clock offset = %lld ns\n", clkDiffSum / rxPcfCount);
 	puts("---------------------------------------------------------------------------");
-	printf("--Received No. Packets = %u / %u \n", rxPcfCount, NO_RX_PACKETS);
-	printf("--In-Sched No. Packets = %u (loss = %.3f %%) \n", inScheduleReceptions, 100-((float)inScheduleReceptions/(float)rxPcfCount)*100);
+	printf("--Received No. of Packets = %u\n", rxPcfCount);
+	printf("--In-Sched No. of Packets = %u (loss = %.3f %%) \n", stableCycles, 100-((float)stableCycles/(float)rxPcfCount)*100);
+	printf("--No-Sched No. of Packets = %u (loss = %.3f %%) \n", unstableCycles, 100-((float)unstableCycles/(float)rxPcfCount)*100);
 	puts("---------------------------------------------------------------------------");
 	puts("Task log:");
-	printf("--Sync Activation dt= %llu (jitter = %d ns)\n", syncLoopDeltaLog, abs(SYNC_PERIOD - syncLoopDeltaLog));
-	printf("--Pulse Activation dt = %llu (jitter = %d ns)\n", pulseDeltaLog, abs(PULSE_PERIOD - pulseDeltaLog));
+	unsigned long long avgSyncDelta = syncLoopDeltaSum/rxPcfCount;
+	printf("--task_syn()   avg. dt = %llu\t(avg. jitter = %d ns) from a total of %d executions\n", avgSyncDelta, abs(SYNC_PERIOD - avgSyncDelta), rxPcfCount);
+	unsigned long long avgPulseDelta = pulseLoopDeltaSum/pulseCount;
+	printf("--task_pulse() avg. dt = %llu\t(avg. jitter = %d ns) from a total of %d executions\n", avgPulseDelta, abs(PULSE_PERIOD - avgPulseDelta), pulseCount);
 	puts("------------------------------------------");
 	puts("\nExiting!");
 	return 0;

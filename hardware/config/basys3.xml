@@ -1,0 +1,31 @@
+<patmos default="default.xml">
+  <description>configuration for Basys3 board</description>
+
+  <frequency Hz="100000000"/>  
+
+  <!-- Default is single core -->
+  <!-- <pipeline dual="false" />
+  <cores count="6"/>
+  <CmpDevs>
+  <CmpDev name="Argo" />
+  </CmpDevs> -->
+
+   <ExtMem size="32k" DevTypeRef="OCRam" />
+
+  <IOs>
+    <IO DevTypeRef="Leds" offset="9"/>
+  </IOs>
+
+  <Devs>
+    <Dev DevType="Leds" entity="Leds" iface="OcpCore">
+      <params>
+        <param name="ledCount" value="8"/>
+      </params>
+    </Dev>
+    <Dev DevType="OCRam" entity="OCRamCtrl" iface="OcpBurst">
+      <params>
+         <param name="addrWidth" value="17" />
+      </params>
+    </Dev>
+  </Devs>
+</patmos>

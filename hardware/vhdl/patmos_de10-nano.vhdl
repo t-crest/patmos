@@ -23,7 +23,7 @@ entity patmos_top is
         --UART
         oUartPins_txd : out   std_logic;
         iUartPins_rxd : in    std_logic;
-		  --Second UART (UART2)
+        --Second UART (UART2)
         oUart2Pins_txd : out   std_logic;
         iUart2Pins_rxd : in    std_logic;
         -- AAU I2C interface
@@ -34,58 +34,43 @@ entity patmos_top is
         i2c_sda       : inout std_logic;
         i2c_scl       : inout std_logic;
         ad0           : out   std_logic;
-		  -- Actuator and propdrive OUT
-		  actuator_out_port  : out   std_logic_vector(3 downto 0);
-		  propdrive_out_port  : out   std_logic_vector(3 downto 0)
+        -- Actuator and propdrive OUT
+        actuator_out_port  : out   std_logic_vector(3 downto 0);
+        propdrive_out_port  : out   std_logic_vector(3 downto 0)
     );
 end entity patmos_top;
-
 architecture rtl of patmos_top is
     component Patmos is
         port(
-            clk                         : in  std_logic;
-            reset                       : in  std_logic;
-            io_comConf_M_Cmd            : out std_logic_vector(2 downto 0);
-            io_comConf_M_Addr           : out std_logic_vector(31 downto 0);
-            io_comConf_M_Data           : out std_logic_vector(31 downto 0);
-            io_comConf_M_ByteEn         : out std_logic_vector(3 downto 0);
-            io_comConf_M_RespAccept     : out std_logic;
-            io_comConf_S_Resp           : in  std_logic_vector(1 downto 0);
-            io_comConf_S_Data           : in  std_logic_vector(31 downto 0);
-            io_comConf_S_CmdAccept      : in  std_logic;
-            io_comSpm_M_Cmd             : out std_logic_vector(2 downto 0);
-            io_comSpm_M_Addr            : out std_logic_vector(31 downto 0);
-            io_comSpm_M_Data            : out std_logic_vector(31 downto 0);
-            io_comSpm_M_ByteEn          : out std_logic_vector(3 downto 0);
-            io_comSpm_S_Resp            : in  std_logic_vector(1 downto 0);
-            io_comSpm_S_Data            : in  std_logic_vector(31 downto 0);
-            io_ledsPins_led             : out std_logic_vector(7 downto 0);
-            io_aauMpuPins_data_0        : in  std_logic_vector(31 downto 0);
-            io_aauMpuPins_data_1        : in  std_logic_vector(31 downto 0);
-            io_aauMpuPins_data_2        : in  std_logic_vector(31 downto 0);
-            io_aauMpuPins_data_3        : in  std_logic_vector(31 downto 0);
-            io_aauMpuPins_data_4        : in  std_logic_vector(31 downto 0);
-            io_aauMpuPins_data_5        : in  std_logic_vector(31 downto 0);
-            io_aauMpuPins_data_6        : in  std_logic_vector(31 downto 0);
-            io_aauMpuPins_data_7        : in  std_logic_vector(31 downto 0);
-            io_aauMpuPins_data_8        : in  std_logic_vector(31 downto 0);
-            io_aauMpuPins_data_9        : in  std_logic_vector(31 downto 0);
-            io_i2CInterfacePins_MCmd    : out std_logic_vector(2 downto 0);
-            io_i2CInterfacePins_MAddr   : out std_logic_vector(15 downto 0);
-            io_i2CInterfacePins_MData   : out std_logic_vector(31 downto 0);
-            io_i2CInterfacePins_MByteEn : out std_logic_vector(3 downto 0);
-            io_i2CInterfacePins_SResp   : in  std_logic_vector(1 downto 0);
-            io_i2CInterfacePins_SData   : in  std_logic_vector(31 downto 0);
-				io_actuatorsPins_MCmd : out std_logic_vector(2 downto 0);
-            io_actuatorsPins_MAddr : out std_logic_vector(15 downto 0);
-            io_actuatorsPins_MData : out std_logic_vector(31 downto 0);
-            io_actuatorsPins_MByteEn : out std_logic_vector(3 downto 0);
-            io_actuatorsPins_SResp : in  std_logic_vector(1 downto 0);
-            io_actuatorsPins_SData : in  std_logic_vector(31 downto 0);
-            io_uart2Pins_tx : out std_logic;
-            io_uart2Pins_rx : in  std_logic;
-            io_uartPins_tx              : out std_logic;
-            io_uartPins_rx              : in  std_logic
+            clk                     : in  std_logic;
+            reset                   : in  std_logic;
+            io_Leds_led             : out std_logic_vector(7 downto 0);
+            io_AauMpu_data_0        : in  std_logic_vector(31 downto 0);
+            io_AauMpu_data_1        : in  std_logic_vector(31 downto 0);
+            io_AauMpu_data_2        : in  std_logic_vector(31 downto 0);
+            io_AauMpu_data_3        : in  std_logic_vector(31 downto 0);
+            io_AauMpu_data_4        : in  std_logic_vector(31 downto 0);
+            io_AauMpu_data_5        : in  std_logic_vector(31 downto 0);
+            io_AauMpu_data_6        : in  std_logic_vector(31 downto 0);
+            io_AauMpu_data_7        : in  std_logic_vector(31 downto 0);
+            io_AauMpu_data_8        : in  std_logic_vector(31 downto 0);
+            io_AauMpu_data_9        : in  std_logic_vector(31 downto 0);
+            io_I2CInterface_MCmd    : out std_logic_vector(2 downto 0);
+            io_I2CInterface_MAddr   : out std_logic_vector(15 downto 0);
+            io_I2CInterface_MData   : out std_logic_vector(31 downto 0);
+            io_I2CInterface_MByteEn : out std_logic_vector(3 downto 0);
+            io_I2CInterface_SResp   : in  std_logic_vector(1 downto 0);
+            io_I2CInterface_SData   : in  std_logic_vector(31 downto 0);
+            io_Actuators_MCmd       : out std_logic_vector(2 downto 0);
+            io_Actuators_MAddr      : out std_logic_vector(15 downto 0);
+            io_Actuators_MData      : out std_logic_vector(31 downto 0);
+            io_Actuators_MByteEn    : out std_logic_vector(3 downto 0);
+            io_Actuators_SResp      : in  std_logic_vector(1 downto 0);
+            io_Actuators_SData      : in  std_logic_vector(31 downto 0);
+            io_Uart_tx              : out std_logic;
+            io_Uart_rx              : in std_logic;
+            io_UartCmp_tx           : out std_logic;
+            io_UartCmp_rx           : in  std_logic
         );
     end component;
 
@@ -131,31 +116,31 @@ architecture rtl of patmos_top is
             scl     : INOUT STD_LOGIC   --serial clock output of i2c bus
 
         );
-		  end component;
-		  
-		  component Actuators_PropDrive is
-	generic(
-		OCP_DATA_WIDTH : natural := 32;
-		OCP_ADDR_WIDTH : natural := 16;
-		ACTUATOR_NUMBER : natural := 4;
-	   PROPDRIVE_NUMBER : natural := 4
-	);
-	port(
-		clk        : in  std_logic;
-		reset        : in  std_logic;
+      end component;
+      
+      component Actuators_PropDrive is
+  generic(
+    OCP_DATA_WIDTH : natural := 32;
+    OCP_ADDR_WIDTH : natural := 16;
+    ACTUATOR_NUMBER : natural := 4;
+     PROPDRIVE_NUMBER : natural := 4
+  );
+  port(
+    clk        : in  std_logic;
+    reset        : in  std_logic;
 
-		-- OCP IN (slave)
-		MCmd       : in  std_logic_vector(2 downto 0);
-		MAddr      : in  std_logic_vector(OCP_ADDR_WIDTH - 1 downto 0);
-		MData      : in  std_logic_vector(OCP_DATA_WIDTH - 1 downto 0);
-		MByteEn    : in  std_logic_vector(3 downto 0);
-		SResp      : out std_logic_vector(1 downto 0);
-		SData      : out std_logic_vector(OCP_DATA_WIDTH - 1 downto 0);
+    -- OCP IN (slave)
+    MCmd       : in  std_logic_vector(2 downto 0);
+    MAddr      : in  std_logic_vector(OCP_ADDR_WIDTH - 1 downto 0);
+    MData      : in  std_logic_vector(OCP_DATA_WIDTH - 1 downto 0);
+    MByteEn    : in  std_logic_vector(3 downto 0);
+    SResp      : out std_logic_vector(1 downto 0);
+    SData      : out std_logic_vector(OCP_DATA_WIDTH - 1 downto 0);
 
-		-- Actuator and propdrive OUT
-		actuator_out_port  : out   std_logic_vector(ACTUATOR_NUMBER-1 downto 0);
-		propdrive_out_port  : out   std_logic_vector(PROPDRIVE_NUMBER-1 downto 0)
-	);
+    -- Actuator and propdrive OUT
+    actuator_out_port  : out   std_logic_vector(ACTUATOR_NUMBER-1 downto 0);
+    propdrive_out_port  : out   std_logic_vector(PROPDRIVE_NUMBER-1 downto 0)
+  );
 end component;
 
         -- DE2-70: 50 MHz clock => 80 MHz
@@ -188,30 +173,30 @@ end component;
         signal i2CInterfacePins_MByteEn : std_logic_vector(3 downto 0);
         signal i2CInterfacePins_SResp   : std_logic_vector(1 downto 0);
         signal i2CInterfacePins_SData   : std_logic_vector(31 downto 0);
-		  
-		   signal actuatorsPins_MCmd : std_logic_vector(2 downto 0);
-			signal actuatorsPins_MAddr : std_logic_vector(15 downto 0);
-			signal actuatorsPins_MData : std_logic_vector(31 downto 0);
-			signal actuatorsPins_MByteEn : std_logic_vector(3 downto 0);
-			signal actuatorsPins_SResp : std_logic_vector(1 downto 0);
-			signal actuatorsPins_SData : std_logic_vector(31 downto 0);
+
+      signal actuatorsPins_MCmd : std_logic_vector(2 downto 0);
+      signal actuatorsPins_MAddr : std_logic_vector(15 downto 0);
+      signal actuatorsPins_MData : std_logic_vector(31 downto 0);
+      signal actuatorsPins_MByteEn : std_logic_vector(3 downto 0);
+      signal actuatorsPins_SResp : std_logic_vector(1 downto 0);
+      signal actuatorsPins_SData : std_logic_vector(31 downto 0);
 
     begin
-        --	pll_inst : entity work.pll generic map(
-        --			input_freq  => pll_infreq,
-        --			multiply_by => pll_mult,
-        --			divide_by   => pll_div
-        --		)
-        --		port map(
-        --			inclk0 => clk,
-        --			c0     => clk_int
-        --		);
+        --  pll_inst : entity work.pll generic map(
+        --      input_freq  => pll_infreq,
+        --      multiply_by => pll_mult,
+        --      divide_by   => pll_div
+        --    )
+        --    port map(
+        --      inclk0 => clk,
+        --      c0     => clk_int
+        --    );
         -- we use a PLL
         clk_int <= clk;
 
         --
-        --	internal reset generation
-        --	should include the PLL lock signal
+        --  internal reset generation
+        --  should include the PLL lock signal
         --
         process(clk_int)
         begin
@@ -251,47 +236,33 @@ end component;
         Patmos_inst_0 : Patmos port map(
                 clk                         => clk_int,
                 reset                       => reset_int,
-                io_comConf_M_Cmd            => open,
-                io_comConf_M_Addr           => open,
-                io_comConf_M_Data           => open,
-                io_comConf_M_ByteEn         => open,
-                io_comConf_M_RespAccept     => open,
-                io_comConf_S_Resp           => (others => '0'),
-                io_comConf_S_Data           => (others => '0'),
-                io_comConf_S_CmdAccept      => '0',
-                io_comSpm_M_Cmd             => open,
-                io_comSpm_M_Addr            => open,
-                io_comSpm_M_Data            => open,
-                io_comSpm_M_ByteEn          => open,
-                io_comSpm_S_Resp            => (others => '0'),
-                io_comSpm_S_Data            => (others => '0'),
-                io_ledsPins_led             => oLedsPins_led,
-                io_aauMpuPins_data_0        => readdata(0),
-                io_aauMpuPins_data_1        => readdata(1),
-                io_aauMpuPins_data_2        => readdata(2),
-                io_aauMpuPins_data_3        => readdata(3),
-                io_aauMpuPins_data_4        => readdata(4),
-                io_aauMpuPins_data_5        => readdata(5),
-                io_aauMpuPins_data_6        => readdata(6),
-                io_aauMpuPins_data_7        => readdata(7),
-                io_aauMpuPins_data_8        => readdata(8),
-                io_aauMpuPins_data_9        => readdata(9),
-                io_i2CInterfacePins_MCmd    => i2CInterfacePins_MCmd,
-                io_i2CInterfacePins_MAddr   => i2CInterfacePins_MAddr,
-                io_i2CInterfacePins_MData   => i2CInterfacePins_MData,
-                io_i2CInterfacePins_MByteEn => i2CInterfacePins_MByteEn,
-                io_i2CInterfacePins_SResp   => i2CInterfacePins_SResp,
-                io_i2CInterfacePins_SData   => i2CInterfacePins_SData,		 
-					 io_actuatorsPins_MCmd => actuatorsPins_MCmd,
-                io_actuatorsPins_MAddr => actuatorsPins_MAddr,
-					 io_actuatorsPins_MData => actuatorsPins_MData,
-					 io_actuatorsPins_MByteEn => actuatorsPins_MByteEn,
-					 io_actuatorsPins_SResp => actuatorsPins_SResp,
-					 io_actuatorsPins_SData => actuatorsPins_SData,
-					 io_uart2Pins_tx => oUart2Pins_txd,
-					 io_uart2Pins_rx => iUart2Pins_rxd,
-                io_uartPins_tx              => oUartPins_txd,
-                io_uartPins_rx              => iUartPins_rxd
+                io_Leds_led             => oLedsPins_led,
+                io_AauMpu_data_0        => readdata(0),
+                io_AauMpu_data_1        => readdata(1),
+                io_AauMpu_data_2        => readdata(2),
+                io_AauMpu_data_3        => readdata(3),
+                io_AauMpu_data_4        => readdata(4),
+                io_AauMpu_data_5        => readdata(5),
+                io_AauMpu_data_6        => readdata(6),
+                io_AauMpu_data_7        => readdata(7),
+                io_AauMpu_data_8        => readdata(8),
+                io_AauMpu_data_9        => readdata(9),
+                io_I2CInterface_MCmd    => i2CInterfacePins_MCmd,
+                io_I2CInterface_MAddr   => i2CInterfacePins_MAddr,
+                io_I2CInterface_MData   => i2CInterfacePins_MData,
+                io_I2CInterface_MByteEn => i2CInterfacePins_MByteEn,
+                io_I2CInterface_SResp   => i2CInterfacePins_SResp,
+                io_I2CInterface_SData   => i2CInterfacePins_SData,     
+           io_Actuators_MCmd => actuatorsPins_MCmd,
+                io_Actuators_MAddr => actuatorsPins_MAddr,
+           io_Actuators_MData => actuatorsPins_MData,
+           io_Actuators_MByteEn => actuatorsPins_MByteEn,
+           io_Actuators_SResp => actuatorsPins_SResp,
+           io_Actuators_SData => actuatorsPins_SData,
+           io_Uart_tx => oUart2Pins_txd,
+           io_Uart_rx => iUart2Pins_rxd,
+                io_UartCmp_tx              => oUartPins_txd,
+                io_UartCmp_rx              => iUartPins_rxd
             );
 
         I2Ccontroller_inst_0 : I2Ccontroller
@@ -315,26 +286,26 @@ end component;
                 scl     => i2c_scl
             );
 
-		Actuators_PropDrive_inst_0 : Actuators_PropDrive 
-			generic map(
-				OCP_DATA_WIDTH => 32,
-				OCP_ADDR_WIDTH => 16,
-				ACTUATOR_NUMBER  => 4,
-				PROPDRIVE_NUMBER  => 4
-			)
-			port map(
-				clk  => clk, 
-				reset  => reset_int,
-				-- OCP IN (slave)
-				MCmd  => actuatorsPins_MCmd,
-				MAddr  => actuatorsPins_MAddr,
-				MData   => actuatorsPins_MData,
-				MByteEn  => actuatorsPins_MByteEn,
-				SResp  => actuatorsPins_SResp,
-				SData  => actuatorsPins_SData,
-				-- Actuator and propdrive OUT
-				actuator_out_port  => actuator_out_port,
-				propdrive_out_port  => propdrive_out_port
-			);
-				
+    Actuators_PropDrive_inst_0 : Actuators_PropDrive 
+      generic map(
+        OCP_DATA_WIDTH => 32,
+        OCP_ADDR_WIDTH => 16,
+        ACTUATOR_NUMBER  => 4,
+        PROPDRIVE_NUMBER  => 4
+      )
+      port map(
+        clk  => clk, 
+        reset  => reset_int,
+        -- OCP IN (slave)
+        MCmd  => actuatorsPins_MCmd,
+        MAddr  => actuatorsPins_MAddr,
+        MData   => actuatorsPins_MData,
+        MByteEn  => actuatorsPins_MByteEn,
+        SResp  => actuatorsPins_SResp,
+        SData  => actuatorsPins_SData,
+        -- Actuator and propdrive OUT
+        actuator_out_port  => actuator_out_port,
+        propdrive_out_port  => propdrive_out_port
+      );
+
     end architecture rtl;

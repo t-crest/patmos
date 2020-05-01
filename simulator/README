@@ -1,3 +1,9 @@
+# WARNING: PASIM HAS BEEN MOVED
+
+The Patmos simulator codebase has been moved to [patmos-simulator](github.com/t-crest/patmos-simulator).
+The simulator's code is only part of this repository until the t-crest setup is updated to support the change.
+The simulator's code should not be updated here but in the dedicated repository.
+
 1. Requirements
 ===============
 

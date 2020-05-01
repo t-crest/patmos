@@ -237,37 +237,39 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       case _ =>
     }}
 
-  val cmpdevs = Config.getConfig.cmpDevices.map(e => {
+  val IO_DEVICE_ADDR_WIDTH = 16
+
+  val cmpdevios = Config.getConfig.cmpDevices.map(e => {
     println(e)
-    val (off, _dev) = e match {
-      case "Argo" =>  (0xE800, Module(new argo.Argo(nrCores, wrapped=false, emulateBB=false)))
-      case "Hardlock" => (0xE801, Module(new cmp.HardlockOCPWrapper(() => new cmp.Hardlock(nrCores, 1))))
-      case "SharedSPM" => (0xE802, Module(new cmp.SharedSPM(nrCores, (nrCores-1)*2*1024)))
-      case "OneWay" => (0xE803, Module(new cmp.OneWayOCPWrapper(nrCores)))
-      case "TdmArbiter" => (0xE804, Module(new cmp.TdmArbiter(nrCores)))
-      case "OwnSPM" => (0xE805, Module(new cmp.OwnSPM(nrCores, (nrCores-1)*2, 1024)))
-      case "SPMPool" => (0xE806, Module(new cmp.SPMPool(nrCores, (nrCores-1)*2, 1024)))
-      case "S4noc" => (0xE807, Module(new cmp.S4nocOCPWrapper(nrCores, 4, 4)))
-      case "CASPM" => (0xE808, Module(new cmp.CASPM(nrCores, nrCores * 8)))
-      case "AsyncLock" => (0xE809, Module(new cmp.AsyncLock(nrCores, nrCores * 2)))
-      case "UartCmp" => (0xF008, Module(new cmp.UartCmp(nrCores,CLOCK_FREQ,115200,16)))
-      case "TwoWay" => (0xE80B, Module(new cmp.TwoWayOCPWrapper(nrCores, 1024)))
-      case "TransactionalMemory" => (0xE80C, Module(new cmp.TransactionalMemory(nrCores, 512)))
-      case "LedsCmp" => (0xE80D, Module(new cmp.LedsCmp(nrCores, 1)))
+    val (off, width, dev) = e match {
+      case "Argo" =>  (0x1C, 5, Module(new argo.Argo(nrCores, wrapped=false, emulateBB=false)))
+      case "Hardlock" => (0xE801, IO_DEVICE_ADDR_WIDTH, Module(new cmp.HardlockOCPWrapper(() => new cmp.Hardlock(nrCores, 1))))
+      case "SharedSPM" => (0xE802, IO_DEVICE_ADDR_WIDTH, Module(new cmp.SharedSPM(nrCores, (nrCores-1)*2*1024)))
+      case "OneWay" => (0xE803, IO_DEVICE_ADDR_WIDTH, Module(new cmp.OneWayOCPWrapper(nrCores)))
+      case "TdmArbiter" => (0xE804, IO_DEVICE_ADDR_WIDTH, Module(new cmp.TdmArbiter(nrCores)))
+      case "OwnSPM" => (0xE805, IO_DEVICE_ADDR_WIDTH, Module(new cmp.OwnSPM(nrCores, (nrCores-1)*2, 1024)))
+      case "SPMPool" => (0xE806, IO_DEVICE_ADDR_WIDTH, Module(new cmp.SPMPool(nrCores, (nrCores-1)*2, 1024)))
+      case "S4noc" => (0xE807, IO_DEVICE_ADDR_WIDTH, Module(new cmp.S4nocOCPWrapper(nrCores, 4, 4)))
+      case "CASPM" => (0xE808, IO_DEVICE_ADDR_WIDTH, Module(new cmp.CASPM(nrCores, nrCores * 8)))
+      case "AsyncLock" => (0xE809, IO_DEVICE_ADDR_WIDTH, Module(new cmp.AsyncLock(nrCores, nrCores * 2)))
+      case "UartCmp" => (0xF008, IO_DEVICE_ADDR_WIDTH, Module(new cmp.UartCmp(nrCores,CLOCK_FREQ,UART_BAUD,16)))
+      case "TwoWay" => (0xE80B, IO_DEVICE_ADDR_WIDTH, Module(new cmp.TwoWayOCPWrapper(nrCores, 1024)))
+      case "TransactionalMemory" => (0xE80C, IO_DEVICE_ADDR_WIDTH, Module(new cmp.TransactionalMemory(nrCores, 512)))
+      case "LedsCmp" => (0xE80D, IO_DEVICE_ADDR_WIDTH, Module(new cmp.LedsCmp(nrCores, 1)))
       case _ => throw new Error("Unknown device " + e)
     }
 
-    registerPins(_dev.getClass.getSimpleName, _dev.io)
+    registerPins(dev.getClass.getSimpleName, dev.io)
 
     new {
-      val offset = off
-      val dev = _dev
+      val addr = off
+      val addrwidth = width
+      val io = dev.io
+      val name = dev.getClass.getSimpleName
     }
   })
 
   for (i <- (0 until nrCores)) {
-
-    val IO_DEVICE_ADDR_WIDTH = 16
 
     // Default values for interrupt pins
       cores(i).io.interrupts := Vec.fill(INTR_COUNT) {false.B}
@@ -308,7 +310,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       }} ++ List(new {
         val off = CPUINFO_OFFSET
         val io = cpuinfo.io.asInstanceOf[Bundle]
-          val name = cpuinfo.name
+        val name = cpuinfo.getClass.getSimpleName
       }, new {
         val off = EXC_IO_OFFSET
         val io = cores(i).io.excInOut
@@ -325,17 +327,6 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
           val io = e.io
           val name = e.name
         }
-      })
-    
-    val cmpdevios = cmpdevs
-      .map(e => new {
-        val addr = e.offset;
-        val addrwidth = IO_DEVICE_ADDR_WIDTH;
-        val io = (e.dev.io match {
-          case cmpio: cmp.CmpIO => cmpio.cores(i)
-          case _ => e.dev.io.asInstanceOf[Vec[OcpCoreSlavePort]](i)
-        }).asInstanceOf[Bundle]
-          val name = e.dev.name
       })
 
     // The SPM
@@ -370,6 +361,13 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
         dupldev.addr + ". ")
     }
 
+    val getIO = (_io: Any, _i: Int) =>
+      _io match {
+        case cmpio: cmp.CmpIO => cmpio.cores(_i)
+        case __io: Bundle => __io
+        case vec => vec.asInstanceOf[Vec[OcpCoreSlavePort]](_i)
+      }
+
     val getSlavePort = (_io: Bundle) =>
       _io match {
         case __io: OcpCoreSlavePort => __io
@@ -379,7 +377,8 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     cores(i).io.memInOut.S.Data := UInt(0)
     val validdev = Wire(Bool(), false.B)
     for(dev <- devios) {
-      val ocp = getSlavePort(dev.io)
+      val _io = getIO(dev.io, i)
+      val ocp = getSlavePort(_io)
 
       val sel = cores(i).io.memInOut.M.Addr(ADDR_WIDTH-1, ADDR_WIDTH-dev.addrwidth) === dev.addr.U && 
         (if(dev.name == "spm") !cores(i).io.memInOut.M.Addr(ISPM_ONE_BIT) 
@@ -410,7 +409,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
         cores(i).io.interrupts(NI_EXT_INTR) := argoslaveport.flags(2*i+1)
       }
 
-      registerPins(dev.name, dev.io)
+      registerPins(dev.name, _io)
     }
 
     // Register for error response
@@ -420,7 +419,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     }
 
     // Merge responses
-    cores(i).io.memInOut.S.Resp := errRespReg | devios.map(e => getSlavePort(e.io).S.Resp).fold(OcpResp.NULL)(_|_)
+    cores(i).io.memInOut.S.Resp := errRespReg | devios.map(e => getSlavePort(getIO(e.io, i)).S.Resp).fold(OcpResp.NULL)(_|_)
   }
 
   // Connect memory controller

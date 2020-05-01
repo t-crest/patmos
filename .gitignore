@@ -16,6 +16,8 @@ simulator/build
 install/
 doc/c_doc
 .vscode
+.metals
+local/
 
 *_summary.xml
 *_usage.xml
@@ -69,6 +71,8 @@ doc/c_doc
 *.jdi
 *.fst*
 *.elf
+*.pml
+*.csv
 
 # Ignore Vivado journal files
 vivado*.jou

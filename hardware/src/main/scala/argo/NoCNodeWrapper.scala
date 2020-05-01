@@ -101,7 +101,7 @@ class NoCNodeWrapper(argoConf: ArgoConfig, master: Boolean) extends BlackBox {
     val south_out = new OutputPort(argoConf)
     val west_out = new OutputPort(argoConf)
   })
-  //throw new Error("BlackBox wrapper for NoCNode needs update for Chisel 3")
+  throw new Error("BlackBox wrapper for NoCNode needs update for Chisel 3")
   /* Commented out to compile with Chisel3
   setModuleName("noc_node_wrapper")
   addClock(Driver.implicitClock)

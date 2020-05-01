@@ -67,12 +67,13 @@ return;
 
 //This function sends an ethernet frame located at tx_addr and of length frame_length (NON-BLOCKING call).
 unsigned eth_mac_send_nb(unsigned int tx_addr, unsigned int frame_length){
-    if(eth_iord(0x400) & 0x8000){
+    if((eth_iord(TX_BD_ADDR_BASE) & TX_BD_READY_BIT)==1){
         return 0;
     } else {
-        eth_iowr(0x04, 0x00000001);
-	    eth_iowr(0x404, tx_addr);
-	    eth_iowr(0x400, ((frame_length<<16)|(0xF000)));
+	    eth_iowr((TX_BD_ADDR_BASE+4), tx_addr);
+	    eth_iowr(TX_BD_ADDR_BASE, ((frame_length<<16)|(0xF000)));
+	    eth_iowr(INT_SOURCE, INT_SOURCE_TXB_BIT);
+	    eth_iowr(TX_BD_ADDR_BASE, TX_BD_READY_BIT | TX_BD_IRQEN_BIT | TX_BD_WRAP_BIT | TX_BD_PAD_EN_BIT);
     }
     return 1;
 }
@@ -100,14 +101,14 @@ unsigned eth_mac_receive(unsigned int rx_addr, unsigned long long int timeout){
 //This function receive an ethernet frame and put it in rx_addr (NON-BLOCKING call).
 unsigned eth_mac_receive_nb(unsigned int rx_addr){
     unsigned ans = 0;
-    eth_iowr(0x04, 0x00000004);
-	eth_iowr(0x604, rx_addr);
-	eth_iowr(0x600, 0x0000E000);
-    if ((eth_iord(0x04) & 0x4)==0){
+    eth_iowr(RX_BD_ADDR_BASE(eth_iord(TX_BD_NUM))+4, rx_addr);
+    if ((eth_iord(INT_SOURCE) & INT_SOURCE_RXB_BIT)==0){
         ans = 0;
     }else{
         ans = 1;
     }
+    eth_iowr(INT_SOURCE, INT_SOURCE_RXB_BIT);
+    eth_iowr(RX_BD_ADDR_BASE(eth_iord(TX_BD_NUM)), RX_BD_EMPTY_BIT | RX_BD_IRQEN_BIT | RX_BD_WRAP_BIT);
     return ans;
 }
 

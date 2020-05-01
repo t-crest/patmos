@@ -61,6 +61,23 @@
 #define MIIADDRESS   0x30  //MII address register containts the phy address 
                            //and the register with the phy address
 
+#define RECSMALL_BIT 0x10000
+#define PAD_BIT      0x08000
+#define HUGEN_BIT    0x04000
+#define CRCEN_BIT    0x02000
+#define DLYCRCEN_BIT 0x01000
+#define FULLD_BIT    0x00400
+#define EXDFREN_BIT  0x00200
+#define NOBCKOF_BIT  0x00100
+#define LOOPBCK_BIT  0x00080
+#define IFG_BIT      0x00040
+#define PRO_BIT      0x00020
+#define IAM_BIT      0x00010
+#define BRO_BIT      0x00008
+#define NOPRE_BIT    0x00004
+#define TXEN_BIT     0x00002
+#define RXEN_BIT     0x00001
+
 #define TX_BD_ADDR_BASE             0x400
 #define TX_BD_ADDR_END(TX_BD_NUM)   TX_BD_ADDR_BASE + TX_BD_NUM * 8
 
@@ -86,7 +103,18 @@
 #define RX_BD_TL_BIT                0x0008
 #define RX_BD_SF_BIT                0x0004
 #define RX_BD_CRCERR_BIT            0x0002
-#define RX_BD_LC_BIT                0x0001               
+#define RX_BD_LC_BIT                0x0001     
+
+#define TX_BD_READY_BIT             0x8000
+#define TX_BD_IRQEN_BIT             0x4000
+#define TX_BD_WRAP_BIT              0x2000
+#define TX_BD_PAD_EN_BIT            0x1000
+#define TX_BD_CRC_EN_BIT            0x0800
+#define TX_BD_UR_BIT                0x0100
+#define TX_BD_RTRY_BIT              0x0010
+#define TX_BD_LC_BIT                0x0008
+#define TX_BD_DF_BIT                0x0004
+#define TX_BD_CS_BIT                0x0001              
 
 // Pointers to the base addresses, all the addressing (addr as arguments)
 // in the library are an offset on these addresses

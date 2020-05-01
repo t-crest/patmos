@@ -25,15 +25,16 @@ entity patmos_top is
         oLedsPins_led : out   std_logic_vector(8 downto 0);
         oLedsPins_ledR : out  std_logic_vector(17 downto 0);
         iKeysPins_key : in    std_logic_vector(3 downto 0);
-        oGpioPins_gpio_0 : out std_logic_vector(0 downto 0);
+        oGpioPins_gpio_0 : out std_logic_vector(7 downto 0);
+        oDebug_MII_RX   : out std_logic_vector(5 downto 0);
         oSegmentDisplayPins_hexDisp_7 : out std_logic_vector(6 downto 0);
-		oSegmentDisplayPins_hexDisp_6 : out std_logic_vector(6 downto 0);
-		oSegmentDisplayPins_hexDisp_5 : out std_logic_vector(6 downto 0);
-		oSegmentDisplayPins_hexDisp_4 : out std_logic_vector(6 downto 0);
-		oSegmentDisplayPins_hexDisp_3 : out std_logic_vector(6 downto 0);
-		oSegmentDisplayPins_hexDisp_2 : out std_logic_vector(6 downto 0);
-		oSegmentDisplayPins_hexDisp_1 : out std_logic_vector(6 downto 0);
-		oSegmentDisplayPins_hexDisp_0 : out std_logic_vector(6 downto 0);
+    oSegmentDisplayPins_hexDisp_6 : out std_logic_vector(6 downto 0);
+    oSegmentDisplayPins_hexDisp_5 : out std_logic_vector(6 downto 0);
+    oSegmentDisplayPins_hexDisp_4 : out std_logic_vector(6 downto 0);
+    oSegmentDisplayPins_hexDisp_3 : out std_logic_vector(6 downto 0);
+    oSegmentDisplayPins_hexDisp_2 : out std_logic_vector(6 downto 0);
+    oSegmentDisplayPins_hexDisp_1 : out std_logic_vector(6 downto 0);
+    oSegmentDisplayPins_hexDisp_0 : out std_logic_vector(6 downto 0);
         oUartPins_txd : out   std_logic;
         iUartPins_rxd : in    std_logic;
         oUart2Pins_txd : out   std_logic;
@@ -103,7 +104,7 @@ architecture rtl of patmos_top is
             reset                            : in  std_logic;
             io_Leds_led                      : out std_logic_vector(8 downto 0);
             io_Keys_key                      : in  std_logic_vector(3 downto 0);
-            io_Gpio_gpios_0                  : out std_logic_vector(0 downto 0);
+            io_Gpio_gpios_0                  : out std_logic_vector(5 downto 0);
             io_UartCmp_tx                    : out std_logic;
             io_UartCmp_rx                    : in  std_logic;
             io_Uart_tx                       : out std_logic;
@@ -172,8 +173,8 @@ architecture rtl of patmos_top is
     -- DE2-70: 50 MHz clock => 100 MHz
     -- BeMicro: 16 MHz clock => 25.6 MHz
     constant pll_infreq : real    := 50.0;
-	constant pll_mult   : natural := 8;
-	constant pll_div    : natural := 5;
+    constant pll_mult   : natural := 8;
+    constant pll_div    : natural := 5;
 
     signal clk_int : std_logic;
 
@@ -194,6 +195,9 @@ architecture rtl of patmos_top is
 
     attribute altera_attribute : string;
     attribute altera_attribute of res_cnt : signal is "POWER_UP_LEVEL=LOW";
+
+    signal debug_timestamp_int : std_logic;
+    signal debug_mii_tx_en_int : std_logic;
 
 begin
     ENET0_MDIO  <= md_pad_o_int when (md_padoe_o_int = '1') else 'Z';
@@ -239,12 +243,20 @@ begin
         end if;
     end process;
 
+    oLedsPins_ledR(17) <=  debug_timestamp_int;
+    oGpioPins_gpio_0(5) <= ENET0_RX_DV;
+    oGpioPins_gpio_0(6) <= debug_mii_tx_en_int;
+    oGpioPins_gpio_0(7) <= debug_timestamp_int;
+    ENET0_TX_EN <= debug_mii_tx_en_int;
+
+    oDebug_MII_RX <= ENET0_RX_DATA & ENET0_RX_DV & ENET0_RX_CLK;
+
     patmos_inst : Patmos port map(
         clk => clk_int, 
         reset => int_res,
         io_Leds_led => oLedsPins_led,
         io_Keys_key => iKeysPins_key,
-        io_Gpio_gpios_0 => oGpioPins_gpio_0,
+        io_Gpio_gpios_0(4 downto 0) => oGpioPins_gpio_0(4 downto 0),
         io_UartCmp_tx => oUartPins_txd, 
         io_UartCmp_rx => iUartPins_rxd,
         io_Uart_tx => oUart2Pins_txd,
@@ -253,7 +265,7 @@ begin
         io_Uart_1_rx => iUart3Pins_rxd,                     
         io_EthMac_mtx_clk_pad_i => ENET0_TX_CLK,
         io_EthMac_mtxd_pad_o => ENET0_TX_DATA,
-        io_EthMac_mtxen_pad_o => ENET0_TX_EN,
+        io_EthMac_mtxen_pad_o => debug_mii_tx_en_int,
         io_EthMac_mtxerr_pad_o => ENET0_TX_ER,
         io_EthMac_mrx_clk_pad_i => ENET0_RX_CLK,
         io_EthMac_mrxd_pad_i => ENET0_RX_DATA,
@@ -266,7 +278,7 @@ begin
         io_EthMac_md_pad_o => md_pad_o_int,
         io_EthMac_md_padoe_o => md_padoe_o_int,
         io_EthMac_ptpPPS => oEthPPS,
-        io_EthMac_ledPHY => oLedsPins_ledR(17),
+        io_EthMac_ledPHY => debug_timestamp_int,
         io_EthMac_ledSOF => oLedsPins_ledR(16),
         io_EthMac_ledEOF => oLedsPins_ledR(15),
 

@@ -5,6 +5,10 @@
  */
 
 #include "ptp1588.h"
+#include <string.h>
+#include <stdlib.h>
+#include <math.h>
+#include "udp.h"
 
 PTPPortInfo ptpv2_intialize_local_port(unsigned int eth_base, int portRole, unsigned char mac[6], unsigned char ip[4], unsigned short portId, int syncPeriod){
 	PTPPortInfo newPort;
@@ -296,12 +300,20 @@ unsigned int get_ptp_secs(unsigned int eth_base){
 	return (unsigned int) (RTC_TIME_SEC(eth_base));
 }
 
+unsigned long long get_rx_timestamp_nanos(unsigned int eth_base){
+	return (unsigned long long) ((unsigned long long) SEC_TO_NS * PTP_RXCHAN_TIMESTAMP_SEC(eth_base)) + ((unsigned long long) PTP_RXCHAN_TIMESTAMP_NS(eth_base));
+}
+
 unsigned long long get_rx_timestamp_usecs(unsigned int eth_base){
-	return (unsigned long long) (SEC_TO_USEC * PTP_RXCHAN_TIMESTAMP_SEC(eth_base)) + (NS_TO_USEC * (PTP_RXCHAN_TIMESTAMP_NS(eth_base)));
+	return (unsigned long long) ((unsigned long long) SEC_TO_USEC * PTP_RXCHAN_TIMESTAMP_SEC(eth_base)) + ((unsigned long long) NS_TO_USEC * (PTP_RXCHAN_TIMESTAMP_NS(eth_base)));
+}
+
+unsigned long long get_tx_timestamp_nanos(unsigned int eth_base){
+	return (unsigned long long) ((unsigned long long) SEC_TO_NS * PTP_TXCHAN_TIMESTAMP_SEC(eth_base)) + ((unsigned long long) PTP_TXCHAN_TIMESTAMP_NS(eth_base));
 }
 
 unsigned long long get_tx_timestamp_usecs(unsigned int eth_base){
-	return (unsigned long long) (SEC_TO_USEC * PTP_TXCHAN_TIMESTAMP_SEC(eth_base)) + (NS_TO_USEC * (PTP_TXCHAN_TIMESTAMP_NS(eth_base)));
+	return (unsigned long long) ( (unsigned long long) SEC_TO_USEC * PTP_TXCHAN_TIMESTAMP_SEC(eth_base)) + ((unsigned long long) NS_TO_USEC * (PTP_TXCHAN_TIMESTAMP_NS(eth_base)));
 }
 
 void print_bytes(unsigned char byte_buffer[], unsigned int len){

@@ -6,7 +6,13 @@
   <cores count="1" />
   <CmpDevs>
     <CmpDev name="Hardlock" />
-    <CmpDev name="UartCmp" />
+    <CmpDev name="UartCmp">
+      <!-- Not implemented yet -->
+      <!-- <params>
+        <param name="baudRate" value="115200"/>
+        <param name="fifoDepth" value="16"/>
+      </params> -->
+    </CmpDev>
   </CmpDevs>
   <bus burstLength="4" writeCombine="false" mmu="false" />
 
@@ -19,13 +25,11 @@
   <ExtMem size="2M" />
 
   <IOs>
-    <!--<IO DevTypeRef="CpuInfo" offset="0"/>-->
     <IO DevTypeRef="Timer" offset="2" intrs="0,1"/>
     <IO DevTypeRef="Deadline" offset="3"/>
   </IOs>
 
   <Devs>
-    <!--<Dev DevType="CpuInfo" entity="CpuInfo" iface="OcpCore" />-->
     <Dev DevType="Timer" entity="Timer" iface="OcpCore" />
     <Dev DevType="Deadline" entity="Deadline" iface="OcpCore"/>
   </Devs>

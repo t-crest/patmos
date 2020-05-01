@@ -26,6 +26,7 @@ class MIITimestampUnit(timestampWidth: Int) extends Module {
   val constMPLSt2 = Bits("h8848")
   val constIPv4t = Bits("h0800")
   val constIPv6t = Bits("h86DD")
+  val constPCFt = Bits("h891D")
   val constPTP2t = Bits("h88F7")
   val constPTP4t1 = Bits("h013F")
   val constPTP4t2 = Bits("h0140")
@@ -44,15 +45,15 @@ class MIITimestampUnit(timestampWidth: Int) extends Module {
   val udpDstPortReg = Reg(init = UInt(0, width = 16))
   val udpSrcPortReg = Reg(init = UInt(0, width = 16))
   val ptpMsgTypeReg = Reg(init = UInt(0, width = 8))
+  val tempTimestampReg = Reg(init = UInt(0, width = timestampWidth))
   val rtcTimestampReg = Reg(init = UInt(0, width = timestampWidth))
-  val filterDstMacLoReg = Reg(init = UInt("hFFFFFFFF", width = 32))
-  val filterDstMacHiReg = Reg(init = UInt("hFFFF", width = 16))
 
   // Status registers
   val isVLANFrameReg = Reg(init = Bool(false))
   val isIPFrameReg = Reg(init = Bool(false))
   val isUDPFrameReg = Reg(init = Bool(false))
   val isPTPFrameReg = Reg(init = Bool(false))
+  val isPCFFrameReg = Reg(init = Bool(false))
   val sofReg = Reg(init = Bool(false))
   val eofReg = Reg(init = Bool(false))
   val bufClrReg = Reg(init = Bool(false))
@@ -62,30 +63,27 @@ class MIITimestampUnit(timestampWidth: Int) extends Module {
   val byteCntReg = Reg(init = UInt(0, width = 11))
 
   // State machine
-  val stCollectSFD :: stDstMAC :: stSrcMAC :: stTypeEth :: stIPhead :: stUDPhead :: stPTPhead :: stEOF :: Nil = Enum(UInt(), 8)
+  val stCollectSFD :: stDstMAC :: stSrcMAC :: stTypeEth :: stIPhead :: stUDPhead :: stPCFHead :: stPTPhead :: stEOF :: Nil = Enum(UInt(), 9)
   val stateReg = Reg(init = stCollectSFD)
 
   // Sampling clock and line of MII
   val miiDvReg = Reg(next = io.miiChannel.dv)
   val miiDvReg2 = Reg(next = miiDvReg)
-  val miiDvReg3 = Reg(next = miiDvReg2)
   val miiErrReg = Reg(next = io.miiChannel.err)
   val miiErrReg2 = Reg(next = miiErrReg)
-  val miiErrReg3 = Reg(next = miiErrReg2)
+  val lastMIIClk = Reg(next = io.miiChannel.clk)
   val miiClkReg = Reg(next = io.miiChannel.clk)
   val miiClkReg2 = Reg(next = miiClkReg)
-  val miiClkReg3 = Reg(next = miiClkReg2)
   val miiDataReg = Reg(next = io.miiChannel.data)
   val miiDataReg2 = Reg(next = miiDataReg)
-  val miiDataReg3 = Reg(next = miiDataReg2)
   // Flags
-  val validPHYData = miiDvReg3 & ~miiErrReg3
-  val risingMIIEdge = miiClkReg2 & ~miiClkReg3
+  val validPHYData = miiDvReg2 & ~miiErrReg2
+  val risingMIIEdge = miiClkReg & ~miiClkReg2
 
   // Module
   val deserializePHYbyte = Module(new Deserializer(false, 4, 8))
   deserializePHYbyte.io.en := risingMIIEdge & validPHYData
-  deserializePHYbyte.io.shiftIn := miiDataReg3
+  deserializePHYbyte.io.shiftIn := miiDataReg2
   deserializePHYbyte.io.clr := bufClrReg
   val byteReg = Reg(init = Bits(0, width = 8), next = deserializePHYbyte.io.shiftOut)
   val wrByteReg = Reg(next = deserializePHYbyte.io.done)
@@ -104,9 +102,12 @@ class MIITimestampUnit(timestampWidth: Int) extends Module {
     byteCntReg := byteCntReg + 1.U
   }
 
+  val sofDetect = Mux(regBuffer === constSFD ||
+                      regBuffer === (constSFD & "h00FFFFFFFFFFFFFF".U), true.B, false.B)
+
   switch(stateReg) {
     is(stCollectSFD) {
-      when(validPHYData) { //Looking for SFD
+      when(sofDetect) { //Looking for SFD
         stateReg := stDstMAC
         sfdReg := regBuffer(7, 0)
         sofReg := true.B
@@ -121,10 +122,8 @@ class MIITimestampUnit(timestampWidth: Int) extends Module {
         isUDPFrameReg := false.B
         udpDstPortReg := 0.U
         udpSrcPortReg := 0.U
-        bufClrReg := true.B
-        when (!timestampAvailReg) {
-          rtcTimestampReg := io.rtcTimestamp
-        }
+        bufClrReg := false.B
+        tempTimestampReg := io.rtcTimestamp
         ptpMsgTypeReg := 0.U
         printf("[stCollectSFD]->[stDstMAC]\n")
       }
@@ -134,9 +133,6 @@ class MIITimestampUnit(timestampWidth: Int) extends Module {
       when(byteCntReg === 6.U) { //6 bytes
         stateReg := stSrcMAC
         byteCntReg := 0.U
-//        when((dstMACReg & Cat(filterDstMacHiReg, filterDstMacLoReg)) === dstMACReg) {
-//          timestampAvailReg := true.B
-//        }
         printf("[stDstMAC]->[stSrcMAC]\n")
       }
     }
@@ -163,6 +159,11 @@ class MIITimestampUnit(timestampWidth: Int) extends Module {
           isIPFrameReg := true.B
           byteCntReg := 0.U
           printf("[stTypeEth]->[stIPhead]\n")
+        }.elsewhen(ethTypeReg === constPCFt){
+          stateReg := stPCFHead
+          isPCFFrameReg := true.B
+          byteCntReg := 0.U
+          printf("[stTypeEth]->[stPCFHead]\n")
         }.otherwise {
           //Ignore rest of frame if not known, wait for new frame
           stateReg := stEOF
@@ -211,13 +212,21 @@ class MIITimestampUnit(timestampWidth: Int) extends Module {
         isPTPFrameReg := true.B
       }
     }
+    is(stPCFHead) {
+      //Timestamp the frame and ignore the rest
+      rtcTimestampReg := tempTimestampReg
+      timestampAvailReg := true.B
+      stateReg := stEOF
+      printf("[stPTPhead]->[stEOF]\n")
+    }
     is(stPTPhead) {
+      rtcTimestampReg := tempTimestampReg
+      timestampAvailReg := true.B
       when(byteCntReg === 1.U) { //2 byte to get msgType
-        timestampAvailReg := true.B
         ptpMsgTypeReg := regBuffer(7, 0)
       }.elsewhen(byteCntReg > 2.U) {
         when((ptpMsgTypeReg === constPTPDlyReqType && byteCntReg === 44.U) || (ptpMsgTypeReg =/= constPTPDlyReqType && byteCntReg === 34.U)) {
-          //Ignore rest of frame, wait for new frame
+          //Timestamp the frame and ignore the rest
           stateReg := stEOF
           printf("[stPTPhead]->[stEOF]\n")
         }
@@ -260,30 +269,15 @@ class MIITimestampUnit(timestampWidth: Int) extends Module {
       is(Bits("h08")) {
         dataReg := timestampAvailReg // Cat(validPTPReg, ptpMsgTypeReg)
       }
-      is(Bits("h0C")) {
-        dataReg := filterDstMacLoReg
-      }
-      is(Bits("h10")) {
-        dataReg := filterDstMacHiReg
-      }
     }
   }
 
   // Write response
   when(masterReg.Cmd === OcpCmd.WR) {
-    respReg := OcpResp.ERR
     switch(masterReg.Addr(4, 0)){
       is(Bits("h08")){
+        respReg := OcpResp.DVA
         timestampAvailReg := false.B
-        respReg := OcpResp.DVA
-      }
-      is(Bits("h0C")){
-        respReg := OcpResp.DVA
-        filterDstMacLoReg := masterReg.Data
-      }
-      is(Bits("h10")){
-        respReg := OcpResp.DVA
-        filterDstMacHiReg := masterReg.Data(15, 0)
       }
     }
   }
