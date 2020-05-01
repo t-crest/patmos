@@ -700,7 +700,7 @@ int main(int argc, char **argv, char **env)
   bool halt = false;
 
   //Parse Arguments
-  while ((opt = getopt(argc, argv, "hvl:O:")) != -1){
+  while ((opt = getopt(argc, argv, "hvl:iO:")) != -1){
     switch (opt) {
       case 'v':
         emu->setTrace();
