@@ -241,7 +241,12 @@ object Config {
       var ExtMemAddrWidth = "" 
       if (!(ExtMemNode \ "@DevTypeRef").isEmpty){
         ExtMemDev = devFromXML(ExtMemNode,DevList,false)
-        ExtMemAddrWidth = ExtMemDev.params("sramAddrWidth")
+        
+        for ((key, v) <- ExtMemDev.params){
+          if (key.substring(key.length() - 9) == "AddrWidth"){
+            ExtMemAddrWidth = v
+          }
+        } 
       }
       
       val UartDev = DevList.filter(d => (d \ "@DevType").text == "Uart")
