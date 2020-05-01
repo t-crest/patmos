@@ -234,8 +234,8 @@ end component;
             );
 
         Patmos_inst_0 : Patmos port map(
-                clk                         => clk_int,
-                reset                       => reset_int,
+                clock                   => clk_int,
+                reset                   => reset_int,
                 io_Leds_led             => oLedsPins_led,
                 io_AauMpu_data_0        => readdata(0),
                 io_AauMpu_data_1        => readdata(1),

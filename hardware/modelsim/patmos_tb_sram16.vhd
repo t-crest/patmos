@@ -81,7 +81,7 @@ architecture struct of patmos_tb_sram16 is
 begin
 
 	patmos_inst : Patmos port map(
-		clk	=>	clk,
+		clock	=>	clk,
 		reset	=>	reset,
         io_comConf_M_Cmd => open,
         io_comConf_M_Addr => open,

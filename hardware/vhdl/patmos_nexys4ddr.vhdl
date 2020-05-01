@@ -366,7 +366,7 @@ begin
 
   -- The instance of the patmos processor            
   patmos_inst_0 : Patmos port map(
-      clk                           => clk_int,
+      clock                         => clk_int,
       reset                         => reset_int,
       io_MemBridge_M_Cmd        => MCmd_bridge,
       io_MemBridge_M_Addr       => MAddr_bridge,
