@@ -93,3 +93,9 @@ c/cmp/nocinit.c
 emulator.h
 emul_api.h
 sim_api.h 
+
+
+
+# Metals vs code extention
+*.bloop/
+*.metals/
