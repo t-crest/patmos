@@ -17,7 +17,7 @@ class PatmosTestMain extends FlatSpec with Matchers {
           "--top-name",
           "PatmosVerTest"
       ),
-        () => new Patmos("/home/thonner/MyDrive/PREDICT/t-crest/patmos/hardware/../hardware/config/altde2-115.xml", "/home/thonner/MyDrive/PREDICT/t-crest/patmos/hardware/../tmp/bootable-blinking.bin", "/home/thonner/MyDrive/PREDICT/t-crest/patmos/hardware/../tmp/bootable-blinking.dat")
+        () => new Patmos("/home/anthon/t-crest/patmos/hardware/../hardware/config/altde2-115.xml", "/home/anthon/t-crest/patmos/hardware/../tmp/bootable-cmptest.bin", "/home/anthon/t-crest/patmos/hardware/../tmp/bootable-cmptest.dat")
       ) {  c =>
         new PatmosTester(c)
       } should be(true)
@@ -26,6 +26,5 @@ class PatmosTestMain extends FlatSpec with Matchers {
 
 
 class PatmosTester(dut: Patmos) extends PeekPokeTester(dut){
-  step(1000000)
-  expect(true, "hej")
+  step(10000)
 }
