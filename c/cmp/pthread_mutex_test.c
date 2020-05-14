@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <machine/patmos.h>
 
 // Uncomment the line below to see the test fail
 // when not using a mutex and cpucnt > 1
