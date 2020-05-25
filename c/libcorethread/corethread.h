@@ -129,9 +129,6 @@ void corethread_exit(void *retval);
 /// the calling thread
 int corethread_join(int core_id, void **retval);
 
-#include "pthread_mutex.h"
-#include "pthread_cond.h"
-
 #endif /* _CORETHREAD_H_ */
 
 /** @}*/
