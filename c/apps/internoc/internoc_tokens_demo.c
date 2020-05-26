@@ -43,28 +43,27 @@ void print_general_info()
 	return;
 }
 
-unsigned int deserialize_uint32(unsigned char *buffer, unsigned endianess)
-{
-  switch (endianess)
-  {
-    case 0:
-      return (unsigned int) (buffer[0] << 24 | buffer[1] << 16 | buffer[2] << 8 | buffer[3]);
-    default:
-      return (unsigned int) (buffer[3] << 24 | buffer[2] << 16 | buffer[1] << 8 | buffer[0]);
-  }
-}
-
 void *compute_thread(void *param) {
-  InterNoCConfig local_config = internoc_init_config(NOC_CORES, (unsigned char[4]) {192, 168, 1, 0}, NOC_MASTER);
+  // Initialize the local configuration, this should be passed to the thread from the dispatcher
+  InterNoCConfig local_config = internoc_init_config(NOC_CORES, (unsigned char[4]) {192, 168, 1, NOC_MASTER}, NOC_MASTER);
+
+  // Print the information using a lock UART
   pthread_mutex_lock(&lock);
   printf("InterNoCCore#%d is up\n", get_cpuid());
   prin_core_channels(local_config);
   pthread_mutex_unlock(&lock);
-  InterNoCMessage message = {(InterNoCMessageHead) {get_cpu_cycles(), 6}, (unsigned char*) "hello"};
-  _SPM udp_t* packet_ptr = internoc_build_packet(local_config, 
-                                                (unsigned char[]){192,168,1,get_cpuid()}, (unsigned char[]){192,168,1,NOC_MASTER}, 69, 69, 
+
+  // Create an application message on the stack to be sent
+  InterNoCMessage message = {(InterNoCMessageHead) {get_cpu_cycles(), 14}, (unsigned char*) "hello gateway"};
+
+  // Build the message on the proper buffer
+  _SPM udp_t* packet_ptr = internoc_build_packet(local_config, local_config.my_ip, local_config.gateway_ip, 69, 69, 
                                                 (unsigned char*) &message, sizeof(InterNoCMessageHead) + message.header.length);
-  internoc_send(local_config, (unsigned char[]){192,168,1,NOC_MASTER}, 0);
+  
+  // Send the message
+  internoc_send(local_config, local_config.gateway_ip, 0);
+
+  // Print the information of the sent message using a lock to synchronize UART
   pthread_mutex_lock(&lock);
   printf("TX[%x]{%u:%u:%u:%u=>%u:%u:%u:%u}[%s] @ %llu cycles\n", get_cpuid(), 
         (unsigned int) packet_ptr->ip_head.source_ip[0], (unsigned int) packet_ptr->ip_head.source_ip[1], 
@@ -74,21 +73,29 @@ void *compute_thread(void *param) {
         (char*) ((InterNoCMessage*) (packet_ptr->data))->payload,
         ((InterNoCMessage*)(packet_ptr->data))->header.timestamp);
   pthread_mutex_unlock(&lock);
+
   return NULL;
 }
 
 void *gateway_thread(void* param){
-  InterNoCConfig local_config = internoc_init_config(NOC_CORES, (unsigned char[4]) {192, 168, 1, 0}, NOC_MASTER);
+  // Initialize the local configuration, this should be passed to the thread from the dispatcher
+  InterNoCConfig local_config = internoc_init_config(NOC_CORES, (unsigned char[4]) {192, 168, 1, NOC_MASTER}, NOC_MASTER);
+
+  // Print the information using a lock UART
   pthread_mutex_lock(&lock);
   printf("InterNoCCore#%d is up\n", get_cpuid());
   prin_core_channels(local_config);
   pthread_mutex_unlock(&lock);
+
+  // Assign an array on the stack to store the received packet pointers
   _SPM udp_t* packet_ptrs[local_config.core_links_num];
   unsigned long long timestamps[local_config.core_links_num];
+
+  // Loop through all the cores to receive packets and timestamp reception
   unsigned j = 0;
   for(int i=0; i<local_config.cores; i++)
   {
-    if(i != local_config.gateway)
+    if(i != local_config.gateway_core)
     {
       packet_ptrs[j] = internoc_recv(local_config, (unsigned char[]){192,168,1,i}, 0);
       timestamps[j] = get_cpu_cycles();
@@ -96,18 +103,17 @@ void *gateway_thread(void* param){
     }
   }
 
+  // Loop through the received packets and timestamps and print the packet content
   for(int i=0; i<local_config.core_links_num; i++)
   {
-    _SPM udp_t* packet_ptr = packet_ptrs[i];
-    unsigned long long timestamp = timestamps[i];
     pthread_mutex_lock(&lock);
-    printf("RX[%x]{%u:%u:%u:%u=>%u:%u:%u:%u}[#%u, %s] @ %llu cycles (e2e = %.2f ms)\n", get_cpuid(),
-          (unsigned int) packet_ptr->ip_head.source_ip[0], (unsigned int) packet_ptr->ip_head.source_ip[1], 
-          (unsigned int) packet_ptr->ip_head.source_ip[2], (unsigned int) packet_ptr->ip_head.source_ip[3], 
-          (unsigned int) packet_ptr->ip_head.destination_ip[0], (unsigned int) packet_ptr->ip_head.destination_ip[1], 
-          (unsigned int) packet_ptr->ip_head.destination_ip[2], (unsigned int) packet_ptr->ip_head.destination_ip[3], 
-          (unsigned int) packet_ptr->ip_head.identification, (char*) ((InterNoCMessage*) (packet_ptr->data))->payload,
-          timestamp, (timestamp - ((InterNoCMessage*)(packet_ptr->data))->header.timestamp) * CPU_PERIOD * NS_TO_USEC);
+    printf("RX[%x]{%u:%u:%u:%u=>%u:%u:%u:%u}[#%u, %s] @ %llu cycles (e2e = %.2f us)\n", get_cpuid(),
+          (unsigned int) packet_ptrs[i]->ip_head.source_ip[0], (unsigned int) packet_ptrs[i]->ip_head.source_ip[1], 
+          (unsigned int) packet_ptrs[i]->ip_head.source_ip[2], (unsigned int) packet_ptrs[i]->ip_head.source_ip[3], 
+          (unsigned int) packet_ptrs[i]->ip_head.destination_ip[0], (unsigned int) packet_ptrs[i]->ip_head.destination_ip[1], 
+          (unsigned int) packet_ptrs[i]->ip_head.destination_ip[2], (unsigned int) packet_ptrs[i]->ip_head.destination_ip[3], 
+          (unsigned int) packet_ptrs[i]->ip_head.identification, (char*) ((InterNoCMessage*) (packet_ptrs[i]->data))->payload,
+          timestamps[i], (timestamps[i] - ((InterNoCMessage*)(packet_ptrs[i]->data))->header.timestamp) * CPU_PERIOD * NS_TO_USEC);
     pthread_mutex_unlock(&lock);
   }
 

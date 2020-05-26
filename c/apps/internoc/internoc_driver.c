@@ -3,15 +3,19 @@
 
 unsigned int internoc_packed_id = 1;
 
-InterNoCConfig internoc_init_config(unsigned int nr_cores, unsigned char net_addr[4], unsigned int gateway_core_id)
+InterNoCConfig internoc_init_config(unsigned int nr_cores, unsigned char gateway_ip[4], unsigned int gateway_core_id)
 {
   InterNoCConfig new_config;
   new_config.cores = nr_cores;
-  new_config.subnet[0] = net_addr[0];
-  new_config.subnet[1] = net_addr[1];
-  new_config.subnet[2] = net_addr[2];
-  new_config.subnet[3] = net_addr[3];
-  new_config.gateway = gateway_core_id;
+  new_config.my_ip[0] = gateway_ip[0];
+  new_config.my_ip[1] = gateway_ip[1];
+  new_config.my_ip[2] = gateway_ip[2];
+  new_config.my_ip[3] = get_cpuid();
+  new_config.gateway_ip[0] = gateway_ip[0];
+  new_config.gateway_ip[1] = gateway_ip[1];
+  new_config.gateway_ip[2] = gateway_ip[2];
+  new_config.gateway_ip[3] = gateway_ip[3];
+  new_config.gateway_core = gateway_core_id;
   new_config.core_links_num = nr_cores-1;
   new_config.core_links = (core_link_t*) malloc(new_config.core_links_num * sizeof(core_link_t));
 
@@ -30,10 +34,9 @@ InterNoCConfig internoc_init_config(unsigned int nr_cores, unsigned char net_add
   return new_config;
 }
 
-unsigned int internoc_ip_to_corelinkid(InterNoCConfig config, const unsigned char ip_addr[4])
+int internoc_ip_to_corelinkid(InterNoCConfig config, const unsigned char ip_addr[4])
 {
-  unsigned int index = config.gateway;
-  if(ip_addr[2] == config.subnet[2])
+  if(ip_addr[2] == config.gateway_ip[2])
   {
     for(unsigned i = 0; i < config.core_links_num; i++)
     {
@@ -41,8 +44,15 @@ unsigned int internoc_ip_to_corelinkid(InterNoCConfig config, const unsigned cha
         return i;
       }
     }
+  } else {
+    for(unsigned i = 0; i < config.core_links_num; i++)
+    {
+      if(config.core_links[i].chanTx->remote == config.gateway_core){
+        return i;
+      }
+    }
   }
-  return index;
+  return -1;
 }
 
 qpd_t * internoc_get_txbuffer(InterNoCConfig config, const unsigned char dst_ip[4])
@@ -112,14 +122,14 @@ _SPM udp_t* internoc_recv(InterNoCConfig config, const unsigned char src_ip[4], 
 void prin_core_channels(InterNoCConfig config)
 {
   printf("-------------------------\n");
-  printf("Assigned RX channels are:\n");
+  printf("Core %u assigned RX channels are:\n", get_cpuid());
   for(unsigned i = 0; i < config.core_links_num; i++){
-      printf("Core %u via link[%u] from %u, receive at buffer %p (size = %lu bytes)\n", get_cpuid(), i, config.core_links[i].chanRx->remote, config.core_links[i].chanRx->write_buf, MP_CHAN_BUF_SIZE);
+      printf("link[%u] from %u, receive at buffer %p (size = %lu bytes)\n", i, config.core_links[i].chanRx->remote, config.core_links[i].chanRx->write_buf, MP_CHAN_BUF_SIZE);
   }
   printf("-------------------------\n");
-  printf("Assigned TX channels are:\n");
+  printf("Core %u assigned TX channels are:\n", get_cpuid());
   for(unsigned i = 0; i < config.core_links_num; i++){
-      printf("Core %u via link[%u] to %u, receive at buffer %p (size = %lu bytes)\n", get_cpuid(), i, config.core_links[i].chanTx->remote, config.core_links[i].chanTx->write_buf, MP_CHAN_BUF_SIZE);
+      printf("link[%u] to %u, receive at buffer %p (size = %lu bytes)\n", i, config.core_links[i].chanTx->remote, config.core_links[i].chanTx->write_buf, MP_CHAN_BUF_SIZE);
   }
   printf("-------------------------\n\n");
 }

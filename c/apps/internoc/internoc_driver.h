@@ -1,6 +1,5 @@
 #pragma once
 
-// #include "libcorethread/corethread.h"
 #include "libmp/mp.h"
 #include "udp.h"
 
@@ -20,8 +19,9 @@ typedef struct {
 typedef struct
 {   
     unsigned int cores;
-    unsigned char subnet[4];
-    unsigned int gateway;
+    unsigned char my_ip[4];
+    unsigned char gateway_ip[4];
+    unsigned int gateway_core;
     unsigned int core_links_num;
     core_link_t *core_links;
 } InterNoCConfig;
@@ -38,15 +38,21 @@ typedef struct{
 
 extern unsigned int internoc_packed_id;
 
-InterNoCConfig internoc_init_config(unsigned int nr_cores, unsigned char subnet[4], unsigned int gateway_core_id);
-unsigned int internoc_ip_to_corelinkid(InterNoCConfig config, const unsigned char ip_addr[4]);
+InterNoCConfig internoc_init_config(unsigned int nr_cores, unsigned char gateway_ip[4], unsigned int gateway_core_id);
+
+int internoc_ip_to_corelinkid(InterNoCConfig config, const unsigned char ip_addr[4]);
+
 _SPM udp_t* internoc_build_packet(InterNoCConfig config, 
                                   unsigned char src_ip[4], unsigned char dst_ip[4], 
                                   unsigned short src_port, unsigned short dst_port, 
                                   unsigned char* data, unsigned short data_length);
+
 qpd_t * internoc_get_txbuffer(InterNoCConfig config, const unsigned char dst_ip[4]);
+
 qpd_t * internoc_get_rxbuffer(InterNoCConfig config, const unsigned char src_ip[4]);
+
 void internoc_send(InterNoCConfig config,  const unsigned char dst_ip[4] , unsigned int timeout);
+
 _SPM udp_t* internoc_recv(InterNoCConfig config, const unsigned char src_ip[4], unsigned int timeout);
 
 void prin_core_channels(InterNoCConfig config);
