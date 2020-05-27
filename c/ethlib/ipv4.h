@@ -57,7 +57,6 @@ typedef struct
    unsigned char ttl;
    unsigned char protocol;
    unsigned short head_checksum;
-   unsigned short checksum;
    unsigned char source_ip[4];
    unsigned char destination_ip[4];
 } iphead_t;

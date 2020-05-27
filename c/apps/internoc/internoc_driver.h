@@ -3,9 +3,8 @@
 #include "libmp/mp.h"
 #include "udp.h"
 
-#define INTERNOC_PACKET_SIZE(data_len) 20 + sizeof(udphead_t) + data_len
-
-#define INTERNOC_MAX_PAYLOAD_SIZE 372 * sizeof(char)
+#define INTERNOC_MAX_PAYLOAD_SIZE 148 * sizeof(char)  //should be byte addressable (i.e. SIZE mod 8 == 0)
+#define INTERNOC_PACKET_SIZE(data_len) sizeof(iphead_t) + sizeof(udphead_t) + data_len
 #define INTERNOC_MAX_PACKET_SIZE INTERNOC_PACKET_SIZE(INTERNOC_MAX_PAYLOAD_SIZE)
 
 #define MP_CHAN_NUM_BUF 1
