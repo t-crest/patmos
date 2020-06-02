@@ -18,23 +18,24 @@ Several packages need to be installed.
 The following apt-get lists the packages that need to be
 installed on a Ubuntu Linux:
 
-    sudo apt-get install git default-jdk gitk cmake make g++ texinfo flex bison \
-      subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby-full \
-      liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala
+```
+sudo apt install git openjdk-8-jdk gitk cmake make g++ texinfo flex bison \
+  subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby-full \
+  liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala
+```
 
-On a restricted machine (e.g. Cloud9) the bare minimum is:
+Make sure to use Java 8 and remove any later Java version with ```sudo apt autoremove```.
 
-    sudo apt-get install default-jdk git cmake make g++ texinfo flex bison \
-      subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby-full \
-      python zlib1g-dev
 
 Install sbt with:
 
-    echo "deb https://dl.bintray.com/sbt/debian /" | sudo tee -a /etc/apt/sources.list.d/sbt.list
-    sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 \
-      --recv 2EE0EA64E40A89B84B2DF73499E82A75642AC823
-    sudo apt-get update
-    sudo apt-get install sbt
+```
+echo "deb https://dl.bintray.com/sbt/debian /" | sudo tee -a /etc/apt/sources.list.d/sbt.list
+sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 \
+  --recv 2EE0EA64E40A89B84B2DF73499E82A75642AC823
+sudo apt-get update
+sudo apt-get install sbt
+```
 
 We assume that the T-CREST project will live in $HOME/t-crest.
 Before building the compiler, add the path
