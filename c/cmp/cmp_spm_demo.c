@@ -57,9 +57,11 @@ void *worker_thread(void *param) {
   message->header.timestamp = get_cpu_cycles();
   message->header.length = sizeof(MOCKUPDATA_100B);
   message->payload = (volatile unsigned char* _SPM) ALIGN_4B(sizeof(CMPConfig) + sizeof(AMessageHeader));
+  // Everybody copy a common message
   for(unsigned i = 0; i < sizeof(MOCKUPDATA_100B); i++){
     message->payload[i] = (unsigned char) MOCKUPDATA_100B[i];
   }
+  // Each core modifies the message by putting its own ID in the beggining
   message->payload[1] = (unsigned char) ((char) (get_cpuid() + '0'));
 
   // Print the information using a locked UART
@@ -67,7 +69,7 @@ void *worker_thread(void *param) {
   printf("Core#%d is up \n\tCONF(allocated_ptr = %p) = {%u, %u} [%lu-byte] \n\tMSG (allocated_ptr = %p) = {%s} [%lu-byte])\n",
         get_cpuid(), (volatile _SPM CMPConfig*) local_config, ((volatile _SPM CMPConfig*)local_config)->cores, 
         ((volatile _SPM CMPConfig*) local_config)->master_core, sizeof(CMPConfig),
-        message, (_SPM char*) ((volatile _SPM AMessage*) message)->payload, sizeof(MOCKUPDATA_100B));
+        message, (_SPM char*) ((volatile _SPM AMessage*) message)->payload, message->header.length);
   pthread_mutex_unlock(&lock);
 
   return NULL;
