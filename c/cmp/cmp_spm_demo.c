@@ -33,7 +33,7 @@ typedef struct
 
 typedef struct{
   unsigned long long timestamp; // 8-byte
-  unsigned int length; // 4-byte
+  unsigned long length; // 4-byte
 } AMessageHeader;
 
 typedef struct{
@@ -56,20 +56,21 @@ void *worker_thread(void *param) {
   volatile _SPM AMessage *message = (volatile _SPM AMessage*) ALIGN_4B(sizeof(CMPConfig));
   message->header.timestamp = get_cpu_cycles();
   message->header.length = sizeof(MOCKUPDATA_100B);
-  message->payload = (volatile unsigned char* _SPM) ALIGN_4B(sizeof(CMPConfig) + sizeof(AMessageHeader));
+  message->payload = (unsigned char* volatile _SPM) ALIGN_4B(sizeof(CMPConfig) + sizeof(AMessageHeader));
   // Everybody copy a common message
+  _SPM unsigned char* _payload = (_SPM unsigned char*) message->payload;
   for(unsigned i = 0; i < sizeof(MOCKUPDATA_100B); i++){
-    message->payload[i] = (unsigned char) MOCKUPDATA_100B[i];
+    _payload[i] = (unsigned char) MOCKUPDATA_100B[i];
   }
   // Each core modifies the message by putting its own ID in the beggining
-  message->payload[1] = (unsigned char) ((char) (get_cpuid() + '0'));
+  _payload[1] = (unsigned char) ((char) (get_cpuid() + '0'));
 
   // Print the information using a locked UART
   pthread_mutex_lock(&lock);
   printf("Core#%d is up \n\tCONF(allocated_ptr = %p) = {%u, %u} [%lu-byte] \n\tMSG (allocated_ptr = %p) = {%s} [%lu-byte])\n",
         get_cpuid(), (volatile _SPM CMPConfig*) local_config, ((volatile _SPM CMPConfig*)local_config)->cores, 
         ((volatile _SPM CMPConfig*) local_config)->master_core, sizeof(CMPConfig),
-        message, (_SPM char*) ((volatile _SPM AMessage*) message)->payload, message->header.length);
+        _payload, (_SPM char*) _payload, message->header.length);
   pthread_mutex_unlock(&lock);
 
   return NULL;
@@ -82,7 +83,7 @@ int main() {
   pthread_t tid[NOC_CORES];
 
   LED = 0x100;
-  puts("\nTesting the local SPMs in a multi-threaded example");
+  puts("\nTesting the local SPMs in a multi-threaded example:\n");
   LED = 0xF0;
 
   unsigned j = 0;
