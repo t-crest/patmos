@@ -8,6 +8,7 @@ const int NOC_MASTER = 0;
 #include <machine/rtc.h>
 #include <pthread.h>
 #include <math.h>
+#include <string.h>
 #include "libnoc/noc.h"
 
 /**
@@ -19,8 +20,8 @@ const int NOC_MASTER = 0;
 #define LEDCMP (*((volatile _IODEV unsigned *)PATMOS_IO_LEDSCMP))
 #define SEGDISP (*((volatile _IODEV unsigned *)PATMOS_IO_SEGDISP))
 #define DEAD *((volatile _SPM unsigned int *) (PATMOS_IO_DEADLINE))
-#define MOCKUPDATA_100B "#_ Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce finibus luctus nibh id porttitor."
-#define ALIGN_4B(addr) ((addr & (-4)) * 8); 
+#define MOCKUPDATA_100B  "_# Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce finibus luctus nibh id porttitor."
+#define ALIGN_4B(addr) ((addr & (-4)))
 
 /**
  * Types
@@ -29,17 +30,17 @@ typedef struct
 {   
     unsigned int cores;
     unsigned int master_core;
-} CMPConfig;
+} CMPConfig;  // 8-byte
 
 typedef struct{
-  unsigned long long timestamp; // 8-byte
-  unsigned long length; // 4-byte
-} AMessageHeader;
+  unsigned long long timestamp;
+  unsigned long length;
+} AMessageHeader; // 12-byte
 
 typedef struct{
   AMessageHeader header;
   unsigned char* payload; // 4-byte pointer
-} AMessage;
+} AMessage; // 16-byte
 
 /**
  * Globals
@@ -53,24 +54,31 @@ void *worker_thread(void *param) {
   local_config->master_core = NOC_MASTER;
   
   // Create an application message on the SPM
-  volatile _SPM AMessage *message = (volatile _SPM AMessage*) ALIGN_4B(sizeof(CMPConfig));
+  volatile _SPM AMessage *message = (volatile _SPM AMessage*) (local_config+1);
   message->header.timestamp = get_cpu_cycles();
-  message->header.length = sizeof(MOCKUPDATA_100B);
-  message->payload = (unsigned char* volatile _SPM) ALIGN_4B(sizeof(CMPConfig) + sizeof(AMessageHeader));
-  // Everybody copy a common message
-  _SPM unsigned char* _payload = (_SPM unsigned char*) message->payload;
-  for(unsigned i = 0; i < sizeof(MOCKUPDATA_100B); i++){
-    _payload[i] = (unsigned char) MOCKUPDATA_100B[i];
-  }
+  message->header.length = strlen(MOCKUPDATA_100B)+1;
+  message->payload = (unsigned char* volatile _SPM) (&message->header+1);
+  volatile _SPM unsigned char* _payload = (volatile _SPM unsigned char*) (message->payload);
+
   // Each core modifies the message by putting its own ID in the beggining
-  _payload[1] = (unsigned char) ((char) (get_cpuid() + '0'));
+  _payload[0] = (unsigned char) ((char) (get_cpuid() + '0'));
+  // Everybody copy a common message
+  for(unsigned i = 1; i < message->header.length; i++){
+    _payload[i] = (unsigned char) (MOCKUPDATA_100B)[i];
+  }
 
   // Print the information using a locked UART
   pthread_mutex_lock(&lock);
-  printf("Core#%d is up \n\tCONF(allocated_ptr = %p) = {%u, %u} [%lu-byte] \n\tMSG (allocated_ptr = %p) = {%s} [%lu-byte])\n",
-        get_cpuid(), (volatile _SPM CMPConfig*) local_config, ((volatile _SPM CMPConfig*)local_config)->cores, 
-        ((volatile _SPM CMPConfig*) local_config)->master_core, sizeof(CMPConfig),
-        _payload, (_SPM char*) _payload, message->header.length);
+  printf("Core#%d is up\n", get_cpuid());
+  printf("\tCONF(allocated_ptr = %p)\t= {%u-cores, %u-master} [%lu-byte] \n", 
+        local_config,
+        ((volatile _SPM CMPConfig*)local_config)->cores, 
+        ((volatile _SPM CMPConfig*) local_config)->master_core, sizeof(CMPConfig));
+  printf("\tMSG (allocated_ptr = %p)\t= {%s %c %c, %lu-byte, @%llu-cycles}\n",
+        _payload, 
+        ( _SPM char*) _payload, (char) _payload[0], (char) _payload[1],
+        ((volatile _SPM AMessage*) message)->header.length, 
+        ((volatile _SPM AMessage*) message)->header.timestamp);
   pthread_mutex_unlock(&lock);
 
   return NULL;
