@@ -55,30 +55,36 @@ void *worker_thread(void *param) {
   
   // Create an application message on the SPM
   volatile _SPM AMessage *message = (volatile _SPM AMessage*) (local_config+1);
-  message->header.timestamp = get_cpu_cycles();
   message->header.length = strlen(MOCKUPDATA_100B)+1;
   message->payload = (unsigned char* volatile _SPM) (&message->header+1);
   volatile _SPM unsigned char* _payload = (volatile _SPM unsigned char*) (message->payload);
-
-  // Each core modifies the message by putting its own ID in the beggining
+  // Each core puts its id as a char in the beggining of the string
   _payload[0] = (unsigned char) ((char) (get_cpuid() + '0'));
   // Everybody copy a common message
   for(unsigned i = 1; i < message->header.length; i++){
     _payload[i] = (unsigned char) (MOCKUPDATA_100B)[i];
   }
+  // Timestamp for demo but always at the end
+  message->header.timestamp = get_cpu_cycles();
 
   // Print the information using a locked UART
   pthread_mutex_lock(&lock);
+  //NOTE: copy over the message to main memory for the printf to work.
+  char* _print_payload = (char*) malloc(message->header.length *  sizeof(char));
+  for(unsigned i=0; i<message->header.length; i++){
+    _print_payload[i] = (char) _payload[i];
+  }
   printf("Core#%d is up\n", get_cpuid());
   printf("\tCONF(allocated_ptr = %p)\t= {%u-cores, %u-master} [%lu-byte] \n", 
         local_config,
         ((volatile _SPM CMPConfig*)local_config)->cores, 
         ((volatile _SPM CMPConfig*) local_config)->master_core, sizeof(CMPConfig));
-  printf("\tMSG (allocated_ptr = %p)\t= {%s %c %c, %lu-byte, @%llu-cycles}\n",
+  printf("\tMSG (allocated_ptr = %p)\t= {str = %s, msgchar[0] = '%c', msgchar[1] = '%c', %lu-byte, @%llu-cycles}\n",
         _payload, 
-        ( _SPM char*) _payload, (char) _payload[0], (char) _payload[1],
+        (char*) _print_payload,
         ((volatile _SPM AMessage*) message)->header.length, 
         ((volatile _SPM AMessage*) message)->header.timestamp);
+  free(_print_payload);
   pthread_mutex_unlock(&lock);
 
   return NULL;
