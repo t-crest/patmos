@@ -39,7 +39,7 @@ typedef struct{
 
 typedef struct{
   AMessageHeader header;
-  unsigned char* payload; // 4-byte pointer
+  unsigned char* payload;
 } AMessage; // 16-byte
 
 /**
@@ -53,37 +53,40 @@ void *worker_thread(void *param) {
   local_config->cores = NOC_CORES;
   local_config->master_core = NOC_MASTER;
   
-  // Create an application message on the SPM
-  volatile _SPM AMessage *message = (volatile _SPM AMessage*) (local_config+1);
-  message->header.length = strlen(MOCKUPDATA_100B)+1;
-  message->payload = (unsigned char* volatile _SPM) (&message->header+1);
-  volatile _SPM unsigned char* _payload = (volatile _SPM unsigned char*) (message->payload);
+  // Create an application local_message after the configuration strut on the SPM
+  volatile _SPM AMessage *local_message = (volatile _SPM AMessage*) (local_config+1);
+  local_message->header.length = strlen(MOCKUPDATA_100B)+1;
+  // Allocate an address for the payload bytes after the header
+  local_message->payload = (unsigned char* volatile _SPM) (&local_message->header+1);
+  // We cannot directly write to a normal pointer so we have to cast it first to a temp SPM pointer
+  volatile _SPM unsigned char* _payload = (volatile _SPM unsigned char*) (local_message->payload);
   // Each core puts its id as a char in the beggining of the string
   _payload[0] = (unsigned char) ((char) (get_cpuid() + '0'));
-  // Everybody copy a common message
-  for(unsigned i = 1; i < message->header.length; i++){
+  // Everybody copy a common local_message
+  for(unsigned i = 1; i < local_message->header.length; i++){
     _payload[i] = (unsigned char) (MOCKUPDATA_100B)[i];
   }
   // Timestamp for demo but always at the end
-  message->header.timestamp = get_cpu_cycles();
+  local_message->header.timestamp = get_cpu_cycles();
 
   // Print the information using a locked UART
   pthread_mutex_lock(&lock);
-  //NOTE: copy over the message to main memory for the printf to work.
-  char* _print_payload = (char*) malloc(message->header.length *  sizeof(char));
-  for(unsigned i=0; i<message->header.length; i++){
-    _print_payload[i] = (char) _payload[i];
-  }
   printf("Core#%d is up\n", get_cpuid());
-  printf("\tCONF(allocated_ptr = %p)\t= {%u-cores, %u-master} [%lu-byte] \n", 
+  printf("  struct CONF(allocated_ptr = %p)   = {%u-cores, %u-ismaster} [%lu-byte] \n", 
         local_config,
         ((volatile _SPM CMPConfig*)local_config)->cores, 
         ((volatile _SPM CMPConfig*) local_config)->master_core, sizeof(CMPConfig));
-  printf("\tMSG (allocated_ptr = %p)\t= {str = %s, msgchar[0] = '%c', msgchar[1] = '%c', %lu-byte, @%llu-cycles}\n",
+  // NOTE: copy over the local_message to main memory for the printf to work.
+  char* _print_payload = (char*) malloc(local_message->header.length *  sizeof(char));
+  for(unsigned i=0; i<local_message->header.length; i++){
+    _print_payload[i] = (char) _payload[i];
+  }
+  printf("  struct MSG (allocated_ptr = %p)  = {%s, %lu-length, @%llu-cycles} [%lu-byte]\n",
         _payload, 
         (char*) _print_payload,
-        ((volatile _SPM AMessage*) message)->header.length, 
-        ((volatile _SPM AMessage*) message)->header.timestamp);
+        ((volatile _SPM AMessage*) local_message)->header.length, 
+        ((volatile _SPM AMessage*) local_message)->header.timestamp,
+        sizeof(AMessage));
   free(_print_payload);
   pthread_mutex_unlock(&lock);
 
