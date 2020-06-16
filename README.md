@@ -52,6 +52,8 @@ In order to build the c++ emulator of patmos, the verilator must be installed fr
     unset VERILATOR_ROOT  # For bash
     
     cd verilator
+    git checkout v4.036-7-g369ce6af
+    git pull        # for good measure
     autoconf        # Create ./configure script
     ./configure
     make
