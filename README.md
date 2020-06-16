@@ -60,7 +60,7 @@ In order to build the c++ emulator of patmos, the verilator must be installed fr
     sudo make install
 
     cd ..
-    sudo rm -r verilator
+    sudo rm -r verilator/
 
 Patmos and the compiler can be checked out from GitHub and are built as follows:
 
