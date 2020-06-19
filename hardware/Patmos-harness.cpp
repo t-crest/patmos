@@ -53,6 +53,7 @@ class Emulator
   string write_str;
   int write_cntr;
   int write_len;
+  bool trace;
   ostream *outputTarget = &std::cout;
 
   //elf - mem - ram
@@ -64,10 +65,6 @@ class Emulator
   uint16_t *ram_buf; 
   #endif /* EXTMEM_SRAMCTRL */
 
-  bool trace;
-  //DEBUG STUFF
-  int prints;
-  int extcnt;
 public:
   Emulator(void)
   {
@@ -102,10 +99,6 @@ public:
 
     trace = false;
     
-    
-    //DEBUF STUFF
-    prints = 0;
-    extcnt = 0;
   }
 
   ~Emulator(void)
@@ -423,55 +416,41 @@ public:
     return entry;
   }
 
-  #ifdef EXTMEM_SSRAM32CTRL //TODO rewrite this
+  #ifdef EXTMEM_SSRAM32CTRL //TODO test this
   void write_extmem(val_t address, val_t word)
   {
     ram_buf[address] = word; // This gives segmentation fault dumb on second run!
   }
 
-  void init_extmem(bool random) {
-    // Get SRAM properties
-    uint32_t addr_bits = c->Patmos__io_sSRam32CtrlPins_ramOut_addr.width();
-    uint32_t cells = 1 << addr_bits;
-
-    // Check data width and allocate buffer
-    assert(c->Patmos__io_sSRam32CtrlPins_ramOut_dout.width() == 32);
-    ram_buf = (uint32_t *)calloc(cells, sizeof(uint32_t));
-    if (ram_buf == NULL) {
-      cerr << program_name << ": error: Cannot allocate memory for SRAM emulation" << endl;
-      exit(EXIT_FAILURE);
-    }
-
-    // Initialize with random data
-    if (random) {
-      for (int i = 0; i < cells; i++) {
-        write_extmem(i, rand());
-      }
+  void init_extmem() {
+    //only needed for random init
+    for (int i = 0; i < (1 << EXTMEM_ADDR_BITS); i++) {
+      write_extmem(i, rand());
     }
   } 
 
-static void emu_extmem(Patmos_t *c) {
+static void emu_extmem() {
   static uint32_t addr_cnt;
   static uint32_t address;
   static uint32_t counter;
 
   // Start of request
-  if (!c->Patmos__io_sSRam32CtrlPins_ramOut_nadsc.to_bool()) {
+  if (c->io_sSRam32CtrlPins_ramOut_nadsc != 1) {
     address = c->Patmos__io_sSRam32CtrlPins_ramOut_addr.to_ulong();
     addr_cnt = address;
     counter = 0;
   }
 
   // Advance address for burst
-  if (!c->Patmos__io_sSRam32CtrlPins_ramOut_nadv.to_bool()) {
+  if (c->io_sSRam32CtrlPins_ramOut_nadv != 1) {
     addr_cnt++;
   }
 
   // Read from external memory
-  if (!c->Patmos__io_sSRam32CtrlPins_ramOut_noe.to_bool()) {
+  if (c->io_sSRam32CtrlPins_ramOut_noe != 1) {
     counter++;
     if (counter >= SRAM_CYCLES) {
-      c->Patmos__io_sSRam32CtrlPins_ramIn_din = ram_buf[address];
+      c->io_sSRam32CtrlPins_ramIn_din = ram_buf[address];
       if (address <= addr_cnt) {
         address++;
       }
@@ -479,8 +458,8 @@ static void emu_extmem(Patmos_t *c) {
   }
 
   // Write to external memory
-  if (c->Patmos__io_sSRam32CtrlPins_ramOut_nbwe.to_ulong() == 0) {
-    uint32_t nbw = c->Patmos__io_sSRam32CtrlPins_ramOut_nbw.to_ulong();
+  if (c->io_sSRam32CtrlPins_ramOut_nbwe == 0) {
+    uint32_t nbw = c->io_sSRam32CtrlPins_ramOut_nbw;
     uint32_t mask = 0x00000000;
     for (unsigned i = 0; i < 4; i++) {
       if ((nbw & (1 << i)) == 0) {
@@ -489,7 +468,7 @@ static void emu_extmem(Patmos_t *c) {
     }
 
     ram_buf[address] &= ~mask;
-    ram_buf[address] |= mask & c->Patmos__io_sSRam32CtrlPins_ramOut_dout.to_ulong();
+    ram_buf[address] |= mask & ((unsigned long int) c->io_sSRam32CtrlPins_ramOut_dout);
 
     if (address <= addr_cnt) {
       address++;
@@ -505,39 +484,20 @@ static void emu_extmem(Patmos_t *c) {
     ram_buf[(address << 1) | 1] = word >> 16;
   }
 
-  /*void init_extmem(Patmos_t *c, bool random) {
-    // Get SRAM properties
-    uint32_t addr_bits = c->Patmos_ramCtrl__addrReg.width();
-    uint32_t cells = 1 << addr_bits;
-
-    // Check data width and allocate buffer
-    assert(c->Patmos__io_SRamCtrl_ramOut_dout.width() == 16);
-    ram_buf = (uint16_t *)calloc(cells, sizeof(uint16_t));
-    if (ram_buf == NULL) {
-      cerr << program_name << ": error: Cannot allocate memory for SRAM emulation" << endl;
-      exit(EXIT_FAILURE);
+  void init_extmem() {
+    //only needed for random init
+    for (int i = 0; i < (1 << EXTMEM_ADDR_BITS)/2; i++) {
+      write_extmem(i, rand());
     }
-
-    // Initialize with random data
-    if (random) {
-      for (int i = 0; i < cells/2; i++) {
-        write_extmem(i, rand());
-      }
-    }
-  }*/
+  }
 
   void emu_extmem() {
-    uint32_t address = (uint32_t) c->Patmos__DOT__ramCtrl__DOT__addrReg;
-    //printf("DEBUG EXTADD: %d\n", address);
-
+    uint32_t address = (uint32_t) c->io_SRamCtrl_ramOut_addr;
     // Read from external memory unconditionally
     c->io_SRamCtrl_ramIn_din = ram_buf[address];
 
     // Write to external memory
-    //printf("DEBUG NWE: %d\n", c->io_SRamCtrl_ramOut_nwe);
     if (c->io_SRamCtrl_ramOut_nwe != 1) {
-      //printf("\nMem WRITE :%d\n", extcnt);
-      extcnt++;
       uint16_t mask = 0x0000;
       if (c->io_SRamCtrl_ramOut_nub != 1) {
         mask |= 0xff00;
@@ -545,7 +505,6 @@ static void emu_extmem(Patmos_t *c) {
       if (c->io_SRamCtrl_ramOut_nlb != 1) {
         mask |= 0x00ff;
       }
-      //printf("DEBUG EXTADD: %d\n", address);
       ram_buf[address] &= ~mask;
       ram_buf[address] |= mask & ((unsigned long int) c->io_SRamCtrl_ramOut_dout);
     }
@@ -724,6 +683,7 @@ static void usage(ostream &out, const char *name) {
 static void help(ostream &out) {
   out << endl << "Options:" << endl
       << "  -h            Print this help" << endl
+      << "  -i            Initialize memory with random values" << endl
       << "  -l <N>        Stop after <N> cycles" << endl
       << "  -v            Dump wave forms file \"Patmos.vcd\"" << endl
       << "  -O <file>     Write output from UART to file <file>" << endl
@@ -748,6 +708,8 @@ int main(int argc, char **argv, char **env)
       case 'l':
         limit = atoi(optarg);
         break;
+      case 'i':
+        emu->init_extmem();
       case 'O':
         emu->UART_to_file(optarg);
         break;
@@ -765,12 +727,11 @@ int main(int argc, char **argv, char **env)
   
   emu->reset(1);
   emu->tick();
-  emu->UART_init(); // do this from config
-  emu->UART_write("TEST");//fix this
+  emu->UART_init();
 
   val_t entry = 0;
   if (optind < argc)
-  { //CHANGE TO LOOK FOR ARGUMENTS AND USE ELF
+  {
     ifstream *fs = new ifstream(argv[optind]);
     if (!fs->good())
     {
