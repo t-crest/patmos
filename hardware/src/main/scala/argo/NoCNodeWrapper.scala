@@ -111,5 +111,5 @@ class NoCNodeWrapper(argoConf: ArgoConfig, master: Boolean) extends BlackBox {
     setVerilogParameters("#(.MASTER(" + 1 + "))")
   } else {
     setVerilogParameters("#(.MASTER(" + 0 + "))")
-  }
+  }*/
 }
