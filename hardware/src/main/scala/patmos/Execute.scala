@@ -78,11 +78,11 @@ class Execute() extends Module {
   }
 
   // data forwarding
-  val fwReg  = Vec(2*PIPE_COUNT, Reg(UInt(width = 3)))
-  val fwSrcReg  = Vec(2*PIPE_COUNT, Reg(UInt(width = log2Up(PIPE_COUNT))))
-  val memResultDataReg = Vec(PIPE_COUNT, Reg(UInt(width = DATA_WIDTH)))
-  val exResultDataReg  = Vec(PIPE_COUNT, Reg(UInt(width = DATA_WIDTH)))
-  val op = Vec(2*PIPE_COUNT, UInt(width = DATA_WIDTH))
+  val fwReg  = Wire(Vec(2*PIPE_COUNT, Reg(UInt(width = 3))))
+  val fwSrcReg  = Wire(Vec(2*PIPE_COUNT, Reg(UInt(width = log2Up(PIPE_COUNT)))))
+  val memResultDataReg = Wire(Vec(PIPE_COUNT, Reg(UInt(width = DATA_WIDTH))))
+  val exResultDataReg  = Wire(Vec(PIPE_COUNT, Reg(UInt(width = DATA_WIDTH))))
+  val op = Wire(Vec(2*PIPE_COUNT, UInt(width = DATA_WIDTH)))
 
   // precompute forwarding
   for (i <- 0 until 2*PIPE_COUNT) {
@@ -129,9 +129,9 @@ class Execute() extends Module {
   }
 
   // predicates
-  val predReg = Vec(PRED_COUNT, Reg(Bool()))
+  val predReg = Wire(Vec(PRED_COUNT, Reg(Bool())))
 
-  val doExecute = Vec(PIPE_COUNT, Bool())
+  val doExecute = Wire(Vec(PIPE_COUNT, Bool()))
   for (i <- 0 until PIPE_COUNT) {
     doExecute(i) := Mux(io.flush, Bool(false),
                         predReg(exReg.pred(i)(PRED_BITS-1, 0)) ^ exReg.pred(i)(PRED_BITS))
@@ -258,7 +258,7 @@ class Execute() extends Module {
         }
       }
     }
-    val mfsResult = UInt();
+    val mfsResult = Wire(UInt())
     mfsResult := UInt(0, DATA_WIDTH)
     switch(exReg.aluOp(i).func) {
       is(SPEC_FL) {
