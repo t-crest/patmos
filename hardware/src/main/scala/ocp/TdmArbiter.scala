@@ -25,10 +25,10 @@ class TdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) ext
   val burstCntReg = Reg(init = UInt(0, log2Up(burstLen)))
   val period = cnt * (burstLen + 2)
   val slotLen = burstLen + 2
-  val cpuSlot = Vec.fill(cnt){Reg(init = UInt(0, width=1))}
+  val cpuSlot = RegInit(Vec.fill(cnt){UInt(0, width=1)})
 
   val sIdle :: sRead :: sWrite :: Nil = Enum(UInt(), 3)
-  val stateReg = Vec.fill(cnt){Reg(init = sIdle)}
+  val stateReg = RegInit(Vec.fill(cnt){sIdle})
 
   debug(cntReg)
   debug(cpuSlot(0))
