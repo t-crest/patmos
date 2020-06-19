@@ -99,7 +99,8 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
   exc.io.memexc <> memory.io.exc
 
   // Connect data cache
-  dcache.io.master <> memory.io.globalInOut
+  dcache.io.master.M <> memory.io.globalInOut.M
+  dcache.io.master.S <> memory.io.globalInOut.S
 
   // Merge OCP ports from data caches and method cache
   val burstBus = Module(new OcpBurstBus(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
@@ -117,7 +118,8 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
   val mmu = Module(if (HAS_MMU) new MemoryManagement() else new NoMemoryManagement())
   mmu.io.exec <> selICache
   mmu.io.ctrl <> io.mmuInOut
-  mmu.io.virt <> burstBus.io.master
+  mmu.io.virt.M <> burstBus.io.master.M
+  mmu.io.virt.S <> burstBus.io.master.S
 
   // Enable signals for memory stage, method cache and stack cache
   memory.io.ena_in := icache.io.ena_out && !dcache.io.scIO.stall
@@ -419,7 +421,8 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   // TODO: fix memory arbiter to have configurable memory timing.
   // E.g., it does not work with on-chip main memory.
   if (cores.length == 1) {
-    ramCtrl.io.ocp <> cores(0).io.memPort
+    ramCtrl.io.ocp.M <> cores(0).io.memPort.M
+    ramCtrl.io.ocp.S <> cores(0).io.memPort.S
   } else {
     val memarbiter = Module(new ocp.TdmArbiterWrapper(nrCores, ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
     for (i <- (0 until cores.length)) {

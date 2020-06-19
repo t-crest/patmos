@@ -241,7 +241,8 @@ class OcpBurstBus(addrWidth : Int, dataWidth : Int, burstLen : Int) extends Modu
     val master = new OcpBurstMasterPort(addrWidth, dataWidth, burstLen)
     val slave = new OcpBurstSlavePort(addrWidth, dataWidth, burstLen)
   })
-  io.master <> io.slave
+  io.master.M <> io.slave.M
+  io.master.S <> io.slave.S
 }
 
 // Buffer a burst for pipelining
