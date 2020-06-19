@@ -460,6 +460,7 @@ object PatmosMain {
     val binFile = args(1)
     val datFile = args(2)
 
+    Config.loadConfig(configFile)
     chiselMain(chiselArgs, () => Module(new Patmos(configFile, binFile, datFile))) //{ f => new PatmosTest(f) }
   }
 }
