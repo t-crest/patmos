@@ -7,19 +7,8 @@ NOTES ON STUFF MISSING FROM THE OLD EMULATOR
   but i haven't found a way to get signal width from verilator.
 
 */
+#include "emulator_config.h"
 
-//HARDCODED FROM emulator_config
-#define CORE_COUNT 1
-#define ICACHE_METHOD
-#define IO_UART
-#define IO_LEDS
-#define IO_KEYS
-#define IO_TIMER
-#define IO_DEADLINE
-#define EXTMEM_SRAMCTRL
-
-#define EXTMEM_ADDR_BITS 20
-//HARDCODED FROM emulator_config
 
 //OTHER INTEMEDIATE HARDCODE
 
@@ -201,10 +190,10 @@ public:
   bool done(void) { return (Verilated::gotFinish()); }
 
   // UART methods below
-  void UART_init(int set_baudrate, int set_freq)
+  void UART_init()
   {
-    baudrate = set_baudrate;
-    freq = set_freq;
+    baudrate = BAUDRATE;
+    freq = FREQ;
     UART_on = true;
   }
 
@@ -776,7 +765,7 @@ int main(int argc, char **argv, char **env)
   
   emu->reset(1);
   emu->tick();
-  emu->UART_init(115200, 80000000); // do this from config
+  emu->UART_init(); // do this from config
   emu->UART_write("TEST");//fix this
 
   val_t entry = 0;
