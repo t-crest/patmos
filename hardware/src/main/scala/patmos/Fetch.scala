@@ -98,12 +98,12 @@ class Fetch(fileName : String) extends Module {
 
   val pc_cont = Mux(b_valid, pcReg + UInt(2), pcReg + UInt(1))
   val pc_next =
-    Mux(io.memfe.doCallRet, io.icachefe.relPc.toUInt,
+    Mux(io.memfe.doCallRet, io.icachefe.relPc.asUInt,
             Mux(io.exfe.doBranch, io.exfe.branchPc,
                 pc_cont))
   val pc_cont2 = Mux(b_valid, pcReg + UInt(4), pcReg + UInt(3))
   val pc_next2 =
-    Mux(io.memfe.doCallRet, io.icachefe.relPc.toUInt + UInt(2),
+    Mux(io.memfe.doCallRet, io.icachefe.relPc.asUInt + UInt(2),
         Mux(io.exfe.doBranch, io.exfe.branchPc + UInt(2),
             pc_cont2))
 
@@ -111,8 +111,8 @@ class Fetch(fileName : String) extends Module {
   addrEven := addrEvenReg
   addrOdd := addrOddReg
   when(io.ena && !reset) {
-    addrEven := Cat((pc_inc)(PC_SIZE - 1, 1), UInt(0)).toUInt
-    addrOdd := Cat((pc_next)(PC_SIZE - 1, 1), UInt(1)).toUInt
+    addrEven := Cat((pc_inc)(PC_SIZE - 1, 1), UInt(0)).asUInt
+    addrOdd := Cat((pc_next)(PC_SIZE - 1, 1), UInt(1)).asUInt
     pcReg := pc_next
   }
 
