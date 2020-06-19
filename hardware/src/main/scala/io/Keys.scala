@@ -25,12 +25,12 @@ object Keys extends DeviceObject {
 
 class Keys(keyCount : Int) extends CoreDevice() {
 
-  override val io = new CoreDeviceIO() with patmos.HasPins with patmos.HasInterrupts {
+  override val io = IO(new CoreDeviceIO() with patmos.HasPins with patmos.HasInterrupts {
     override val pins = new Bundle() {
       val key = Bits(INPUT, keyCount)
     }
-    override val interrupts = Vec.fill(keyCount) { Bool(OUTPUT) }
-  }
+    override val interrupts = Vec(keyCount, Bool(OUTPUT) )
+  })
 
   val keySyncReg = Reg(Bits(width = keyCount))
   val keyReg = Reg(Bits(width = keyCount))

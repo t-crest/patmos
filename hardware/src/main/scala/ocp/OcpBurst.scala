@@ -139,10 +139,11 @@ class OcpBurstBridge(master : OcpCacheMasterPort, slave : OcpBurstSlavePort) {
 
 // Join two OcpBurst ports, assume no collisions between requests
 class OcpBurstJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort,
-                   joined : OcpBurstSlavePort, selectLeft : Bool = Bool()) {
+                   joined : OcpBurstSlavePort, selectLeft : Bool = Wire(Bool())) {
 
   val selRightReg = Reg(Bool())
-  val selRight = Mux(left.M.Cmd =/= OcpCmd.IDLE, Bool(false),
+  val selRight = Wire(Bool())
+  selRight := Mux(left.M.Cmd =/= OcpCmd.IDLE, Bool(false),
                      Mux(right.M.Cmd =/= OcpCmd.IDLE, Bool(true),
                          selRightReg))
 
