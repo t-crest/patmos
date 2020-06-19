@@ -19,7 +19,7 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
     val slave = new OcpBurstMasterPort(addrWidth, dataWidth, burstLen)
     val node = UInt(INPUT, 6)
   })
-  debug(io.master)
+  debug(io.master) 
   debug(io.slave)
   debug(io.node)
   
@@ -45,7 +45,7 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
   val sIdle :: sRead :: sWrite :: Nil = Enum(UInt(), 3)
   val stateReg = Reg(init = sIdle)
 
-  debug(cntReg)
+  debug(cntReg) 
   for(i <- (0 until cnt))
     debug(cpuSlot(i))
     
@@ -56,7 +56,7 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
   cntReg := Mux(cntReg === UInt(period - 1), UInt(0), cntReg + UInt(1))
   
   def slotTable(i: Int): UInt = {
-    (cntReg === UInt(i*slotLen)).toUInt
+    (cntReg === UInt(i*slotLen)).asUInt
   }
   
   for (i <- 0 until cnt){

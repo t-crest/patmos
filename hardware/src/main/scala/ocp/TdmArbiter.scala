@@ -42,7 +42,7 @@ class TdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) ext
 
   // Generater the slot Table for the whole period
   def slotTable(i: Int): UInt = {
-    (cntReg === UInt(i*slotLen)).toUInt
+    (cntReg === UInt(i*slotLen)).asUInt
   }
 
   for(i <- 0 until cnt) {

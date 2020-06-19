@@ -50,17 +50,17 @@ class RegisterFile() extends Module {
   // register R0 are disabled in decode stage anyway
   for (k <- (0 until PIPE_COUNT).reverse) {
     when(io.rfWrite(k).valid) {
-      rf(io.rfWrite(k).addr.toUInt) := io.rfWrite(k).data
+      rf(io.rfWrite(k).addr.asUInt) := io.rfWrite(k).data
     }
   }
 
   // Signal for debugging register values - Chisel3: wierdly gave errors in chisel3 as it was used for debugging it has been commented out
-  /*val rfDebug = Vec(REG_COUNT, Reg(UInt(width = DATA_WIDTH)))
+  val rfDebug = Vec(REG_COUNT, Reg(UInt(width = DATA_WIDTH)))
   for(i <- 0 until REG_COUNT) {
     rfDebug(i) := rf(UInt(i))
     // Keep signal alive
-    //if(Driver.isVCD){
-    debug(rfDebug(i))
-    //}
-  }*/
+    if(Driver.isVCD){
+    debug(rfDebug(i)) 
+    }
+  }
 }
