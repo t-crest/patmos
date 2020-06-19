@@ -461,7 +461,7 @@ object PatmosMain {
     val configFile = args(0)
     val binFile = args(1)
     val datFile = args(2)
-
+    new java.io.File("build/").mkdirs // build dir is created
     Config.loadConfig(configFile)
     chiselMain(chiselArgs, () => Module(new Patmos(configFile, binFile, datFile))) //{ f => new PatmosTest(f) }
   }
