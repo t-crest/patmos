@@ -75,7 +75,7 @@ class Sha256() extends CoreDevice() {
   ))
 
   // The hash value
-  val hash = Vec.fill(HASH_WORD_COUNT) { Reg(UInt(width = DATA_WIDTH)) }
+  val hash = Reg(Vec(HASH_WORD_COUNT, UInt(width = DATA_WIDTH)))
 
   // Temporary registers
   val a = Reg(UInt(width = DATA_WIDTH))
@@ -139,7 +139,7 @@ class Sha256() extends CoreDevice() {
   // On-the-fly expansion of working memory
   // See Chavez et al., "Improving SHA-2 Hardware Implementations", CHES 2006
   val w0 = UInt(width = DATA_WIDTH)
-  val wt = Vec.fill(13) { Reg(UInt(width = DATA_WIDTH)) }
+  val wt = Reg(Vec(13, UInt(width = DATA_WIDTH)))
   val wx = Reg(UInt(width = DATA_WIDTH))
   val wy = Reg(UInt(width = DATA_WIDTH))
   val wz = Reg(UInt(width = DATA_WIDTH))

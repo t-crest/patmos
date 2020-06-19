@@ -19,9 +19,9 @@ class RegisterFile() extends Module {
 
   // We are registering the inputs here, similar as it would
   // be with an on-chip memory for the register file
-  val addrReg = Wire(Vec(2*PIPE_COUNT, Reg(UInt(width=REG_BITS))))
-  val wrReg   = Wire(Vec(PIPE_COUNT, Reg(new Result())))
-  val fwReg   = Wire(Vec(2*PIPE_COUNT, Vec(PIPE_COUNT, Reg(Bool()))))
+  val addrReg = Reg(Vec(2*PIPE_COUNT, UInt(width=REG_BITS)))
+  val wrReg   = Reg(Vec(PIPE_COUNT, new Result()))
+  val fwReg   = Reg(Vec(2*PIPE_COUNT, Vec(PIPE_COUNT, Bool())))
 
   when (io.ena) {
     addrReg := io.rfRead.rsAddr

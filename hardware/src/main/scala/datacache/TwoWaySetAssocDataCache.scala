@@ -41,9 +41,9 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends Module {
   // Generate memories
   val tagMem1 = MemBlock(tagCount, tagWidth)
   val tagMem2 = MemBlock(tagCount, tagWidth)
-  val tagVMem1 = Vec.fill(tagCount) { Reg(init = Bool(false)) }
-  val tagVMem2 = Vec.fill(tagCount) { Reg(init = Bool(false)) }
-  val lruMem = Vec.fill(size / 2/ BYTES_PER_WORD) { Reg(init = Bool(false)) } // if 0 use first way to replace if 1 use second way
+  val tagVMem1 = RegInit(Vec.fill(tagCount) { Bool(false) })
+  val tagVMem2 = RegInit(Vec.fill(tagCount) { Bool(false) })
+  val lruMem = RegInit(Vec.fill(size / 2/ BYTES_PER_WORD) { Bool(false) }) // if 0 use first way to replace if 1 use second way
   val mem1 = new Array[MemBlockIO](BYTES_PER_WORD)
   val mem2 = new Array[MemBlockIO](BYTES_PER_WORD)
   for (i <- 0 until BYTES_PER_WORD) {

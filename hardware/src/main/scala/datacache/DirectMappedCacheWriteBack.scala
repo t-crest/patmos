@@ -57,8 +57,8 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends Module {
 
   // Generate memories
   val tagMem = MemBlock(tagCount, tagWidth)
-  val tagVMem = Vec.fill(tagCount) { Reg(init = Bool(false)) }
-  val dirtyMem = Vec.fill(tagCount) { Reg(init = Bool(false)) }
+  val tagVMem = RegInit(Vec.fill(tagCount) { Bool(false)})
+  val dirtyMem = RegInit(Vec.fill(tagCount) { Bool(false)})
   val mem = new Array[MemBlockIO](BYTES_PER_WORD)
   for (i <- 0 until BYTES_PER_WORD) {
     mem(i) = MemBlock(size / BYTES_PER_WORD, BYTE_WIDTH).io

@@ -57,7 +57,7 @@ class PerfCounters() extends CoreDevice() {
   inputVec(8) := io.perf.mem.read
   inputVec(9) := io.perf.mem.write
 
-  val counterVec = Vec.fill(PERFCOUNTER_COUNT) { Reg(init = UInt(0, width = DATA_WIDTH)) }
+  val counterVec = RegInit(Vec.fill(PERFCOUNTER_COUNT) { UInt(0, width = DATA_WIDTH) })
   for (i <- 0 until PERFCOUNTER_COUNT) {
     when (inputVec(i)) {
       counterVec(i) := counterVec(i) + UInt(1)

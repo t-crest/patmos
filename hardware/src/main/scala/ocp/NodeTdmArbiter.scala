@@ -40,7 +40,7 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
   
   // MS: merge rdCntReg and wrCntReg and let it count till slot length
  
-  val cpuSlot = Vec.fill(cnt){Reg(init = UInt(0, width=1))}
+  val cpuSlot = RegInit(Vec.fill(cnt){UInt(0, width=1)})
 
   val sIdle :: sRead :: sWrite :: Nil = Enum(UInt(), 3)
   val stateReg = Reg(init = sIdle)
@@ -180,11 +180,11 @@ class MemMuxIntf(nr: Int, addrWidth : Int, dataWidth : Int, burstLen: Int) exten
     // MS: would like pipeline number configurable
     
     // 1st stage pipeline registers for inputs 
-    val mCmd_p1_Reg         = Vec.fill(nr){Reg(init=UInt(0, width=3))}
-    val mAddr_p1_Reg        = Vec.fill(nr){Reg(UInt(width=addrWidth))}
-    val mData_p1_Reg        = Vec.fill(nr){Reg(UInt(width=dataWidth))}
-    val mDataByteEn_p1_Reg  = Vec.fill(nr){Reg(UInt(width=dataWidth/8))}
-    val mDataValid_p1_Reg   = Vec.fill(nr){Reg(UInt(width=1))}
+    val mCmd_p1_Reg         = RegInit(Vec.fill(nr){UInt(0, width=3)})
+    val mAddr_p1_Reg        = Reg(Vec(nr, UInt(width=addrWidth)))
+    val mData_p1_Reg        = Reg(Vec(nr, UInt(width=dataWidth)))
+    val mDataByteEn_p1_Reg  = Reg(Vec(nr, UInt(width=dataWidth/8)))
+    val mDataValid_p1_Reg   = Reg(Vec(nr, UInt(width=1)))
 
     // 2st stage pipeline registers for inputs
     // MS: what about using the whole bundle as a single signal?

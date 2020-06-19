@@ -81,8 +81,8 @@ class QdrIIplusCtrl(ocpAddrWidth   : Int,
 
   // Internal Registers
   val mAddrReg         = Reg(Bits(width = ramAddrWidth))
-  val rdBufferReg      = Vec.fill(TRANSPERCMD){ Reg(Bits(width = ramDataWidth)) }
-  val wrBufferReg      = Vec.fill(TRANSPERCMD){ Reg(new Trans(BYTESPERTRAN, ramDataWidth)) }
+  val rdBufferReg      = Reg(Vec(TRANSPERCMD, Bits(width = ramDataWidth)))
+  val wrBufferReg      = Reg(Vec(TRANSPERCMD, new Trans(BYTESPERTRAN, ramDataWidth)))
   val transCountReg    = Reg(init = UInt(0, width = log2upNew(TRANSPERCMD)))
   val subTransCountReg = Reg(init = UInt(0, width = log2upNew(TRANSPERSEL)))
   val wordCountReg     = Reg(init = UInt(0, width = log2upNew(ocpBurstLen)))
@@ -92,8 +92,8 @@ class QdrIIplusCtrl(ocpAddrWidth   : Int,
   val addrReg = Reg(Bits(width = ramAddrWidth))
   val nrpsReg = Reg(Bits(width = 1))
   val nwpsReg = Reg(Bits(width = 1))
-  val nbwsReg = Vec.fill(2) { Reg(Bits(width = BYTESPERTRAN)) }
-  val doutReg = Vec.fill(2) { Reg(Bits(width = ramDataWidth)) }
+  val nbwsReg = Reg(Vec(2, Bits(width = BYTESPERTRAN)))
+  val doutReg = Reg(Vec(2, Bits(width = ramDataWidth)))
 
   // Default values for ocp io.ocp.S port
   io.ocp.S.Resp := OcpResp.NULL
