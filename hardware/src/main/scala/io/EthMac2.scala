@@ -85,7 +85,7 @@ class EthMac2BB(extAddrWidth : Int = 32, dataWidth : Int = 32) extends BlackBox 
 
   throw new Error("BlackBox wrapper for EthMac2 needs update for Chisel 3")
   // rename component
-  //should be commented out when chisel3 is used
+  /*should be commented out when chisel3 is used
   setModuleName("eth_controller_top")
 
   // rename signals
@@ -117,6 +117,7 @@ class EthMac2BB(extAddrWidth : Int = 32, dataWidth : Int = 32) extends BlackBox 
   
   // set Verilog parameters
   setVerilogParameters("#(.BUFF_ADDR_WIDTH("+extAddrWidth+"))")
+  */
   // keep some sigals for emulation
   debug(io.M.Cmd)
   debug(io.M.Addr)
