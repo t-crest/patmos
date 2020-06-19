@@ -224,7 +224,7 @@ class QdrIIplusCtrl(ocpAddrWidth   : Int,
     val data = Bits(width = dataWidth)
 
     // This does not really clone, but Data.clone doesn't either
-    override def clone() = {
+    override def cloneType() = {
       val res = new Trans(bytesEnaWidth, dataWidth)
       res.asInstanceOf[this.type]
     }
