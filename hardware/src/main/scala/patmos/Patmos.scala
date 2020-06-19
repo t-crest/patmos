@@ -63,9 +63,9 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
 
   //connect icache
   icache.io.feicache <> fetch.io.feicache
-  icache.io.icachefe <> fetch.io.icachefe
+  fetch.io.icachefe <> icache.io.icachefe
   icache.io.exicache <> execute.io.exicache
-  icache.io.illMem <> memory.io.icacheIllMem
+  memory.io.icacheIllMem <> icache.io.illMem
 
   decode.io.fedec <> fetch.io.fedec
   execute.io.decex <> decode.io.decex
@@ -79,28 +79,28 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
   execute.io.memResult <> writeback.io.memResult
 
   // Connect stack cache
-  execute.io.exsc <> dcache.io.scIO.exsc
-  dcache.io.scIO.scex <> execute.io.scex
-  dcache.io.scIO.illMem <> memory.io.scacheIllMem
+  dcache.io.scIO.exsc <> execute.io.exsc
+  execute.io.scex <> dcache.io.scIO.scex
+  memory.io.scacheIllMem <> dcache.io.scIO.illMem
 
   // We branch in EX
   fetch.io.exfe <> execute.io.exfe
   // We call in MEM
   fetch.io.memfe <> memory.io.memfe
   // We store the return base in EX (in cycle corresponding to MEM)
-  fetch.io.feex <> execute.io.feex
+  execute.io.feex <> fetch.io.feex
 
-  memory.io.localInOut <> io.memInOut
+  io.memInOut <> memory.io.localInOut
 
   // Connect exception unit
-  exc.io.ocp <> io.excInOut
+  io.excInOut <> exc.io.ocp
   exc.io.intrs <> io.interrupts
-  exc.io.excdec <> decode.io.exc
+  decode.io.exc <> exc.io.excdec
   exc.io.memexc <> memory.io.exc
 
   // Connect data cache
   dcache.io.master.M <> memory.io.globalInOut.M
-  dcache.io.master.S <> memory.io.globalInOut.S
+  memory.io.globalInOut.S <> dcache.io.master.S
 
   // Merge OCP ports from data caches and method cache
   val burstBus = Module(new OcpBurstBus(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
@@ -117,9 +117,9 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
 
   val mmu = Module(if (HAS_MMU) new MemoryManagement() else new NoMemoryManagement())
   mmu.io.exec <> selICache
-  mmu.io.ctrl <> io.mmuInOut
+  io.mmuInOut <> mmu.io.ctrl
   mmu.io.virt.M <> burstBus.io.master.M
-  mmu.io.virt.S <> burstBus.io.master.S
+  burstBus.io.master.S <> mmu.io.virt.S
 
   // Enable signals for memory stage, method cache and stack cache
   memory.io.ena_in := icache.io.ena_out && !dcache.io.scIO.stall
@@ -422,7 +422,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   // E.g., it does not work with on-chip main memory.
   if (cores.length == 1) {
     ramCtrl.io.ocp.M <> cores(0).io.memPort.M
-    ramCtrl.io.ocp.S <> cores(0).io.memPort.S
+    cores(0).io.memPort.S <> ramCtrl.io.ocp.S
   } else {
     val memarbiter = Module(new ocp.TdmArbiterWrapper(nrCores, ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
     for (i <- (0 until cores.length)) {
