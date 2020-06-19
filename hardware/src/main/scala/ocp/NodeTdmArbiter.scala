@@ -196,11 +196,13 @@ class MemMuxIntf(nr: Int, addrWidth : Int, dataWidth : Int, burstLen: Int) exten
     val mDataValid_p2_Reg   = Reg(UInt(width=1))
     
     // Pipeline registers default to 0
-    mCmd_p1_Reg         := UInt(0)
-    mAddr_p1_Reg        := UInt(0)
-    mData_p1_Reg        := UInt(0)
-    mDataByteEn_p1_Reg  := UInt(0)
-    mDataValid_p1_Reg   := UInt(0)
+    for(i <- 0 until nr){
+      mCmd_p1_Reg(i)         := 0.U
+      mAddr_p1_Reg(i)        := 0.U
+      mData_p1_Reg(i)        := 0.U
+      mDataByteEn_p1_Reg(i)  := 0.U
+      mDataValid_p1_Reg(i)   := 0.U
+    }
     
     // 1st stage pipeline of the input
     for (i <- 0 until nr){
