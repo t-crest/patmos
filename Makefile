@@ -41,7 +41,6 @@ BOARD?=altde2-115
 # Where to put elf files and binaries
 BUILDDIR?=$(CURDIR)/tmp
 # Build directories for various tools
-SIMBUILDDIR?=$(CURDIR)/simulator/build
 CTOOLSBUILDDIR?=$(CURDIR)/tools/c/build
 JAVATOOLSBUILDDIR?=$(CURDIR)/tools/java/build
 SCRIPTSBUILDDIR?=$(CURDIR)/tools/scripts/build
@@ -53,15 +52,7 @@ HWINSTALLDIR?=$(INSTALLDIR)
 all: tools emulator patmos
 
 
-tools: patsim elf2bin javatools scripttools
-
-# Build simulator and assembler
-patsim:
-	-mkdir -p $(SIMBUILDDIR)
-	cd $(SIMBUILDDIR) && cmake ..
-	cd $(SIMBUILDDIR) && make
-	-mkdir -p $(INSTALLDIR)/bin
-	cp $(SIMBUILDDIR)/src/pa* $(INSTALLDIR)/bin
+tools: elf2bin javatools scripttools
 
 # Build tool to transform elf to binary
 elf2bin:
@@ -174,11 +165,9 @@ test_compile:
 	make clean
 	make emulator
 
-test_sim: patsim
-	cd $(SIMBUILDDIR) && make test
 test_emu:
 	testsuite/run.sh
-.PHONY: test test_sim test_emu
+.PHONY: test test_emu
 
 # Build documentation
 doc:
@@ -251,9 +240,6 @@ clean: mostlyclean
 	-find `ls` -name db -print -exec rm -r -f {} \;
 	-find `ls` -name incremental_db -print -exec rm -r -f {} \;
 	-find `ls` -name patmos_description.txt -print -exec rm -r -f {} \;
-
-veryclean: clean
-	-rm -rf $(SIMBUILDDIR)
 
 # Dummy target to force the execution of recipies for things that are not really phony
 .FORCE:
