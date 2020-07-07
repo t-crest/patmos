@@ -57,7 +57,7 @@ static SimpleTTETask schedule[NO_TASKS] = {
 		.period = 10000000,
 		.release_times = (unsigned long long[]){0},
 		.release_inst = 0,
-		.nr_releases = 2,
+		.nr_releases = 1,
 		.last_time = 0,
 		.delta_sum = 0,
 		.exec_count = 0,
@@ -65,7 +65,7 @@ static SimpleTTETask schedule[NO_TASKS] = {
 	},
 	{
 		.period = 5000000,
-		.release_times = (unsigned long long[]){126263, 5126263},
+		.release_times = (unsigned long long[]) {229025, 5229025},
 		.release_inst = 0,
 		.nr_releases = 2,
 		.last_time = 0,
@@ -89,7 +89,7 @@ __attribute__((noinline))
 unsigned long long get_tte_aligned_time(unsigned long long current_time)
 {
 	long long clock_corr = (((TTE_SYNC_Kp*clkDiff)>>10) 
-                        + ((TTE_SYNC_Ki*clkDiffSum)>>10));
+                         + ((TTE_SYNC_Ki*clkDiffSum)>>10));
 	#ifdef TIME_CORRECTION_EN
 	return (unsigned long long) ((long long) current_time + clock_corr);
 	#else
@@ -153,7 +153,7 @@ void task_sync(unsigned long long start_time, unsigned long long schedule_time, 
 {
 	GPIO |= (1U << SYNCTASK_GPIO_BIT);
 	int ethFrameType;
-	PTP_RXCHAN_STATUS(thisPtpPortInfo.eth_base) = 0x1; //Clear PTP timestampAvail flag
+	PTP_RXCHAN_STATUS(thisPtpPortInfo.eth_base) = 0x1; //Clear timestampAvail flag
 	unsigned long long listen_start = get_cpu_usecs(); //keep track when we started listening
 	#pragma loopbound min 1 max 1
 	do
@@ -198,9 +198,10 @@ void task_sync(unsigned long long start_time, unsigned long long schedule_time, 
 	}
 	for(int i=0; i<NO_TASKS; i++)
 	{
-		tasks[i].release_times[tasks[i].release_inst] = get_tte_aligned_time(tasks[i].release_times[tasks[i].release_inst]);
+		#pragma loopbound min 1 max 2
+		for(int n=tasks[i].release_inst; n<tasks[i].nr_releases; n++)
+			tasks[i].release_times[n] = get_tte_aligned_time(tasks[i].release_times[n]);
 	}
-	// printSegmentInt(abs(clkDiff));
 	LEDS = (nodeSyncStable << 7) + (nodeIntegrated << 6) + (ethFrameType & 0xF);
 	GPIO &= (0U << SYNCTASK_GPIO_BIT);
 }
@@ -292,7 +293,7 @@ void cyclic_executive_loop(SimpleTTETask* schedule){
 
 int main(int argc, char **argv){
 	LEDS = GPIO = 0x1FF;
-	puts("\nTTEthernet Ping Demo Started");
+	puts("\nTTECPS Sensor Node Started");
 
 	//MAC controller settings
 	set_mac_address(0x1D000400, 0x00000289);

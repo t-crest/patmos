@@ -63,7 +63,7 @@ typedef struct
 
 typedef struct{
    iphead_t ip_head;
-   unsigned char* payload;
+   unsigned char* data;
 } ip_t;
 
 

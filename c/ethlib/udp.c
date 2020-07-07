@@ -92,6 +92,34 @@ unsigned char udp_get_data(unsigned int pkt_addr, unsigned char data[], unsigned
 	return 1;
 }
 
+void udp_build_packet(udp_t *packet, unsigned char src_ip[4], unsigned char dst_ip[4], unsigned short src_port, unsigned short dst_port, unsigned char* data, unsigned short data_length)
+{
+	packet->ip_head.ver_headlen = 0x45;
+    packet->ip_head.dscp_ecn = 0x00;
+    packet->ip_head.length = 20 + sizeof(udphead_t) + data_length;
+    packet->ip_head.identification = ipv4_id;
+    packet->ip_head.flags_fragmentoff = 0x4000;
+    packet->ip_head.ttl = 0x40;
+    packet->ip_head.protocol = 0x11;
+    packet->ip_head.head_checksum = 0x0;
+    packet->ip_head.source_ip[0] = src_ip[0];
+    packet->ip_head.source_ip[1] = src_ip[1];
+    packet->ip_head.source_ip[2] = src_ip[2];
+    packet->ip_head.source_ip[3] = src_ip[3];
+    packet->ip_head.destination_ip[0] = dst_ip[0];
+    packet->ip_head.destination_ip[1] = dst_ip[1];
+    packet->ip_head.destination_ip[2] = dst_ip[2];
+    packet->ip_head.destination_ip[3] = dst_ip[3];
+	packet->udp_head.source_port = src_port;
+	packet->udp_head.destination_port = dst_port;
+    packet->udp_head.data_length = data_length;
+    packet->udp_head.checksum = 0x0;
+    for(int i=0; i<data_length; i+=1)
+    {
+        packet->data[i] = data[i];
+    }
+}
+
 ///////////////////////////////////////////////////////////////
 //Support functions related to the UDP protocol
 ///////////////////////////////////////////////////////////////
