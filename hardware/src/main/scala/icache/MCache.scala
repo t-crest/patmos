@@ -88,17 +88,17 @@ class MCache() extends Module {
   //val repl = Module(new MCacheReplFifo2())
   val mem = Module(new MCacheMem())
   //connect inputs to method cache ctrl unit
-  ctrl.io.ctrlrepl <> repl.io.ctrlrepl
+  repl.io.ctrlrepl <> ctrl.io.ctrlrepl
   ctrl.io.femcache <> io.feicache
   ctrl.io.exmcache <> io.exicache
-  ctrl.io.ocp_port <> io.ocp_port
+  io.ocp_port <> ctrl.io.ocp_port
   //connect inputs to method cache repl unit
   repl.io.exmcache <> io.exicache
-  repl.io.mcachefe <> io.icachefe
-  repl.io.replctrl <> ctrl.io.replctrl
-  repl.io.perf <> io.perf
+  io.icachefe <> repl.io.mcachefe
+  ctrl.io.replctrl <> repl.io.replctrl
+  io.perf <> repl.io.perf
   //connect repl to on chip memory
-  repl.io.memIn <> mem.io.memIn
+  mem.io.memIn <> repl.io.memIn
   repl.io.memOut <> mem.io.memOut
   //connect enables
   ctrl.io.ena_in <> io.ena_in
@@ -159,8 +159,8 @@ class MCacheReplFifo() extends Module {
   io.perf.miss := Bool(false)
 
   // hit detection
-  val hitVec = { Vec.fill(METHOD_COUNT) { Bool() } }
-  val mergePosVec = { Vec.fill(METHOD_COUNT) { UInt(width = MCACHE_SIZE_WIDTH) } }
+  val hitVec =  Wire(Vec(METHOD_COUNT, Bool() ))
+  val mergePosVec = Wire(Vec(METHOD_COUNT,  UInt(width = MCACHE_SIZE_WIDTH) ))
   for (i <- 0 until METHOD_COUNT) {
     hitVec(i) := Bool(false)
     mergePosVec(i) := UInt(0)
@@ -193,12 +193,12 @@ class MCacheReplFifo() extends Module {
   }
 
   val relBase = Mux(selCacheReg,
-                    posReg.toUInt,
+                    posReg.asUInt,
                     callRetBaseReg(ISPM_ONE_BIT-3, 0))
   val relPc = callAddrReg + relBase
 
   val reloc = Mux(selCacheReg,
-                  callRetBaseReg - posReg.toUInt,
+                  callRetBaseReg - posReg.asUInt,
                   Mux(selSpmReg,
                       UInt(1 << (ISPM_ONE_BIT - 2)),
                       UInt(0)))
@@ -208,7 +208,7 @@ class MCacheReplFifo() extends Module {
     hitReg := Bool(true) //start fetch, we have again a hit!
     wrPosReg := posReg
     //update free space
-    freeSpaceReg := freeSpaceReg - io.ctrlrepl.wData(MCACHE_SIZE_WIDTH,0).toSInt + sizeVec(nextIndexReg).toSInt
+    freeSpaceReg := freeSpaceReg - io.ctrlrepl.wData(MCACHE_SIZE_WIDTH,0).asSInt + sizeVec(nextIndexReg).asSInt
     //update tag fields
     posVec(nextIndexReg) := nextPosReg
     sizeVec(nextIndexReg) := io.ctrlrepl.wData(MCACHE_SIZE_WIDTH, 0)
@@ -224,7 +224,7 @@ class MCacheReplFifo() extends Module {
   }
   //free new space if still needed -> invalidate next method
   when (freeSpaceReg < SInt(0)) {
-    freeSpaceReg := freeSpaceReg + sizeVec(nextTagReg).toSInt
+    freeSpaceReg := freeSpaceReg + sizeVec(nextTagReg).asSInt
     sizeVec(nextTagReg) := UInt(0)
     validVec(nextTagReg) := Bool(false)
     nextTagReg := Mux(nextTagReg === UInt(METHOD_COUNT - 1), UInt(0), nextTagReg + UInt(1))

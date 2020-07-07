@@ -16,12 +16,12 @@ class NoCWrapper(argoConf: ArgoConfig) extends BlackBox {
       new SPMMasterPort(16, 2)
     }
   }
-  throw new Error("BlackBox wrapper for NoC needs update for Chisel 3")
-  /* Commented out to compile for Chisel3
+  //throw new Error("BlackBox wrapper for NoC needs update for Chisel 3")
+  // should be Commented out to compile for Chisel3
   setModuleName("noc_wrapper_2x2")
   addClock(Driver.implicitClock)
   renameClock("clk", "clk")
   renameReset("reset")
   io.supervisor.setName("supervisor")
-  io.irq.setName("irq")*/
+  io.irq.setName("irq")
 }

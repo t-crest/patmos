@@ -16,7 +16,7 @@ class OcpNISlaveSignals(dataWidth : Int)
   val Flag = UInt(width = 2)
 
   // This does not really clone, but Data.clone doesn't either
-  override def clone() = {
+  override def cloneType() = {
     val res = new OcpNISlaveSignals(dataWidth)
     res.asInstanceOf[this.type]
   }

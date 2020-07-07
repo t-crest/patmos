@@ -57,8 +57,8 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends Module {
 
   // Generate memories
   val tagMem = MemBlock(tagCount, tagWidth)
-  val tagVMem = Vec.fill(tagCount) { Reg(init = Bool(false)) }
-  val dirtyMem = Vec.fill(tagCount) { Reg(init = Bool(false)) }
+  val tagVMem = RegInit(Vec.fill(tagCount) { Bool(false)})
+  val dirtyMem = RegInit(Vec.fill(tagCount) { Bool(false)})
   val mem = new Array[MemBlockIO](BYTES_PER_WORD)
   for (i <- 0 until BYTES_PER_WORD) {
     mem(i) = MemBlock(size / BYTES_PER_WORD, BYTE_WIDTH).io
@@ -127,7 +127,7 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends Module {
   // Start handling a miss
   when(!tagValid && (masterReg.Cmd === OcpCmd.RD || masterReg.Cmd === OcpCmd.WR)) {
     tagVMem(masterReg.Addr(addrBits + 1, lineBits)) := Bool(true)
-    missIndexReg := masterReg.Addr(lineBits-1, 2).toUInt
+    missIndexReg := masterReg.Addr(lineBits-1, 2).asUInt
     memWrAddrReg := Cat(tag, masterReg.Addr(addrBits + 1, lineBits), Fill(lineBits, Bits(0)))
 
     // start writing back if block is dirty

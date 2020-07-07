@@ -39,10 +39,10 @@ class Exceptions extends Module {
   val sleepReg = RegInit(Bool(false))
 
   // Latches for incoming exceptions and interrupts
-  val excPend     = Vec(EXC_COUNT, Bool())
-  val excPendReg  = Vec(EXC_COUNT, RegInit(Bool(false)))
-  val intrPend    = Vec(EXC_COUNT, Bool())
-  val intrPendReg = Vec(EXC_COUNT, RegInit(Bool(false)))
+  val excPend     = Wire(Vec(EXC_COUNT, Bool()))
+  val excPendReg  = RegInit(Vec.fill(EXC_COUNT){Bool(false)})
+  val intrPend    = Wire(Vec(EXC_COUNT, Bool()))
+  val intrPendReg = RegInit(Vec.fill(EXC_COUNT) {Bool(false)})
   excPend := excPendReg
   intrPend := intrPendReg
 
@@ -103,8 +103,8 @@ class Exceptions extends Module {
     }
     when(masterReg.Addr(EXC_ADDR_WIDTH-1) === UInt("b1")) {
       checked {
-        vec(masterReg.Addr(EXC_ADDR_WIDTH-2, 2)) := masterReg.Data.toUInt
-        vecDup(masterReg.Addr(EXC_ADDR_WIDTH-2, 2)) := masterReg.Data.toUInt
+        vec(masterReg.Addr(EXC_ADDR_WIDTH-2, 2)) := masterReg.Data.asUInt
+        vecDup(masterReg.Addr(EXC_ADDR_WIDTH-2, 2)) := masterReg.Data.asUInt
       }
     }
   }

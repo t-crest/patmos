@@ -82,6 +82,9 @@ object EthMac extends DeviceObject {
 
 class EthMacBB(extAddrWidth : Int = 32, dataWidth : Int = 32) extends BlackBox {
   val io = new OcpCoreSlavePort(extAddrWidth, dataWidth) with EthMac.Pins
+  //throw new Error("BlackBox wrapper for EthMac needs update for Chisel 3")
+  //should be commented out when chisel3 is used
+
   // rename component
   // TODO: Commented out to compile for chisel3
   setModuleName("eth_controller_top")

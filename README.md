@@ -18,11 +18,12 @@ Several packages need to be installed.
 The following apt-get lists the packages that need to be
 installed on a Ubuntu Linux:
 
-```
-sudo apt install git openjdk-8-jdk gitk cmake make g++ texinfo flex bison \
-  subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby-full \
-  liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala
-```
+    sudo apt-get install git default-jdk gitk cmake make g++ texinfo flex bison \
+      subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby-full \
+      liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala autoconf libfl2
+
+On a restricted machine (e.g. Cloud9) the bare minimum is:
+
 
 Make sure to use Java 8 and remove any later Java version with ```sudo apt autoremove```.
 
@@ -45,6 +46,23 @@ to the compiler executables into your .bashrc or .profile:
 
 Use an absolute path as LLVM cannot handle a path relative to the
 home directory (~). Logout and login again to make your new PATH setting active.
+
+In order to build the c++ emulator of patmos, the verilator must be installed from their github repository. Verilator is installed like so:
+
+    git clone https://git.veripool.org/git/verilator
+    unsetenv VERILATOR_ROOT  # For csh; ignore error if on bash
+    unset VERILATOR_ROOT  # For bash
+    
+    cd verilator
+    git checkout v4.036-7-g369ce6af
+    git pull        # for good measure
+    autoconf        # Create ./configure script
+    ./configure
+    make
+    sudo make install
+
+    cd ..
+    sudo rm -r verilator/
 
 Patmos and the compiler can be checked out from GitHub and are built as follows:
 

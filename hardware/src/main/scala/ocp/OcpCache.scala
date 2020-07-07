@@ -21,7 +21,7 @@ class OcpCacheMasterSignals(addrWidth : Int, dataWidth : Int)
   val AddrSpace = UInt(width = 2)
 
   // This does not really clone, but Data.clone doesn't either
-  override def clone() = {
+  override def cloneType() = {
     val res = new OcpCacheMasterSignals(addrWidth, dataWidth)
     res.asInstanceOf[this.type]
   }

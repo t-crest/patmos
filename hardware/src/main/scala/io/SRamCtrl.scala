@@ -81,8 +81,8 @@ class SRamCtrl( ocpAddrWidth    : Int,
 
   // Internal Registers
   val mAddrReg = Reg(Bits(width = sramAddrWidth))
-  val rdBufferReg = Vec.fill(TRANSPERCMD){Reg(Bits(width=sramDataWidth))}
-  val wrBufferReg = Vec.fill(TRANSPERCMD){Reg(new Trans(BYTESPERTRAN,sramDataWidth))}
+  val rdBufferReg = Reg(Vec(TRANSPERCMD, Bits(width=sramDataWidth)))
+  val wrBufferReg = Reg(Vec(TRANSPERCMD, new Trans(BYTESPERTRAN,sramDataWidth)))
   val transCountReg = Reg(init = UInt(0,width=log2upNew(TRANSPERCMD)))
   val wordCountReg = Reg(init = UInt(0,width=log2upNew(ocpBurstLen)))
   val waitCountReg = Reg(init = UInt(0,width=log2upNew(writeWaitCycles+1)))
@@ -260,7 +260,7 @@ class SRamCtrl( ocpAddrWidth    : Int,
     val data = Bits(width=dataWidth)
 
     // This does not really clone, but Data.clone doesn't either
-    override def clone() = {
+    override def cloneType() = {
       val res = new Trans(bytesEnaWidth, dataWidth)
       res.asInstanceOf[this.type]
     }

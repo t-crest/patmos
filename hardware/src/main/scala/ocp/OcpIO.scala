@@ -15,7 +15,7 @@ class OcpIOMasterSignals(addrWidth: Int, dataWidth: Int)
   val RespAccept = UInt(width = 1)
 
   // This does not really clone, but Data.clone doesn't either
-  override def clone() = {
+  override def cloneType() = {
     val res = new OcpIOMasterSignals(addrWidth, dataWidth)
     res.asInstanceOf[this.type]
   }
@@ -27,21 +27,21 @@ class OcpIOSlaveSignals(dataWidth: Int)
   val CmdAccept = UInt(width = 1)
 
   // This does not really clone, but Data.clone doesn't either
-  override def clone() = {
+  override def cloneType() = {
     val res = new OcpIOSlaveSignals(dataWidth)
     res.asInstanceOf[this.type]
   }
 }
 
 // Master port
-class OcpIOMasterPort(addrWidth: Int, dataWidth: Int) extends Bundle() {
+class OcpIOMasterPort(val addrWidth: Int, val dataWidth: Int) extends Bundle() {
   // Clk is implicit in Chisel
   val M = new OcpIOMasterSignals(addrWidth, dataWidth).asOutput
   val S = new OcpIOSlaveSignals(dataWidth).asInput
 }
 
 // Slave port is reverse of master port
-class OcpIOSlavePort(addrWidth: Int, dataWidth: Int) extends Bundle() {
+class OcpIOSlavePort(val addrWidth: Int, val dataWidth: Int) extends Bundle() {
   // Clk is implicit in Chisel
   val M = new OcpIOMasterSignals(addrWidth, dataWidth).asInput
   val S = new OcpIOSlaveSignals(dataWidth).asOutput

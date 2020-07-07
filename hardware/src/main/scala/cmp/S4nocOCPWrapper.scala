@@ -16,19 +16,19 @@ class S4nocOCPWrapper(nrCores: Int, txFifo: Int, rxFifo: Int) extends Module {
 
   val s4noc = Module(new S4noc(nrCores, txFifo, rxFifo))
 
-  val io = IO(Vec(nrCores, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)))
+  val io = IO(new CmpIO(nrCores))
 
   for (i <- 0 until nrCores) {
 
-    val resp = Mux(io(i).M.Cmd === OcpCmd.RD || io(i).M.Cmd === OcpCmd.WR,
+    val resp = Mux(io.cores(i).M.Cmd === OcpCmd.RD || io.cores(i).M.Cmd === OcpCmd.WR,
       OcpResp.DVA, OcpResp.NULL)
 
     // addresses are in words
-    s4noc.io.cpuPorts(i).addr := io(i).M.Addr >> 2
-    s4noc.io.cpuPorts(i).wrData := io(i).M.Data
-    s4noc.io.cpuPorts(i).wr := io(i).M.Cmd === OcpCmd.WR
-    s4noc.io.cpuPorts(i).rd := io(i).M.Cmd === OcpCmd.RD
-    io(i).S.Data := RegNext(s4noc.io.cpuPorts(i).rdData)
-    io(i).S.Resp := Reg(init = OcpResp.NULL, next = resp)
+    s4noc.io.cpuPorts(i).addr := io.cores(i).M.Addr >> 2
+    s4noc.io.cpuPorts(i).wrData := io.cores(i).M.Data
+    s4noc.io.cpuPorts(i).wr := io.cores(i).M.Cmd === OcpCmd.WR
+    s4noc.io.cpuPorts(i).rd := io.cores(i).M.Cmd === OcpCmd.RD
+    io.cores(i).S.Data := RegNext(s4noc.io.cpuPorts(i).rdData)
+    io.cores(i).S.Resp := Reg(init = OcpResp.NULL, next = resp)
   }
 }

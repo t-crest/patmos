@@ -32,21 +32,21 @@ class AsyncArbiterBB() extends BlackBox {
     val ack1 = Bool(OUTPUT)
     val ack2 = Bool(OUTPUT)
   }
-  throw new Error("BlackBox wrapper for AsyncArbiter needs update for Chisel 3")
+  //throw new Error("BlackBox wrapper for AsyncArbiter needs update for Chisel 3")
 
-  /*Commented out to compile for chisel3
+  // should be commented out to compile for chisel3
   // rename component
   setModuleName("AsyncArbiter")
 
-  //renameClock(clock, "clk")
-  //renameReset("rst")
+  renameClock(clock, "clk")
+  renameReset("rst")
 
   io.req.setName("req")
   io.req1.setName("req1")
   io.req2.setName("req2")
   io.ack.setName("ack")
   io.ack1.setName("ack1")
-  io.ack2.setName("ack2")*/
+  io.ack2.setName("ack2")
 }
 
 abstract class AsyncArbiterBase(corecnt: Int) extends Module {
