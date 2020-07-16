@@ -5,7 +5,8 @@
 # Include user makefile for local configurations
 -include config.mk
 # COM port for downloader
-COM_PORT?=/dev/ttyUSB0
+COM_PORT?=/dev/ttyS4
+BAUD_RATE?=115200
 
 # Application to be stored in boot ROM
 BOOTAPP?=bootable-bootloader
@@ -225,10 +226,10 @@ ifeq ($(VENDOR),Altera)
 endif
 
 download: $(BUILDDIR)/$(APP).elf
-	$(INSTALLDIR)/bin/patserdow -v $(COM_PORT) $<
+	$(INSTALLDIR)/bin/patserdow -v $(COM_PORT) $< $(BAUD_RATE)
 
 fpgaexec: $(BUILDDIR)/$(APP).elf
-	$(INSTALLDIR)/bin/patserdow $(COM_PORT) $<
+	$(INSTALLDIR)/bin/patserdow $(COM_PORT) $< $(BAUD_RATE)
 
 # cleanup
 CLEANEXTENSIONS=rbf rpt sof pin summary ttf qdf dat wlf done qws

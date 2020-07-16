@@ -57,6 +57,7 @@ abstract class Config {
   val frequency: Int
   val pipeCount: Int
   val coreCount: Int
+  val uartBaudRate: Int
   val cmpDevices: Set[String]
   val burstLength: Int
   val writeCombine: Boolean
@@ -185,6 +186,9 @@ object Config {
 
       val frequency = getIntAttr(node, "frequency", "@Hz",
                                  hasParent, defaultConf.frequency)
+      
+      val uartBaudRate = getIntAttr(node, "baud_rate", "@rate", 
+                                 hasParent, defaultConf.uartBaudRate)
 
       val dual = getBooleanAttr(node, "pipeline", "@dual",
                                 hasParent, defaultConf.pipeCount > 1)
@@ -308,6 +312,7 @@ object Config {
     val frequency = 0
     val pipeCount = 0
     val coreCount = 0
+    val uartBaudRate = 0
     val cmpDevices = Set[String]()
     val burstLength = 0
     val writeCombine = false

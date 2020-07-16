@@ -1,0 +1,48 @@
+<patmos default="default.xml">
+  <description>Configuration for de10-nano board with on-chip memory</description>
+
+<frequency Hz="50000000"/>
+<!-- <frequency Hz="25000000"/> -->
+  
+  <pipeline dual="false" />
+	<baud_rate rate="115200"/>
+  <ExtMem size="500k" DevTypeRef="OCRam" />
+  <!-- <ExtMem size="1M" DevTypeRef="SSramGSICtrl" /> -->
+
+  <IOs>
+	<IO DevTypeRef="Leds" offset="9"/>
+  	<IO DevTypeRef="I2CInterface" offset="11"/>
+
+	<!-- <IO DevTypeRef="SSramGSICtrl" offset="10"/> -->
+
+  </IOs>
+
+  <Devs>
+  	<Dev DevType="Leds" entity="Leds" iface="OcpCore">
+  	  <params>
+  		<param name="ledCount" value="8"/>
+  	  </params>
+  	</Dev>
+    <Dev DevType="I2CInterface" entity="I2CInterface" iface="OcpCore">
+        <params>
+            <param name="extAddrWidth" value="16" />
+            <param name="dataWidth" value="32" />
+        </params>
+	</Dev>
+	<!-- <Dev DevType="SSramGSICtrl" entity="SSramGSICtrl" iface="OcpCore">
+		<params>
+			<param name="ocpAddrWidth" value="22" />
+		</params>
+	</Dev> -->
+	<!-- <Dev DevType="SSramGSICtrl" entity="SSramGSICtrl" iface="OcpBurst">
+	  <params>
+		<param name="ocpAddrWidth" value="20" />
+	  </params>
+	</Dev> -->
+	<Dev DevType="OCRam" entity="OCRamCtrl" iface="OcpBurst">
+	  <params>
+	     <param name="addrWidth" value="19" />
+	  </params>
+	</Dev>
+  </Devs>
+</patmos>

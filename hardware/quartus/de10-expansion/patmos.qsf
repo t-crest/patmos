@@ -1,0 +1,171 @@
+# -------------------------------------------------------------------------- #
+#
+# Copyright (C) 1991-2010 Altera Corporation
+# Your use of Altera Corporation's design tools, logic functions 
+# and other software and tools, and its AMPP partner logic 
+# functions, and any output files from any of the foregoing 
+# (including device programming or simulation files), and any 
+# associated documentation or information are expressly subject 
+# to the terms and conditions of the Altera Program License 
+# Subscription Agreement, Altera MegaCore Function License 
+# Agreement, or other applicable license agreement, including, 
+# without limitation, that your use is for the sole purpose of 
+# programming logic devices manufactured by Altera and sold by 
+# Altera or its authorized distributors.  Please refer to the 
+# applicable agreement for further details.
+#
+# -------------------------------------------------------------------------- #
+#
+# 2) Altera recommends that you do not modify this file. This
+#    file is updated automatically by the Quartus II software
+#    and any changes you make may be lost or overwritten.
+#
+# -------------------------------------------------------------------------- #
+
+
+
+set_global_assignment -name FAMILY "Cyclone V"
+set_global_assignment -name DEVICE 5CSEBA6U23I7
+
+set_global_assignment -name TOP_LEVEL_ENTITY patmos_top
+#set_global_assignment -name VHDL_FILE ../../vhdl/altera/cyc2_pll.vhd
+
+set_global_assignment -name VERILOG_MACRO "SYNTHESIS=<None>"
+
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
+set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+set_global_assignment -name USE_CONFIGURATION_DEVICE OFF
+set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "3.3-V LVCMOS"
+
+
+set_location_assignment PIN_V11 -to clk
+
+set_location_assignment PIN_AA23 -to oLedsPins_led[7]
+set_location_assignment PIN_Y16 -to oLedsPins_led[6]
+set_location_assignment PIN_AE26 -to oLedsPins_led[5]
+set_location_assignment PIN_AF26 -to oLedsPins_led[4]
+set_location_assignment PIN_V15 -to oLedsPins_led[3]
+set_location_assignment PIN_V16 -to oLedsPins_led[2]
+set_location_assignment PIN_AA24 -to oLedsPins_led[1]
+set_location_assignment PIN_W15 -to oLedsPins_led[0]
+
+# GPIO 0, pins 1 and 2
+set_location_assignment PIN_AH12 -to iUartPins_rxd
+set_location_assignment PIN_AH11 -to oUartPins_txd
+
+# GPI 0, pins 31, 32, 33
+
+set_global_assignment -name LAST_QUARTUS_VERSION "16.1.0 Lite Edition"
+set_global_assignment -name RESERVE_ALL_UNUSED_PINS "AS INPUT TRI-STATED WITH WEAK PULL-UP"
+
+set_global_assignment -name MIN_CORE_JUNCTION_TEMP "-40"
+set_global_assignment -name MAX_CORE_JUNCTION_TEMP 100
+set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
+set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
+set_global_assignment -name ENABLE_SIGNALTAP ON
+set_global_assignment -name USE_SIGNALTAP_FILE stp1.stp
+set_location_assignment PIN_AE25 -to oSram_A[0]
+set_location_assignment PIN_AF27 -to oSram_A[1]
+set_location_assignment PIN_Y15 -to oSram_A[2]
+set_location_assignment PIN_AC24 -to oSram_A[3]
+set_location_assignment PIN_AA15 -to oSram_A[4]
+set_location_assignment PIN_AD26 -to oSram_A[5]
+set_location_assignment PIN_AG28 -to oSram_A[6]
+set_location_assignment PIN_AF28 -to oSram_A[7]
+set_location_assignment PIN_AG26 -to oSram_A[9]
+set_location_assignment PIN_AH27 -to oSram_A[10]
+set_location_assignment PIN_AG25 -to oSram_A[11]
+set_location_assignment PIN_AH26 -to oSram_A[12]
+set_location_assignment PIN_AH24 -to oSram_A[13]
+set_location_assignment PIN_AF25 -to oSram_A[14]
+set_location_assignment PIN_AG23 -to oSram_A[15]
+set_location_assignment PIN_AF23 -to oSram_A[16]
+set_location_assignment PIN_AG24 -to oSram_A[17]
+set_location_assignment PIN_AH22 -to oSram_A[18]
+set_location_assignment PIN_AH21 -to oSram_A[19]
+set_location_assignment PIN_AH13 -to ioSram_DQPb
+set_location_assignment PIN_D12 -to ioSram_DQPa
+set_location_assignment PIN_C12 -to ioSram_DQPd
+set_location_assignment PIN_AB26 -to ioSram_DQPc
+set_location_assignment PIN_AG11 -to oI2c_scl
+set_location_assignment PIN_AH9 -to ioI2c_sda
+set_location_assignment PIN_AG16 -to oLed_expansion[0]
+set_location_assignment PIN_AF15 -to oLed_expansion[1]
+set_location_assignment PIN_AF17 -to iBtn_expansion[0]
+set_location_assignment PIN_AE15 -to iBtn_expansion[1]
+set_location_assignment PIN_AG8 -to gpio[0]
+set_location_assignment PIN_U13 -to gpio[1]
+set_location_assignment PIN_U14 -to gpio[2]
+set_location_assignment PIN_AG9 -to gpio[3]
+set_location_assignment PIN_AG10 -to gpio[4]
+set_location_assignment PIN_AF13 -to gpio[5]
+set_location_assignment PIN_AG13 -to gpio[6]
+set_location_assignment PIN_AH23 -to oSram_E1
+set_location_assignment PIN_AA20 -to oSram_E2
+set_location_assignment PIN_AG19 -to oSram_E3
+set_location_assignment PIN_AH19 -to oSram_ADSP
+set_location_assignment PIN_AG18 -to oSram_G
+set_location_assignment PIN_AH18 -to oSram_BW
+set_location_assignment PIN_AF18 -to oSram_ADV
+set_location_assignment PIN_AF20 -to oSram_CLK
+set_location_assignment PIN_AG15 -to oSram_GW
+set_location_assignment PIN_AE20 -to oSram_FT
+set_location_assignment PIN_AE19 -to oSram_LBO
+set_location_assignment PIN_AE17 -to oSram_ZZ
+set_location_assignment PIN_AH8 -to oSram_ADSC
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR OFF -to oI2c_scl
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to ioI2c_sda
+set_location_assignment PIN_AG21 -to oSram_A[20]
+set_location_assignment PIN_AF22 -to oSram_BWout[3]
+set_location_assignment PIN_AE22 -to oSram_BWout[2]
+set_location_assignment PIN_AG20 -to oSram_BWout[1]
+set_location_assignment PIN_AF21 -to oSram_BWout[0]
+set_location_assignment PIN_V12 -to ioSram_DQ[8]
+set_location_assignment PIN_E8 -to ioSram_DQ[9]
+set_location_assignment PIN_W12 -to ioSram_DQ[10]
+set_location_assignment PIN_D11 -to ioSram_DQ[11]
+set_location_assignment PIN_D8 -to ioSram_DQ[12]
+set_location_assignment PIN_AF7 -to ioSram_DQ[13]
+set_location_assignment PIN_AH14 -to ioSram_DQ[14]
+set_location_assignment PIN_AH3 -to ioSram_DQ[15]
+set_location_assignment PIN_AF4 -to ioSram_DQ[0]
+set_location_assignment PIN_AD5 -to ioSram_DQ[1]
+set_location_assignment PIN_AG14 -to ioSram_DQ[2]
+set_location_assignment PIN_AE23 -to ioSram_DQ[3]
+set_location_assignment PIN_AE6 -to ioSram_DQ[4]
+set_location_assignment PIN_AD23 -to ioSram_DQ[5]
+set_location_assignment PIN_AE24 -to ioSram_DQ[6]
+set_location_assignment PIN_AD20 -to ioSram_DQ[7]
+set_location_assignment PIN_AD17 -to ioSram_DQ[24]
+set_location_assignment PIN_AC23 -to ioSram_DQ[25]
+set_location_assignment PIN_AC22 -to ioSram_DQ[26]
+set_location_assignment PIN_Y19 -to ioSram_DQ[27]
+set_location_assignment PIN_AB23 -to ioSram_DQ[28]
+set_location_assignment PIN_AA19 -to ioSram_DQ[29]
+set_location_assignment PIN_W11 -to ioSram_DQ[30]
+set_location_assignment PIN_AA18 -to ioSram_DQ[31]
+set_location_assignment PIN_W14 -to ioSram_DQ[16]
+set_location_assignment PIN_Y18 -to ioSram_DQ[17]
+set_location_assignment PIN_Y17 -to ioSram_DQ[18]
+set_location_assignment PIN_AB25 -to ioSram_DQ[19]
+set_location_assignment PIN_Y11 -to ioSram_DQ[20]
+set_location_assignment PIN_AA26 -to ioSram_DQ[21]
+set_location_assignment PIN_AA13 -to ioSram_DQ[22]
+set_location_assignment PIN_AA11 -to ioSram_DQ[23]
+
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:comp|SSramGSICtrl:ramCtrl|addr"
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:comp|SSramGSICtrl:ramCtrl|dout"
+set_instance_assignment -name FAST_OUTPUT_ENABLE_REGISTER ON -to "Patmos:comp|SSramGSICtrl:ramCtrl|doutEna"
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:comp|SSramGSICtrl:ramCtrl|adsc"
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:comp|SSramGSICtrl:ramCtrl|gw"
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:comp|SSramGSICtrl:ramCtrl|e1"
+
+
+set_global_assignment -name SDC_FILE patmos.sdc
+set_global_assignment -name VHDL_FILE ../../vhdl/altera/pll.vhd
+set_global_assignment -name VHDL_FILE "../../vhdl/patmos_de10-expansion.vhdl"
+set_global_assignment -name VHDL_FILE ../../vhdl/other/I2Ccontroller.vhd
+set_global_assignment -name VERILOG_FILE ../../build/Patmos.v
+set_global_assignment -name SIGNALTAP_FILE stp1.stp
+set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

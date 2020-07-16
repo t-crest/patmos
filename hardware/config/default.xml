@@ -3,6 +3,7 @@
 
   <frequency Hz="1000000"/>
   <pipeline dual="true" />
+  <baud_rate rate="115200"/>
   <cores count="1" />
   <CmpDevs>
     <CmpDev name="Hardlock" />

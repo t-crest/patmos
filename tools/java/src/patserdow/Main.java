@@ -63,7 +63,7 @@ import jssc.*;
 
 public class Main {
 
-    final private static int BAUD_RATE = 115200;
+    //private static int BAUD_RATE=9600;
 
     private static SerialPort port = null;
 
@@ -109,6 +109,7 @@ public class Main {
         boolean compress = true;
         boolean udp = false;
         boolean error = false;
+        int BAUD_RATE = 115200;
 
         PrintStream msg_stream = System.err;
         InputStream host_in_stream = System.in;
@@ -130,7 +131,8 @@ public class Main {
 
             File file = null;
             switch(args.length) {
-            case 2:
+            case 3:
+                BAUD_RATE =  Integer.parseInt(args[2]);
                 if (!udp) {
                     port = new SerialPort(args[0]);
                     if (verbose) {
@@ -152,6 +154,7 @@ public class Main {
                     out_stream = new UDPOutputStream(socket, destAddress, destPort);
                 }
                 file = new File(args[1]);
+
                 break;
             case 1:
                 in_stream = System.in;
