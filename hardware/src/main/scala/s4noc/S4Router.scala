@@ -28,14 +28,14 @@ class SingleChannel[T <: Data](dt: T) extends Bundle {
   val data = dt.cloneType
   val valid = Bool()
 
-  override def clone() = (new SingleChannel(dt)).asInstanceOf[this.type]
+  override def cloneType() = (new SingleChannel(dt)).asInstanceOf[this.type]
 }
 
 class Channel[T <: Data](dt: T) extends Bundle {
   val out = Output(new SingleChannel(dt))
   val in = Input(new SingleChannel(dt))
 
-  override def clone() = (new Channel(dt)).asInstanceOf[this.type]
+  override def cloneType() = (new Channel(dt)).asInstanceOf[this.type]
 }
 
 class RouterPorts[T <: Data](dt: T) extends Bundle {

@@ -101,22 +101,22 @@ class DecEx() extends Bundle() {
   val pc = UInt(width = PC_SIZE)
   val base = UInt(width = PC_SIZE)
   val relPc = UInt(width = PC_SIZE)
-  val pred =  Vec.fill(PIPE_COUNT) { UInt(width = PRED_BITS+1) }
-  val aluOp = Vec.fill(PIPE_COUNT) { new AluOp() }
-  val predOp = Vec.fill(PIPE_COUNT) { new PredOp() }
+  val pred = Vec(PIPE_COUNT, UInt(width = PRED_BITS+1) )
+  val aluOp = Vec(PIPE_COUNT, new AluOp() )
+  val predOp = Vec(PIPE_COUNT, new PredOp() )
   val jmpOp = new JmpOp()
   val memOp = new MemOp()
   val stackOp = UInt(width = SC_OP_BITS)
 
   // the register fields are very similar to RegFileRead
   // maybe join the structures
-  val rsAddr = Vec.fill(2*PIPE_COUNT) { UInt(width = REG_BITS) }
-  val rsData = Vec.fill(2*PIPE_COUNT) { UInt(width = DATA_WIDTH) }
-  val rdAddr = Vec.fill(PIPE_COUNT) { UInt(width = REG_BITS) }
-  val immVal = Vec.fill(PIPE_COUNT) { UInt(width = DATA_WIDTH) }
-  val immOp  = Vec.fill(PIPE_COUNT) { Bool() }
+  val rsAddr = Vec(2*PIPE_COUNT, UInt(width = REG_BITS) )
+  val rsData = Vec(2*PIPE_COUNT, UInt(width = DATA_WIDTH) )
+  val rdAddr = Vec(PIPE_COUNT, UInt(width = REG_BITS) )
+  val immVal = Vec(PIPE_COUNT, UInt(width = DATA_WIDTH) )
+  val immOp  = Vec(PIPE_COUNT, Bool() )
   // maybe we should have similar structure as the Result one here
-  val wrRd  = Vec.fill(PIPE_COUNT) { Bool() }
+  val wrRd  = Vec(PIPE_COUNT, Bool() )
 
   val callAddr = UInt(width = DATA_WIDTH)
   val call = Bool()
@@ -228,7 +228,7 @@ class ScEx extends Bundle() {
 }
 
 class ExMem() extends Bundle() {
-  val rd = Vec.fill(PIPE_COUNT) { new Result() }
+  val rd = Vec(PIPE_COUNT, new Result() )
   val mem = new MemIn()
   val pc = UInt(width = PC_SIZE)
   val base = UInt(width = PC_SIZE)
@@ -260,21 +260,21 @@ class FeEx() extends Bundle() {
 }
 
 class MemWb() extends Bundle() {
-  val rd = Vec.fill(PIPE_COUNT) { new Result() }
+  val rd = Vec(PIPE_COUNT, new Result() )
   // PC value for debugging
   val pc = UInt(width = PC_SIZE)
 }
 
 class RegFileRead() extends Bundle() {
   // first two are for pipeline A, second two for pipeline B
-  val rsAddr = Vec.fill(2*PIPE_COUNT) { UInt(INPUT, REG_BITS) }
-  val rsData = Vec.fill(2*PIPE_COUNT) { UInt(OUTPUT, DATA_WIDTH) }
+  val rsAddr = Vec(2*PIPE_COUNT, UInt(INPUT, REG_BITS) )
+  val rsData = Vec(2*PIPE_COUNT, UInt(OUTPUT, DATA_WIDTH) )
 }
 
 class RegFileIO() extends Bundle() {
   val ena = Bool(INPUT)
   val rfRead = new RegFileRead()
-  val rfWrite = Vec.fill(PIPE_COUNT) { new Result().asInput }
+  val rfWrite = Vec(PIPE_COUNT, new Result().asInput )
 }
 
 class FetchIO extends Bundle() {
@@ -306,7 +306,7 @@ class DecodeIO() extends Bundle() {
   val flush = Bool(INPUT)
   val fedec = new FeDec().asInput
   val decex = new DecEx().asOutput
-  val rfWrite =  Vec.fill(PIPE_COUNT) { new Result().asInput }
+  val rfWrite =  Vec(PIPE_COUNT, new Result().asInput )
   val exc = new ExcDec().asInput
 }
 
@@ -319,8 +319,8 @@ class ExecuteIO() extends Bundle() {
   val exicache = new ExICache().asOutput
   val feex = new FeEx().asInput
   // forwarding inputs
-  val exResult = Vec.fill(PIPE_COUNT) { new Result().asInput }
-  val memResult = Vec.fill(PIPE_COUNT) { new Result().asInput }
+  val exResult = Vec(PIPE_COUNT, new Result().asInput )
+  val memResult = Vec(PIPE_COUNT, new Result().asInput )
   // branch for FE
   val exfe = new ExFe().asOutput
   //stack cache
@@ -351,7 +351,7 @@ class MemoryIO() extends Bundle() {
   val memwb = new MemWb().asOutput
   val memfe = new MemFe().asOutput
   // for result forwarding
-  val exResult = Vec.fill(PIPE_COUNT) { new Result().asOutput }
+  val exResult = Vec(PIPE_COUNT, new Result().asOutput )
   // local and global accesses
   val localInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val globalInOut = new OcpCacheMasterPort(ADDR_WIDTH, DATA_WIDTH)
@@ -414,15 +414,15 @@ class WriteBackIO() extends Bundle() {
   val ena = Bool(INPUT)
   val memwb = new MemWb().asInput
   // wb result (unregistered)
-  val rfWrite = Vec.fill(PIPE_COUNT) { new Result().asOutput }
+  val rfWrite = Vec(PIPE_COUNT, new Result().asOutput )
   // for result forwarding (register)
-  val memResult =  Vec.fill(PIPE_COUNT) { new Result().asOutput }
+  val memResult =  Vec(PIPE_COUNT, new Result().asOutput )
 }
 
 class ExcIO() extends Bundle() {
   val ena = Bool(INPUT)
   val ocp = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
-  val intrs = Vec.fill(INTR_COUNT) { Bool(INPUT) }
+  val intrs = Vec(INTR_COUNT, Bool(INPUT) )
   val excdec = new ExcDec().asOutput
   val memexc = new MemExc().asInput
   val superMode = Bool(OUTPUT)

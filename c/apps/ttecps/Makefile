@@ -51,19 +51,19 @@ wcet_tte_actuator:
 # running examples
 
 tte_sensor:
-	patmos-clang -O2 $(CFLAGS) $(LIBETH)/*.c common.c i2c.c tteconfig.c mpu9250.c tte_sensor.c -o tte_sensor.elf
+	patmos-clang -O2 $(CFLAGS) $(LIBETH)/*.c common.c i2c.c tteconfig.c mpu9250.c tte_sensor.c -o ttecps.elf
 
 tte_control:
-	patmos-clang -O2 $(CFLAGS) $(LIBETH)/*.c common.c i2c.c tteconfig.c tte_control.c -o tte_control.elf
+	patmos-clang -O2 $(CFLAGS) $(LIBETH)/*.c common.c i2c.c tteconfig.c tte_control.c -o ttecps.elf
 
 tte_actuator:
-	patmos-clang -O2 $(CFLAGS) $(LIBETH)/*.c common.c i2c.c tteconfig.c tte_actuator.c -o tte_actuator.elf
+	patmos-clang -O2 $(CFLAGS) $(LIBETH)/*.c common.c i2c.c tteconfig.c tte_actuator.c -o ttecps.elf
 
 config:
 	cd $(PATMOSHOME) && $(MAKE) config BOARD=altde2-all
 
 download:
-	patserdow -v $(SERIAL) aion.elf
+	patserdow -v $(SERIAL) ttecps.elf
 
 clean:
 	rm -f *.out *.pcap *.pml *.png *.elf

@@ -20,7 +20,7 @@ import patmos.Constants._
   * @param master
   */
 class NoCNodeDummy(argoConf: ArgoConfig, master: Boolean) extends Module {
-  val io = new Bundle(){
+  val io = IO(new Bundle(){
     val irq = Output(Bits(width = 2))
     val run = Bool(INPUT)
     val supervisor = Bool(INPUT)
@@ -35,7 +35,7 @@ class NoCNodeDummy(argoConf: ArgoConfig, master: Boolean) extends Module {
     val east_out = new OutputPort(argoConf)
     val south_out = new OutputPort(argoConf)
     val west_out = new OutputPort(argoConf)
-  }
+  })
 
   val dmaReg = Reg(init = UInt(Integer.parseInt("0000", 16), width = DATA_WIDTH))
   val schReg = Reg(init = UInt(Integer.parseInt("2000", 16), width = DATA_WIDTH))
@@ -85,7 +85,7 @@ class NoCNodeDummy(argoConf: ArgoConfig, master: Boolean) extends Module {
   * @param master
   */
 class NoCNodeWrapper(argoConf: ArgoConfig, master: Boolean) extends BlackBox {
-  val io = new Bundle(){
+  val io = IO(new Bundle(){
     val irq = Output(Bits(width = 2))
     val run = Bool(INPUT)
     val supervisor = Bool(INPUT)
@@ -100,8 +100,9 @@ class NoCNodeWrapper(argoConf: ArgoConfig, master: Boolean) extends BlackBox {
     val east_out = new OutputPort(argoConf)
     val south_out = new OutputPort(argoConf)
     val west_out = new OutputPort(argoConf)
-  }
-  //TODO: Fix blackbox to compile with Chisel3
+  })
+  //throw new Error("BlackBox wrapper for NoCNode needs update for Chisel 3")
+  //should be Commented out to compile with Chisel3
   setModuleName("noc_node_wrapper")
   addClock(Driver.implicitClock)
   renameClock("clk", "clk")

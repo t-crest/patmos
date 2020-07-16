@@ -16,6 +16,8 @@ import ocp._
 
 import scala.util.Try
 
+import cmp._
+
 /**
  * A top level of SSPMAegean
  */
@@ -25,7 +27,7 @@ class SSPMAegean(val nCores: Int,
 
   //override val io = new CoreDeviceIO()
 
-  val io = Vec.fill(nCores) { new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH) }
+  val io = IO(new CmpIO(nCores)) //Vec.fill(nCores) { new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH) }
 
   // Generate modules
   val mem = Module(new memSPM(16384))
@@ -38,8 +40,8 @@ class SSPMAegean(val nCores: Int,
 
   // Connect the SSPMConnector with the SSPMAegean
   for (j <- 0 until nCores) {
-      connectors(j).ocp.M <> io(j).M
-      connectors(j).ocp.S <> io(j).S
+      connectors(j).ocp.M <> io.cores(j).M
+      connectors(j).ocp.S <> io.cores(j).S
       connectors(j).connectorSignals.S.Data := mem.io.S.Data
 
     // Enable connectors based upon one-hot coding of scheduler

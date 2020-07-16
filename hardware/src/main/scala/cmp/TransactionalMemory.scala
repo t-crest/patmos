@@ -17,7 +17,7 @@ import ocp._
 
 class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, pipeline: Boolean = true) extends Module {
   
-  override val io = Vec.fill(corecnt){new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)} 
+  override val io = IO(new CmpIO(corecnt))  //Vec.fill(corecnt){new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)} 
   
   val datawidth = DATA_WIDTH
   val memaddrwidth = log2Up(memsize)
@@ -54,17 +54,17 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
   
   for(i <- 0 until corecnt)  
   {
-    val ioM = if(pipeline) RegNext(io(i).M) else io(i).M
-    val ioS = io(i).S
+    val ioM = if(pipeline) RegNext(io.cores(i).M) else io.cores(i).M
+    val ioS = io.cores(i).S
     
     val bufaddrwidth = log2Up(bufsize)
     
     val memrdaddrReg = Reg(UInt(width = memaddrwidth))
     
     val bufaddr = ioM.Addr(memaddrwidth+2,2)
-    val bufaddrs = Vec(bufsize, Reg(UInt(width = memaddrwidth)))
-    val bufrds = Vec(bufsize, Reg(init = false.B))
-    val bufwrs = Vec(bufsize, Reg(init = false.B))
+    val bufaddrs = Reg(Vec(bufsize, UInt(width = memaddrwidth)))
+    val bufrds = RegInit(Vec.fill(bufsize) {false.B})
+    val bufwrs = RegInit(Vec.fill(bufsize) {false.B})
     val bufnxt = Counter(bufsize+1)
     
     val bufmem = Mem(UInt(width = datawidth), bufsize)

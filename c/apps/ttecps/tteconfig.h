@@ -24,6 +24,7 @@
 
 // TTE directives
 #define TIME_CORRECTION_EN
+#define HW_TIMESTAMPING
 
 //Constants
 extern const char* eth_protocol_names[];

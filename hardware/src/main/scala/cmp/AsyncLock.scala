@@ -24,18 +24,18 @@ class AsyncMutexIO extends Bundle
 
 class AsyncMutexBB() extends BlackBox {
   val io = new AsyncMutexIO()
-  throw new Error("BlackBox wrapper for AsyncMuteX in AsyncLock.scala needs update for Chisel 3")
+  //throw new Error("BlackBox wrapper for AsyncMuteX in AsyncLock.scala needs update for Chisel 3")
   // rename component
-  /* Commented out to compile for chisel3
+  // should be Commented out to compile for chisel3
   setModuleName("AsyncMutex")
 
-  //renameClock(clock, "clk")
-  //renameReset("rst")
+  renameClock(clock, "clk")
+  renameReset("rst")
 
   io.req1.setName("req1")
   io.req2.setName("req2")
   io.gnt1.setName("gnt1")
-  io.gnt2.setName("gnt2")*/
+  io.gnt2.setName("gnt2")
 }
 
 class AsyncArbiterMesh(corecnt: Int) extends AsyncArbiterBase(corecnt) {
@@ -109,11 +109,11 @@ class AsyncLock(corecnt: Int, lckcnt: Int, fair: Boolean = false) extends Module
 
   val arbiterio = Vec(arbiters.map(e => e.io))
 
-  override val io = Vec(corecnt,new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))
+  val io = IO(new CmpIO(corecnt)) //Vec(corecnt,new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))
 
   for (i <- 0 until corecnt) {
 
-    val addr = io(i).M.Addr(log2Up(lckcnt)-1+2, 2)
+    val addr = io.cores(i).M.Addr(log2Up(lckcnt)-1+2, 2)
     val acks = Bits(width = lckcnt)
     acks := 0.U
     val blck = acks.orR
@@ -125,9 +125,9 @@ class AsyncLock(corecnt: Int, lckcnt: Int, fair: Boolean = false) extends Module
       acks(j) := ackReg =/= reqReg
 
       when(addr === j.U) {
-        when(io(i).M.Cmd === OcpCmd.RD) {
+        when(io.cores(i).M.Cmd === OcpCmd.RD) {
           reqReg := Bool(true)
-        }.elsewhen(io(i).M.Cmd === OcpCmd.WR) {
+        }.elsewhen(io.cores(i).M.Cmd === OcpCmd.WR) {
           reqReg := Bool(false)
         }
       }
@@ -135,18 +135,18 @@ class AsyncLock(corecnt: Int, lckcnt: Int, fair: Boolean = false) extends Module
 
     val dvaReg = Reg(init = Bool(false))
 
-    when(io(i).M.Cmd =/= OcpCmd.IDLE) {
+    when(io.cores(i).M.Cmd =/= OcpCmd.IDLE) {
       dvaReg := Bool(true)
     }.elsewhen(dvaReg === Bool(true) && !blck) {
       dvaReg := Bool(false)
     }
 
-    io(i).S.Resp := OcpResp.NULL
+    io.cores(i).S.Resp := OcpResp.NULL
     when(dvaReg === Bool(true) && !blck) {
-      io(i).S.Resp := OcpResp.DVA
+      io.cores(i).S.Resp := OcpResp.DVA
     }
 
     // Perhaps remove this
-    io(i).S.Data := UInt(0)
+    io.cores(i).S.Data := UInt(0)
   }
 }

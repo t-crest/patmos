@@ -72,7 +72,7 @@ class SPMPool(corecnt:Int, spmcnt:Int, spmsize:Int, spmcntmax:Int = 15, spmsizem
   if(spmsize > spmsizemax)
     throw new IllegalArgumentException("SPM size is greater than SPM maximum size")
 
-  override val io = Vec(corecnt, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))
+  val io = IO(new CmpIO(corecnt))  //Vec(corecnt, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))
 
   val spms = (0 until spmcnt).map(e => Module(new SPMPool.TDMSPM(corecnt, spmsize)))
 
@@ -80,7 +80,7 @@ class SPMPool(corecnt:Int, spmcnt:Int, spmsize:Int, spmcntmax:Int = 15, spmsizem
 
   val spmios = Wire(Vec(spms.map(e => e.io.cores)))
 
-  val spmscheds = Wire(Vec(spms.map(e => Reg(UInt(width = corecnt)))))
+  val spmscheds = Reg(Vec(spms.map(e => UInt(width = corecnt))))
 
   for(i <- 0 until spms.length)
     spms(i).io.sched := spmscheds(i)
@@ -93,18 +93,18 @@ class SPMPool(corecnt:Int, spmcnt:Int, spmsize:Int, spmcntmax:Int = 15, spmsizem
   val nxtavail = PriorityEncoder(avails)
   val anyavail = avails.orR
 
-  val respRegs = Wire(Vec(corecnt, RegInit(OcpResp.NULL)))
-  val dataRegs = Wire(Vec(corecnt, Reg(io(0).S.Data)))
+  val respRegs = RegInit(Vec.fill(corecnt) { OcpResp.NULL})
+  val dataRegs = Reg(Vec(corecnt, io.cores(0).S.Data))
 
   val dumio = Wire(Vec(corecnt, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)))
 
   for(i <- 0 until corecnt)
   {
-    val mReg = Reg(io(i).M)
+    val mReg = Reg(io.cores(i).M)
 
 
 
-    val m = Mux(io(i).M.Cmd === OcpCmd.IDLE, mReg, io(i).M)
+    val m = Mux(io.cores(i).M.Cmd === OcpCmd.IDLE, mReg, io.cores(i).M)
 
     val spmsel = m.Addr(spmaddrwidth+spmdataaddrwidth-1, spmdataaddrwidth)
     val spmselReg = mReg.Addr(spmaddrwidth+spmdataaddrwidth-1, spmdataaddrwidth)
@@ -118,10 +118,10 @@ class SPMPool(corecnt:Int, spmcnt:Int, spmsize:Int, spmcntmax:Int = 15, spmsizem
     dumio(i).M.Cmd := Mux(spmsel === spmcntmax.U, m.Cmd, OcpCmd.IDLE)
 
     val s = Mux(spmselReg === spmcntmax.U, dumio(i).S, spmios(spmselReg)(i.U).S)
-    io(i).S := s
+    io.cores(i).S := s
 
-    when(io(i).M.Cmd =/= OcpCmd.IDLE || s.Resp =/= OcpResp.NULL) {
-      mReg := io(i).M
+    when(io.cores(i).M.Cmd =/= OcpCmd.IDLE || s.Resp =/= OcpResp.NULL) {
+      mReg := io.cores(i).M
     }
 
     respRegs(i) := OcpResp.NULL

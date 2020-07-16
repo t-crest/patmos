@@ -9,6 +9,7 @@
 #include "servo.h"
 
 // Demo parameters
+#define HYPERPERIOD			10000000
 #define NO_TASKS			3
 #define SYNC_WINDOW_HALF	10000		//ns
 #define ASYNC2SYNC_THRES	10			//clusters
@@ -51,10 +52,12 @@ static unsigned int txMsgCount = 0;
 static unsigned int rxMsgCount = 0;
 
 //Schedule
-static SimpleTTETask task_schedule[NO_TASKS] = {
+static SimpleTTETask schedule[NO_TASKS] = {
 	{
 		.period = 10000000,
-		.activation_time = 0,
+		.release_times = (unsigned long long[]){0},
+		.release_inst = 0,
+		.nr_releases = 1,
 		.last_time = 0,
 		.delta_sum = 0,
 		.exec_count = 0,
@@ -62,7 +65,9 @@ static SimpleTTETask task_schedule[NO_TASKS] = {
 	},
 	{
 		.period = 5000000,
-		.activation_time = 126264,
+		.release_times = (unsigned long long[]) {229025, 5229025},
+		.release_inst = 0,
+		.nr_releases = 2,
 		.last_time = 0,
 		.delta_sum = 0,
 		.exec_count = 0,
@@ -70,7 +75,9 @@ static SimpleTTETask task_schedule[NO_TASKS] = {
 	},
 	{
 		.period = 5000000,
-		.activation_time = 800000,
+		.release_times = (unsigned long long[]){800000, 5800000},
+		.release_inst = 0,
+		.nr_releases = 2,
 		.last_time = 0,
 		.delta_sum = 0,
 		.exec_count = 0,
@@ -82,7 +89,7 @@ __attribute__((noinline))
 unsigned long long get_tte_aligned_time(unsigned long long current_time)
 {
 	long long clock_corr = (((TTE_SYNC_Kp*clkDiff)>>10) 
-                        + ((TTE_SYNC_Ki*clkDiffSum)>>10));
+                         + ((TTE_SYNC_Ki*clkDiffSum)>>10));
 	#ifdef TIME_CORRECTION_EN
 	return (unsigned long long) ((long long) current_time + clock_corr);
 	#else
@@ -146,7 +153,7 @@ void task_sync(unsigned long long start_time, unsigned long long schedule_time, 
 {
 	GPIO |= (1U << SYNCTASK_GPIO_BIT);
 	int ethFrameType;
-	PTP_RXCHAN_STATUS(thisPtpPortInfo.eth_base) = 0x1; //Clear PTP timestampAvail flag
+	PTP_RXCHAN_STATUS(thisPtpPortInfo.eth_base) = 0x1; //Clear timestampAvail flag
 	unsigned long long listen_start = get_cpu_usecs(); //keep track when we started listening
 	#pragma loopbound min 1 max 1
 	do
@@ -191,9 +198,10 @@ void task_sync(unsigned long long start_time, unsigned long long schedule_time, 
 	}
 	for(int i=0; i<NO_TASKS; i++)
 	{
-		tasks[i].activation_time = get_tte_aligned_time(tasks[i].activation_time);
+		#pragma loopbound min 1 max 2
+		for(int n=tasks[i].release_inst; n<tasks[i].nr_releases; n++)
+			tasks[i].release_times[n] = get_tte_aligned_time(tasks[i].release_times[n]);
 	}
-	// printSegmentInt(abs(clkDiff));
 	LEDS = (nodeSyncStable << 7) + (nodeIntegrated << 6) + (ethFrameType & 0xF);
 	GPIO &= (0U << SYNCTASK_GPIO_BIT);
 }
@@ -249,7 +257,7 @@ void task_send(const SimpleTTMessage* message, int length, const unsigned char V
 }
 
 __attribute__((noinline))
-void cyclic_executive_loop(SimpleTTETask* task_schedule){
+void cyclic_executive_loop(SimpleTTETask* schedule){
 	SimpleTTMessage outgoing_message;
 	unsigned long long start_time = get_ptp_nanos(thisPtpPortInfo.eth_base);
 	#pragma loopbound min 1 max 1
@@ -257,24 +265,26 @@ void cyclic_executive_loop(SimpleTTETask* task_schedule){
     	register unsigned long long schedule_time = get_ptp_nanos(thisPtpPortInfo.eth_base);
 		schedule_time = get_tte_aligned_time(schedule_time - start_time);
 		#pragma loopbound min 1 max 1
-		for(int i=0; i<NO_TASKS; i++){
-			if(schedule_time >= task_schedule[i].activation_time){
-				switch (i)
+		for(int task=0; task < NO_TASKS; task++){
+			if(schedule_time >= schedule[task].release_times[schedule[task].release_inst])
+			{
+				switch (task)
 				{
 				case 0:
-					((task_sync_fp)(task_schedule[i].task_fp))(start_time, schedule_time, task_schedule);
+					((task_sync_fp)(schedule[task].task_fp))(start_time, schedule_time, schedule);
 					break;
 				case 1:
-					((task_sense_fp)(task_schedule[i].task_fp))(&outgoing_message);
+					((task_sense_fp)(schedule[task].task_fp))(&outgoing_message);
 					break;
 				case 2:
-					((task_send_fp)(task_schedule[i].task_fp))(&outgoing_message, sizeof(SimpleTTMessage), TTE_SENSE_VL);
+					((task_send_fp)(schedule[task].task_fp))(&outgoing_message, sizeof(SimpleTTMessage), TTE_SENSE_VL);
 					break;
 				}
-				task_schedule[i].activation_time += task_schedule[i].period;
-				task_schedule[i].delta_sum += schedule_time - get_tte_aligned_time(task_schedule[i].last_time);
-				task_schedule[i].last_time = schedule_time;
-				task_schedule[i].exec_count += 1;
+				schedule[task].release_times[schedule[task].release_inst] += HYPERPERIOD;
+				schedule[task].release_inst = (schedule[task].release_inst + 1) % schedule[task].nr_releases;
+				schedule[task].delta_sum += schedule_time - get_tte_aligned_time(schedule[task].last_time);
+				schedule[task].last_time = schedule_time;
+				schedule[task].exec_count += 1;
 				break;
 			}
 		}
@@ -283,7 +293,7 @@ void cyclic_executive_loop(SimpleTTETask* task_schedule){
 
 int main(int argc, char **argv){
 	LEDS = GPIO = 0x1FF;
-	puts("\nTTEthernet Ping Demo Started");
+	puts("\nTTECPS Sensor Node Started");
 
 	//MAC controller settings
 	set_mac_address(0x1D000400, 0x00000289);
@@ -295,7 +305,7 @@ int main(int argc, char **argv){
 	thisPtpPortInfo = ptpv2_intialize_local_port(PATMOS_IO_ETH, PTP_SLAVE, my_mac, my_ip, 1, 0);
 	LEDS = GPIO = 0x0;
 
-	sort_asc_ttetasks(task_schedule, NO_TASKS);
+	sort_asc_ttetasks(schedule, NO_TASKS);
 	initMPU9250();
 
 	// Executive Loop
@@ -307,7 +317,7 @@ int main(int argc, char **argv){
 		clkDiffLast = 0;
 		clkDiffSum = 0;
 		clkDiff = 0;
-		cyclic_executive_loop(task_schedule);
+		cyclic_executive_loop(schedule);
 	}while(KEYS !=  0xE);
 
 	//Report
@@ -324,9 +334,9 @@ int main(int argc, char **argv){
 	printf("--Transmit No. of Message Frames = %u\n", txMsgCount);
 	puts("---------------------------------------------------------------------------");
 	puts("Task log:");
-	for(int i=0; i<NO_TASKS; i++){
-		unsigned long long avgDelta = task_schedule[i].delta_sum/task_schedule[i].exec_count;
-		printf("--task[%d]   avg. dt = %llu\t(avg. jitter = %d ns) from a total of %lu executions\n", i, avgDelta, abs(task_schedule[i].period - avgDelta), task_schedule[i].exec_count);
+	for(int task=0; task<NO_TASKS; task++){
+		unsigned long long avgDelta = schedule[task].delta_sum/schedule[task].exec_count;
+		printf("--task[%d]   avg. dt = %llu\t(avg. jitter = %d ns) from a total of %lu executions\n", task, avgDelta, abs(schedule[task].period - avgDelta), schedule[task].exec_count);
 	}
 	puts("---------------------------------------------------------------------------");
 	

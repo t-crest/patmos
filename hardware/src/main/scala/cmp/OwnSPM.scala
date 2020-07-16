@@ -20,14 +20,14 @@ import ocp._
 
 class OwnSPM(nrCores: Int, nrSPMs: Int, size: Int) extends Module {
 
-  val io = IO(Vec(nrCores, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)))
+  val io = IO(new CmpIO(nrCores))
 
   val bits = log2Up(nrSPMs)
   println("OwnSPM: cnt = " + nrSPMs + " bits = " + bits)
 
   val masters = Wire(Vec(nrSPMs, Vec(nrCores, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))))
   val spms = (0 until nrSPMs).map(i => Module(new Spm(size)))
-  val cmdOutReg = Vec(nrCores, Reg(init = Bool(false)))
+  val cmdOutReg = RegInit(Vec.fill(nrCores) {Bool(false)})
 
   for (s <- 0 until nrSPMs) {
     // And gate non-active masters.
@@ -36,8 +36,8 @@ class OwnSPM(nrCores: Int, nrSPMs: Int, size: Int) extends Module {
       masters(s)(i).M.Data := UInt(0)
       masters(s)(i).M.Cmd := UInt(0)
       masters(s)(i).M.ByteEn := UInt(0)
-      when(io(i).M.Cmd =/= OcpCmd.IDLE && io(i).M.Addr(12 + bits - 1, 12) === UInt(s)) {
-        masters(s)(i).M := io(i).M
+      when(io.cores(i).M.Cmd =/= OcpCmd.IDLE && io.cores(i).M.Addr(12 + bits - 1, 12) === UInt(s)) {
+        masters(s)(i).M := io.cores(i).M
       }
     }
 
@@ -51,7 +51,7 @@ class OwnSPM(nrCores: Int, nrSPMs: Int, size: Int) extends Module {
   // Cmd out?
   for (i <- 0 until nrCores) {
     cmdOutReg(i) := Bool(false)
-    when(io(i).M.Cmd =/= OcpCmd.IDLE) {
+    when(io.cores(i).M.Cmd =/= OcpCmd.IDLE) {
       cmdOutReg(i) := Bool(true)
     }
   }
@@ -66,10 +66,10 @@ class OwnSPM(nrCores: Int, nrSPMs: Int, size: Int) extends Module {
     // And gate S response as DVA from one core might cause an end of a main memory
     // transaction from a different core.
     // TODO: check if really needed for the data
-    io(i).S.Data := UInt(0)
-    io(i).S.Resp := OcpResp.NULL
+    io.cores(i).S.Data := UInt(0)
+    io.cores(i).S.Resp := OcpResp.NULL
     when(cmdOutReg(i)) {
-      io(i).S := muxes(i)(RegNext(io(i).M.Addr(12 + bits - 1, 12))).S
+      io.cores(i).S := muxes(i)(RegNext(io.cores(i).M.Addr(12 + bits - 1, 12))).S
     }
   }
 }

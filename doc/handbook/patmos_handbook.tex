@@ -4279,7 +4279,7 @@ ALU operations: 3173 LCs, 91.91 MHz.
 In the following we describe: (1) the installation of needed tool under Ubuntu, Mac OS X, and Windows 10 (2) how to build the Patmos tool chain (e.g., compiler), and (3) how
 to get started with Patmos.
 
-For an easier start we provide a VM image with Ubuntu 14.04 including
+For an easier start we provide a VM image with Ubuntu 20.04 LTS including
 all tools installed for download from: \url{http://patmos.compute.dtu.dk/}
 
 
@@ -4326,43 +4326,54 @@ all tools installed for download from: \url{http://patmos.compute.dtu.dk/}
 In the following we present how to setup all needed tools in Ubuntu, Mac OS X, and Windows 10. 
 After setting up the tools, section \ref{sec:build:compiler} describes how to download and build Patmos and its tool chain.
 
+For the installation you need a Java JDK. For Scala/Chisel compatibility reasons we recommend
+JDK 8.
+
 \subsection{Ubuntu}
 \label{sec:build:setup:ubuntu}
 
 The following we describe how to setup an Ubuntu installation with the needed tools. 
 This should work for the latest Ubuntu distribution. 
 
-First, because Patmos uses Chissel as its hardware language, which is built on top of Scala, we need to ensure we can install SBT. 
+First, because Patmos uses Chisel as its hardware language,
+which is built on top of Scala, we need to ensure we can install SBT. 
 Therefore, we start by enabling the distribution to download sbt:
 
 \begin{verbatim}
-$ echo "deb https://dl.bintray.com/sbt/debian /" | sudo tee -a \
+echo "deb https://dl.bintray.com/sbt/debian /" | sudo tee -a \
   /etc/apt/sources.list.d/sbt.list
-$ sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 \
+sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 \
   --recv 2EE0EA64E40A89B84B2DF73499E82A75642AC823
-$ sudo apt-get update
+sudo apt-get update
+sudo apt-get install sbt
 \end{verbatim}
 
 We can now install all the needed tools:
 
 \begin{verbatim}
-$ sudo apt-get install git default-jdk gitk cmake make g++ texinfo flex bison \
-  subversion libelf-dev graphviz libboost-dev libboost-program-options-dev \
-  ruby-full liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala sbt
+sudo apt install git openjdk-8-jdk gitk cmake make g++ texinfo flex bison \
+  subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby-full \
+  liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala
+\end{verbatim}
+
+Make sure to use Java 8 and remove any later Java version with
+
+\begin{verbatim}
+sudo apt autoremove
 \end{verbatim}
 
 For the Quartus setup it is best to change the default shell to \code{/bin/bash}:
 
 \begin{verbatim}
-$ sudo rm /bin/sh
-$ sudo ln -s /bin/bash /bin/sh
+sudo rm /bin/sh
+sudo ln -s /bin/bash /bin/sh
 \end{verbatim}
 
 For building the Patmos documentation (e.g., the handbook) you need to install
 a full version of LaTeX (about 3~GB) with:
 
 \begin{verbatim}
-$ sudo apt-get install texlive-full doxygen
+sudo apt-get install texlive-full doxygen
 \end{verbatim}
 
 \subsection{Mac OS X}

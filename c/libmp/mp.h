@@ -62,7 +62,7 @@
 /// \brief Aligns X to word size
 //#define WALIGN(X) (((X)+0x3) & ~0x3)
 
-#define MAX_CHANNELS  32
+#define MAX_CHANNELS  256
 
 #ifdef NOINLINE
  #define INLINING __attribute__ ((noinline))

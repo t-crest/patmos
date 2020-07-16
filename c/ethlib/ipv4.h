@@ -57,14 +57,13 @@ typedef struct
    unsigned char ttl;
    unsigned char protocol;
    unsigned short head_checksum;
-   unsigned short checksum;
    unsigned char source_ip[4];
    unsigned char destination_ip[4];
 } iphead_t;
 
 typedef struct{
    iphead_t ip_head;
-   unsigned char* payload;
+   unsigned char* data;
 } ip_t;
 
 

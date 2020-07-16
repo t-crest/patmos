@@ -43,6 +43,7 @@
 #define _UDP_H_
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "eth_patmos_io.h"
 #include "arp.h"
 #include "ipv4.h"
@@ -60,7 +61,7 @@ typedef struct
 {
    iphead_t ip_head;
    udphead_t udp_head;
-   unsigned char* data;
+   unsigned char *data;
 } udp_t;
 
 
@@ -86,6 +87,8 @@ unsigned short int udp_get_data_length(unsigned int pkt_addr);
 
 //This function gets the data field of an UDP packet.
 unsigned char udp_get_data(unsigned int pkt_addr, unsigned char data[], unsigned int data_length);
+
+void udp_build_packet(udp_t* packet, unsigned char src_ip[4], unsigned char dst_ip[4], unsigned short src_port, unsigned short dst_port, unsigned char* data, unsigned short data_length);
 
 ///////////////////////////////////////////////////////////////
 //Support functions related to the UDP protocol

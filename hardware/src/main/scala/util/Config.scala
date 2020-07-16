@@ -242,9 +242,21 @@ object Config {
 
       val ExtMemNode = find(node, "ExtMem")
       var ExtMemDev = new DeviceConfig("", Map(), -1, List[Int]())
+      var ExtMemAddrWidth = "" 
       if (!(ExtMemNode \ "@DevTypeRef").isEmpty){
         ExtMemDev = devFromXML(ExtMemNode,DevList,false)
+        ExtMemAddrWidth = ExtMemDev.params("sramAddrWidth")
       }
+      
+      val UartDev = DevList.filter(d => (d \ "@DevType").text == "Uart")
+      val UartParams = (UartDev \ "params")
+      val UartParamsMap = if (UartParams.isEmpty) {
+          Map[String,String]()
+        } else {
+          Map((UartParams \ "param").map(p => find(p, "@name").text ->
+                                              find(p, "@value").text) : _*)
+      }
+
       val ExtMem = new ExtMemConfig(parseSizeLong(find(ExtMemNode, "@size").text),
                                     ExtMemDev)
 
@@ -258,16 +270,21 @@ object Config {
         initDevice(ExtMem.ram)
       }
 
+
       // Emit defines for emulator
-      if (Driver.backend.isInstanceOf[CppBackend]) {
-        val emuConfig = new PrintWriter(new File("build/emulator_config.h"))
-        emuConfig.write("#define CORE_COUNT "+coreCount+"\n")
-        emuConfig.write("#define ICACHE_"+ICache.typ.toUpperCase+"\n")
-        emuConfig.write("#define IO_UART\n")
-        for (d <- Devs) { emuConfig.write("#define IO_"+d.name.toUpperCase+"\n") }
-        emuConfig.write("#define EXTMEM_"+ExtMem.ram.name.toUpperCase+"\n")
-        emuConfig.close();
-      }
+      new java.io.File("build/").mkdirs // build dir is created
+      val file_config = new File("build/emulator_config.h") 
+      val emuConfig = new PrintWriter(file_config)
+      emuConfig.write("#define CORE_COUNT "+coreCount+"\n")
+      emuConfig.write("#define ICACHE_"+ICache.typ.toUpperCase+"\n")
+      emuConfig.write("#define IO_UART\n")
+      for (d <- Devs) { emuConfig.write("#define IO_"+d.name.toUpperCase+"\n") }
+      emuConfig.write("#define EXTMEM_"+ExtMem.ram.name.toUpperCase+"\n")
+      emuConfig.write("#define EXTMEM_ADDR_BITS "+ ExtMemAddrWidth +"\n")
+      if (UartParamsMap.get("baudRate") != None) {emuConfig.write("#define BAUDRATE " + UartParamsMap.get("baudRate").get+"\n")}
+      emuConfig.write("#define FREQ "+ frequency +"\n")
+      emuConfig.close();
+      
 
       private def devFromXML(node: scala.xml.Node, devs: scala.xml.NodeSeq,
                              needOffset: Boolean = true): DeviceConfig = {

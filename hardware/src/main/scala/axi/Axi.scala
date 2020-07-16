@@ -15,7 +15,7 @@ class AxiLiteWriteAddressChannel(addrWidth: Int) extends Bundle {
   if (addrWidth % 32 != 0) throw new IllegalArgumentException("Address width has to be multiple of 32 bits")
 
   // This does not really clone, but Data.clone doesn't either
-  override def clone() = {
+  override def cloneType() = {
     val res = new AxiLiteWriteAddressChannel(addrWidth)
     res.asInstanceOf[this.type]
   }
@@ -27,7 +27,7 @@ class AxiLiteWriteDataChannel(dataWidth: Int) extends Bundle {
   if (dataWidth % 32 != 0) throw new IllegalArgumentException("Data width has to be multiple of 32 bits")
 
   // This does not really clone, but Data.clone doesn't either
-  override def clone() = {
+  override def cloneType() = {
     val res = new AxiLiteWriteDataChannel(dataWidth)
     res.asInstanceOf[this.type]
   }
@@ -37,7 +37,7 @@ class AxiLiteWriteRespChannel() extends Bundle {
   val resp = Bits(width = 2) // S->M
 
   // This does not really clone, but Data.clone doesn't either
-  override def clone() = {
+  override def cloneType() = {
     val res = new AxiLiteWriteRespChannel()
     res.asInstanceOf[this.type]
   }
@@ -49,7 +49,7 @@ class AxiLiteReadAddressChannel(addrWidth: Int) extends Bundle {
   if (addrWidth % 32 != 0) throw new IllegalArgumentException("Address width has to be multiple of 32 bits")
 
   // This does not really clone, but Data.clone doesn't either
-  override def clone() = {
+  override def cloneType() = {
     val res = new AxiLiteReadAddressChannel(addrWidth)
     res.asInstanceOf[this.type]
   }
@@ -61,7 +61,7 @@ class AxiLiteReadRespChannel(dataWidth: Int) extends Bundle {
   if (dataWidth % 32 != 0) throw new IllegalArgumentException("Data width has to be multiple of 32 bits")
 
   // This does not really clone, but Data.clone doesn't either
-  override def clone() = {
+  override def cloneType() = {
     val res = new AxiLiteReadRespChannel(dataWidth)
     res.asInstanceOf[this.type]
   }

@@ -13,5 +13,6 @@ class NoMemoryManagement extends Module {
   val io = IO(new MMUIO())
 
   // just connect virtual and physical end
-  io.virt <> io.phys
+  io.phys.M <> io.virt.M
+  io.virt.S <> io.phys.S
 }

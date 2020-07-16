@@ -55,7 +55,7 @@ class Decode() extends Module {
     io.decex.rsData(3) := rf.io.rfRead.rsData(3)
   }
 
-  val decoded = Vec(PIPE_COUNT, Bool())
+  val decoded = Wire(Vec(PIPE_COUNT, Bool()))
   decoded.map(_ := Bool(false))
 
   // Decoding of dual-issue operations
@@ -340,7 +340,7 @@ class Decode() extends Module {
   }
 
   // Offset for loads/stores
-  val addrImm = UInt()
+  val addrImm = Wire(UInt())
   addrImm := Cat(UInt(0), instr(6, 0))
   switch(shamt) {
     is(UInt(1)) { addrImm := Cat(UInt(0), instr(6, 0), Bits(0, width = 1)) }

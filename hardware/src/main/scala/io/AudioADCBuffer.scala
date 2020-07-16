@@ -32,8 +32,8 @@ class AudioADCBuffer(AUDIOBITLENGTH: Int, MAXADCBUFFERPOWER: Int) extends Module
   io.audioRPatmosO := audioRReg
 
   //FIFO buffer registers
-  val audioBufferL = Vec.fill(BUFFERLENGTH) { Reg(init = UInt(0, AUDIOBITLENGTH)) }
-  val audioBufferR = Vec.fill(BUFFERLENGTH) { Reg(init = UInt(0, AUDIOBITLENGTH)) }
+  val audioBufferL = RegInit(Vec.fill(BUFFERLENGTH) { UInt(0, AUDIOBITLENGTH) })
+  val audioBufferR = RegInit(Vec.fill(BUFFERLENGTH) { UInt(0, AUDIOBITLENGTH) })
   val w_pnt = Reg(init = UInt(0, MAXADCBUFFERPOWER))
   val r_pnt = Reg(init = UInt(0, MAXADCBUFFERPOWER))
   val fullReg  = Reg(init = UInt(0, 1))

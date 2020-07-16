@@ -9,7 +9,7 @@ package argo
 
 import Chisel._
 
-class MemIFMaster(HEADER_FIELD_WIDTH: Int, HEADER_CTRL_WIDTH: Int) extends Bundle() {
+class MemIFMaster(val HEADER_FIELD_WIDTH: Int, val HEADER_CTRL_WIDTH: Int) extends Bundle() {
   val Addr = UInt(width = HEADER_FIELD_WIDTH - HEADER_CTRL_WIDTH)
   val En = Bits(width = 2)
   val Wr = Bool()
@@ -21,7 +21,7 @@ class MemIFSlave extends Bundle {
   val Error = Bool()
 }
 
-class SPMMasterPort(headerFieldWdith: Int, headerCtrlWidth: Int) extends Bundle {
+class SPMMasterPort(val headerFieldWdith: Int, val headerCtrlWidth: Int) extends Bundle {
   val M = Output(new MemIFMaster(headerFieldWdith, headerCtrlWidth))
   val S = Input(new MemIFSlave())
 }
@@ -31,12 +31,12 @@ class SPMSlavePort(headerFieldWdith: Int, headerCtrlWidth: Int) extends Bundle {
   val S = Output(new MemIFSlave())
 }
 
-class ChannelForward(argoConf : ArgoConfig) extends Bundle {
+class ChannelForward(val argoConf : ArgoConfig) extends Bundle {
   val req = Bool()
   val data = Bits(width = argoConf.LINK_WIDTH)
 }
 
-class ChannelBackward(argoConf: ArgoConfig) extends Bundle {
+class ChannelBackward(val argoConf: ArgoConfig) extends Bundle {
   val ack = Bool()
 }
 
@@ -50,7 +50,7 @@ class OutputPort(argoConf: ArgoConfig) extends Bundle {
   val b = Input(new ChannelBackward(argoConf))
 }
 
-class NodeInterconnection(argoConf: ArgoConfig) extends Bundle {
+class NodeInterconnection(val argoConf: ArgoConfig) extends Bundle {
   val north_wire_in = Wire(init = UInt(0, width = argoConf.LINK_WIDTH))
   val east_wire_in = Wire(init = UInt(0, width = argoConf.LINK_WIDTH))
   val south_wire_in = Wire(init = UInt(0, width = argoConf.LINK_WIDTH))

@@ -32,12 +32,12 @@ object Uart extends DeviceObject {
 
 class Uart(clk_freq: Int, baud_rate: Int, fifoDepth: Int) extends CoreDevice() {
 
-  override val io = new CoreDeviceIO() with patmos.HasPins {
-    override val pins = new Bundle() {
-      val tx = Bits(OUTPUT, 1)
-      val rx = Bits(INPUT, 1)
-    }
-  }
+    override val io = IO(new CoreDeviceIO() with patmos.HasPins {
+      override val pins = new Bundle {
+        val tx = Bits(OUTPUT, 1)
+        val rx = Bits(INPUT, 1)
+      }
+    })
 
     val c_tx_divider_val    = clk_freq/baud_rate
     val tx_baud_counter     = Reg(init = UInt(0, log2Up(clk_freq/baud_rate)))

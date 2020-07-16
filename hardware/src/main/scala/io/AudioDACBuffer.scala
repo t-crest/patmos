@@ -33,8 +33,8 @@ class AudioDACBuffer(AUDIOBITLENGTH: Int, MAXDACBUFFERPOWER: Int) extends Module
   io.audioRIDAC := audioRIReg
 
   //FIFO buffer registers
-  val audioBufferL = Vec.fill(BUFFERLENGTH) { Reg(init = UInt(0, AUDIOBITLENGTH)) }
-  val audioBufferR = Vec.fill(BUFFERLENGTH) { Reg(init = UInt(0, AUDIOBITLENGTH)) }
+  val audioBufferL = RegInit(Vec.fill(BUFFERLENGTH) { UInt(0, AUDIOBITLENGTH) })
+  val audioBufferR = RegInit(Vec.fill(BUFFERLENGTH) { UInt(0, AUDIOBITLENGTH) })
   val w_pnt = Reg(init = UInt(0, MAXDACBUFFERPOWER))
   val r_pnt = Reg(init = UInt(0, MAXDACBUFFERPOWER))
   val fullReg  = Reg(init = UInt(0, 1))
