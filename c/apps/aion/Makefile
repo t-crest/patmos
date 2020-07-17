@@ -43,16 +43,27 @@ wcet_ttesync:
 	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e receiveAndHandleFrame
 	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e tte_pcf_handle
 
-wcet_tteproduceconsume:
-	patmos-clang -O2 $(CFLAGS) $(LIBETH)/*.c -mserialize=aion_wcet.pml tte_produceconsume.c -o aion_wcet.elf
+wcet_tteproducer:
+	patmos-clang -O2 -D ROLE_PRODUCER $(CFLAGS) $(LIBETH)/*.c -mserialize=aion_wcet.pml tte_produceconsume.c -o aion_wcet.elf
 	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e task_sync
+	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e task_calc
 	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e task_send
 	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e task_recv
 	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e task_pulse
-	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e task_calc
-	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e sort_asc_ttetasks
 	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e cyclic_executive_loop
 	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e get_tte_aligned_time
+	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e sort_asc_ttetasks
+
+wcet_tteconsumer:
+	patmos-clang -O2 -D ROLE_CONSUMER $(CFLAGS) $(LIBETH)/*.c -mserialize=aion_wcet.pml tte_produceconsume.c -o aion_wcet.elf
+	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e task_sync
+	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e task_calc
+	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e task_send
+	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e task_recv
+	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e task_pulse
+	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e cyclic_executive_loop
+	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e get_tte_aligned_time
+	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e sort_asc_ttetasks
 
 	
 # running examples
@@ -69,8 +80,11 @@ tte_timesyncdemo:
 tsn_timesyncdemo:
 	patmos-clang -O2 $(CFLAGS) $(LIBETH)/*.c tsn_timesyncdemo.c -o aion.elf
 
-tte_produceconsume:
-	patmos-clang -O2 $(CFLAGS) $(LIBETH)/*.c tte_produceconsume.c -o aion.elf
+tte_producer:
+	patmos-clang -O2 -D ROLE_PRODUCER $(CFLAGS) $(LIBETH)/*.c tte_produceconsume.c -o aion.elf
+
+tte_consumer:
+	patmos-clang -O2 -D ROLE_CONSUMER $(CFLAGS) $(LIBETH)/*.c tte_produceconsume.c -o aion.elf
 
 config:
 	cd $(PATMOSHOME) && $(MAKE) config BOARD=altde2-all
