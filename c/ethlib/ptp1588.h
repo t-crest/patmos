@@ -75,6 +75,7 @@
 #define NS_TO_SEC 0.000000001
 #define NS_TO_USEC 0.001
 #define USEC_TO_NS 1000
+#define USEC_TO_MS 0.0001
 #define USEC_TO_SEC 0.000001
 #define MS_TO_NS 1000000
 #define MS_TO_USEC 1000

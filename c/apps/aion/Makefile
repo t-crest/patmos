@@ -50,9 +50,9 @@ wcet_tteproduceconsume:
 	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e task_recv
 	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e task_pulse
 	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e task_calc
-	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e sort_asc_ttetasks
 	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e cyclic_executive_loop
 	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e get_tte_aligned_time
+	platin wcet --disable-ait --enable-wca -i aion_wcet.pml -b aion_wcet.elf -e sort_asc_ttetasks
 
 	
 # running examples
