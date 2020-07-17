@@ -9,6 +9,19 @@
 #include "ethlib/udp.h"
 #include "ethlib/ipv4.h"
 #include "ethlib/ptp1588.h"
+
+// Demo roles
+#define PRODUCER 1
+#define CONSUMER 2
+
+#ifdef ROLE_PRODUCER
+	#include "producer_schedule.h"
+	#define ROLE PRODUCER
+#else
+	#include "consumer_schedule.h"
+	#define ROLE CONSUMER
+#endif
+
 #define MAX(a, b) (a > b) ? a : b
 #define MIN(a, b) (a < b) ? a : b
 
@@ -39,11 +52,9 @@
 #define RECVTASK_GPIO_BIT	3
 #define CALCTASK_GPIO_BIT	4
 
-// Demo roles
-#define PRODUCER 1
-#define CONSUMER 2
-
 // Motor control
+#define PULSE_PERIOD 		20000000	//ns
+#define PULSE_WIDTH			1000000		//ns
 #define PWM_PERIOD PULSE_PERIOD
 #define MIN_CYCLE 0.015
 #define MAX_CYCLE 0.1
@@ -59,42 +70,11 @@
 #define ALIGN_TO_REALTIME	//TODO: reset time on every new cluster
 
 // Demo parameters
-#define NUM_TASKS			5
 #define NUM_RX_PACKETS 		2000		//packets
 #define CPU_PERIOD			12.5		//ns	
 #define ASYNC2SYNC_THRES	10			//clusters
 #define SYNC_WINDOW_HALF	10000		//ns
 #define RECV_WINDOW_HALF	10000		//ns
-#define SYNC_PERIOD			10000000	//ns
-#define PULSE_PERIOD 		20000000	//ns
-#define PULSE_WIDTH			1000000		//ns
-#define SEND_PERIOD			5000000		//ns
-#define RECV_PERIOD			5000000		//ns
-#define CALC_PERIOD			5000000		//ns
-#define HYPERPERIOD			20000000	//ns
-
-// Scheduled points in time
-// #ifdef USE_SYNCHRONOUS_SCHEDULE
-	#define SYNC_START_TIME				0			//ns
-	#define PRODUCER_RECV_START_TIME    1200000		//ns
-	#define PRODUCER_CALC_START_TIME	1647438		//ns
-	#define PRODUCER_SEND_START_TIME	3600000		//ns
-	#define PRODUCER_PULSE_START_TIME	3626200		//ns
-	#define CONSUMER_SEND_START_TIME	800000		//ns
-	#define CONSUMER_RECV_START_TIME    4000000		//ns
-	#define CONSUMER_CALC_START_TIME	4447438		//ns
-	#define CONSUMER_PULSE_START_TIME	16003638	//ns
-// #else
-// 	#define SYNC_START_TIME				0			//ns
-// 	#define PRODUCER_CALC_START_TIME	18803638	//ns
-// 	#define PRODUCER_RECV_START_TIME    1200000		//ns
-// 	#define PRODUCER_SEND_START_TIME	3600000		//ns
-// 	#define PRODUCER_PULSE_START_TIME	3803638		//ns
-// 	#define CONSUMER_SEND_START_TIME	800000		//ns
-// 	#define CONSUMER_RECV_START_TIME    4000000		//ns
-// 	#define CONSUMER_CALC_START_TIME	232438		//ns
-// 	#define CONSUMER_PULSE_START_TIME	1003638		//ns	
-// #endif 
 
 //Types
 typedef struct
@@ -102,24 +82,18 @@ typedef struct
 	unsigned int seq;
 	unsigned long long origin_ts;
 	float val;
-} SimpleTTMessage;
+} SimpleTTEMessage;
 
-typedef void (*generic_task_fp)(void);
 typedef struct
 {
 	unsigned long long period;
-    unsigned long long activation_time;
+    unsigned int release_inst;
+    unsigned int nr_releases;
+    unsigned long long *release_times;
 	unsigned long long last_time;
 	unsigned long long delta_sum;
 	unsigned long exec_count;
-    generic_task_fp task_fp;
 } SimpleTTETask;
-
-typedef void (*task_sync_fp)(unsigned long long start_time, unsigned long long schedule_time, SimpleTTETask* tasks);
-typedef void (*task_calc_fp)(unsigned char exec_role, SimpleTTMessage *outgoing_message, const SimpleTTMessage *incoming_message);
-typedef void (*task_pulse_fp)(unsigned long long schedule_time);
-typedef void (*task_send_fp)(SimpleTTMessage* message, int length, const unsigned char VL[2]);
-typedef void (*task_recv_fp)(SimpleTTMessage* message, int length);
 
 //Constants
 const char* eth_protocol_names[] = {"UFF", "IP", "ICMP", "UDP", "TCP", "PTP", "ARP", "LLDP", "MDNS", "TTE_PCF", "TTE"};
@@ -155,9 +129,6 @@ static unsigned int totalScheduledReceptions = 0;
 static unsigned int pulseDuration = DEAD_CALC(MAX_CYCLE);
 static unsigned long long endToEndSum = 0ULL;
 
-// static unsigned long long endToEndTx = 0ULL;
-// static unsigned long long endToEndRx = 0ULL;
-
 //Flags
 static unsigned char nodeIntegrated = 0;	//is used to indicate when the node has achieved sufficient syncrhonization
 static unsigned char nodeSyncStable = 0;	//is used to enable task execution when the node is in a stable sync
@@ -190,24 +161,23 @@ void printSegmentInt(unsigned number)
     *(&SEGDISP+7) = (number >> 28) & 0xF;
 }
 
-unsigned long long elapsed_nanos(long long start, long long stop)
-{
-	if(stop - start < 0)
-	{
-		return (unsigned long long) (stop - start + 1000000000); 
-	} 
-	else 
-	{
-		return (unsigned long long) (stop - start);
-	}
+void init_simple_simplettetask(SimpleTTETask *new_task, unsigned long long period, unsigned nr_releases, unsigned long long *release_times){
+  new_task->period = period;
+  new_task->last_time = 0;
+  new_task->delta_sum = 0;
+  new_task->exec_count = 0;
+  new_task->release_inst = 0;
+  new_task->nr_releases = nr_releases;
+  new_task->release_times = release_times;
 }
+
 
 __attribute__((noinline))
 unsigned long long get_tte_aligned_time(unsigned long long current_time, unsigned long long corr_limit)
 {
 	long long clock_corr = (((TTE_SYNC_Kp*clkDiff)>>10) + ((TTE_SYNC_Ki*clkDiffSum)>>10));
 	#ifdef TIME_CORRECTION_EN
-	return clock_corr < corr_limit ? (unsigned long long) ((long long) current_time + clock_corr) : current_time;
+	return (unsigned long long) ((long long) current_time + clock_corr);
 	#else
 	return (unsigned long long) current_time;
 	#endif
@@ -268,7 +238,7 @@ __attribute__((noinline))
 void task_sync(unsigned long long start_time, unsigned long long schedule_time, SimpleTTETask* tasks)
 {
 	GPIO |= (1U << SYNCTASK_GPIO_BIT);
-	int ethFrameType;
+	int ethFrameType = TIMEOUT;
 	PTP_RXCHAN_STATUS(thisPtpPortInfo.eth_base) = 0x1; //Clear PTP timestampAvail flag
 	unsigned long long listen_start = get_cpu_usecs(); //keep track when we started listening
 	#pragma loopbound min 1 max 1
@@ -311,12 +281,15 @@ void task_sync(unsigned long long start_time, unsigned long long schedule_time, 
 		clkDiffSum = 0;
 		clkDiff = 0;
 	}
-	if(nodeIntegrated){
-		for(int i=0; i<NUM_TASKS; i++)
+	// if(nodeIntegrated){
+		#pragma loopbound min 1 max 5
+		for(int i=0; i<NUM_OF_TASKS; i++)
 		{
-			tasks[i].activation_time = get_tte_aligned_time(tasks[i].activation_time, tasks[i].period);
+			#pragma loopbound min 1 max 4
+			for(int n=0; n<tasks[i].nr_releases; n++)
+				tasks[i].release_times[n] = get_tte_aligned_time(tasks[i].release_times[n], tasks[i].period);
 		}
-	}
+	// }
 	printSegmentInt(abs(clkDiff));
 	LEDS = (nodeSyncStable << 7) + (nodeIntegrated << 6) + (ethFrameType & 0xF);
 	GPIO &= (0U << SYNCTASK_GPIO_BIT);
@@ -325,16 +298,16 @@ void task_sync(unsigned long long start_time, unsigned long long schedule_time, 
 unsigned int last_rx_seq = 0; 
 
 __attribute__((noinline))
-void task_calc(unsigned char exec_role, unsigned long long current_time, SimpleTTMessage *outgoing_message, const SimpleTTMessage *incoming_message)
+void task_calc(unsigned long long current_time, SimpleTTEMessage *outgoing_message, const SimpleTTEMessage *incoming_message)
 {
 	GPIO |= (1U << CALCTASK_GPIO_BIT);
-	switch (exec_role)
+	switch (ROLE)
 	{
 	case PRODUCER:
 		pulseDuration = (int) DEAD_CALC(outgoing_message->val);
 		outgoing_message->seq += 1;
 		outgoing_message->val = (outgoing_message->val >= MAX_CYCLE) ? MIN_CYCLE : outgoing_message->val + MOTOR_STEP;  //increase dutyCycle for sweep;
-		outgoing_message->origin_ts = get_tte_aligned_time((unsigned long long) get_ptp_nanos(thisPtpPortInfo.eth_base), HYPERPERIOD);
+		outgoing_message->origin_ts = get_tte_aligned_time((unsigned long long) get_ptp_nanos(thisPtpPortInfo.eth_base), HYPER_PERIOD);
 		nodeSendEnable = nodeSyncStable && KEYS != 0xD;
 		nodeRecvEnable = 0;
 		break;
@@ -342,7 +315,7 @@ void task_calc(unsigned char exec_role, unsigned long long current_time, SimpleT
 		if(incoming_message->seq > 0)
 		{
 			pulseDuration = (int) DEAD_CALC(incoming_message->val);
-			endToEndSum += get_tte_aligned_time((unsigned long long) get_ptp_nanos(thisPtpPortInfo.eth_base), HYPERPERIOD) - incoming_message->origin_ts;
+			endToEndSum += get_tte_aligned_time((unsigned long long) get_ptp_nanos(thisPtpPortInfo.eth_base), HYPER_PERIOD) - incoming_message->origin_ts;
 			last_rx_seq = incoming_message->seq;
 		}
 		nodeSendEnable = 0;
@@ -352,7 +325,7 @@ void task_calc(unsigned char exec_role, unsigned long long current_time, SimpleT
 }
 
 __attribute__((noinline))
-void task_pulse(unsigned long long schedule_time)
+void task_pulse(unsigned long long current_time)
 {
 	GPIO |= (1U << PULSETASK_GPIO_BIT);
 	LEDS |= (1U << 8);
@@ -365,7 +338,7 @@ void task_pulse(unsigned long long schedule_time)
 }
 
 __attribute__((noinline))
-void task_send(unsigned long long current_time, SimpleTTMessage* message, int length, const unsigned char VL[2]){
+void task_send(unsigned long long current_time, SimpleTTEMessage* message, int length, const unsigned char VL[2]){
 	GPIO |= (1U << SENDTASK_GPIO_BIT);
 	if(nodeSendEnable)
 	{
@@ -389,7 +362,7 @@ void task_send(unsigned long long current_time, SimpleTTMessage* message, int le
 		mem_iowr_byte(tx_addr + 12, ethType[0]);
 		mem_iowr_byte(tx_addr + 13, ethType[1]);
 		//Data
-		#pragma loopbound min 20 max 20
+		#pragma loopbound min 16 max 16
 		for(int i=0; i<length; i++)
 		{
 			mem_iowr_byte(tx_addr + 18 + i, *((unsigned char*) message + i));
@@ -402,7 +375,7 @@ void task_send(unsigned long long current_time, SimpleTTMessage* message, int le
 
 
 __attribute__((noinline))
-void task_recv(unsigned long long current_time, SimpleTTMessage* message, int length){
+void task_recv(unsigned long long current_time, SimpleTTEMessage* message, int length){
 	GPIO |= (1U << RECVTASK_GPIO_BIT);
 	if(nodeRecvEnable)
 	{
@@ -424,7 +397,7 @@ void task_recv(unsigned long long current_time, SimpleTTMessage* message, int le
 		if(ethFrameType != UNSUPPORTED)
 		{
 			//Data
-			#pragma loopbound min 20 max 20
+			#pragma loopbound min 16 max 16
 			for(int i=0; i<length; i++)
 			{
 				*((unsigned char*)message + i) = mem_iord_byte(rx_addr + 18 + i);
@@ -437,28 +410,28 @@ void task_recv(unsigned long long current_time, SimpleTTMessage* message, int le
 }
 
 __attribute__((noinline))
-void cyclic_executive_loop(unsigned int exec_role, SimpleTTETask* sched){
+void cyclic_executive_loop(SimpleTTETask* sched){
 	// printf("Cyclic executive role: %d\n", exec_role);
-	SimpleTTMessage outgoing_message = {.seq = 0, .origin_ts = 0, .val = 0};
-	SimpleTTMessage incoming_message = {.seq = 0, .origin_ts = 0, .val = 0};
+	SimpleTTEMessage outgoing_message = {.seq = 0, .origin_ts = 0, .val = 0};
+	SimpleTTEMessage incoming_message = {.seq = 0, .origin_ts = 0, .val = 0};
 	unsigned long long start_time = get_ptp_nanos(thisPtpPortInfo.eth_base);
 	#pragma loopbound min 1 max 1
 	while(KEYS != 0xE){
     	register unsigned long long schedule_time = get_ptp_nanos(thisPtpPortInfo.eth_base);
-		schedule_time = get_tte_aligned_time(schedule_time - start_time, HYPERPERIOD);
+		schedule_time = get_tte_aligned_time(schedule_time - start_time, HYPER_PERIOD);
 		#pragma loopbound min 1 max 1
-		for(int i=0; i<NUM_TASKS; i++){
-			if(schedule_time >= sched[i].activation_time){
+		for(int i=0; i<NUM_OF_TASKS; i++){
+			if(schedule_time >= sched[i].release_times[sched[i].release_inst]){
 				switch (i)
 				{
 				case 0:
           			task_sync(start_time, schedule_time, sched);
 					break;
 				case 1:
-          			task_calc(exec_role, schedule_time, &outgoing_message, &incoming_message);
+          			task_calc(schedule_time, &outgoing_message, &incoming_message);
 					break;
 				case 2:
-          			task_send(schedule_time, &outgoing_message, sizeof(SimpleTTMessage), exec_role==PRODUCER ? TTE_PRODUCER_VL : TTE_CONSUMER_VL);
+          			task_send(schedule_time, &outgoing_message, sizeof(SimpleTTEMessage), ROLE==PRODUCER ? TTE_PRODUCER_VL : TTE_CONSUMER_VL);
 					break;
 				case 3:
 					task_recv(schedule_time, &incoming_message, sizeof(SimpleTTETask));
@@ -467,7 +440,8 @@ void cyclic_executive_loop(unsigned int exec_role, SimpleTTETask* sched){
           			task_pulse(schedule_time);
 					break;
 				}
-				sched[i].activation_time += sched[i].period;
+				sched[i].release_times[sched[i].release_inst] += HYPER_PERIOD;
+				sched[i].release_inst = (sched[i].release_inst + 1) % sched[i].nr_releases;
 				sched[i].delta_sum += sched[i].last_time == 0 ? 0 : (schedule_time - get_tte_aligned_time(sched[i].last_time, sched[i].period));
 				sched[i].last_time = schedule_time;
 				sched[i].exec_count += 1;
@@ -476,27 +450,7 @@ void cyclic_executive_loop(unsigned int exec_role, SimpleTTETask* sched){
 	}
 }
 
-__attribute__((noinline))
-void sort_asc_ttetasks(SimpleTTETask *tasks, const unsigned short num_tasks)
-{
-  #pragma loopbound min 4 max 4
-  for (int i = 0; i < num_tasks; i++)                     
-	{
-		#pragma loopbound min 4 max 4
-		for (int j = 0; j < num_tasks; j++)             
-		{
-			if (tasks[j].period < tasks[i].period)                    
-			{
-				SimpleTTETask tmp = tasks[i];         
-				tasks[i] = tasks[j];            
-				tasks[j] = tmp;             
-			}
-		}
-	}
-}
-
 int main(int argc, char **argv){
-	unsigned int exec_role;
 	LEDS = GPIO = 0x1FF;
 	puts("\nTTEthernet Ping Demo Started");
 
@@ -509,51 +463,12 @@ int main(int argc, char **argv){
 	eth_iowr(TX_BD_ADDR_BASE, TX_BD_READY_BIT | TX_BD_IRQEN_BIT | TX_BD_PAD_EN_BIT);
 	thisPtpPortInfo = ptpv2_intialize_local_port(PATMOS_IO_ETH, PTP_SLAVE, my_mac, my_ip, 1, 0);
 	LEDS = GPIO = 0x0;
-	printf("Select execution role (PRODUCER=%d, CONSUMER=%d): ", PRODUCER, CONSUMER);
-	scanf("%02x", (unsigned int*) &exec_role);
 
-	SimpleTTETask task_schedule[NUM_TASKS] = {
-		{
-			.period = SYNC_PERIOD,
-			.activation_time = SYNC_START_TIME,
-			.last_time = 0,
-			.delta_sum = 0,
-			.exec_count = 0,
-			.task_fp = (generic_task_fp)task_sync 
-		},
-		{
-			.period = CALC_PERIOD,
-			.activation_time = (exec_role == PRODUCER) ? PRODUCER_CALC_START_TIME : CONSUMER_CALC_START_TIME,
-			.last_time = 0,
-			.delta_sum = 0,
-			.exec_count = 0,
-			.task_fp = (generic_task_fp)task_calc
-		},
-		{
-			.period = SEND_PERIOD,
-			.activation_time = (exec_role == PRODUCER) ? PRODUCER_SEND_START_TIME : CONSUMER_SEND_START_TIME,
-			.last_time = 0,
-			.delta_sum = 0,
-			.exec_count = 0,
-			.task_fp = (generic_task_fp)task_send
-		},
-		{
-			.period = RECV_PERIOD,
-			.activation_time = (exec_role == PRODUCER) ? PRODUCER_RECV_START_TIME : CONSUMER_RECV_START_TIME,
-			.last_time = 0,
-			.delta_sum = 0,
-			.exec_count = 0,
-			.task_fp = (generic_task_fp)task_recv
-		},
-		{
-			.period = PULSE_PERIOD,
-			.activation_time = (exec_role == PRODUCER) ? PRODUCER_PULSE_START_TIME : CONSUMER_PULSE_START_TIME,
-			.last_time = 0,
-			.delta_sum = 0,
-			.exec_count = 0,
-			.task_fp = (generic_task_fp)task_pulse 
-		}
-	};
+	SimpleTTETask task_schedule[NUM_OF_TASKS];
+	for(unsigned i=0; i < NUM_OF_TASKS; i++){
+		init_simple_simplettetask(&task_schedule[i], (unsigned long long) tasks_periods[i], tasks_insts_counts[i], tasks_schedules[i]);
+	}
+
 
 	// sort_asc_ttetasks(task_schedule, NO_TASKS);
 
@@ -566,7 +481,7 @@ int main(int argc, char **argv){
 		clkDiffLast = 0;
 		clkDiffSum = 0;
 		clkDiff = 0;
-		cyclic_executive_loop(exec_role, task_schedule);
+		cyclic_executive_loop(task_schedule);
 	}while(KEYS !=  0xE && rxMsgCount < NUM_RX_PACKETS);
 
 	//Report
@@ -584,7 +499,7 @@ int main(int argc, char **argv){
 	printf("--Transmit No. of Message Frames = %u\n", txMsgCount);
 	puts("---------------------------------------------------------------------------");
 	puts("Task log:");
-	for(int i=0; i<NUM_TASKS; i++){
+	for(int i=0; i<NUM_OF_TASKS; i++){
 		unsigned long long avgDelta = task_schedule[i].delta_sum/task_schedule[i].exec_count;
 		printf("--task[%d]   avg. dt = %.4f us\t(avg. jitter = %.4f us) from a total of %lu executions\n", i, avgDelta * NS_TO_USEC, abs(task_schedule[i].period - avgDelta) * NS_TO_USEC, task_schedule[i].exec_count);
 	}
