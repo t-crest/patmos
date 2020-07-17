@@ -5,6 +5,7 @@
   <pipeline dual="false" />
 
   <ExtMem size="500k" DevTypeRef="OCRam" />
+  
 
   <IOs>
   <IO DevTypeRef="Uart" offset="6"/>
@@ -39,10 +40,11 @@
       </params>
     </Dev>
     <Dev DevType="AauMpu" entity="AauMpu" iface="OcpCore" />
-    <Dev DevType="OCRam" entity="OCRamCtrl" iface="OcpBurst">
-      <params>
-         <param name="addrWidth" value="19" />
-      </params>
-    </Dev>
+
+  <Dev DevType="OCRam" entity="OCRamCtrl" iface="OcpBurst">
+    <params>
+       <param name="sramAddrWidth" value="19" />
+    </params>
+  </Dev>
   </Devs>
 </patmos>

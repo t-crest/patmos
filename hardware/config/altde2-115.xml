@@ -38,7 +38,7 @@
   </Dev>
   <Dev DevType="OCRam" entity="OCRamCtrl" iface="OcpBurst">
     <params>
-       <param name="addrWidth" value="19" />
+       <param name="sramDataWidth" value="19" />
     </params>
   </Dev>
   </Devs>

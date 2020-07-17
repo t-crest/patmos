@@ -19,7 +19,7 @@ object OCRamCtrl extends DeviceObject {
   var addrWidth = 16
 
   def init(params: Map[String, String]) = {
-    addrWidth = getPosIntParam(params, "addrWidth")
+    addrWidth = getPosIntParam(params, "sramAddrWidth")
   }
 
   def create(params: Map[String, String]) : OCRamCtrl = {
