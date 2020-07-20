@@ -15,10 +15,10 @@
 #define CONSUMER 2
 
 #ifdef ROLE_PRODUCER
-	#include "producer_schedule.h"
+	#include "tte_producer_schedule.h"
 	#define ROLE PRODUCER
 #else
-	#include "consumer_schedule.h"
+	#include "tte_consumer_schedule.h"
 	#define ROLE CONSUMER
 #endif
 
@@ -119,15 +119,13 @@ static unsigned long long coldStartIntegrationTime = 0;
 static unsigned long long initNanoseconds = 0;
 static unsigned long long initSeconds = 0;
 
-//Counters
+//Synchronization Counters
 static unsigned short rxPcfCount = 0;
 static unsigned int stableCycles = 0;
 static unsigned int unstableCycles = 0;
 static unsigned int stableClusters = 0;
 static unsigned int unstableClusters = 0;
 static unsigned int totalScheduledReceptions = 0;
-static unsigned int pulseDuration = DEAD_CALC(MAX_CYCLE);
-static unsigned long long endToEndSum = 0ULL;
 
 //Flags
 static unsigned char nodeIntegrated = 0;	//is used to indicate when the node has achieved sufficient syncrhonization
@@ -138,8 +136,14 @@ static unsigned char nodeSendEnable = 0;
 static unsigned char nodeRecvEnable = 0;
 
 //Communication
-unsigned int txMsgCount = 0;
-unsigned int rxMsgCount = 0;
+static unsigned int txMsgCount = 0;
+static unsigned int rxMsgCount = 0;
+static unsigned long long endToEndSum = 0;
+static unsigned long long incomingRxMsgTs = 0;
+static unsigned long long incomingTxMsgTs = 0;
+
+//Other
+static unsigned int pulseDuration = DEAD_CALC(MAX_CYCLE);
 
 void print_general_info()
 {
@@ -170,7 +174,6 @@ void init_simple_simplettetask(SimpleTTETask *new_task, unsigned long long perio
   new_task->nr_releases = nr_releases;
   new_task->release_times = release_times;
 }
-
 
 __attribute__((noinline))
 unsigned long long get_tte_aligned_time(unsigned long long current_time, unsigned long long corr_limit)
@@ -277,6 +280,10 @@ void task_sync(unsigned long long start_time, unsigned long long schedule_time, 
 		nodeColdStart = 1;
 		nodeIntegrated = 0;
 		nodeSyncStable = 0;
+		stableCycles = 0;
+		unstableCycles = 0;
+		stableClusters = 0;
+		unstableClusters = 0;
 		clkDiffLast = 0;
 		clkDiffSum = 0;
 		clkDiff = 0;
@@ -295,10 +302,10 @@ void task_sync(unsigned long long start_time, unsigned long long schedule_time, 
 	GPIO &= (0U << SYNCTASK_GPIO_BIT);
 }
 
-unsigned int last_rx_seq = 0; 
+unsigned int totalRxSeq = 0; 
 
 __attribute__((noinline))
-void task_calc(unsigned long long current_time, SimpleTTEMessage *outgoing_message, const SimpleTTEMessage *incoming_message)
+void task_calc(unsigned long long current_delta, SimpleTTEMessage *outgoing_message, const SimpleTTEMessage *incoming_message)
 {
 	GPIO |= (1U << CALCTASK_GPIO_BIT);
 	switch (ROLE)
@@ -307,7 +314,7 @@ void task_calc(unsigned long long current_time, SimpleTTEMessage *outgoing_messa
 		pulseDuration = (int) DEAD_CALC(outgoing_message->val);
 		outgoing_message->seq += 1;
 		outgoing_message->val = (outgoing_message->val >= MAX_CYCLE) ? MIN_CYCLE : outgoing_message->val + MOTOR_STEP;  //increase dutyCycle for sweep;
-		outgoing_message->origin_ts = get_tte_aligned_time((unsigned long long) get_ptp_nanos(thisPtpPortInfo.eth_base), HYPER_PERIOD);
+		outgoing_message->origin_ts = current_delta;
 		nodeSendEnable = nodeSyncStable && KEYS != 0xD;
 		nodeRecvEnable = 0;
 		break;
@@ -315,8 +322,10 @@ void task_calc(unsigned long long current_time, SimpleTTEMessage *outgoing_messa
 		if(incoming_message->seq > 0)
 		{
 			pulseDuration = (int) DEAD_CALC(incoming_message->val);
-			endToEndSum += get_tte_aligned_time((unsigned long long) get_ptp_nanos(thisPtpPortInfo.eth_base), HYPER_PERIOD) - incoming_message->origin_ts;
-			last_rx_seq = incoming_message->seq;
+			incomingRxMsgTs = current_delta;
+			incomingTxMsgTs = incoming_message->origin_ts;
+			endToEndSum += abs((unsigned long long) incomingRxMsgTs - (unsigned long long) incomingTxMsgTs);
+			totalRxSeq += 1;
 		}
 		nodeSendEnable = 0;
 		nodeRecvEnable = nodeSyncStable && KEYS != 0xD;
@@ -418,25 +427,25 @@ void cyclic_executive_loop(SimpleTTETask* sched){
 	#pragma loopbound min 1 max 1
 	while(KEYS != 0xE){
     	register unsigned long long schedule_time = get_ptp_nanos(thisPtpPortInfo.eth_base);
-		schedule_time = get_tte_aligned_time(schedule_time - start_time, HYPER_PERIOD);
+		schedule_time = (unsigned long long) get_tte_aligned_time(schedule_time - start_time, HYPER_PERIOD);
 		#pragma loopbound min 1 max 1
 		for(int i=0; i<NUM_OF_TASKS; i++){
 			if(schedule_time >= sched[i].release_times[sched[i].release_inst]){
 				switch (i)
 				{
-				case 0:
+				case task_syn_ID:
           			task_sync(start_time, schedule_time, sched);
 					break;
-				case 1:
-          			task_calc(schedule_time, &outgoing_message, &incoming_message);
+				case task_calc_ID:
+          			task_calc(schedule_time - sched[task_syn_ID].last_time, &outgoing_message, &incoming_message);
 					break;
-				case 2:
+				case task_send_ID:
           			task_send(schedule_time, &outgoing_message, sizeof(SimpleTTEMessage), ROLE==PRODUCER ? TTE_PRODUCER_VL : TTE_CONSUMER_VL);
 					break;
-				case 3:
+				case task_recv_ID:
 					task_recv(schedule_time, &incoming_message, sizeof(SimpleTTETask));
 					break;
-				case 4:
+				case task_pulse_ID:
           			task_pulse(schedule_time);
 					break;
 				}
@@ -451,9 +460,13 @@ void cyclic_executive_loop(SimpleTTETask* sched){
 }
 
 int main(int argc, char **argv){
-	LEDS = GPIO = 0x1FF;
-	puts("\nTTEthernet Ping Demo Started");
-
+	LEDS = GPIO = 0x1FF;	
+	
+	if (ROLE == PRODUCER)
+		puts("\nTTEthernet Producer Demo Started");
+	else
+		puts("\nTTEthernet Consumer Demo Started");
+	
 	//MAC controller settings
 	set_mac_address(0x1D000400, 0x00000289);
 	eth_iowr(MODER, (RECSMALL_BIT | CRCEN_BIT | FULLD_BIT | PRO_BIT | TXEN_BIT | RXEN_BIT));
@@ -468,9 +481,6 @@ int main(int argc, char **argv){
 	for(unsigned i=0; i < NUM_OF_TASKS; i++){
 		init_simple_simplettetask(&task_schedule[i], (unsigned long long) tasks_periods[i], tasks_insts_counts[i], tasks_schedules[i]);
 	}
-
-
-	// sort_asc_ttetasks(task_schedule, NO_TASKS);
 
 	// Executive Loop
 	do{
@@ -491,11 +501,11 @@ int main(int argc, char **argv){
 	printf("--Avg. clock offset = %lld ns\n", clkDiffSum / rxPcfCount);
 	puts("---------------------------------------------------------------------------");
 	puts("Communication Log:");
-	printf("--Avg. end-to-end latency = %.4f ms\n", abs(endToEndSum/rxMsgCount) * NS_TO_USEC * USEC_TO_MS);
+	printf("--Avg. end-to-end latency = %.4f us (from: %llu, to: %llu)\n", (endToEndSum/totalRxSeq) * NS_TO_USEC, incomingTxMsgTs, incomingRxMsgTs);
 	printf("--Received No. of Frames = %u\n", rxPcfCount+rxMsgCount);
 	printf("--In-Sched No. of PCF = %u (loss = %.3f %%) \n", stableCycles, 100-((float)stableCycles/(float)rxPcfCount)*100);
 	printf("--No-Sched No. of PCF = %u (success = %.3f %%) \n", unstableCycles, 100-((float)unstableCycles/(float)rxPcfCount)*100);
-	printf("--Received No. of Message Frames = %u\n", rxMsgCount);
+	printf("--Received No. of Message Frames = %u (seqs= %u)\n", rxMsgCount, totalRxSeq);
 	printf("--Transmit No. of Message Frames = %u\n", txMsgCount);
 	puts("---------------------------------------------------------------------------");
 	puts("Task log:");
