@@ -18,12 +18,11 @@ Several packages need to be installed.
 The following apt-get lists the packages that need to be
 installed on a Ubuntu Linux:
 
-    sudo apt-get install git default-jdk gitk cmake make g++ texinfo flex bison \
-      subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby-full \
-      liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala autoconf libfl2
-
-On a restricted machine (e.g. Cloud9) the bare minimum is:
-
+```
+sudo apt install git openjdk-8-jdk gitk cmake make g++ texinfo flex bison \
+  subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby-full \
+  liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala
+```
 
 Make sure to use Java 8 and remove any later Java version with ```sudo apt autoremove```.
 
@@ -47,7 +46,8 @@ to the compiler executables into your .bashrc or .profile:
 Use an absolute path as LLVM cannot handle a path relative to the
 home directory (~). Logout and login again to make your new PATH setting active.
 
-In order to build the c++ emulator of patmos, the verilator must be installed from their github repository. Verilator is installed like so:
+For the Chisel3 branch you need to install the latest Veriltor.
+In order to build the C++ emulator of Patmos, the Verilator must be installed from their github repository. Verilator is installed like so:
 
     git clone https://git.veripool.org/git/verilator
     unsetenv VERILATOR_ROOT  # For csh; ignore error if on bash
