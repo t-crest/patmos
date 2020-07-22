@@ -14,11 +14,21 @@
 #define PRODUCER 1
 #define CONSUMER 2
 
+// #define ASYNC
+
 #ifdef ROLE_PRODUCER
-	#include "tte_producer_schedule.h"
+	#ifdef ASYNC
+		#include "tte_producer_schedule_async.h"
+	#else
+		#include "tte_producer_schedule.h"
+	#endif
 	#define ROLE PRODUCER
 #else
-	#include "tte_consumer_schedule.h"
+	#ifdef ASYNC
+		#include "tte_consumer_schedule_async.h"
+	#else
+		#include "tte_consumer_schedule.h"
+	#endif
 	#define ROLE CONSUMER
 #endif
 
@@ -129,9 +139,9 @@ static unsigned int totalScheduledReceptions = 0;
 
 //Flags
 static unsigned char nodeIntegrated = 0;	//is used to indicate when the node has achieved sufficient syncrhonization
-static unsigned char nodeSyncStable = 0;	//is used to enable task execution when the node is in a stable sync
+static unsigned char nodeSyncStable = 0;	//is used to enable task execution when the node is in a stable sync according to a threshold
 static unsigned char nodeColdStart = 1;		//is used to indicate that a node has just booted and has not received a single PCF
-static unsigned char nodeFirstSync = 1;
+static unsigned char nodeFirstSync = 1;		//is used to indicate the first time the node integrated
 static unsigned char nodeSendEnable = 0;
 static unsigned char nodeRecvEnable = 0;
 

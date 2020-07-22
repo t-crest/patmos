@@ -3,7 +3,7 @@
 /*
  * This file was generated using SimpleSMTScheduler (https://github.com/egk696/SimpleSMTScheduler)
  * Generated schedule based on task set defined in examples/tte_producer.csv
- * Scheduled Task Set Utilization = 23.333445 %
+ * Scheduled Task Set Utilization = 17.991685 %
  */
 
 #define NUM_OF_TASKS 5
@@ -31,9 +31,9 @@ unsigned long long tasks_periods[NUM_OF_TASKS] = {PRODUCER_SYN_PERIOD, PRODUCER_
 unsigned tasks_insts_counts[NUM_OF_TASKS] = {PRODUCER_SYN_INSTS_NUM, PRODUCER_CALC_INSTS_NUM, PRODUCER_SEND_INSTS_NUM, PRODUCER_RECV_INSTS_NUM, PRODUCER_PULSE_INSTS_NUM};
 
 unsigned long long PRODUCER_SYN_sched_insts[PRODUCER_SYN_INSTS_NUM] = {0, 10000000};
-unsigned long long PRODUCER_CALC_sched_insts[PRODUCER_CALC_INSTS_NUM] = {1605188, 6605188, 11605188, 16605188};
+unsigned long long PRODUCER_CALC_sched_insts[PRODUCER_CALC_INSTS_NUM] = {1338100, 6338100, 11338100, 16338100};
 unsigned long long PRODUCER_SEND_sched_insts[PRODUCER_SEND_INSTS_NUM] = {3600000, 8600000, 13600000, 18600000};
 unsigned long long PRODUCER_RECV_sched_insts[PRODUCER_RECV_INSTS_NUM] = {1200000, 6200000, 11200000, 16200000};
-unsigned long long PRODUCER_PULSE_sched_insts[PRODUCER_PULSE_INSTS_NUM] = {3764200};
+unsigned long long PRODUCER_PULSE_sched_insts[PRODUCER_PULSE_INSTS_NUM] = {4061413};
 
 unsigned long long *tasks_schedules[NUM_OF_TASKS] = {PRODUCER_SYN_sched_insts, PRODUCER_CALC_sched_insts, PRODUCER_SEND_sched_insts, PRODUCER_RECV_sched_insts, PRODUCER_PULSE_sched_insts};

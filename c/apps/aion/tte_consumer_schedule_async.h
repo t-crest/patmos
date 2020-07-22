@@ -3,7 +3,7 @@
 /*
  * This file was generated using SimpleSMTScheduler (https://github.com/egk696/SimpleSMTScheduler)
  * Generated schedule based on task set defined in examples/tte_consumer.csv
- * Scheduled Task Set Utilization = 21.693445 %
+ * Scheduled Task Set Utilization = 21.171445 %
  */
 
 #define NUM_OF_TASKS 5
@@ -31,9 +31,9 @@ unsigned long long tasks_periods[NUM_OF_TASKS] = {CONSUMER_SYN_PERIOD, CONSUMER_
 unsigned tasks_insts_counts[NUM_OF_TASKS] = {CONSUMER_SYN_INSTS_NUM, CONSUMER_CALC_INSTS_NUM, CONSUMER_SEND_INSTS_NUM, CONSUMER_RECV_INSTS_NUM, CONSUMER_PULSE_INSTS_NUM};
 
 unsigned long long CONSUMER_SYN_sched_insts[CONSUMER_SYN_INSTS_NUM] = {0, 10000000};
-unsigned long long CONSUMER_CALC_sched_insts[CONSUMER_CALC_INSTS_NUM] = {4405188, 9405188, 14405188, 19405188};
+unsigned long long CONSUMER_CALC_sched_insts[CONSUMER_CALC_INSTS_NUM] = {498075, 5498075, 10498075, 15498075};
 unsigned long long CONSUMER_SEND_sched_insts[CONSUMER_SEND_INSTS_NUM] = {800000, 5800000, 10800000, 15800000};
 unsigned long long CONSUMER_RECV_sched_insts[CONSUMER_RECV_INSTS_NUM] = {4000000, 9000000, 14000000, 19000000};
-unsigned long long CONSUMER_PULSE_sched_insts[CONSUMER_PULSE_INSTS_NUM] = {5964200};
+unsigned long long CONSUMER_PULSE_sched_insts[CONSUMER_PULSE_INSTS_NUM] = {938100};
 
 unsigned long long *tasks_schedules[NUM_OF_TASKS] = {CONSUMER_SYN_sched_insts, CONSUMER_CALC_sched_insts, CONSUMER_SEND_sched_insts, CONSUMER_RECV_sched_insts, CONSUMER_PULSE_sched_insts};
