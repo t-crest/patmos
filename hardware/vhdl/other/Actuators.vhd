@@ -28,24 +28,34 @@ entity Actuators_PropDrive is
 		MByteEn    : in  std_logic_vector(3 downto 0);
 		SResp      : out std_logic_vector(1 downto 0);
 		SData      : out std_logic_vector(OCP_DATA_WIDTH - 1 downto 0);
-
+		
+		pwm_measurment_input : in std_logic_vector(ACTUATOR_NUMBER-1 downto 0);
 		-- Actuator and propdrive OUT
-		actuator_out_port  : out   std_logic_vector(ACTUATOR_NUMBER-1 downto 0);
+--		actuator_out_port  : out   std_logic_vector(ACTUATOR_NUMBER-1 downto 0);
 		propdrive_out_port  : out   std_logic_vector(PROPDRIVE_NUMBER-1 downto 0)
 	);
 end Actuators_PropDrive;
 
 architecture rtl of Actuators_PropDrive is
 
-	component Actuator is
-	port(
-	  out_port  : out   std_logic;
-	  address : in    std_logic_vector(1 downto 0);
-	  chipselect : in    std_logic;
-	  clk : in    std_logic;
-	  reset_n : in    std_logic;
-	  write_n : in    std_logic;
-	  writedata : in   std_logic_vector(31 downto 0)
+--	component Actuator is
+--	port(
+--	  out_port  : out   std_logic;
+--	  address : in    std_logic_vector(1 downto 0);
+--	  chipselect : in    std_logic;
+--	  clk : in    std_logic;
+--	  reset_n : in    std_logic;
+--	  write_n : in    std_logic;
+--	  writedata : in   std_logic_vector(31 downto 0)
+--	);
+--	end component;
+	component PWMMeasure is
+	port
+	(
+		clk        	 	: in  std_logic;
+		reset        	: in  std_logic;
+		pwm_in_port  	: in std_logic;	
+		duty_cycle_val : out std_logic_vector(31 downto 0)
 	);
 	end component;
 
@@ -69,10 +79,11 @@ architecture rtl of Actuators_PropDrive is
 	
 	type actuator_2_bit_array_type is array (ACTUATOR_NUMBER-1 downto 0) of std_logic_vector(1 downto 0);
 	type actuator_32_bit_array_type is array (ACTUATOR_NUMBER-1 downto 0) of std_logic_vector(31 downto 0);
-	signal actuator_address :    actuator_2_bit_array_type;
-	signal actuator_chipselect :    std_logic_vector(ACTUATOR_NUMBER-1 downto 0);
-	signal actuator_write_n :    std_logic_vector(ACTUATOR_NUMBER-1 downto 0);
-	signal actuator_writedata :   actuator_32_bit_array_type;
+--	signal actuator_address :    actuator_2_bit_array_type;
+--	signal actuator_chipselect :    std_logic_vector(ACTUATOR_NUMBER-1 downto 0);
+--	signal actuator_write_n :    std_logic_vector(ACTUATOR_NUMBER-1 downto 0);
+--	signal actuator_writedata :   actuator_32_bit_array_type;
+	signal pwm_measure_output : actuator_32_bit_array_type;
 
    type propdrive_2_bit_array_type is array (PROPDRIVE_NUMBER-1 downto 0) of std_logic_vector(1 downto 0);
 	type propdrive_32_bit_array_type is array (PROPDRIVE_NUMBER-1 downto 0) of std_logic_vector(31 downto 0);
@@ -93,16 +104,16 @@ begin
 	--Control mux
 	process(MCmd, MByteEn)
 	begin
-	   actuator_chipselect <= (others => '0');
+--	   actuator_chipselect <= (others => '0');
 		propdrive_chipselect <= (others => '0');
 		next_SData <= SData_int;
 		case MCmd is
 			when "001" =>               -- write
-			   for I in 0 to ACTUATOR_NUMBER-1 loop
-					if (MAddr(6 downto 2) = std_logic_vector(to_unsigned(ACTUATOR_ADDR_BASE+I ,5))) then
-						actuator_chipselect(I) <= '1';
-					end if;
-				end loop;
+--			   for I in 0 to ACTUATOR_NUMBER-1 loop
+--					if (MAddr(6 downto 2) = std_logic_vector(to_unsigned(ACTUATOR_ADDR_BASE+I ,5))) then
+--						actuator_chipselect(I) <= '1';
+--					end if;
+--				end loop;
 				
 				for I in 0 to PROPDRIVE_NUMBER-1 loop
 					if (MAddr(6 downto 2) = std_logic_vector(to_unsigned(PROPDRIVE_ADDR_BASE+I ,5))) then
@@ -115,6 +126,12 @@ begin
 				for I in 0 to PROPDRIVE_NUMBER-1 loop
 					if (MAddr(6 downto 2) = std_logic_vector(to_unsigned(PROPDRIVE_ADDR_BASE+I ,5))) then
 						next_SData <= propdrive_readdata(I);
+					end if;
+				end loop;
+				
+				for I in 0 to ACTUATOR_NUMBER-1 loop
+					if (MAddr(6 downto 2) = std_logic_vector(to_unsigned(ACTUATOR_ADDR_BASE+I ,5))) then
+						next_SData <= pwm_measure_output(I);
 					end if;
 				end loop;
 				next_SResp <= "01";
@@ -136,18 +153,27 @@ begin
 		end if;
 	end process;
 	
-	generate_actuator: for I in 0 to ACTUATOR_NUMBER-1 generate
-      Actuator_inst : Actuator
+--	generate_actuator: for I in 0 to ACTUATOR_NUMBER-1 generate
+--      Actuator_inst : Actuator
+--			port map(
+--				  out_port  => actuator_out_port(I),
+--				  address  => (others => '0'),
+--				  chipselect  => actuator_chipselect(I),
+--				  clk => clk,
+--				  reset_n  => reset_n,
+--				  write_n  => actuator_write_n(I),
+--				  writedata  => MData
+--			);		
+--   end generate generate_actuator;
+	generate_pwmmeasure: for I in 0 to ACTUATOR_NUMBER-1 generate
+		PWMMeasure_inst : PWMMeasure
 			port map(
-				  out_port  => actuator_out_port(I),
-				  address  => (others => '0'),
-				  chipselect  => actuator_chipselect(I),
-				  clk => clk,
-				  reset_n  => reset_n,
-				  write_n  => actuator_write_n(I),
-				  writedata  => MData
-			);		
-   end generate generate_actuator;
+				clk        	 	=> clk,
+				reset        	=> reset_n,
+				pwm_in_port  	=> pwm_measurment_input(I),
+				duty_cycle_val => pwm_measure_output(I)
+			);
+	end generate generate_pwmmeasure;
 
 	generate_propdrive: for I in 0 to PROPDRIVE_NUMBER-1 generate
       PropDrive_inst : PropDrive

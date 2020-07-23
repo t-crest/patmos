@@ -1,6 +1,6 @@
-MAIN?=hello_MPU6050
+# MAIN?=hello_MPU6050
 #MAIN?=blinking
-
+MAIN?=acts_props_uart2
 # This is the trivial Hello World example, distributed over two .c files
 
 LDFLAGS?= \
