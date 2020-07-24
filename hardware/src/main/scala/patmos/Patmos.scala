@@ -454,15 +454,30 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   }
 }*/
 
-object PatmosMain {
-  def main(args: Array[String]): Unit = {
+/*class SimpleBundle() extends Bundle{
+  val sig = UInt(width=5)
+}
+
+class TestTrait() extends CoreDevice2() {
+  override val io = IO(new CoreDeviceIO2()) /*with patmos.HasPins {
+    override val pins = new Bundle {
+      val tx = Bits(OUTPUT, 1)
+      val rx = Bits(INPUT, 1)
+    }
+  })*/
+
+}*/
+
+object PatmosMain extends App {
+  override def main(args: Array[String]): Unit = {
 
     val chiselArgs = args.slice(3, args.length)
     val configFile = args(0)
     val binFile = args(1)
     val datFile = args(2)
-    new java.io.File("build/").mkdirs // build dir is created
+	new java.io.File("build/").mkdirs // build dir is created
     Config.loadConfig(configFile)
-    chiselMain(chiselArgs, () => Module(new Patmos(configFile, binFile, datFile))) //{ f => new PatmosTest(f) }
+    //chiselMain(chiselArgs, () => Module(new Patmos(configFile, binFile, datFile))) //{ f => new PatmosTest(f) }
+    chisel3.Driver.execute(chiselArgs, () => new Patmos(configFile, binFile, datFile)) //TestTrait())//
   }
 }
