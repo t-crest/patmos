@@ -36,19 +36,19 @@ object SRamCtrl extends DeviceObject {
 
   trait Pins extends patmos.HasPins {
     override val pins = new Bundle {
-      val ramOut = new Bundle {
-        val addr = Bits(OUTPUT, width = sramAddrWidth)
-        val doutEna = Bits(OUTPUT, width = 1)
-        val dout = Bits(OUTPUT, width = sramDataWidth)
-        val nce = Bits(OUTPUT, width = 1)
-        val noe = Bits(OUTPUT, width = 1)
-        val nwe = Bits(OUTPUT, width = 1)
-        val nlb = Bits(OUTPUT, width = 1)
-        val nub = Bits(OUTPUT, width = 1)
-      }
-      val ramIn = new Bundle {
-        val din = Bits(INPUT, width = sramDataWidth)
-      }
+      val ramOut = Output(new Bundle {
+        val addr = Bits(width = sramAddrWidth)
+        val doutEna = Bits(width = 1)
+        val dout = Bits(width = sramDataWidth)
+        val nce = Bits(width = 1)
+        val noe = Bits(width = 1)
+        val nwe = Bits(width = 1)
+        val nlb = Bits(width = 1)
+        val nub = Bits(width = 1)
+      })
+      val ramIn = Input(new Bundle {
+        val din = Bits(width = sramDataWidth)
+      })
     }
   }
 }
