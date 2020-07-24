@@ -87,7 +87,7 @@ class EthMacBB(extAddrWidth : Int = 32, dataWidth : Int = 32) extends BlackBox {
 
   // rename component
   // TODO: Commented out to compile for chisel3
-  setModuleName("eth_controller_top")
+  /*setModuleName("eth_controller_top")
 
   // rename signals
   renameClock(clock, "clk")
@@ -117,7 +117,7 @@ class EthMacBB(extAddrWidth : Int = 32, dataWidth : Int = 32) extends BlackBox {
   io.pins.int_o.setName("int_o")
   
   // set Verilog parameters
-  setVerilogParameters("#(.BUFF_ADDR_WIDTH("+extAddrWidth+"))")
+  setVerilogParameters("#(.BUFF_ADDR_WIDTH("+extAddrWidth+"))")*/
   
   // keep some sigals for emulation
   //debug(io.M.Cmd) does nothing in chisel3 (no proning in frontend of chisel3 anyway)

@@ -103,7 +103,7 @@ class NoCNodeWrapper(argoConf: ArgoConfig, master: Boolean) extends BlackBox {
   })
   //throw new Error("BlackBox wrapper for NoCNode needs update for Chisel 3")
   //should be Commented out to compile with Chisel3
-  setModuleName("noc_node_wrapper")
+  /*setModuleName("noc_node_wrapper")
   addClock(Driver.implicitClock)
   renameClock("clk", "clk")
   renameReset("reset")
@@ -111,5 +111,5 @@ class NoCNodeWrapper(argoConf: ArgoConfig, master: Boolean) extends BlackBox {
     setVerilogParameters("#(.MASTER(" + 1 + "))")
   } else {
     setVerilogParameters("#(.MASTER(" + 0 + "))")
-  }
+  }*/
 }
