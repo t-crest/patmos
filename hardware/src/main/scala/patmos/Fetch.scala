@@ -51,11 +51,11 @@ class Fetch(fileName : String) extends Module {
     val ispm_odd = memOdd.io(addrOdd(ispmAddrUInt, 1))
     instr_a_ispm := Mux(pcReg(0) === UInt(0), ispm_even, ispm_odd)
     instr_b_ispm := Mux(pcReg(0) === UInt(0), ispm_odd, ispm_even)
-  } else if (Driver.backend.isInstanceOf[CppBackend]) {
+  } /*else if (Driver.backend.isInstanceOf[CppBackend]) {
     // dummy blocks to keep the emulator happy
     val memEven = MemBlock(1, INSTR_WIDTH, bypass = false)
     val memOdd = MemBlock(1, INSTR_WIDTH, bypass = false)
-  }
+  }*/
 
   val selSpm = RegInit(Bool(false))
   val selCache = RegInit(Bool(false))
