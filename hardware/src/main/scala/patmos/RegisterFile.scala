@@ -59,8 +59,8 @@ class RegisterFile() extends Module {
   for(i <- 0 until REG_COUNT) {
     rfDebug(i) := rf(UInt(i))
     // Keep signal alive
-    if(Driver.isVCD){
-    debug(rfDebug(i)) 
-    }
+    //if(Driver.isVCD){
+    //debug(rfDebug(i)) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
+    //}
   }
 }

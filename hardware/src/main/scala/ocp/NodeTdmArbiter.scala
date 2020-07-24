@@ -19,9 +19,9 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
     val slave = new OcpBurstMasterPort(addrWidth, dataWidth, burstLen)
     val node = UInt(INPUT, 6)
   })
-  debug(io.master) 
-  debug(io.slave)
-  debug(io.node)
+  //debug(io.master) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
+  //debug(io.slave)
+  //debug(io.node)
   
   // MS: have all generated constants at one place
 
@@ -45,13 +45,13 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
   val sIdle :: sRead :: sWrite :: Nil = Enum(UInt(), 3)
   val stateReg = Reg(init = sIdle)
 
-  debug(cntReg) 
+  /*debug(cntReg) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
   for(i <- (0 until cnt))
     debug(cpuSlot(i))
     
   debug(stateReg)
   debug(wrCntReg)
-  debug(rdCntReg)
+  debug(rdCntReg)*/
 
   cntReg := Mux(cntReg === UInt(period - 1), UInt(0), cntReg + UInt(1))
   
@@ -162,7 +162,7 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
      }
   }      
   
-  debug(io.slave.M)
+  //debug(io.slave.M) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
   
   //io.master.S := io.slave.S
 
@@ -174,8 +174,8 @@ class MemMuxIntf(nr: Int, addrWidth : Int, dataWidth : Int, burstLen: Int) exten
     val master = Vec.fill(nr){new OcpBurstSlavePort(addrWidth, dataWidth, burstLen)}
     val slave = new OcpBurstMasterPort(addrWidth, dataWidth, burstLen)
   }
-    debug(io.master)
-    debug(io.slave)
+    //debug(io.master) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
+    //debug(io.slave)
     
     // MS: would like pipeline number configurable
     
