@@ -163,7 +163,7 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
   io.memPort <> mmu.io.phys
 
   // Keep signal alive for debugging
-  debug(enableReg)
+  //debug(enableReg) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
 }
 
 trait HasPins {

@@ -97,12 +97,12 @@ class MemoryManagement extends Module {
                   (virtReg.Cmd === OcpCmd.RD && execReg && segment.perm(PERM_X) === UInt(0)) ||
                   (virtReg.Cmd === OcpCmd.WR && segment.perm(PERM_W) === UInt(0)))
   val permViolReg = Reg(next = permViol)
-  debug(permViolReg)
+  //debug(permViolReg) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
 
   val lengthViol = (segment.length =/= UInt(0) &&
                     virtReg.Addr(ADDR_WIDTH-SEG_BITS-1, ALIGN_BITS) >= segment.length)
   val lengthViolReg = Reg(next = lengthViol)
-  debug(lengthViolReg)  
+  //debug(lengthViolReg)   does nothing in chisel3 (no proning in frontend of chisel3 anyway)
 
   // State machine for handling violations
   val idle :: respRd :: waitWr :: respWr :: Nil = Enum(UInt(), 4)
