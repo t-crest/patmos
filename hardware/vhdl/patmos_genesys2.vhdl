@@ -314,7 +314,7 @@ begin
 
   -- The instance of the patmos processor            
   patmos_inst_0 : Patmos port map(
-      clk                           => clk_int,
+      clock                         => clk_int,
       reset                         => int_res_n,
       
       io_MemBridge_M_Cmd        => MCmd_bridge, --: out std_logic_vector(2 downto 0);

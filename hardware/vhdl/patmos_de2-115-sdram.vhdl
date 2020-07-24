@@ -165,8 +165,8 @@ begin
   dram_clk_int <= sys_clk;
 
   comp : Patmos port map(
-      clk                           => sys_clk, --             : in  std_logic;
-      reset                         => rst, --           : in  std_logic;
+      clockk                    => sys_clk, --             : in  std_logic;
+      reset                     => rst, --           : in  std_logic;
 
       io_MemBridge_M_Cmd        => MCmd_int, --: out  std_logic_vector(2 downto 0); 
       io_MemBridge_M_Addr       => MAddr_int, -- : out  std_logic_vector(25 downto 0);

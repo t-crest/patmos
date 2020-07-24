@@ -80,7 +80,7 @@ begin
   end process;
 
 
-    comp : Patmos port map(clk => clk_int,
+    comp : Patmos port map(clock => clk_int,
       reset => int_res,
       io_UartCmp_rx => iUartPins_rxd,
       io_UartCmp_tx => oUartPins_txd,
