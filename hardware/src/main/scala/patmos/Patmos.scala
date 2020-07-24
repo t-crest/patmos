@@ -29,7 +29,7 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
   val io = IO(new Bundle() with HasSuperMode with HasPerfCounter with HasInterrupts {
     override val superMode = Bool(OUTPUT)
     override val perf = new PerfCounterIO().asOutput
-    override val interrupts = Vec.fill(INTR_COUNT) { Bool(INPUT) }
+    override val interrupts = Vec(INTR_COUNT, Bool(INPUT) )
     val memPort = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
     val memInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
     val excInOut = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
@@ -167,11 +167,11 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
 }
 
 trait HasPins {
-  val pins = new Bundle
+  val pins : Bundle
 }
 
 trait HasInterrupts {
-  val interrupts = Vec.fill(0){Bool()}
+  val interrupts: Vec[Bool]
 }
 
 trait HasPerfCounter {
@@ -262,7 +262,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   for (i <- (0 until nrCores)) {
 
     // Default values for interrupt pins
-    cores(i).io.interrupts := UInt(0)
+      cores(i).io.interrupts := Vec.fill(INTR_COUNT) {false.B}
 
     // Creation of IO devices
     val conf = Config.getConfig
@@ -323,7 +323,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     val spm = Module(new Spm(DSPM_SIZE))
 
     // Dummy ISPM (create fake response)
-    val ispmio = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
+      val ispmio = Wire(new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))
     ispmio.S.Data := 0.U
     ispmio.S.Resp := RegNext(Mux(ispmio.M.Cmd === OcpCmd.IDLE, OcpResp.NULL, OcpResp.DVA))
 
