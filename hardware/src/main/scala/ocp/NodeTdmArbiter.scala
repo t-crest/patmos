@@ -170,10 +170,10 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
 
 /* Mux for all arbiters' outputs */
 class MemMuxIntf(nr: Int, addrWidth : Int, dataWidth : Int, burstLen: Int) extends Module {
-  val io = new Bundle {
-    val master = Vec.fill(nr){new OcpBurstSlavePort(addrWidth, dataWidth, burstLen)}
+  val io = IO(new Bundle {
+    val master = Vec(nr, new OcpBurstSlavePort(addrWidth, dataWidth, burstLen))
     val slave = new OcpBurstMasterPort(addrWidth, dataWidth, burstLen)
-  }
+  })
     //debug(io.master) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
     //debug(io.slave)
     
