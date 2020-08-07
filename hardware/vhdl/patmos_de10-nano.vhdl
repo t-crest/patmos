@@ -35,7 +35,7 @@ entity patmos_top is
         i2c_scl       : inout std_logic;
         ad0           : out   std_logic;
         -- Actuator and propdrive OUT
-        actuator_out_port  : out   std_logic_vector(3 downto 0);
+        pwm_measurment_input  : in   std_logic_vector(3 downto 0);
         propdrive_out_port  : out   std_logic_vector(3 downto 0)
     );
 end entity patmos_top;
@@ -138,7 +138,8 @@ architecture rtl of patmos_top is
     SData      : out std_logic_vector(OCP_DATA_WIDTH - 1 downto 0);
 
     -- Actuator and propdrive OUT
-    actuator_out_port  : out   std_logic_vector(ACTUATOR_NUMBER-1 downto 0);
+--    actuator_out_port  : out   std_logic_vector(ACTUATOR_NUMBER-1 downto 0);
+	 pwm_measurment_input : in std_logic_vector(ACTUATOR_NUMBER-1 downto 0);
     propdrive_out_port  : out   std_logic_vector(PROPDRIVE_NUMBER-1 downto 0)
   );
 end component;
@@ -304,7 +305,7 @@ end component;
         SResp  => actuatorsPins_SResp,
         SData  => actuatorsPins_SData,
         -- Actuator and propdrive OUT
-        actuator_out_port  => actuator_out_port,
+        pwm_measurment_input  => pwm_measurment_input,
         propdrive_out_port  => propdrive_out_port
       );
 
