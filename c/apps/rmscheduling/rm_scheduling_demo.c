@@ -6,7 +6,7 @@
 #include "demo_tasks.h"
 
 #define HYPER_PERIOD 4200000
-#define HYPER_ITERATIONS 10
+#define HYPER_ITERATIONS 2
 #define RUN_INFINITE false
 #define NUM_OF_TASKS 7
 
@@ -36,22 +36,24 @@ int main()
     init_minimal_rmtask(&taskSet[5], 6, 50000, 50000, (2000 * US_TO_NS) / CPU_PERIOD, 0, task_6);
     init_minimal_rmtask(&taskSet[6], 7, 40000, 40000, (2000 * US_TO_NS) / CPU_PERIOD, 0, task_7);
 
+    // Enqueue tasks to scheduler
     schedule = init_minimal_rmschedule((uint64_t)(HYPER_PERIOD), NUM_OF_TASKS, &get_cpu_usecs);
     for(int i=0; i<NUM_OF_TASKS; i++){
         rmschedule_enqueue(&schedule, taskSet[i]);
     }
 
-
-    printf("\nSchedule start_time(us)=%llu\n\n", get_cpu_usecs());
-    schedule.start_time = get_cpu_usecs();
-    while (get_cpu_usecs() - schedule.start_time <= HYPER_ITERATIONS * schedule.hyper_period){
-        minimal_rm_scheduler(&schedule);
+    // Execute
+    printf("\nTask scheduler started @ %llu us\n\n", schedule.get_time());
+    schedule.start_time = schedule.get_time();
+    while (schedule.get_time() - schedule.start_time <= HYPER_ITERATIONS * schedule.hyper_period){
+        numExecTasks += minimal_rm_scheduler(&schedule);
     }
 
+    // Report
     printf("\nGathered Statistics...\n");
     printf("-- No. of hyper period iterations = %u\n", HYPER_ITERATIONS);
     printf("-- Theoritic duration = %llu μs\n", (uint64_t) HYPER_ITERATIONS * schedule.hyper_period);
-    printf("-- Total execution time = %llu μs\n", scheduleTime);
+    printf("-- Total execution time = %llu μs\n", schedule.get_time() - schedule.start_time);
     printf("-- Total no. of executed tasks = %d\n", numExecTasks);
     MinimalRMTaskNode* itr_task = schedule.head;
     for(int i=0; i<NUM_OF_TASKS; i++){

@@ -38,7 +38,7 @@ MinimalRMSchedule init_minimal_rmschedule(const schedtime_t hyperperiod, const u
 { 
     MinimalRMSchedule schedule = {
       .hyper_period = hyperperiod,
-      .task_count = num_tasks,
+      .task_count = 0,
       .get_time = get_time,
       .start_time = 0,
       .head = NULL,
@@ -65,6 +65,7 @@ void rmschedule_enqueue(MinimalRMSchedule* schedule, MinimalRMTask task)
     // Add the new task at the end of queue and change tail 
     schedule->tail->next = temp; 
     schedule->tail = temp; 
+    schedule->task_count++;
 }
 
 
@@ -72,8 +73,9 @@ void rmschedule_enqueue(MinimalRMSchedule* schedule, MinimalRMTask task)
 __attribute__((noinline))
 #endif
 // The function to add a key task to schedule sorted by period 
-void rmschedule_sortedinsert(MinimalRMTaskNode ** head_ref, MinimalRMTaskNode* new_node) 
+void rmschedule_sortedinsert(MinimalRMSchedule *schedule, MinimalRMTaskNode* new_node) 
 { 
+    MinimalRMTaskNode ** head_ref = &schedule->head;
     MinimalRMTaskNode* current; 
     /* Special case for the head end */
     if (*head_ref == NULL || (*head_ref)->task.period >= new_node->task.period) 
@@ -94,6 +96,7 @@ void rmschedule_sortedinsert(MinimalRMTaskNode ** head_ref, MinimalRMTaskNode* n
         new_node->next = current->next; 
         current->next = new_node; 
     } 
+    schedule->task_count++;
 } 
 
   
@@ -115,7 +118,8 @@ MinimalRMTaskNode* rmschedule_dequeue(MinimalRMSchedule* schedule)
     // If head becomes NULL, then change tail also as NULL 
     if (schedule->head == NULL) 
         schedule->tail = NULL; 
-
+    
+    schedule->task_count--;
     return dequeued_tasknode;
 } 
 
@@ -154,7 +158,7 @@ MinimalRMTaskNode* rmschedule_dequeue(MinimalRMSchedule* schedule)
 #ifdef WCET
 __attribute__((noinline))
 #endif
-void minimal_rm_scheduler(MinimalRMSchedule *schedule)
+uint8_t minimal_rm_scheduler(MinimalRMSchedule *schedule)
 {
   schedtime_t current_time = (schedtime_t) (schedule->get_time() - schedule->start_time);
   MinimalRMTaskNode* node_itr = schedule->head;
@@ -171,17 +175,19 @@ void minimal_rm_scheduler(MinimalRMSchedule *schedule)
       node_itr->task.state = ELECTED;
       node_itr->task.release_time = current_time + node_itr->task.period;
       node_itr->task.func(&node_itr->task);
-      node_itr->task.delta_sum += node_itr->task.last_release_time == 0 ? 0 : (current_time - node_itr->task.last_release_time);
+      node_itr->task.delta_sum += node_itr->task.last_release_time == 0 ? node_itr->task.period : (current_time - node_itr->task.last_release_time);
       node_itr->task.last_release_time = current_time;
       node_itr->task.exec_count++;
-      node_itr->task.overruns += (current_time - node_itr->task.last_release_time) > node_itr->task.deadline ? 1 : 0;
+      node_itr->task.overruns += (schedule->get_time() - schedule->start_time) > (node_itr->task.exec_count * node_itr->task.deadline) ? 1 : 0;
       node_itr->task.state = READY;
       // Assign new index
       MinimalRMTaskNode* exec_task = rmschedule_dequeue(schedule);
-      rmschedule_sortedinsert(&schedule->head, exec_task);
+      rmschedule_sortedinsert(schedule, exec_task);
+      return 1;
     }
     node_itr = node_itr->next;
   }
+  return 0;
 }
 
 

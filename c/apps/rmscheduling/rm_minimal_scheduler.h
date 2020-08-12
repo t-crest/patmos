@@ -65,8 +65,8 @@ void init_minimal_rmtask(MinimalRMTask *new_task, const uint16_t id, const sched
 MinimalRMSchedule init_minimal_rmschedule(const schedtime_t hyperperiod, const uint32_t num_tasks, schedtime_t (*get_time)(void));
 MinimalRMTaskNode* create_rmtasknode(MinimalRMTask task);
 void rmschedule_enqueue(MinimalRMSchedule* schedule, MinimalRMTask task);
-void rmschedule_sortedinsert(MinimalRMTaskNode ** head_ref, MinimalRMTaskNode* new_node);
+void rmschedule_sortedinsert(MinimalRMSchedule *schedule, MinimalRMTaskNode* new_node); 
 MinimalRMTaskNode* rmschedule_dequeue(MinimalRMSchedule* schedule);
-void minimal_rm_scheduler(MinimalRMSchedule *schedule);
+uint8_t minimal_rm_scheduler(MinimalRMSchedule *schedule);
 void sort_period_rmtasks(MinimalRMTask tasks_queue[], const uint32_t tasks_count);
 void print_rmschedule(MinimalRMTaskNode* n);
