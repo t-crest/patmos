@@ -5,23 +5,6 @@
 #include <stdlib.h>	
 #include <stdbool.h>
 
-#define SET_TO_MS 1000
-#define SEC_TO_US 1000000
-#define SEC_TO_NS 1000000000.0
-#define MS_TO_US 1000
-#define MS_TO_NS 1000000
-#define US_TO_NS 1000
-
-#define NS_TO_SEC 1.0/SEC_TO_NS
-#define NT_TO_MS 1.0/MS_TO_NS
-#define NS_TO_US 1.0/US_TO_NS
-
-#define CLKS_TO_US CPU_PERIOD * NS_TO_US 
-#define US_TO_CLKS (US_TO_NS/CPU_PERIOD)
-
-#define CPU_PERIOD 12.5
-#define WCET_DISPATCHER 2046
-
 #define schedtime_t uint64_t
 
 typedef enum {
@@ -70,3 +53,4 @@ MinimalRMTaskNode* rmschedule_dequeue(MinimalRMSchedule* schedule);
 uint8_t minimal_rm_scheduler(MinimalRMSchedule *schedule);
 void sort_period_rmtasks(MinimalRMTask tasks_queue[], const uint32_t tasks_count);
 void print_rmschedule(MinimalRMTaskNode* n);
+schedtime_t calc_hyperperiod(const MinimalRMSchedule *schedule, const uint32_t step);

@@ -55,7 +55,9 @@ void rmschedule_enqueue(MinimalRMSchedule* schedule, MinimalRMTask task)
 { 
     // Create a new LL node 
     MinimalRMTaskNode* temp = create_rmtasknode(task); 
-  
+    
+    schedule->task_count++;
+
     // If queue is empty, then new task is head and tail both 
     if (schedule->tail == NULL) { 
         schedule->head = schedule->tail = temp; 
@@ -65,7 +67,6 @@ void rmschedule_enqueue(MinimalRMSchedule* schedule, MinimalRMTask task)
     // Add the new task at the end of queue and change tail 
     schedule->tail->next = temp; 
     schedule->tail = temp; 
-    schedule->task_count++;
 }
 
 
@@ -188,6 +189,39 @@ uint8_t minimal_rm_scheduler(MinimalRMSchedule *schedule)
     node_itr = node_itr->next;
   }
   return 0;
+}
+
+
+schedtime_t calc_hyperperiod(const MinimalRMSchedule *schedule, const uint32_t step)
+{
+  schedtime_t lcm = 0;
+  MinimalRMTaskNode* node_itr = schedule->head;
+  while(node_itr != NULL)
+  {
+    if(node_itr->task.period > lcm)
+    {
+      lcm = node_itr->task.period;
+    }
+    node_itr = node_itr->next;
+  }
+  int found_lcm = 0;
+  while(1)
+  {
+    node_itr = schedule->head;
+    while(node_itr != NULL){
+      found_lcm = lcm % node_itr->task.period == 0 ? found_lcm+1 : 0;
+      #ifdef DEBUG
+      printf("LCM Check %llu %% %llu == %lu\n", lcm, node_itr->task.period, found_lcm);
+      #endif
+      node_itr = node_itr->next;
+    }
+    if(found_lcm == schedule->task_count)
+    {
+      break;
+    }
+    lcm += step;
+  }
+  return lcm;
 }
 
 
