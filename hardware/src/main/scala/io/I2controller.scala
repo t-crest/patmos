@@ -65,9 +65,6 @@ class I2Controller(sclFreq: Int, respectStretch: Boolean) extends CoreDevice() {
 	val sdaRising = sdaClk && !sdaClkPrev //Rising edge of sdaClk
 	val sdaFalling = !sdaClk && sdaClkPrev //Falling edge of sdaClk
 
-	io.pins.sclClk := sclClk
-   io.pins.sdaClk := sdaClk
-
 	//I2C read registers
 	val readVals = Reg(Vec(4,RegInit(UInt(0, width=8))))
 	val readCount = RegInit(UInt(0, width=3))
@@ -123,9 +120,6 @@ class I2Controller(sclFreq: Int, respectStretch: Boolean) extends CoreDevice() {
 	//Miscellaneous signals
 	val busy = RegInit(false.B) //Is the i2c system currently processing a transaction
 	val ena = RegInit(false.B) //Should we send dataWr? (Set by OCP)
-	io.pins.busy := busy
-
-
 
 	/*
 	======= I2C-timing generation ========
