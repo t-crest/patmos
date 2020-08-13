@@ -15,6 +15,9 @@
 //UART2
 #define UART2 ((volatile _IODEV unsigned *)PATMOS_IO_UART2)
 
+//SPI
+#define SPI ((volatile _IODEV unsigned *)0xf00e0000)
+
 const unsigned int CPU_PERIOD = 20; //CPU period in ns.
 
 //Writes to actuator specified by actuator ID (0 to 4)

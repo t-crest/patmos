@@ -36,8 +36,14 @@ entity patmos_top is
         ad0           : out   std_logic;
         -- Actuator and propdrive OUT
         pwm_measurment_input  : in   std_logic_vector(3 downto 0);
-        propdrive_out_port  : out   std_logic_vector(3 downto 0)
-    );
+        propdrive_out_port  : out   std_logic_vector(3 downto 0);
+		  --SPI Master interface
+  		  SPIMaster_miso : in std_logic;
+		  SPIMaster_mosi : out std_logic;
+		  SPIMaster_nSS : out std_logic;
+		  SPIMaster_sclk : out std_logic
+
+ );
 end entity patmos_top;
 architecture rtl of patmos_top is
     component Patmos is
@@ -70,7 +76,11 @@ architecture rtl of patmos_top is
             io_Uart_tx              : out std_logic;
             io_Uart_rx              : in std_logic;
             io_UartCmp_tx           : out std_logic;
-            io_UartCmp_rx           : in  std_logic
+            io_UartCmp_rx           : in  std_logic;
+				io_SPIMaster_miso 		: in std_logic;
+				io_SPIMaster_mosi 		: out std_logic;
+				io_SPIMaster_nSS 			: out std_logic;
+				io_SPIMaster_sclk 		: out std_logic
         );
     end component;
 
@@ -254,16 +264,20 @@ end component;
                 io_I2CInterface_MByteEn => i2CInterfacePins_MByteEn,
                 io_I2CInterface_SResp   => i2CInterfacePins_SResp,
                 io_I2CInterface_SData   => i2CInterfacePins_SData,     
-           io_Actuators_MCmd => actuatorsPins_MCmd,
-                io_Actuators_MAddr => actuatorsPins_MAddr,
-           io_Actuators_MData => actuatorsPins_MData,
-           io_Actuators_MByteEn => actuatorsPins_MByteEn,
-           io_Actuators_SResp => actuatorsPins_SResp,
-           io_Actuators_SData => actuatorsPins_SData,
-           io_Uart_tx => oUart2Pins_txd,
-           io_Uart_rx => iUart2Pins_rxd,
-                io_UartCmp_tx              => oUartPins_txd,
-                io_UartCmp_rx              => iUartPins_rxd
+                io_Actuators_MCmd 		 => actuatorsPins_MCmd,
+                io_Actuators_MAddr 		 => actuatorsPins_MAddr,
+				    io_Actuators_MData 		 => actuatorsPins_MData,
+				    io_Actuators_MByteEn 	 => actuatorsPins_MByteEn,
+				    io_Actuators_SResp 		 => actuatorsPins_SResp,
+				    io_Actuators_SData 		 => actuatorsPins_SData,
+				    io_Uart_tx 				 => oUart2Pins_txd,
+				    io_Uart_rx 				 => iUart2Pins_rxd,
+                io_UartCmp_tx           => oUartPins_txd,
+                io_UartCmp_rx           => iUartPins_rxd,
+					 io_SPIMaster_miso 		 => SPIMaster_miso,
+					 io_SPIMaster_mosi 		 => SPIMaster_mosi,
+					 io_SPIMaster_nSS 		 => SPIMaster_nSS,
+					 io_SPIMaster_sclk 		 => SPIMaster_sclk
             );
 
         I2Ccontroller_inst_0 : I2Ccontroller
