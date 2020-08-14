@@ -24,7 +24,6 @@ $(LIBCORETHREAD): $(BUILDDIR)/libcorethread/corethread.o
 wcet_scheduler:
 	patmos-clang $(CFLAGS) -mserialize=tpip.pml -D WCET rm_scheduling_demo.c rm_minimal_scheduler.c -o rm_scheduling_demo.elf
 	platin wcet --disable-ait -i tpip.pml -b rm_scheduling_demo.elf -e init_minimal_rmtask
-	platin wcet --disable-ait -i tpip.pml -b rm_scheduling_demo.elf -e init_minimal_rmschedule
 	platin wcet --disable-ait -i tpip.pml -b rm_scheduling_demo.elf -e create_rmtasknode
 	platin wcet --disable-ait -i tpip.pml -b rm_scheduling_demo.elf -e rmschedule_enqueue
 	platin wcet --disable-ait -i tpip.pml -b rm_scheduling_demo.elf -e rmschedule_sortedinsert

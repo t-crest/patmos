@@ -10,21 +10,21 @@
 #define MS_TO_US 1000
 #define MS_TO_NS 1000000
 #define US_TO_NS 1000
+#define CPU_PERIOD 12.5
 
 #define NS_TO_SEC 1.0/SEC_TO_NS
 #define NT_TO_MS 1.0/MS_TO_NS
 #define NS_TO_US 1.0/US_TO_NS
 
-#define HYPER_ITERATIONS 1
+#define HYPER_ITERATIONS 2
 #define RUN_INFINITE false
 
-#define CPU_PERIOD 12.5
 #define LED (*((volatile _IODEV unsigned *)PATMOS_IO_LED))
 #define DEAD (*((volatile _IODEV int *) PATMOS_IO_DEADLINE))
 
 void demo_task(const void *self)
 {
-    if(get_cpuid() == 0) LED = 0x1 << (((MinimalRMTask*) self)->id - 1);
+    if(get_cpuid() == 0) LED = ((MinimalRMTask*) self)->id;
 #ifdef DEBUG
     printf("{t_%u, #%lu, r = %llu}\n", ((MinimalRMTask*) self)->id, ((MinimalRMTask*) self)->exec_count, ((MinimalRMTask*) self)->release_time);
 #else
@@ -39,6 +39,7 @@ void create_taskset_table_9_2(MinimalRMSchedule *schedule){
     MinimalRMTask taskSet[10];
 
     // Tasks according to book use-case Table 9.2
+    printf("Initializing tasks...\n");
     init_minimal_rmtask(&taskSet[0], 1, 4000, 1000, (992 * US_TO_NS) / CPU_PERIOD, 0, demo_task);
     init_minimal_rmtask(&taskSet[1], 2, 4000, 4000, (221 * US_TO_NS) / CPU_PERIOD, 0, demo_task);
     init_minimal_rmtask(&taskSet[2], 3, 4000, 4000, (496 * US_TO_NS) / CPU_PERIOD, 0, demo_task);
@@ -57,6 +58,7 @@ void create_taskset_table_9_2(MinimalRMSchedule *schedule){
     for(int i=0; i<10; i++){
         rmschedule_enqueue(schedule, taskSet[i]);
     }
+    printf("Calculating hyper-period...\n");
     schedule->hyper_period = calc_hyperperiod(schedule, MS_TO_US);
 }
 
@@ -64,6 +66,7 @@ void create_taskset_table_9_6(MinimalRMSchedule *schedule){
     MinimalRMTask taskSet[7];
 
     // Tasks according book Scheduling in real-time systems use-case Table 9.6
+    printf("Initializing tasks...\n");
     init_minimal_rmtask(&taskSet[0], 1, 10000, 10000, (2000 * US_TO_NS) / CPU_PERIOD, 0, demo_task);
     init_minimal_rmtask(&taskSet[1], 2, 20000, 20000, (2000 * US_TO_NS) / CPU_PERIOD, 0, demo_task);
     init_minimal_rmtask(&taskSet[2], 3, 100000, 100000, (2000 * US_TO_NS) / CPU_PERIOD, 0, demo_task);
@@ -76,9 +79,11 @@ void create_taskset_table_9_6(MinimalRMSchedule *schedule){
     schedule->get_time = &get_cpu_usecs;
     schedule->head = NULL;
     schedule->tail = NULL;
+    schedule->task_count = 0;
     for(int i=0; i<7; i++){
         rmschedule_enqueue(schedule, taskSet[i]);
     }
+    printf("Calculating hyper-period...\n");
     schedule->hyper_period = calc_hyperperiod(schedule, MS_TO_US);
 }
 
@@ -96,12 +101,11 @@ int main()
     create_taskset_table_9_6(&schedule);
 
     // Execute
-    printf("\nTask scheduler started @ %llu μs, task count = %lu, hyper-period = %llu μs\n\n", schedule.get_time(), schedule.task_count, schedule.hyper_period);
+    printf("Task scheduler started @ %llu μs, task count = %lu, hyper-period = %llu μs\n", schedule.get_time(), schedule.task_count, schedule.hyper_period);
     schedule.start_time = schedule.get_time();
     while (schedule.get_time() - schedule.start_time <= HYPER_ITERATIONS * schedule.hyper_period){
         numExecTasks += minimal_rm_scheduler(&schedule);
     }
-
     // Report
     printf("\nGathered Statistics...\n");
     printf("-- No. of hyper period iterations = %u\n", HYPER_ITERATIONS);

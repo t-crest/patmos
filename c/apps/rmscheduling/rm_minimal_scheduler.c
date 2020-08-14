@@ -74,7 +74,7 @@ void rmschedule_enqueue(MinimalRMSchedule* schedule, MinimalRMTask task)
 __attribute__((noinline))
 #endif
 // The function to add a key task to schedule sorted by period 
-void rmschedule_sortedinsert(MinimalRMSchedule *schedule, MinimalRMTaskNode* new_node) 
+void rmschedule_sortedinsert_period(MinimalRMSchedule *schedule, MinimalRMTaskNode* new_node) 
 { 
     MinimalRMTaskNode ** head_ref = &schedule->head;
     MinimalRMTaskNode* current; 
@@ -91,6 +91,36 @@ void rmschedule_sortedinsert(MinimalRMSchedule *schedule, MinimalRMTaskNode* new
         #pragma loopbound min 1 max 1
         while (current->next!=NULL && 
                current->next->task.period < new_node->task.period) 
+        { 
+            current = current->next; 
+        } 
+        new_node->next = current->next; 
+        current->next = new_node; 
+    } 
+    schedule->task_count++;
+}
+
+#ifdef WCET
+__attribute__((noinline))
+#endif
+// The function to add a key task to schedule sorted by deadline 
+void rmschedule_sortedinsert_deadline(MinimalRMSchedule *schedule, MinimalRMTaskNode* new_node) 
+{ 
+    MinimalRMTaskNode ** head_ref = &schedule->head;
+    MinimalRMTaskNode* current; 
+    /* Special case for the head end */
+    if (*head_ref == NULL || (*head_ref)->task.deadline >= new_node->task.deadline) 
+    { 
+        new_node->next = *head_ref; 
+        *head_ref = new_node; 
+    } 
+    else
+    { 
+        /* Locate the node before the point of insertion */
+        current = *head_ref; 
+        #pragma loopbound min 1 max 1
+        while (current->next!=NULL && 
+               current->next->task.deadline < new_node->task.deadline) 
         { 
             current = current->next; 
         } 
@@ -122,39 +152,7 @@ MinimalRMTaskNode* rmschedule_dequeue(MinimalRMSchedule* schedule)
     
     schedule->task_count--;
     return dequeued_tasknode;
-} 
-
-
-// #ifdef WCET
-// __attribute__((noinline))
-// #endif
-// void minimal_rm_scheduler(MinimalRMSchedule *schedule)
-// {
-//   schedtime_t current_time = (schedtime_t) (schedule->get_time() - schedule->start_time);
-//   MinimalRMTaskNode* node_itr = schedule->head;
-//   #pragma 
-//   while(node_itr != NULL)
-//   { 
-//     #ifdef DEBUG
-//     printf("? Check task_%d @ %llu w/ rt = %llu\t\t\t\t", node_itr->task.id, current_time, node_itr->task.release_time);
-//     print_rmschedule(schedule->head);
-//     #endif
-//     if(current_time >= node_itr->task.release_time )
-//     {
-//       // Pop & Execute
-//       node_itr->task.state = ELECTED;
-//       node_itr->task.release_time = current_time + node_itr->task.period;
-//       node_itr->task.delta_sum += node_itr->task.last_release_time == 0 ? 0 : (current_time - node_itr->task.last_release_time);
-//       node_itr->task.last_release_time = current_time;
-//       node_itr->task.exec_count++;
-//       node_itr->task.func(&node_itr->task);
-//       node_itr->task.state = READY;
-//       break;
-//     }
-//     node_itr = node_itr->next;
-//   }
-// }
-
+}
 
 #ifdef WCET
 __attribute__((noinline))
@@ -179,7 +177,7 @@ uint8_t minimal_rm_scheduler(MinimalRMSchedule *schedule)
       node_itr->task.delta_sum += node_itr->task.last_release_time == 0 ? node_itr->task.period : (current_time - node_itr->task.last_release_time);
       node_itr->task.last_release_time = current_time;
       node_itr->task.exec_count++;
-      node_itr->task.overruns += (schedule->get_time() - schedule->start_time) > (node_itr->task.exec_count * node_itr->task.deadline) ? 1 : 0;
+      node_itr->task.overruns += (schedule->get_time() - schedule->start_time) > (node_itr->task.exec_count * node_itr->task.period + node_itr->task.deadline) ? 1 : 0;
       node_itr->task.state = READY;
       // Assign new index
       MinimalRMTaskNode* exec_task = rmschedule_dequeue(schedule);
@@ -204,14 +202,14 @@ schedtime_t calc_hyperperiod(const MinimalRMSchedule *schedule, const uint32_t s
     }
     node_itr = node_itr->next;
   }
-  int found_lcm = 0;
+  uint32_t found_lcm = 0;
   while(1)
   {
     node_itr = schedule->head;
     while(node_itr != NULL){
       found_lcm = lcm % node_itr->task.period == 0 ? found_lcm+1 : 0;
       #ifdef DEBUG
-      printf("LCM Check %llu %% %llu == %lu\n", lcm, node_itr->task.period, found_lcm);
+      printf("LCM check %llu %% %llu, count = %lu (%lu)\n", lcm, node_itr->task.period, found_lcm, schedule->task_count);
       #endif
       node_itr = node_itr->next;
     }
