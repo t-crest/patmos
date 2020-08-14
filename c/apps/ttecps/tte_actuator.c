@@ -196,6 +196,7 @@ void task_sync(unsigned long long start_time, unsigned long long schedule_time, 
 		clkDiffSum = 0;
 		clkDiff = 0;
 	}
+	#pragma loopbound min 1 max 3
 	for(int i=0; i<NO_TASKS; i++)
 	{
 		#pragma loopbound min 1 max 2
@@ -279,7 +280,7 @@ void cyclic_executive_loop(SimpleTTETask* schedule){
 					((task_recv_fp)(schedule[task].task_fp))(&incoming_message, sizeof(SimpleTTMessage));
 					break;
 				case 2:
-                    // ((task_pulse_fp)(schedule[i].task_fp))(incoming_message.duty_cycle);
+                    // ((task_pulse_fp)(schedule[task].task_fp))(incoming_message.duty_cycle);
                     task_pulse(incoming_message.duty_cycle);    //TODO: check casting error?
 					break;
 				}
@@ -296,7 +297,7 @@ void cyclic_executive_loop(SimpleTTETask* schedule){
 
 int main(int argc, char **argv){
 	LEDS = GPIO = 0x1FF;
-	puts("\nTTEthernet Ping Demo Started");
+	puts("\nTTECPS Actuator Node Started");
 
 	//MAC controller settings
 	set_mac_address(0x1D000400, 0x00000289);
@@ -323,7 +324,7 @@ int main(int argc, char **argv){
 	}while(KEYS !=  0xE);
 
 	//Report
-	puts("\nTTEthernet Ping Demo Exiting and Reporting...");
+	puts("\nTTECPS Actuator Node Exiting and Reporting...");
 	puts("------------------------------------------");
 	puts("Clock Sync Quality Log:");
 	printf("--Avg. clock offset = %lld ns\n", clkDiffSum / rxPcfCount);

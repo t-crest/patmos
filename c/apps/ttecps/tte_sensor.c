@@ -51,8 +51,8 @@ static unsigned char nodeRecvEnable = 0;
 static unsigned int txMsgCount = 0;
 static unsigned int rxMsgCount = 0;
 
-//Schedule
-static SimpleTTETask schedule[NO_TASKS] = {
+//sched
+static SimpleTTETask sched[NO_TASKS] = {
 	{
 		.period = 10000000,
 		.release_times = (unsigned long long[]){0},
@@ -84,6 +84,7 @@ static SimpleTTETask schedule[NO_TASKS] = {
 		.task_fp = (generic_task_fp)task_send
 	}
 };
+
 
 __attribute__((noinline))
 unsigned long long get_tte_aligned_time(unsigned long long current_time)
@@ -149,7 +150,7 @@ int tte_pcf_handle(unsigned long long sched_rec_pit, unsigned long long schedule
 }
 
 __attribute__((noinline))
-void task_sync(unsigned long long start_time, unsigned long long schedule_time, SimpleTTETask* tasks)
+void task_sync(unsigned long long start_time, unsigned long long current_time, SimpleTTETask* tasks)
 {
 	GPIO |= (1U << SYNCTASK_GPIO_BIT);
 	int ethFrameType;
@@ -177,7 +178,7 @@ void task_sync(unsigned long long start_time, unsigned long long schedule_time, 
 	//work
 	if(ethFrameType == TTE_PCF)
 	{
-		tte_pcf_handle(schedule_time, start_time);
+		tte_pcf_handle(current_time, start_time);
 		nodeIntegrated = !nodeColdStart && ethFrameType > 0 && (stableCycles - unstableCycles) > 0 && abs(clkDiff) < TTE_PRECISION;
 		if((nodeFirstSync && integration_cycle == 0 && nodeIntegrated) || !nodeFirstSync)
         {
@@ -196,12 +197,16 @@ void task_sync(unsigned long long start_time, unsigned long long schedule_time, 
 		clkDiffSum = 0;
 		clkDiff = 0;
 	}
-	for(int i=0; i<NO_TASKS; i++)
-	{
-		#pragma loopbound min 1 max 2
-		for(int n=tasks[i].release_inst; n<tasks[i].nr_releases; n++)
-			tasks[i].release_times[n] = get_tte_aligned_time(tasks[i].release_times[n]);
+	if(nodeIntegrated){
+		#pragma loopbound min 1 max 3
+		for(int i=0; i<NO_TASKS; i++)
+		{
+			#pragma loopbound min 1 max 2
+			for(int n=0; n<tasks[i].nr_releases; n++)
+				tasks[i].release_times[n] = get_tte_aligned_time(tasks[i].release_times[n]);
+		}
 	}
+	printSegmentInt(abs(clkDiff));
 	LEDS = (nodeSyncStable << 7) + (nodeIntegrated << 6) + (ethFrameType & 0xF);
 	GPIO &= (0U << SYNCTASK_GPIO_BIT);
 }
@@ -257,35 +262,41 @@ void task_send(const SimpleTTMessage* message, int length, const unsigned char V
 }
 
 __attribute__((noinline))
-void cyclic_executive_loop(SimpleTTETask* schedule){
+void cyclic_executive_loop(SimpleTTETask* sched){
 	SimpleTTMessage outgoing_message;
 	unsigned long long start_time = get_ptp_nanos(thisPtpPortInfo.eth_base);
 	#pragma loopbound min 1 max 1
 	while(KEYS != 0xE && KEYS != 0xC){
-    	register unsigned long long schedule_time = get_ptp_nanos(thisPtpPortInfo.eth_base);
-		schedule_time = get_tte_aligned_time(schedule_time - start_time);
+    	register unsigned long long current_time = get_ptp_nanos(thisPtpPortInfo.eth_base);
+		current_time = get_tte_aligned_time(current_time - start_time);
 		#pragma loopbound min 1 max 1
 		for(int task=0; task < NO_TASKS; task++){
-			if(schedule_time >= schedule[task].release_times[schedule[task].release_inst])
+			LEDS &= 0x0FF;
+			if(current_time >= sched[task].release_times[sched[task].release_inst])
 			{
 				switch (task)
 				{
 				case 0:
-					((task_sync_fp)(schedule[task].task_fp))(start_time, schedule_time, schedule);
+					task_sync(start_time, current_time, sched);
+					// ((task_sync_fp)(sched[task].task_fp))(start_time, current_time, sched);
 					break;
 				case 1:
-					((task_sense_fp)(schedule[task].task_fp))(&outgoing_message);
+					task_sense(&outgoing_message);
+					// ((task_sense_fp)(sched[task].task_fp))(&outgoing_message);
 					break;
 				case 2:
-					((task_send_fp)(schedule[task].task_fp))(&outgoing_message, sizeof(SimpleTTMessage), TTE_SENSE_VL);
+					task_send(&outgoing_message, sizeof(SimpleTTETask), TTE_SENSE_VL);
+					// ((task_send_fp)(sched[task].task_fp))(&outgoing_message, sizeof(SimpleTTMessage), TTE_SENSE_VL);
 					break;
 				}
-				schedule[task].release_times[schedule[task].release_inst] += HYPERPERIOD;
-				schedule[task].release_inst = (schedule[task].release_inst + 1) % schedule[task].nr_releases;
-				schedule[task].delta_sum += schedule_time - get_tte_aligned_time(schedule[task].last_time);
-				schedule[task].last_time = schedule_time;
-				schedule[task].exec_count += 1;
+				sched[task].release_times[sched[task].release_inst] += (HYPERPERIOD);
+				sched[task].release_inst = (sched[task].release_inst + 1) % sched[task].nr_releases;
+				sched[task].delta_sum += current_time - get_tte_aligned_time(sched[task].last_time);
+				sched[task].last_time = current_time;
+				sched[task].exec_count += 1;
 				break;
+			} else {
+				LEDS |= 0x100;
 			}
 		}
 	}
@@ -305,8 +316,8 @@ int main(int argc, char **argv){
 	thisPtpPortInfo = ptpv2_intialize_local_port(PATMOS_IO_ETH, PTP_SLAVE, my_mac, my_ip, 1, 0);
 	LEDS = GPIO = 0x0;
 
-	sort_asc_ttetasks(schedule, NO_TASKS);
-	initMPU9250();
+	// sort_asc_ttetasks(sched, NO_TASKS);
+	// initMPU9250();
 
 	// Executive Loop
 	do{
@@ -317,11 +328,11 @@ int main(int argc, char **argv){
 		clkDiffLast = 0;
 		clkDiffSum = 0;
 		clkDiff = 0;
-		cyclic_executive_loop(schedule);
+		cyclic_executive_loop(sched);
 	}while(KEYS !=  0xE);
 
 	//Report
-	puts("\nTTEthernet Ping Demo Exiting and Reporting...");
+	puts("\nTTECPS Sensor Node Exiting and Reporting...");
 	puts("------------------------------------------");
 	puts("Clock Sync Quality Log:");
 	printf("--Avg. clock offset = %lld ns\n", clkDiffSum / rxPcfCount);
@@ -335,8 +346,8 @@ int main(int argc, char **argv){
 	puts("---------------------------------------------------------------------------");
 	puts("Task log:");
 	for(int task=0; task<NO_TASKS; task++){
-		unsigned long long avgDelta = schedule[task].delta_sum/schedule[task].exec_count;
-		printf("--task[%d]   avg. dt = %llu\t(avg. jitter = %d ns) from a total of %lu executions\n", task, avgDelta, abs(schedule[task].period - avgDelta), schedule[task].exec_count);
+		unsigned long long avgDelta = sched[task].delta_sum/sched[task].exec_count;
+		printf("--task[%d]   avg. dt = %llu\t(avg. jitter = %d ns) from a total of %lu executions\n", task, avgDelta, abs(sched[task].period - avgDelta), sched[task].exec_count);
 	}
 	puts("---------------------------------------------------------------------------");
 	
