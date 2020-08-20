@@ -23,11 +23,11 @@ force:
 	touch rosace_patmos.c
 
 rosace_patmos:
-	patmos-clang $(CFLAGS) $(NOCINIT) assemblage.c assemblage_includes.c io.c barrier_counter.c threads.c rosace_patmos.c  -o rosace_patmos.elf -L$(BUILDDIR) -lm -lpthread
+	patmos-clang $(CFLAGS) $(NOCINIT) assemblage.c assemblage_includes.c io.c barrier_counter.c threads.c rosace_patmos.c  -o rosace_patmos.elf -L$(BUILDDIR) -lm
 
 # running examples
 sim:
-	pasim --cores 6 --debug-intrs -V -b rosace_patmos.elf 
+	pasim --cores 9 --debug-intrs -V -b rosace_patmos.elf 
 
 emu:
 	patemu rosace_patmos.elf

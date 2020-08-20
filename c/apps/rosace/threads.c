@@ -40,7 +40,6 @@ pthread_mutex_t filter_l;
 pthread_mutex_t control_l;
 pthread_mutex_t output_l;
 
-
 // Output variables
 extern double aircraft_dynamics495_Va_Va_filter_100449_Va[2];
 extern double aircraft_dynamics495_az_az_filter_100458_az[2];
