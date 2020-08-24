@@ -64,7 +64,7 @@ abstract class Device() extends Module() {
 class InternalIO() extends Bundle() with patmos.HasSuperMode
 
 class CoreDevice() extends Device() {
-  override val io = new CoreDeviceIO()
+  override val io = IO(new CoreDeviceIO())
 }
 
 class CoreDeviceIO() extends InternalIO() {
@@ -72,7 +72,7 @@ class CoreDeviceIO() extends InternalIO() {
 }
 
 class IODevice() extends Device() {
-  override val io = new IODeviceIO()
+  override val io = IO(new IODeviceIO())
 }
 
 class IODeviceIO() extends InternalIO() {
@@ -80,7 +80,7 @@ class IODeviceIO() extends InternalIO() {
 }
 
 class BurstDevice(addrBits: Int) extends Device() {
-  override val io = new BurstDeviceIO(addrBits)
+  override val io = IO(new BurstDeviceIO(addrBits))
 }
 
 class BurstDeviceIO(addrBits: Int) extends InternalIO() {

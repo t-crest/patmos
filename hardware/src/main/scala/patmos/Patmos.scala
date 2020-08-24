@@ -199,13 +199,37 @@ final class PatmosBundle(elts: (String, Data)*) extends Record {
  * The main (top-level) component of Patmos.
  */
 class Patmos(configFile: String, binFile: String, datFile: String) extends Module {
+  val io =  IO(new Bundle() with HasSuperMode with HasPerfCounter with HasInterrupts {
+    override val superMode = Bool(OUTPUT)
+    override val perf = new PerfCounterIO().asOutput
+    override val interrupts = Vec(INTR_COUNT, Bool(INPUT) )
+    val memPort = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+    val memInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
+    val excInOut = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
+    val mmuInOut = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
+  })
+  
   Config.loadConfig(configFile)
   Config.minPcWidth = util.log2Up((new File(binFile)).length.toInt / 4)
   Config.datFile = datFile
 
+  
   val nrCores = Config.getConfig.coreCount
 
+
   println("Config core count: " + nrCores)
+
+  val testcore = Module(new PatmosCore(binFile, 0, 1))
+}
+/*
+  io.superMode := testcore.io.superMode
+  io.perf <> testcore.io.perf
+  testcore.io.interrupts := io.interrupts
+  io.memPort <> testcore.io.memPort
+  io.memInOut <> testcore.io.memInOut
+  io.excInOut <> testcore.io.excInOut
+  io.mmuInOut <> testcore.io.mmuInOut
+
 
   // Instantiate cores
   val cores = (0 until nrCores).map(i => Module(new PatmosCore(binFile, i, nrCores)))
@@ -213,6 +237,11 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   // Forward ports to/from core
   println("Config cmp: ")
 
+
+
+  
+
+  return
   val pinids = scala.collection.mutable.ListMap[String, Int]()
   val pins = scala.collection.mutable.ListMap[String, Data]()
   val registerPins = (name: String, _io: Data) =>  {
@@ -455,7 +484,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
   // Print out the configuration
   Utility.printConfig(configFile)
-}
+}*/
 
 // this testing and main file should go into it's own folder
 //commented out Chisel3 tester has changed see https://github.com/schoeberl/chisel-examples/blob/master/TowardsChisel3.md 
