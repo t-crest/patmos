@@ -16,7 +16,7 @@
 #define NT_TO_MS 1.0/MS_TO_NS
 #define NS_TO_US 1.0/US_TO_NS
 
-#define HYPER_ITERATIONS 2
+#define HYPER_ITERATIONS 1
 #define RUN_INFINITE false
 
 #define LED (*((volatile _IODEV unsigned *)PATMOS_IO_LED))

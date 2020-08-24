@@ -130,6 +130,36 @@ void rmschedule_sortedinsert_deadline(MinimalRMSchedule *schedule, MinimalRMTask
     schedule->task_count++;
 } 
 
+#ifdef WCET
+__attribute__((noinline))
+#endif
+// The function to add a key task to schedule sorted by release 
+void rmschedule_sortedinsert_release(MinimalRMSchedule *schedule, MinimalRMTaskNode* new_node) 
+{ 
+    MinimalRMTaskNode ** head_ref = &schedule->head;
+    MinimalRMTaskNode* current; 
+    /* Special case for the head end */
+    if (*head_ref == NULL || (*head_ref)->task.deadline >= new_node->task.deadline) 
+    { 
+        new_node->next = *head_ref; 
+        *head_ref = new_node; 
+    } 
+    else
+    { 
+        /* Locate the node before the point of insertion */
+        current = *head_ref; 
+        #pragma loopbound min 1 max 1
+        while (current->next!=NULL && 
+               current->next->task.release_time < new_node->task.release_time) 
+        { 
+            current = current->next; 
+        } 
+        new_node->next = current->next; 
+        current->next = new_node; 
+    } 
+    schedule->task_count++;
+} 
+
   
 #ifdef WCET
 __attribute__((noinline))
@@ -177,11 +207,11 @@ uint8_t minimal_rm_scheduler(MinimalRMSchedule *schedule)
       node_itr->task.delta_sum += node_itr->task.last_release_time == 0 ? node_itr->task.period : (current_time - node_itr->task.last_release_time);
       node_itr->task.last_release_time = current_time;
       node_itr->task.exec_count++;
-      node_itr->task.overruns += (schedule->get_time() - schedule->start_time) > (node_itr->task.exec_count * node_itr->task.period + node_itr->task.deadline) ? 1 : 0;
+      node_itr->task.overruns += (schedule->get_time() - schedule->start_time) - current_time > (node_itr->task.exec_count * node_itr->task.period + node_itr->task.deadline) ? 1 : 0;
       node_itr->task.state = READY;
       // Assign new index
       MinimalRMTaskNode* exec_task = rmschedule_dequeue(schedule);
-      rmschedule_sortedinsert(schedule, exec_task);
+      rmschedule_sortedinsert_release(schedule, exec_task);
       return 1;
     }
     node_itr = node_itr->next;
@@ -226,7 +256,7 @@ schedtime_t calc_hyperperiod(const MinimalRMSchedule *schedule, const uint32_t s
 #ifdef WCET
 __attribute__((noinline))
 #endif
-void sort_period_rmtasks(MinimalRMTask tasks[], const uint32_t tasks_count)
+void sort_period_rmtasks(MinimalRMTask *tasks, const uint32_t tasks_count)
 {
   #pragma loopbound min 1 max 1
   for (int i = 0; i < tasks_count; i++)                     
