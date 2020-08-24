@@ -39,7 +39,7 @@
 package io
 
 import Chisel._
-import Node._
+//import Node._ //cannot be imported with chisel3
 
 import patmos.Constants._
 
