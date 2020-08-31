@@ -19,7 +19,7 @@ class RegisterFile() extends Module {
 
   // We are registering the inputs here, similar as it would
   // be with an on-chip memory for the register file
-  val addrReg = Reg(Vec(2*PIPE_COUNT, UInt(width=REG_BITS)))
+  val addrReg = Reg(Vec(2*PIPE_COUNT, UInt(REG_BITS.W)))
   val wrReg   = Reg(Vec(PIPE_COUNT, new Result()))
   val fwReg   = Reg(Vec(2*PIPE_COUNT, Vec(PIPE_COUNT, Bool())))
 

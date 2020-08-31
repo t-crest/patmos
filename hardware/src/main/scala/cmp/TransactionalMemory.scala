@@ -62,7 +62,7 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
     val memrdaddrReg = Reg(UInt(width = memaddrwidth))
     
     val bufaddr = ioM.Addr(memaddrwidth+2,2)
-    val bufaddrs = Reg(Vec(bufsize, UInt(width = memaddrwidth)))
+    val bufaddrs = Reg(Vec(bufsize, UInt(memaddrwidth.W)))
     val bufrds = RegInit(Vec.fill(bufsize) {false.B})
     val bufwrs = RegInit(Vec.fill(bufsize) {false.B})
     val bufnxt = Counter(bufsize+1)

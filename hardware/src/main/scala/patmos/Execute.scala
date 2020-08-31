@@ -78,10 +78,10 @@ class Execute() extends Module {
   }
 
   // data forwarding
-  val fwReg  = Reg(Vec(2*PIPE_COUNT, UInt(width = 3)))
+  val fwReg  = Reg(Vec(2*PIPE_COUNT, UInt(3.W)))
   val fwSrcReg  = Reg(Vec(2*PIPE_COUNT, UInt(width = log2Up(PIPE_COUNT))))
-  val memResultDataReg = Reg(Vec(PIPE_COUNT, UInt(width = DATA_WIDTH)))
-  val exResultDataReg  = Reg(Vec(PIPE_COUNT, UInt(width = DATA_WIDTH)))
+  val memResultDataReg = Reg(Vec(PIPE_COUNT, UInt(DATA_WIDTH.W)))
+  val exResultDataReg  = Reg(Vec(PIPE_COUNT, UInt(DATA_WIDTH.W)))
   val op = Wire(Vec(2*PIPE_COUNT, UInt(width = DATA_WIDTH)))
 
   // precompute forwarding
@@ -167,10 +167,10 @@ class Execute() extends Module {
 
     val signed = exReg.aluOp(0).func === MFUNC_MUL
 
-    val op1H = Cat(Mux(signed, op(0)(DATA_WIDTH-1), UInt("b0")),
+    val op1H = Cat(Mux(signed, op(0)(DATA_WIDTH-1), 0.U(1.W)),
                    op(0)(DATA_WIDTH-1, DATA_WIDTH/2)).asSInt
     val op1L = op(0)(DATA_WIDTH/2-1, 0)
-    val op2H = Cat(Mux(signed, op(1)(DATA_WIDTH-1), UInt("b0")),
+    val op2H = Cat(Mux(signed, op(1)(DATA_WIDTH-1), 0.U(1.W)),
                    op(1)(DATA_WIDTH-1, DATA_WIDTH/2)).asSInt
     val op2L = op(1)(DATA_WIDTH/2-1, 0)
 
@@ -336,7 +336,7 @@ class Execute() extends Module {
 
   // return information
   when(exReg.call && doExecute(0)) {
-    retBaseReg := Cat(exReg.base, UInt("b00").asUInt)
+    retBaseReg := Cat(exReg.base, 0.U(2.W))
   }
   // the offset is saved when the call is already in the MEM statge
   saveRetOff := exReg.call && doExecute(0) && io.ena
@@ -344,8 +344,8 @@ class Execute() extends Module {
 
   // exception return information
   when(exReg.xcall && doExecute(0)) {
-    excBaseReg := Cat(exReg.base, UInt("b00").asUInt)
-    excOffReg := Cat(exReg.relPc, UInt("b00").asUInt)
+    excBaseReg := Cat(exReg.base, 0.U(2.W))
+    excOffReg := Cat(exReg.relPc, 0.U(2.W))
   }
 
   // branch
