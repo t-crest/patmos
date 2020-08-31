@@ -4,14 +4,14 @@
   <frequency Hz="1000000"/>
   <pipeline dual="true" />
   <cores count="1" />
-  <!--<CmpDevs>
+  <CmpDevs>
     <CmpDev name="Hardlock" />
     <CmpDev name="UartCmp">
-       Not implemented yet 
-       <params>
+      <!-- Not implemented yet --> 
+       <!--<params> 
         <param name="baudRate" value="115200"/>
         <param name="fifoDepth" value="16"/>
-      </params> 
+      </params> -->
     </CmpDev>
   </CmpDevs>-->
   <bus burstLength="4" writeCombine="false" mmu="false" />
