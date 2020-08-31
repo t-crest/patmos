@@ -9,6 +9,8 @@ package patmos
 
 import Chisel._
 
+import chisel3.dontTouch
+
 import Constants._
 
 import util.Utility
@@ -17,6 +19,7 @@ class Fetch(fileName : String) extends Module {
   val io = IO(new FetchIO())
 
   val pcReg = RegInit(UInt(1, PC_SIZE))
+  val pcNext = dontTouch(Wire(UInt(PC_SIZE.W))) // for emulator
   val addrEven = Wire(UInt())
   val addrOdd = Wire(UInt())
   val addrEvenReg = Reg(init = UInt(2, PC_SIZE), next = addrEven)
@@ -34,6 +37,8 @@ class Fetch(fileName : String) extends Module {
   instr_a_ispm := UInt(0)
   instr_b_ispm := UInt(0)
   
+  
+
   if (ISPM_SIZE > 0) {
     val ispmAddrUInt = log2Up(ISPM_SIZE / 4 / 2)
     val memEven = MemBlock(ISPM_SIZE / 4 / 2, INSTR_WIDTH, bypass = false)
@@ -59,20 +64,33 @@ class Fetch(fileName : String) extends Module {
 
   val selSpm = RegInit(Bool(false))
   val selCache = RegInit(Bool(false))
+  val selSpmNext = dontTouch(Wire(Bool())) // for emulator
+  val selCacheNext = dontTouch(Wire(Bool())) // for emulator
+  selSpmNext := selSpm
+  selSpm := selSpmNext
+  selCacheNext := selCache
+  selCache := selCacheNext
   when (io.ena) {
-    selSpm := io.icachefe.memSel(1)
-    selCache := io.icachefe.memSel(0)
+    selSpmNext := io.icachefe.memSel(1)
+    selCacheNext := io.icachefe.memSel(0)
   }
 
   //need to register these values to save them in  memory stage at call/return
   val baseReg = RegInit(UInt(0, width = ADDR_WIDTH))
   val relBaseReg = RegInit(UInt(1, width = MAX_OFF_WIDTH))
   val relocReg = RegInit(UInt(0, DATA_WIDTH))
+  val relBaseNext = dontTouch(Wire(UInt(MAX_OFF_WIDTH.W))) // for emulator
+  val relocNext = dontTouch(Wire(UInt(DATA_WIDTH.W))) // for emulator
+
+  relBaseNext := relBaseReg
+  relBaseReg := relBaseNext
+  relocNext := relocReg
+  relocReg := relocNext
   when(io.ena) {
     baseReg := io.icachefe.base
     when (io.memfe.doCallRet) {
-      relBaseReg := io.icachefe.relBase
-      relocReg := io.icachefe.reloc
+      relBaseNext := io.icachefe.relBase
+      relocNext := io.icachefe.reloc
     }
   }
 
@@ -101,6 +119,7 @@ class Fetch(fileName : String) extends Module {
     Mux(io.memfe.doCallRet, io.icachefe.relPc.asUInt,
             Mux(io.exfe.doBranch, io.exfe.branchPc,
                 pc_cont))
+  pcNext := pc_next
   val pc_cont2 = Mux(b_valid, pcReg + UInt(4), pcReg + UInt(3))
   val pc_next2 =
     Mux(io.memfe.doCallRet, io.icachefe.relPc.asUInt + UInt(2),
@@ -113,7 +132,7 @@ class Fetch(fileName : String) extends Module {
   when(io.ena && !reset) {
     addrEven := Cat((pc_inc)(PC_SIZE - 1, 1), UInt(0)).asUInt
     addrOdd := Cat((pc_next)(PC_SIZE - 1, 1), UInt(1)).asUInt
-    pcReg := pc_next
+    pcReg := pcNext //is pc_next - needed for emulator
   }
 
   val relPc = pcReg - relBaseReg
