@@ -13,7 +13,7 @@
         <param name="fifoDepth" value="16"/>
       </params> -->
     </CmpDev>
-  </CmpDevs>-->
+  </CmpDevs>
   <bus burstLength="4" writeCombine="false" mmu="false" />
 
   <ICache type="method" size="8k" assoc="16" repl="fifo" />

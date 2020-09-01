@@ -379,7 +379,7 @@ class Execute() extends Module {
 
   // saveRetOff overrides io.ena for writes to retOffReg
   when(saveRetOff) {
-    retOffReg := Cat(Mux(saveND, exReg.relPc, io.feex.pc), UInt("b00").asUInt)
+    retOffReg := Cat(Mux(saveND, exReg.relPc, io.feex.pc), 0.U(2.W))
   }
 
   // reset at end to override any computations
