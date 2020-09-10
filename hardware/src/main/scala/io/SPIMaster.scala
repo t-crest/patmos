@@ -71,8 +71,8 @@ class SPIMaster(clkFreq : Int, slaveCount : Int, sclkHz : Int, fifoDepth : Int, 
     val mosiReg = Reg(init = UInt(0, 1))
     mosiReg := Bits(0)
 
-    val misoReg = Reg(init = UInt(0, 32))
-    val nSSReg = Reg(init = UInt(0, 32))
+    val misoReg = Reg(init = UInt(0, 1))
+    val nSSReg = Reg(init = UInt(0, 1))
 
 
     //Serial-in parallel out register for miso
@@ -111,7 +111,8 @@ class SPIMaster(clkFreq : Int, slaveCount : Int, sclkHz : Int, fifoDepth : Int, 
   
     // Connections to master
     io.ocp.S.Resp := respReg
-    io.ocp.S.Data := rdDataReg
+    io.ocp.S.Data := Reverse(rdDataReg)
+    
 
     //Read any stored data in miso queue. 
     when(io.ocp.M.Cmd === OcpCmd.RD) {
@@ -127,7 +128,7 @@ class SPIMaster(clkFreq : Int, slaveCount : Int, sclkHz : Int, fifoDepth : Int, 
     when (io.ocp.M.Cmd === OcpCmd.WR) {
       // loadToSend := true.B
       respReg := OcpResp.DVA
-      txQueue.io.enq.bits := io.ocp.M.Data(wordLen-1, 0)
+      txQueue.io.enq.bits := Reverse(io.ocp.M.Data(wordLen-1, 0))
       txQueue.io.enq.valid := Bool(true)    
     }
 

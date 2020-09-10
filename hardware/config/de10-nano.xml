@@ -46,7 +46,7 @@
       <params>
           <param name="slaveCount" value="1" />
           <param name="sclk_hz" value="25000000" />
-          <param name="fifoDepth" value="16"/>
+          <param name="fifoDepth" value="8"/>
           <param name="wordLength" value="12"/>
       </params>
     </Dev>
