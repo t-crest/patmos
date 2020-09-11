@@ -335,7 +335,7 @@ class MCacheCtrl() extends Module {
   io.ocp_port.M.Addr := Cat(ocpAddrReg, 0.U(2.W))
   io.ocp_port.M.Cmd := ocpCmdReg
   io.ocp_port.M.Data := UInt(0)
-  io.ocp_port.M.DataByteEn := UInt("b1111")
+  io.ocp_port.M.DataByteEn := "b1111".U(4.W)
   io.ocp_port.M.DataValid := UInt(0)
 
   when (io.exmcache.doCallRet) {

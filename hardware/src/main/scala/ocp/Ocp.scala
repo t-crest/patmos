@@ -12,22 +12,22 @@ import Chisel._
 
 // Constants for MCmd
 object OcpCmd {
-  val IDLE = UInt("b000")
-  val WR   = UInt("b001")
-  val RD   = UInt("b010")
-//  val RDEX = UInt("b011")
-//  val RDL  = UInt("b100")
-//  val WRNP = UInt("b101")
-//  val WRC  = UInt("b110")
-//  val BCST = UInt("b111")
+  val IDLE = "b000".U(3.W)
+  val WR   = "b001".U(3.W)
+  val RD   = "b010".U(3.W)
+//  val RDEX = "b011".U(3.W)
+//  val RDL  = "b100".U(3.W)
+//  val WRNP = "b101".U(3.W)
+//  val WRC  = "b110".U(3.W)
+//  val BCST = "b111".U(3.W)
 }
 
 // Constants for SResp
 object OcpResp {
-  val NULL = UInt("b00")
-  val DVA  = UInt("b01")
-  val FAIL = UInt("b10")
-  val ERR  = UInt("b11")
+  val NULL = "b00".U(2.W)
+  val DVA  = "b01".U(2.W)
+  val FAIL = "b10".U(2.W)
+  val ERR  = "b11".U(2.W)
 }
 
 // MS: would like fields (e.g. data) to start with lower case.

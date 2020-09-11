@@ -398,7 +398,7 @@ class ICacheCtrl() extends Module {
   io.ocp_port.M.Addr := Cat(ocpAddr, 0.U(2.W))
   io.ocp_port.M.Cmd := ocpCmd
   io.ocp_port.M.Data := UInt(0) //read-only
-  io.ocp_port.M.DataByteEn := UInt("b1111") //read-only
+  io.ocp_port.M.DataByteEn := "b1111".U(4.W) //read-only
   io.ocp_port.M.DataValid := UInt(0) //read-only
 
   // Output to performance counters

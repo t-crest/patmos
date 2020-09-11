@@ -3,10 +3,10 @@ package axi
 import Chisel._
 
 object AXIResp {
-  val OKAY = UInt("b000")
-  val EXOKAY = UInt("b001")
-  val SLVERR = UInt("b010")
-  val DECERR = UInt("b011")
+  val OKAY = "b000".U(3.W)
+  val EXOKAY = "b001".U(3.W)
+  val SLVERR = "b010".U(3.W)
+  val DECERR = "b011".U(3.W)
 }
 
 class AxiLiteWriteAddressChannel(addrWidth: Int) extends Bundle {

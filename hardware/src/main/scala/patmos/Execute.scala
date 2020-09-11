@@ -86,24 +86,24 @@ class Execute() extends Module {
 
   // precompute forwarding
   for (i <- 0 until 2*PIPE_COUNT) {
-    fwReg(i) := UInt("b000")
+    fwReg(i) := "b000".U(3.W)
     fwSrcReg(i) := UInt(0)
     for (k <- 0 until PIPE_COUNT) {
       when(io.decex.rsAddr(i) === io.memResult(k).addr && io.memResult(k).valid) {
-        fwReg(i) := UInt("b010")
+        fwReg(i) := "b010".U(3.W)
         fwSrcReg(i) := UInt(k)
       }
     }
     for (k <- 0 until PIPE_COUNT) {
       when(io.decex.rsAddr(i) === io.exResult(k).addr && io.exResult(k).valid) {
-        fwReg(i) := UInt("b001")
+        fwReg(i) := "b001".U(3.W)
         fwSrcReg(i) := UInt(k)
       }
     }    
   }
   for (i <- 0 until PIPE_COUNT) {
     when(io.decex.immOp(i)) {
-      fwReg(2*i+1) := UInt("b100")
+      fwReg(2*i+1) := "b100".U(3.W)
     }
   }
 
