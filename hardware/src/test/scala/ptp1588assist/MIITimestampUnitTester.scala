@@ -1,4 +1,4 @@
-package ptp1588assist
+/*package ptp1588assist
 
 import Chisel._
 import ocp.{OcpCmd, OcpResp, OcpTestMain}
@@ -374,4 +374,4 @@ object MIITimestampUnitTester extends App {
   } finally {
     "gtkwave " + pathToVCD + "/" + nameOfVCD + " " + pathToVCD + "/" + "view.sav" !
   }
-}
+}*/
