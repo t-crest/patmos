@@ -116,11 +116,12 @@ $(JAVATOOLSBUILDDIR)/classes/%.class: tools/java/src/%.java
 #	-mkdir -p $(HWINSTALLDIR)/bin
 #	cp $(HWBUILDDIR)/emulator $(HWINSTALLDIR)/bin/patemu
 
-# Temporary chisel3/verilator emulator
+# chisel3/verilator emulator
+CORECNTT:=$(shell lscpu | grep 'Core(s) per socket:')
 emulator:
 	-mkdir -p $(HWBUILDDIR)
 	$(MAKE) -C hardware verilog BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
-	-cd $(HWBUILDDIR) && verilator --cc ../harnessConfig.vlt Patmos.v --top-module Patmos +define+TOP_TYPE=VPatmos -CFLAGS "-Wno-undefined-bool-conversion -O1 -DTOP_TYPE=VPatmos -DVL_USER_FINISH -include VPatmos.h" -Mdir $(HWBUILDDIR) --exe ../Patmos-harness.cpp -LDFLAGS -lelf --trace   
+	-cd $(HWBUILDDIR) && verilator --cc ../harnessConfig.vlt Patmos.v --top-module Patmos +define+TOP_TYPE=VPatmos --threads $(lastword $(subst :, ,$(CORECNTT))) -CFLAGS "-Wno-undefined-bool-conversion -O1 -DTOP_TYPE=VPatmos -DVL_USER_FINISH -include VPatmos.h" -Mdir $(HWBUILDDIR) --exe ../Patmos-harness.cpp -LDFLAGS -lelf --trace   
 	-cd $(HWBUILDDIR) && make -j -f VPatmos.mk
 	-cp $(HWBUILDDIR)/VPatmos $(HWBUILDDIR)/emulator
 	-mkdir -p $(HWINSTALLDIR)/bin
@@ -238,7 +239,7 @@ download: $(BUILDDIR)/$(APP).elf
 	$(INSTALLDIR)/bin/patserdow -v $(COM_PORT) $<
 
 fpgaexec: $(BUILDDIR)/$(APP).elf
-	$(INSTALLDIR)/bin/patserdow $(COM_PORT) $<
+	$(INSTALLDIR)/bin/patserdow $(COM_POpthread_mutex_testRT) $<
 
 # cleanup
 CLEANEXTENSIONS=rbf rpt sof pin summary ttf qdf dat wlf done qws
