@@ -228,7 +228,7 @@ download: $(BUILDDIR)/$(APP).elf
 	$(INSTALLDIR)/bin/patserdow -v $(COM_PORT) $<
 
 fpgaexec: $(BUILDDIR)/$(APP).elf
-	$(INSTALLDIR)/bin/patserdow $(COM_POpthread_mutex_testRT) $<
+	$(INSTALLDIR)/bin/patserdow $(COM_PORT) $<
 
 # cleanup
 CLEANEXTENSIONS=rbf rpt sof pin summary ttf qdf dat wlf done qws
