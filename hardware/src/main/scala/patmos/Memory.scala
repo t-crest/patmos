@@ -124,12 +124,12 @@ class Memory() extends Module {
                 OcpCmd.IDLE)
 
   io.localInOut.M.Cmd := Mux(io.exmem.mem.typ === MTYPE_L, cmd, OcpCmd.IDLE)
-  io.localInOut.M.Addr := Cat(io.exmem.mem.addr(ADDR_WIDTH-1, 2), UInt("b00"))
+  io.localInOut.M.Addr := Cat(io.exmem.mem.addr(ADDR_WIDTH-1, 2), 0.U(2.W))
   io.localInOut.M.Data := Cat(wrData(3), wrData(2), wrData(1), wrData(0))
   io.localInOut.M.ByteEn := byteEn
 
   io.globalInOut.M.Cmd := Mux(io.exmem.mem.typ =/= MTYPE_L, cmd, OcpCmd.IDLE)
-  io.globalInOut.M.Addr := Cat(io.exmem.mem.addr(ADDR_WIDTH-1, 2), UInt("b00"))
+  io.globalInOut.M.Addr := Cat(io.exmem.mem.addr(ADDR_WIDTH-1, 2), 0.U(2.W))
   io.globalInOut.M.Data := Cat(wrData(3), wrData(2), wrData(1), wrData(0))
   io.globalInOut.M.ByteEn := byteEn
   io.globalInOut.M.AddrSpace := Mux(io.exmem.mem.typ === MTYPE_S, OcpCache.STACK_CACHE,
@@ -209,7 +209,7 @@ class Memory() extends Module {
   io.exc.excAddr := Mux(memReg.mem.trap, memReg.relPc + UInt(1), memReg.relPc)
 
   // Keep signal alive for debugging
-  debug(io.memwb.pc)
+  //debug(io.memwb.pc) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
 
   // reset at end to override any computations
   when(reset) { memReg.flush() }

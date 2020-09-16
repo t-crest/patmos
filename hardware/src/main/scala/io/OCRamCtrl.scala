@@ -29,7 +29,7 @@ object OCRamCtrl extends DeviceObject {
 
 class OCRamCtrl(addrWidth : Int, ocpBurstLen : Int=4) extends BurstDevice(addrWidth) {
 
-  override val io = new BurstDeviceIO(addrWidth)
+  override val io = IO(new BurstDeviceIO(addrWidth))
 
   val BYTE_WIDTH = 8
   val BYTES_PER_WORD = io.ocp.M.Data.getWidth / BYTE_WIDTH
@@ -45,9 +45,9 @@ class OCRamCtrl(addrWidth : Int, ocpBurstLen : Int=4) extends BurstDevice(addrWi
   val burstCntReg = Reg(init = UInt(0, width = log2Up(ocpBurstLen)))
   val burstCntNext = burstCntReg + UInt(1);
 
-  val addr = UInt()
+  val addr = Wire(UInt())
   addr := addrReg ## burstCntNext
-  val wrEn = Bool()
+  val wrEn = Wire(Bool())
   wrEn := stateReg === write
 
   burstCntReg := burstCntNext

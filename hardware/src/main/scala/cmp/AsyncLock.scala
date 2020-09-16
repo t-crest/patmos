@@ -27,7 +27,7 @@ class AsyncMutexBB() extends BlackBox {
   //throw new Error("BlackBox wrapper for AsyncMuteX in AsyncLock.scala needs update for Chisel 3")
   // rename component
   // should be Commented out to compile for chisel3
-  setModuleName("AsyncMutex")
+  /*setModuleName("AsyncMutex")
 
   renameClock(clock, "clk")
   renameReset("rst")
@@ -35,7 +35,7 @@ class AsyncMutexBB() extends BlackBox {
   io.req1.setName("req1")
   io.req2.setName("req2")
   io.gnt1.setName("gnt1")
-  io.gnt2.setName("gnt2")
+  io.gnt2.setName("gnt2")*/
 }
 
 class AsyncArbiterMesh(corecnt: Int) extends AsyncArbiterBase(corecnt) {

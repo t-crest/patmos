@@ -7,8 +7,8 @@
   <CmpDevs>
     <CmpDev name="Hardlock" />
     <CmpDev name="UartCmp">
-      <!-- Not implemented yet -->
-      <!-- <params>
+      <!-- Not implemented yet --> 
+       <!--<params> 
         <param name="baudRate" value="115200"/>
         <param name="fifoDepth" value="16"/>
       </params> -->

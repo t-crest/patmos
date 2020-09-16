@@ -9,7 +9,7 @@
 package io
 
 import Chisel._
-import Node._
+//import Node._ //Do not compile to chisel3 - might need adjustment
 
 import patmos.Constants._
 

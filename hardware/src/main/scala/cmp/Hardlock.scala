@@ -10,7 +10,6 @@
 package cmp
  
 import Chisel._
-
 import patmos.Constants._
 import ocp._
 
@@ -33,7 +32,7 @@ abstract class AbstractHardlock(coreCnt : Int,lckCnt : Int) extends Module {
   override val io = IO(new HardlockIOVec(coreCnt, lckCnt)) // Vec.fill(coreCnt){new HardlockIO(lckCnt)}
   
   
-  val queueReg = RegInit(Vec.fill(lckCnt){UInt(0, coreCnt)})
+  val queueReg = RegInit(Vec.fill(lckCnt){Vec.fill(coreCnt){false.B}})
   for (i <- 0 until lckCnt) {
     for (j <- 0 until coreCnt) {
       when(io.cores(j).sel === UInt(i) && io.cores(j).en === Bool(true)) {
@@ -44,31 +43,28 @@ abstract class AbstractHardlock(coreCnt : Int,lckCnt : Int) extends Module {
   
   val curReg = RegInit(Vec.fill(lckCnt){UInt(0, log2Up(coreCnt))})
   
-  val blocks = Wire(Vec(coreCnt, Bits(width = lckCnt)))
+  val blocks = Wire(Vec(coreCnt, Vec(lckCnt, Bool())))
   
   for (i <- 0 until coreCnt) {
-    blocks(i) := UInt(0)
     for (j <- 0 until lckCnt) {
-      blocks(i)(j) := queueReg(j)(i) && (curReg(j) =/= UInt(i)) 
+      blocks(i)(j) := queueReg(j)(i) && (curReg(j) =/= UInt(i))
     }
-    io.cores(i).blck := blocks(i).orR
+    io.cores(i).blck := blocks(i).asUInt.orR
   }
 }
 
 class Hardlock(coreCnt : Int,lckCnt : Int) extends AbstractHardlock(coreCnt, lckCnt) {  
   // Circular priority encoder
-  val hi = Wire(Vec(lckCnt, Bits(width = coreCnt)))
-  val lo = Wire(Vec(lckCnt, Bits(width = coreCnt)))
+  val hi = Wire(Vec(lckCnt, Vec(coreCnt, Bool())))
+  val lo = Wire(Vec(lckCnt, Vec(coreCnt, Bool())))
   
   for (i <- 0 until lckCnt) {
-    lo(i) := UInt(0)
-    hi(i) := UInt(0)
     for (j <- 0 until coreCnt) {
       lo(i)(j) := queueReg(i)(j) && (curReg(i) > UInt(j))
-      hi(i)(j) := queueReg(i)(j) && (curReg(i) <= UInt(j))
+      hi(i)(j) := queueReg(i)(j) && (curReg(i) <= UInt(j))  
     }
     
-    when(hi(i).orR) {
+    when(hi(i).asUInt.orR) {
       curReg(i) := PriorityEncoder(hi(i))
     }
     .otherwise {
@@ -86,6 +82,9 @@ class HardlockOCPWrapper(hardlockgen: () => AbstractHardlock) extends Module {
   // Mapping between internal io and OCP here
   
   val reqReg = Reg(init = Bits(0,hardlock.CoreCount))
+  val reqBools = Wire(Vec(hardlock.CoreCount, Bool()))
+
+  reqBools := reqReg.toBools
 
   for (i <- 0 until hardlock.CoreCount) {
     hardlock.io.cores(i).op := io.cores(i).M.Data(0);
@@ -96,10 +95,12 @@ class HardlockOCPWrapper(hardlockgen: () => AbstractHardlock) extends Module {
     }
 
     when(io.cores(i).M.Cmd =/= OcpCmd.IDLE) {
-      reqReg(i) := Bool(true)
+      reqBools(i) := Bool(true)
+      reqReg := reqBools.asUInt()
     }
     .elsewhen(reqReg(i) === Bool(true) && hardlock.io.cores(i).blck === Bool(false)) {
-      reqReg(i) := Bool(false)
+      reqBools(i) := Bool(false)
+      reqReg := reqBools.asUInt()
     }
     
     io.cores(i).S.Resp := OcpResp.NULL

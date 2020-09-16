@@ -10,9 +10,9 @@ package ocp
 import Chisel._
 
 object OcpCache {
-  val STACK_CACHE = UInt("b00")
-  val DATA_CACHE  = UInt("b10")
-  val UNCACHED    = UInt("b11")
+  val STACK_CACHE = "b00".U(2.W)
+  val DATA_CACHE  = "b10".U(2.W)
+  val UNCACHED    = "b11".U(2.W)
 }
 
 // Cache masters provide address space signal

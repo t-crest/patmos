@@ -64,9 +64,9 @@ class v6_emac_v2_3_wrapper extends BlackBox {
   var methods = classOf[EMACPins].getDeclaredMethods()
   //throw new Error("BalckBox wrapper for EMAC/Xilinx needs update for Chisel 3")
   //should be commented out when chisel3 is used
-  methods.foreach{m => m.invoke(io).asInstanceOf[Chisel.Node].setName(m.getName())}
+ /* methods.foreach{m => m.invoke(io).asInstanceOf[Chisel.Node].setName(m.getName())}
   methods = classOf[EMACIO].getDeclaredMethods()
-  methods.foreach{m => m.invoke(io).asInstanceOf[Chisel.Node].setName(m.getName())}
+  methods.foreach{m => m.invoke(io).asInstanceOf[Chisel.Node].setName(m.getName())}*/
    
 }
 

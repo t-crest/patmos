@@ -22,7 +22,8 @@ class Master(nr: Int, burstLength: Int) extends Module {
   val cntReg = Reg(init = UInt(0, width=32))
   val dataReg = Reg(init = UInt(0, width=32))
   val cntRead = Reg(init = UInt(0, width=3))
-  debug(cntRead)
+  
+  //debug(cntRead) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
 
   io.port.M.Cmd := OcpCmd.IDLE
   io.port.M.DataValid := Bits(0)
