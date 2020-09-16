@@ -206,6 +206,7 @@ void task_sync(unsigned long long start_time, unsigned long long schedule_time, 
 		clkDiffSum = 0;
 		clkDiff = 0;
 	}
+	#pragma loopbound min 1 max 4
 	for(int i=0; i<NO_TASKS; i++)
 	{
 		#pragma loopbound min 1 max 2
@@ -374,7 +375,7 @@ int main(int argc, char **argv){
 	}while(KEYS !=  0xE);
 
 	//Report
-	puts("\nTTEthernet Ping Demo Exiting and Reporting...");
+	puts("\nTTECPS Control Node Exiting and Reporting...");
 	puts("------------------------------------------");
 	puts("Clock Sync Quality Log:");
 	printf("--Avg. clock offset = %lld ns\n", clkDiffSum / rxPcfCount);

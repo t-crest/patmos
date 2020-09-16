@@ -1,0 +1,53 @@
+<patmos default="default.xml">
+  <description>default configuration for DE2-115 board</description>
+ 
+  <frequency Hz="80000000"/>  
+ 
+  <!-- Default is single core -->
+  <!-- <pipeline dual="false" />
+  <cores count="6"/>
+  <CmpDevs>
+  <CmpDev name="Argo" />
+  </CmpDevs> -->
+ 
+  <ExtMem size="2M" DevTypeRef="Sram16" />
+  <!-- <ExtMem size="128k" DevTypeRef="OCRam" /> -->
+ 
+  <IOs>
+  <!--IO DevTypeRef="Uart" offset="6"/-->
+  <IO DevTypeRef="Keys" offset="10" intrs="2,3,4,5"/>
+  <IO DevTypeRef="Leds" offset="9"/>
+  <IO DevTypeRef="I2Controller" offset="14" />
+  </IOs>
+ 
+  <Devs>
+  <Dev DevType="Keys" entity="Keys" iface="OcpCore">
+    <params>
+      <param name="keyCount" value="4"/>
+    </params>
+  </Dev>
+  <Dev DevType="Leds" entity="Leds" iface="OcpCore">
+      <params>
+        <param name="ledCount" value="9"/>
+      </params>
+  </Dev>
+  <Dev DevType="Sram16" entity="SRamCtrl" iface="OcpBurst">
+    <params>
+      <param name="ocpAddrWidth" value="21" />
+      <param name="sramAddrWidth" value="20" />
+      <param name="sramDataWidth" value="16" />
+    </params>
+  </Dev>
+  <Dev DevType="OCRam" entity="OCRamCtrl" iface="OcpBurst">
+    <params>
+       <param name="addrWidth" value="19" />
+    </params>
+  </Dev>
+  <Dev DevType="I2Controller" entity="I2Controller" iface="OcpCore">
+    <params>
+	   <param name="sclFreq" value="100000" /> <!-- Can be set to 1000000 when debugging -->
+	   <param name="respectStretch" value="false" /> <!-- Should be set to false when debugging via C-code-->
+    </params>
+  </Dev>
+  </Devs>
+</patmos>

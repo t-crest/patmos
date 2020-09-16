@@ -2,6 +2,18 @@
 #include "common.h"
 #include <math.h>
 
+void printSegmentInt(unsigned number) 
+{
+    *(&SEGDISP+0) = number & 0xF;
+    *(&SEGDISP+1) = (number >> 4) & 0xF;
+    *(&SEGDISP+2) = (number >> 8) & 0xF;
+    *(&SEGDISP+3) = (number >> 12) & 0xF;
+    *(&SEGDISP+4) = (number >> 16) & 0xF;
+    *(&SEGDISP+5) = (number >> 20) & 0xF;
+    *(&SEGDISP+6) = (number >> 24) & 0xF;
+    *(&SEGDISP+7) = (number >> 28) & 0xF;
+}
+
 __attribute__((noinline))
 void sort_asc_ttetasks(SimpleTTETask *tasks, const unsigned short num_tasks)
 {

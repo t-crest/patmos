@@ -59,7 +59,7 @@ set_location_assignment PIN_AA18 -to oMpuScl
 set_location_assignment PIN_W14 -to ioMpuSda
 set_location_assignment PIN_Y18 -to oMpuAd0
 
-set_global_assignment -name LAST_QUARTUS_VERSION "16.1.0 Lite Edition"
+set_global_assignment -name LAST_QUARTUS_VERSION "20.1.0 Lite Edition"
 set_global_assignment -name RESERVE_ALL_UNUSED_PINS "AS INPUT TRI-STATED WITH WEAK PULL-UP"
 
 set_global_assignment -name MIN_CORE_JUNCTION_TEMP "-40"
@@ -93,4 +93,8 @@ set_location_assignment PIN_AG14 -to pwm_measurment_input[0]
 set_location_assignment PIN_AE6 -to pwm_measurment_input[1]
 set_location_assignment PIN_AE24 -to pwm_measurment_input[2]
 set_location_assignment PIN_AD20 -to pwm_measurment_input[3]
+set_location_assignment PIN_U9 -to SPIMaster_nSS
+set_location_assignment PIN_V10 -to SPIMaster_sclk
+set_location_assignment PIN_AC4 -to SPIMaster_mosi
+set_location_assignment PIN_AD4 -to SPIMaster_miso
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

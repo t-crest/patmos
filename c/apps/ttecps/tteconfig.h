@@ -20,10 +20,11 @@
 
 // TTE PID synchronization
 #define TTE_SYNC_Kp 1000LL
-#define TTE_SYNC_Ki 5LL
+#define TTE_SYNC_Ki 0LL
 
 // TTE directives
 #define TIME_CORRECTION_EN
+#define ALIGN_TO_REALTIME	//TODO: reset time on every new cluster
 #define HW_TIMESTAMPING
 
 //Constants
@@ -35,3 +36,5 @@ extern const unsigned char TTE_MAC[];
 extern const unsigned char TTE_CT[];
 extern const unsigned char TTE_SENSE_VL[];
 extern const unsigned char TTE_CONTROL_VL[];
+
+// unsigned long long get_tte_aligned_time(unsigned long long current_time, unsigned long long clkDiff, unsigned long long clkDiffSum);

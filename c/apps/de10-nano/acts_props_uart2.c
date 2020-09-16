@@ -15,6 +15,9 @@
 //UART2
 #define UART2 ((volatile _IODEV unsigned *)PATMOS_IO_UART2)
 
+//SPI
+#define ADC ((volatile _IODEV unsigned *)0xf00e0000)
+
 const unsigned int CPU_PERIOD = 20; //CPU period in ns.
 
 //Writes to actuator specified by actuator ID (0 to 4)
@@ -78,6 +81,17 @@ int uart2_read(unsigned char *data)
   }
 }
 
+void write_adc()
+{
+  unsigned int config_word = 0x800;
+  *(ADC) = config_word;
+}
+
+int read_adc()
+{
+  return *(ADC);
+}
+
 //Blinks the LEDs once
 void blink_once()
 {
@@ -96,47 +110,54 @@ void blink_once()
 int main(int argc, char **argv)
 {
   unsigned char uart2_data;
-
+  unsigned int adc_val;
   printf("Hello actuators, propellers, and UART2!\n");
 
   blink_once();
 
   while (1)
   {
-    blink_once();
-    unsigned int rec0 = actuator_read(0);
-    printf("PWM cycles: %d = %d\n", 0, rec0);
-    blink_once();
-    unsigned int rec1 = actuator_read(1);
-    printf("PWM cycles: %d = %d\n", 1, rec1);
-    blink_once();
-    unsigned int rec2 = actuator_read(2);
-    printf("PWM cycles: %d = %d\n", 2, rec2);
-    blink_once();
-    unsigned int rec3 = actuator_read(3);
-    printf("PWM cycles: %d = %d\n", 3, rec3);
+    write_adc();
+    printf("Writing...\n");
+    adc_val = read_adc();
+    printf("ADC val: %d\n",adc_val);
+    // blink_once();
+    // unsigned int rec0 = actuator_read(0);
+    // printf("PWM cycles: %d = %d\n", 0, rec0);
+    // blink_once();
+    // unsigned int rec1 = actuator_read(1);
+    // printf("PWM cycles: %d = %d\n", 1, rec1);
+    // blink_once();
+    // unsigned int rec2 = actuator_read(2);
+    // printf("PWM cycles: %d = %d\n", 2, rec2);
+    // blink_once();
+    // unsigned int rec3 = actuator_read(3);
+    // printf("PWM cycles: %d = %d\n", 3, rec3);
 
-    blink_once();
-    propulsion_write(0, 0);
-    printf("Propulsion %d = %d\n", 0, 0);
-    blink_once();
-    propulsion_write(1, 50);
-    printf("Propulsion %d = %d\n", 1, 50);
-    blink_once();
-    propulsion_write(2, 100);
-    printf("Propulsion %d = %d\n", 2, 100);
-    blink_once();
-    propulsion_write(3, 150);
-    printf("Propulsion %d = %d\n", 3, 150);
-    blink_once();
-    if (uart2_read(&uart2_data) == -1)
-    {
-      printf("Nothing received form UART2\n");
-    }
-    else
-    {
-      printf("UART2 received: %d\n", uart2_data);
-    }
+    // blink_once();
+    // propulsion_write(0, 0);
+    // printf("Propulsion %d = %d\n", 0, 0);
+    // blink_once();
+    // propulsion_write(1, 50);
+    // printf("Propulsion %d = %d\n", 1, 50);
+    // blink_once();
+    // propulsion_write(2, 100);
+    // printf("Propulsion %d = %d\n", 2, 100);
+    // blink_once();
+    // propulsion_write(3, 150);
+    // printf("Propulsion %d = %d\n", 3, 150);
+    // blink_once();
+    // if (uart2_read(&uart2_data) == -1)
+    // {
+    //   printf("Nothing received form UART2\n");
+    // }
+    // else
+    // {
+    //   printf("UART2 received: %d\n", uart2_data);
+    // }
+
+    
+
     blink_once();
   }
 

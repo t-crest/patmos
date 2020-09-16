@@ -25,9 +25,9 @@ wcet_tte_sensor:
 	platin wcet --disable-ait --enable-wca -i tte_sensor.pml -b tte_sensor_wcet.elf -e task_sync
 	platin wcet --disable-ait --enable-wca -i tte_sensor.pml -b tte_sensor_wcet.elf -e task_sense
 	platin wcet --disable-ait --enable-wca -i tte_sensor.pml -b tte_sensor_wcet.elf -e task_send
-	platin wcet --disable-ait --enable-wca -i tte_sensor.pml -b tte_sensor_wcet.elf -e sort_asc_ttetasks
 	platin wcet --disable-ait --enable-wca -i tte_sensor.pml -b tte_sensor_wcet.elf -e cyclic_executive_loop
 	platin wcet --disable-ait --enable-wca -i tte_sensor.pml -b tte_sensor_wcet.elf -e get_tte_aligned_time
+	platin wcet --disable-ait --enable-wca -i tte_sensor.pml -b tte_sensor_wcet.elf -e sort_asc_ttetasks
 
 wcet_tte_control:
 	patmos-clang -O2 $(CFLAGS) $(LIBETH)/*.c common.c i2c.c tteconfig.c tte_control.c -mserialize=tte_control.pml -o tte_control_wcet.elf
@@ -35,18 +35,18 @@ wcet_tte_control:
 	platin wcet --disable-ait --enable-wca -i tte_control.pml -b tte_control_wcet.elf -e task_recv
 	platin wcet --disable-ait --enable-wca -i tte_control.pml -b tte_control_wcet.elf -e task_send
 	platin wcet --disable-ait --enable-wca -i tte_control.pml -b tte_control_wcet.elf -e task_calc
-	platin wcet --disable-ait --enable-wca -i tte_control.pml -b tte_control_wcet.elf -e sort_asc_ttetasks
 	platin wcet --disable-ait --enable-wca -i tte_control.pml -b tte_control_wcet.elf -e cyclic_executive_loop
 	platin wcet --disable-ait --enable-wca -i tte_control.pml -b tte_control_wcet.elf -e get_tte_aligned_time
+	platin wcet --disable-ait --enable-wca -i tte_control.pml -b tte_control_wcet.elf -e sort_asc_ttetasks
 
 wcet_tte_actuator:
 	patmos-clang -O2 $(CFLAGS) $(LIBETH)/*.c common.c i2c.c tteconfig.c tte_actuator.c -mserialize=tte_actuator.pml -o tte_actuator_wcet.elf
 	platin wcet --disable-ait --enable-wca -i tte_actuator.pml -b tte_actuator_wcet.elf -e task_sync
 	platin wcet --disable-ait --enable-wca -i tte_actuator.pml -b tte_actuator_wcet.elf -e task_recv
 	platin wcet --disable-ait --enable-wca -i tte_actuator.pml -b tte_actuator_wcet.elf -e task_pulse
-	platin wcet --disable-ait --enable-wca -i tte_actuator.pml -b tte_actuator_wcet.elf -e sort_asc_ttetasks
 	platin wcet --disable-ait --enable-wca -i tte_actuator.pml -b tte_actuator_wcet.elf -e cyclic_executive_loop
 	platin wcet --disable-ait --enable-wca -i tte_actuator.pml -b tte_actuator_wcet.elf -e get_tte_aligned_time
+	platin wcet --disable-ait --enable-wca -i tte_actuator.pml -b tte_actuator_wcet.elf -e sort_asc_ttetasks
 
 # running examples
 

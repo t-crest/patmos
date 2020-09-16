@@ -14,7 +14,7 @@
 #define KEYS *((volatile _SPM unsigned int *) (PATMOS_IO_KEYS))
 #define GPIO *((volatile _SPM unsigned int *) (PATMOS_IO_GPIO))
 #define DEAD *((volatile _SPM unsigned int *) (PATMOS_IO_DEADLINE))
-#define SEGM *((volatile _SPM unsinged int *) (PATMOS_IO_SEGDISP))
+#define SEGDISP *((volatile _SPM unsigned int *) (PATMOS_IO_SEGDISP))
 
 //System
 #define CPU_PERIOD			12.5		//ns	
@@ -70,6 +70,7 @@ void task_send(const SimpleTTMessage* outgoing_message, int length, const unsign
 void task_pulse(unsigned int duty_cycle);
 
 //Common functions
+void printSegmentInt(unsigned number);
 float atan2_approximation1(float y, float x);
 float atan2_approximation2(float y, float x );
 int atan2_approximation3(int y, int x);
