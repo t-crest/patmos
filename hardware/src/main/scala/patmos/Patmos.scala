@@ -454,7 +454,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   }
 
   // Print out the configuration
-   //Utility.printConfig(configFile) Chisel3 have overriden printf - this method must be fixed
+   Utility.printConfig(configFile)
 }
 
 // this testing and main file should go into it's own folder
