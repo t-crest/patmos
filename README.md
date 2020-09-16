@@ -21,7 +21,7 @@ installed on a Ubuntu Linux:
 ```
 sudo apt install git openjdk-8-jdk gitk cmake make g++ texinfo flex bison \
   subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby-full \
-  liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala autoconf libfl2
+  liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala autoconf libfl2 expect
 ```
 
 Make sure to use Java 8 and remove any later Java version with ```sudo apt autoremove```.
