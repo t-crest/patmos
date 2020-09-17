@@ -11,7 +11,7 @@ package patmos
 import Chisel._
 import java.io.File
 import chisel3.experimental.{DataMirror, requireIsChiselType}
-
+import chisel3.dontTouch
 import Constants._
 import util._
 import io._
@@ -135,6 +135,8 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
   writeback.io.ena := enable
   exc.io.ena := enable
   val enableReg = Reg(next = enable)
+
+  dontTouch(enableReg)
 
   // Flush signal
   val flush = memory.io.flush

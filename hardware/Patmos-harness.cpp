@@ -200,7 +200,7 @@ public:
     /*bool baud_tick = c->Patmos__DOT__UartCmp__DOT__uart__DOT__tx_baud_tick;
     if (baud_tick) {
       baud_counter = (baud_counter + 1) % 10;
-        }
+    }
     if (baud_tick && baud_counter == 0) {
       struct pollfd pfd;
       pfd.fd = uart_in;
@@ -217,10 +217,10 @@ public:
             c->Patmos__DOT__UartCmp__DOT__uart__DOT__rxd_reg2 = 1;
             c->Patmos__DOT__UartCmp__DOT__uart__DOT__rx_buff = d;
           }
-          }
         }
-    }*/
       }
+    }*/
+  }
 
 
   void UART_to_file(string path)
@@ -674,6 +674,29 @@ static void emu_extmem() {
 #endif /* ICACHE_LINE */
     }
   }
+  void print_state()
+  {
+    static unsigned int baseReg = 0;
+    #if CORE_COUNT == 1
+    *outputTarget << ((baseReg + c->Patmos__DOT__cores_0__DOT__fetch__DOT__pcNext) * 4 - c->Patmos__DOT__cores_0__DOT__fetch__DOT__relBaseNext * 4) << " - ";
+    baseReg = c->Patmos__DOT__cores_0__DOT__icache__DOT__repl__DOT__callRetBaseNext;
+
+    for (unsigned i = 0; i < 32; i++) {
+      *outputTarget << c->Patmos__DOT__cores_0__DOT__decode__DOT__rf__DOT__rf[i] << " ";
+    }
+    #endif
+    #if CORE_COUNT > 1
+      *outputTarget << ((baseReg + c->__PVT__Patmos__DOT__cores_0->fetch__DOT__pcNext) * 4 - c->__PVT__Patmos__DOT__cores_0->fetch__DOT__relBaseNext * 4) << " - ";
+    baseReg = c->__PVT__Patmos__DOT__cores_0->icache__DOT__repl__DOT__callRetBaseNext;
+
+    for (unsigned i = 0; i < 32; i++) {
+      *outputTarget << c->__PVT__Patmos__DOT__cores_0->__PVT__decode__DOT__rf__DOT__rf[i] << " ";
+    }
+    #endif
+
+    *outputTarget << endl;
+  }
+  
 };
 
 // Override Verilator definition so first $finish ends simulation
@@ -695,6 +718,7 @@ static void help(ostream &out) {
       << "  -i            Initialize memory with random values" << endl
       << "  -l <N>        Stop after <N> cycles" << endl
       << "  -v            Dump wave forms file \"Patmos.vcd\"" << endl
+      << "  -r            Print register values in each cycle" << endl
       << "  -O <file>     Write output from UART to file <file>" << endl
   ;
 }
@@ -707,9 +731,10 @@ int main(int argc, char **argv, char **env)
   int opt;
   int limit = -1;
   bool halt = false;
+  bool reg_print = false;
 
   //Parse Arguments
-  while ((opt = getopt(argc, argv, "hvl:iO:")) != -1){
+  while ((opt = getopt(argc, argv, "hvl:iO:r")) != -1){
     switch (opt) {
       case 'v':
         emu->setTrace();
@@ -721,6 +746,9 @@ int main(int argc, char **argv, char **env)
         emu->init_extmem();
       case 'O':
         emu->UART_to_file(optarg);
+        break;
+      case 'r':
+        reg_print = true;
         break;
       case 'h':
         usage(cout, argv[0]);
@@ -765,9 +793,13 @@ int main(int argc, char **argv, char **env)
     emu->emu_extmem();
      // Return to address 0 halts the execution after one more iteration
     if (halt) {
-        break;
+      break;
     }
     #if CORE_COUNT == 1
+    if (reg_print && emu->c->Patmos__DOT__cores_0__DOT__enableReg) {
+      emu->print_state();
+    }
+
     if ((emu->c->Patmos__DOT__cores_0__DOT__memory__DOT__memReg_mem_brcf == 1
          || emu->c->Patmos__DOT__cores_0__DOT__memory__DOT__memReg_mem_ret == 1)
         && emu->c->Patmos__DOT__cores_0__DOT__icache__DOT__repl__DOT__callRetBaseReg == 0) {
@@ -775,6 +807,10 @@ int main(int argc, char **argv, char **env)
     }
     #endif
     #if CORE_COUNT > 1
+    if (reg_print && emu->c->__PVT__Patmos__DOT__cores_0->__PVT__enableReg) {
+      emu->print_state();
+    }
+
     if ((emu->c->__PVT__Patmos__DOT__cores_0->__PVT__memory__DOT__memReg_mem_brcf == 1
          || emu->c->__PVT__Patmos__DOT__cores_0->__PVT__memory__DOT__memReg_mem_ret == 1)
         && emu->c->__PVT__Patmos__DOT__cores_0->__PVT__icache__DOT__repl__DOT__callRetBaseReg == 0) {
