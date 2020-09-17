@@ -77,18 +77,6 @@ public:
 
     //for UART
     UART_on = false;
-    baudrate = 0;
-    freq = 0;
-    in_byte = 0;
-    out_byte = 0;
-    sample_counter_out = 0;
-    sample_counter_in = 0;
-    bit_counter_out = 0;
-    bit_counter_in = 0;
-    state = 'i'; // 0:idle 1:receiving
-    writing = false;
-    write_cntr = 0;
-    write_len = 0;
     c->io_UartCmp_rx = 1; // keep UART tx high when idle
     outputTarget = &cout; // default uart print to terminal
 
@@ -169,7 +157,7 @@ public:
     //UART emulation
     if (UART_on)
     {
-      UART_tick();
+      emu_uart();
     }
 
     if (trace) {
@@ -193,90 +181,47 @@ public:
     UART_on = true;
   }
 
-  void UART_tick(void)
-  {
-    if (state == 'i')
-    { // idle wait for start bit
-      if (c->io_UartCmp_tx == 0)
-      {
-        state = 'r'; //receiving
-      }
-    }
-    else if (state == 'r')
-    {
-      sample_counter_out++;
-      if (sample_counter_out == ((freq / baudrate) + 1))
-      { //+1 as i to go one clock tick to futher before sampling
-        UART_read_bit();
-        sample_counter_out = 0;
-      }
+
+  void emu_uart() {//int uart_in, int uart_out
+    static unsigned baud_counter = 0;
+
+    // Pass on data from UART
+    if (c->Patmos__DOT__UartCmp__DOT__uart_io_ocp_M_Cmd == 0x1
+        && (c->Patmos__DOT__UartCmp__DOT__uart_io_ocp_M_Addr & 0xff) == 0x04) {
+      unsigned char d = c->Patmos__DOT__UartCmp__DOT__uart__DOT__txQueue_io_enq_bits;
+      *outputTarget << d;
+      /*int w = write(uart_out, &d, 1);
+      if (w != 1) {
+        cerr << program_name << ": error: Cannot write UART output" << endl;
+      }*/
     }
 
-    if (writing)
-    {
-      sample_counter_in++;
-      if (sample_counter_in == ((freq / baudrate) + 1))
-      {
-        sample_counter_in = 0;
-        if (bit_counter_in == 0)
-        { //start bit
-          c->io_UartCmp_rx = 0;
-          bit_counter_in++;
+    // Pass on data to UART
+    /*bool baud_tick = c->Patmos__DOT__UartCmp__DOT__uart__DOT__tx_baud_tick;
+    if (baud_tick) {
+      baud_counter = (baud_counter + 1) % 10;
         }
-        else if ((bit_counter_in > 0) && (bit_counter_in <= 8))
-        { // data bits
-          c->io_UartCmp_rx = (write_str[write_cntr] >> (8 - bit_counter_in)) & 1;
-          bit_counter_in++;
-        }
-        else
-        { //stop bits
-          c->io_UartCmp_rx = 1;
-          if (bit_counter_in == 9)
-          {
-            bit_counter_in++;
+    if (baud_tick && baud_counter == 0) {
+      struct pollfd pfd;
+      pfd.fd = uart_in;
+      pfd.events = POLLIN;
+      if (poll(&pfd, 1, 0) > 0) {
+        unsigned char d;
+        int r = read(uart_in, &d, 1);
+        if (r != 0) {
+          if (r != 1) {
+            cerr << program_name << ": error: Cannot read UART input" << endl;
+          } else {
+            c->Patmos__DOT__UartCmp__DOT__uart__DOT__rx_state = 0x3; // rx_stop_bit
+            c->Patmos__DOT__UartCmp__DOT__uart__DOT__rx_baud_tick = 1;
+            c->Patmos__DOT__UartCmp__DOT__uart__DOT__rxd_reg2 = 1;
+            c->Patmos__DOT__UartCmp__DOT__uart__DOT__rx_buff = d;
           }
-          else
-          {
-            bit_counter_in = 0;
-            write_cntr++;
-            if (write_cntr == write_len)
-            {
-              writing = false;
-              write_cntr = 0;
-            }
           }
         }
+    }*/
       }
-    }
-  }
 
-  void UART_read_bit(void)
-  {
-    bit_counter_out++;
-    if (bit_counter_out == 9)
-    {
-      *outputTarget << out_byte;
-      out_byte = 0;
-      bit_counter_out = 0;
-      state = 'i';
-    }
-    else
-    {
-      out_byte = (c->io_UartCmp_tx << (bit_counter_out - 1)) | out_byte;
-    }
-  }
-
-  void UART_write(string in_str)
-  {
-    if (writing)
-    {
-      printf("UART are still writing");
-      return;
-    }
-    write_str = in_str;
-    write_len = write_str.length();
-    writing = true;
-  }
 
   void UART_to_file(string path)
   {
@@ -820,11 +765,7 @@ int main(int argc, char **argv, char **env)
     emu->emu_extmem();
      // Return to address 0 halts the execution after one more iteration
     if (halt) {
-      if(waituart == 80000-(1000*(CORE_COUNT-1))){
         break;
-      }else{
-        waituart++;
-      }
     }
     #if CORE_COUNT == 1
     if ((emu->c->Patmos__DOT__cores_0__DOT__memory__DOT__memReg_mem_brcf == 1
