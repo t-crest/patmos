@@ -46,10 +46,25 @@ to the compiler executables into your .bashrc or .profile:
 Use an absolute path as LLVM cannot handle a path relative to the
 home directory (~). Logout and login again to make your new PATH setting active.
 
-For the Chisel3 branch you need to install the latest Veriltor.
-In order to build the C++ emulator of Patmos, Verilator must be installed:
+In order to build the C++ emulator of Patmos, Verilator version 4.028 or higher must be installed.  
+With Ubuntu 20.04 this can be installed through apt-get:
 
     sudo apt-get install verilator
+
+Older versions of Ubuntu must install Verilator via their git repository:
+
+    git clone https://github.com/verilator/verilator
+    unset VERILATOR_ROOT
+    cd verilator
+    git checkout v4.028 #Tested version - newer should be fine
+    autoconf
+    ./configure
+    make
+    sudo make install
+
+You can remove the verilator repository after installation
+
+
 
 Patmos and the compiler can be checked out from GitHub and are built as follows:
 
