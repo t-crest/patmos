@@ -186,9 +186,9 @@ public:
     static unsigned baud_counter = 0;
 
     // Pass on data from UART
-    if (c->Patmos__DOT__UartCmp__DOT__uart_io_ocp_M_Cmd == 0x1
-        && (c->Patmos__DOT__UartCmp__DOT__uart_io_ocp_M_Addr & 0xff) == 0x04) {
-      unsigned char d = c->Patmos__DOT__UartCmp__DOT__uart__DOT__txQueue_io_enq_bits;
+    if (c->Patmos__DOT__UartCmp__DOT__uart__DOT__uartOcpEmu_Cmd == 0x1
+        && (c->Patmos__DOT__UartCmp__DOT__uart__DOT__uartOcpEmu_Addr & 0xff) == 0x04) {
+      unsigned char d = c->Patmos__DOT__UartCmp__DOT__uart__DOT__uartOcpEmu_Data;
       *outputTarget << d;
       /*int w = write(uart_out, &d, 1);
       if (w != 1) {
