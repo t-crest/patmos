@@ -20,6 +20,8 @@ NOTES ON STUFF MISSING FROM THE OLD EMULATOR
 #include <string>
 #include <libelf.h>
 #include <gelf.h>
+#include <sys/poll.h>
+#include <fcntl.h>
 
 #include "VPatmos.h"
 #include "verilated.h"
@@ -130,12 +132,12 @@ public:
     // Make sure any inheritance gets applied
     for (int i = 0; i < cycles; i++)
     {
-      this->tick();
+      this->tick(STDIN_FILENO, STDOUT_FILENO);
     }
     c->reset = 0;
   }
 
-  void tick(void)
+  void tick(int uart_in,int uart_out)
   {
     // Increment our own internal time reference
     m_tickcount++;
@@ -157,7 +159,7 @@ public:
     //UART emulation
     if (UART_on)
     {
-      emu_uart();
+      emu_uart(uart_in, uart_out);
     }
 
     if (trace) {
@@ -182,22 +184,21 @@ public:
   }
 
 
-  void emu_uart() {//int uart_in, int uart_out
+  void emu_uart(int uart_in,int uart_out) {//int uart_in, int uart_out
     static unsigned baud_counter = 0;
 
     // Pass on data from UART
     if (c->Patmos__DOT__UartCmp__DOT__uart__DOT__uartOcpEmu_Cmd == 0x1
         && (c->Patmos__DOT__UartCmp__DOT__uart__DOT__uartOcpEmu_Addr & 0xff) == 0x04) {
       unsigned char d = c->Patmos__DOT__UartCmp__DOT__uart__DOT__uartOcpEmu_Data;
-      *outputTarget << d;
-      /*int w = write(uart_out, &d, 1);
+      int w = write(uart_out, &d, 1);
       if (w != 1) {
-        cerr << program_name << ": error: Cannot write UART output" << endl;
-      }*/
+        cerr << "patemu: error: Cannot write UART output" << endl;
+      }
     }
 
     // Pass on data to UART
-    /*bool baud_tick = c->Patmos__DOT__UartCmp__DOT__uart__DOT__tx_baud_tick;
+    bool baud_tick = c->Patmos__DOT__UartCmp__DOT__uart__DOT__tx_baud_tick;
     if (baud_tick) {
       baud_counter = (baud_counter + 1) % 10;
     }
@@ -210,7 +211,7 @@ public:
         int r = read(uart_in, &d, 1);
         if (r != 0) {
           if (r != 1) {
-            cerr << program_name << ": error: Cannot read UART input" << endl;
+            cerr << "patemu: error: Cannot read UART input" << endl;
           } else {
             c->Patmos__DOT__UartCmp__DOT__uart__DOT__rx_state = 0x3; // rx_stop_bit
             c->Patmos__DOT__UartCmp__DOT__uart__DOT__rx_baud_tick = 1;
@@ -219,7 +220,7 @@ public:
           }
         }
       }
-    }*/
+    }
   }
 
 
@@ -482,7 +483,7 @@ static void emu_extmem() {
   void init_icache(val_t entry)
   {
     
-    tick();
+    tick(STDIN_FILENO, STDOUT_FILENO);
     if (entry != 0)
     {
       if (entry >= 0x20000)
@@ -718,7 +719,8 @@ static void help(ostream &out) {
       << "  -i            Initialize memory with random values" << endl
       << "  -l <N>        Stop after <N> cycles" << endl
       << "  -v            Dump wave forms file \"Patmos.vcd\"" << endl
-      << "  -r            Print register values in each cycle" << endl
+      << "  -r            Print register values in each cycle" << endl      
+      << "  -I <file>     Read input for UART from file <file>" << endl
       << "  -O <file>     Write output from UART to file <file>" << endl
   ;
 }
@@ -733,8 +735,11 @@ int main(int argc, char **argv, char **env)
   bool halt = false;
   bool reg_print = false;
 
+  int uart_in = STDIN_FILENO;
+  int uart_out = STDOUT_FILENO;
+  
   //Parse Arguments
-  while ((opt = getopt(argc, argv, "hvl:iO:r")) != -1){
+  while ((opt = getopt(argc, argv, "hvl:iO:I:r")) != -1){
     switch (opt) {
       case 'v':
         emu->setTrace();
@@ -744,9 +749,31 @@ int main(int argc, char **argv, char **env)
         break;
       case 'i':
         emu->init_extmem();
-      case 'O':
-        emu->UART_to_file(optarg);
+      case 'I':
+        if (strcmp(optarg, "-") == 0) {
+          uart_in = STDIN_FILENO;
+        } else {
+          uart_in = open(optarg, O_RDONLY);
+          if (uart_in < 0) {
+            cerr << argv[0] << "error: Cannot open input file " << optarg << endl;
+            exit(EXIT_FAILURE);
+          }
+        }
         break;
+      case 'O':
+        if (strcmp(optarg, "-") == 0) {
+          uart_out = STDOUT_FILENO;
+        } else {
+          uart_out = open(optarg, O_WRONLY|O_CREAT|O_TRUNC, 0644);
+          if (uart_out < 0) {
+            cerr << argv[0] << ": error: Cannot open output file " << optarg << endl;
+            exit(EXIT_FAILURE);
+          }
+        }
+        break;
+      /*case 'O':
+        emu->UART_to_file(optarg);
+        break;*/
       case 'r':
         reg_print = true;
         break;
@@ -763,7 +790,7 @@ int main(int argc, char **argv, char **env)
 
   
   emu->reset(1);
-  emu->tick();
+  emu->tick(uart_in, uart_out);
   emu->UART_init();
 
   val_t entry = 0;
@@ -779,7 +806,7 @@ int main(int argc, char **argv, char **env)
   }
 
   emu->reset(5);
-  emu->tick();
+  emu->tick(uart_in, uart_out);
 
   emu->init_icache(entry);
 
@@ -789,7 +816,7 @@ int main(int argc, char **argv, char **env)
   while (limit < 0 || emu->get_tick_count() < limit)
   {
     cnt++;
-    emu->tick();
+    emu->tick(uart_in, uart_out);
     emu->emu_extmem();
      // Return to address 0 halts the execution after one more iteration
     if (halt) {
