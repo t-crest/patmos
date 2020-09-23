@@ -223,6 +223,11 @@ public:
     }
   }
 
+  void emu_keys(void){
+    if ((rand() % 0x10000) == 0) {
+      c->io_Keys_key = rand();
+    }
+  }
 
   void UART_to_file(string path)
   {
@@ -719,9 +724,14 @@ static void help(ostream &out) {
       << "  -i            Initialize memory with random values" << endl
       << "  -l <N>        Stop after <N> cycles" << endl
       << "  -v            Dump wave forms file \"Patmos.vcd\"" << endl
-      << "  -r            Print register values in each cycle" << endl      
+      << "  -r            Print register values in each cycle" << endl
+      #ifdef IO_KEYS
+      << "  -k            Simulate random input from keys" << endl
+      #endif /* IO_KEYS */
+      #ifdef IO_UART      
       << "  -I <file>     Read input for UART from file <file>" << endl
       << "  -O <file>     Write output from UART to file <file>" << endl
+      #endif
   ;
 }
    
@@ -737,9 +747,10 @@ int main(int argc, char **argv, char **env)
 
   int uart_in = STDIN_FILENO;
   int uart_out = STDOUT_FILENO;
+  bool keys = false;
   
   //Parse Arguments
-  while ((opt = getopt(argc, argv, "hvl:iO:I:r")) != -1){
+  while ((opt = getopt(argc, argv, "hvl:iO:I:rk")) != -1){
     switch (opt) {
       case 'v':
         emu->setTrace();
@@ -749,6 +760,8 @@ int main(int argc, char **argv, char **env)
         break;
       case 'i':
         emu->init_extmem();
+        break;
+      #ifdef IO_UART
       case 'I':
         if (strcmp(optarg, "-") == 0) {
           uart_in = STDIN_FILENO;
@@ -771,12 +784,15 @@ int main(int argc, char **argv, char **env)
           }
         }
         break;
-      /*case 'O':
-        emu->UART_to_file(optarg);
-        break;*/
+      #endif
       case 'r':
         reg_print = true;
         break;
+      #ifdef IO_KEYS
+      case 'k':
+      keys = true;
+      break;
+      #endif /* IO_KEYS */
       case 'h':
         usage(cout, argv[0]);
         help(cout);
@@ -817,6 +833,9 @@ int main(int argc, char **argv, char **env)
   {
     cnt++;
     emu->tick(uart_in, uart_out);
+    if(keys){
+      emu->emu_keys();
+    }
     emu->emu_extmem();
      // Return to address 0 halts the execution after one more iteration
     if (halt) {
