@@ -4722,9 +4722,11 @@ Make sure that libusb is installed (e.g., in \code{/lib/i386-linux-gnu} on a 32-
 
 \begin{verbatim} 
 sudo ln -s libusb-1.0.so.0 libusb.so
+sudo ln -s /lib/x86_64-linux-gnu/libudev.so.1 /usr/lib/libudev.so.0
+sudo ln -s /lib/x86_64-linux-gnu/libudev.so.1 /lib/x86_64-linux-gnu/libudev.so.0
 \end{verbatim}
 
-Best restart your machine and connect the USB cable again.
+Restart your machine and connect the USB cable again.
 
 \paragraph{Using iMPACT}
 
