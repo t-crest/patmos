@@ -41,7 +41,13 @@ entity patmos_top is
   		  SPIMaster_miso : in std_logic;
 		  SPIMaster_mosi : out std_logic;
 		  SPIMaster_nSS : out std_logic;
-		  SPIMaster_sclk : out std_logic
+		  SPIMaster_sclk : out std_logic;
+		  --test
+		  test_SPIMaster_miso : out std_logic;
+		  test_SPIMaster_mosi : out std_logic;
+		  test_SPIMaster_nSS : out std_logic;
+		  test_SPIMaster_sclk : out std_logic
+		  
 
  );
 end entity patmos_top;
@@ -191,8 +197,14 @@ end component;
       signal actuatorsPins_MByteEn : std_logic_vector(3 downto 0);
       signal actuatorsPins_SResp : std_logic_vector(1 downto 0);
       signal actuatorsPins_SData : std_logic_vector(31 downto 0);
+		
+		signal mosi : std_logic;
+		signal miso : std_logic;
+		signal ss : std_logic;
+		signal sclk : std_logic;
 
     begin
+	
         --  pll_inst : entity work.pll generic map(
         --      input_freq  => pll_infreq,
         --      multiply_by => pll_mult,
@@ -274,10 +286,10 @@ end component;
 				    io_Uart_rx 				 => iUart2Pins_rxd,
                 io_UartCmp_tx           => oUartPins_txd,
                 io_UartCmp_rx           => iUartPins_rxd,
-					 io_SPIMaster_miso 		 => SPIMaster_miso,
-					 io_SPIMaster_mosi 		 => SPIMaster_mosi,
-					 io_SPIMaster_nSS 		 => SPIMaster_nSS,
-					 io_SPIMaster_sclk 		 => SPIMaster_sclk
+					 io_SPIMaster_miso 		 => miso,
+					 io_SPIMaster_mosi 		 => mosi,
+					 io_SPIMaster_nSS 		 => ss,
+					 io_SPIMaster_sclk 		 => sclk
             );
 
         I2Ccontroller_inst_0 : I2Ccontroller
@@ -322,5 +334,17 @@ end component;
         pwm_measurment_input  => pwm_measurment_input,
         propdrive_out_port  => propdrive_out_port
       );
-
+		  
+		  
+		  test_SPIMaster_miso <= miso;
+		  test_SPIMaster_mosi<= mosi; 
+		  test_SPIMaster_nSS <= ss;
+		  test_SPIMaster_sclk<= sclk;
+		  
+		  miso <= SPIMaster_miso;
+		  SPIMaster_mosi<= mosi; 
+		  SPIMaster_nSS <= ss;
+		  SPIMaster_sclk<= sclk;
+	
+		  
     end architecture rtl;
