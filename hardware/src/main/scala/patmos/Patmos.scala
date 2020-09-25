@@ -10,7 +10,8 @@ package patmos
 
 import Chisel._
 import java.io.File
-
+import chisel3.experimental.{DataMirror, requireIsChiselType}
+import chisel3.dontTouch
 import Constants._
 import util._
 import io._
@@ -29,7 +30,7 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
   val io = IO(new Bundle() with HasSuperMode with HasPerfCounter with HasInterrupts {
     override val superMode = Bool(OUTPUT)
     override val perf = new PerfCounterIO().asOutput
-    override val interrupts = Vec.fill(INTR_COUNT) { Bool(INPUT) }
+    override val interrupts = Vec(INTR_COUNT, Bool(INPUT) )
     val memPort = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
     val memInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
     val excInOut = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
@@ -135,6 +136,8 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
   exc.io.ena := enable
   val enableReg = Reg(next = enable)
 
+  dontTouch(enableReg)
+
   // Flush signal
   val flush = memory.io.flush
   val brflush = execute.io.brflush
@@ -163,15 +166,15 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
   io.memPort <> mmu.io.phys
 
   // Keep signal alive for debugging
-  debug(enableReg)
+  //debug(enableReg) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
 }
 
 trait HasPins {
-  val pins = new Bundle
+  val pins : Bundle
 }
 
 trait HasInterrupts {
-  val interrupts = Vec.fill(0){Bool()}
+  val interrupts: Vec[Bool]
 }
 
 trait HasPerfCounter {
@@ -182,6 +185,18 @@ trait HasSuperMode {
   val superMode = Bool(INPUT);
 }
 
+final class PatmosBundle(elts: (String, Data)*) extends Record {
+  override val elements = scala.collection.immutable.ListMap(elts map { case (field, elt) =>
+    requireIsChiselType(elt)
+    field -> elt
+  }: _*)
+  def apply(elt: String): Data = elements(elt)
+  override def cloneType: this.type = {
+    val cloned = elts map { case (n, d) => n -> DataMirror.internal.chiselTypeClone(d) }
+    (new PatmosBundle(cloned: _*)).asInstanceOf[this.type]
+  }
+}
+
 /**
  * The main (top-level) component of Patmos.
  */
@@ -189,8 +204,6 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   Config.loadConfig(configFile)
   Config.minPcWidth = util.log2Up((new File(binFile)).length.toInt / 4)
   Config.datFile = datFile
-
-  override val io = new Bundle()
 
   val nrCores = Config.getConfig.coreCount
 
@@ -202,26 +215,25 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   // Forward ports to/from core
   println("Config cmp: ")
 
-  val pins = mutable.HashMap[String, Int]()
-
-  val connectPins = (name: String, _io: Data) =>  {
+  val pinids = scala.collection.mutable.ListMap[String, Int]()
+  val pins = scala.collection.mutable.ListMap[String, Data]()
+  val registerPins = (name: String, _io: Data) =>  {
     _io match {
       case haspins: HasPins => {
         println(name + " has pins")
         var postfix = ""
-        if(pins.contains(name)) {
-          var tmp = pins(name)
+        if(pinids.contains(name)) {
+          var tmp = pinids(name)
           tmp += 1
-          pins(name) = tmp
+          pinids(name) = tmp
           postfix = "_" + tmp
         } else {
-          pins(name) = 0
+          pinids(name) = 0
         }
 
         for((pinid, pin) <- haspins.pins.elements) {
           var _pinid = name + postfix + "_" + pinid
-          io.elements(_pinid) = pin.cloneType()
-          io.elements(_pinid) <> pin
+          pins(_pinid) = pin
         }
       }
       case _ =>
@@ -242,14 +254,14 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       case "S4noc" => (0xE807, IO_DEVICE_ADDR_WIDTH, Module(new cmp.S4nocOCPWrapper(nrCores, 4, 4)))
       case "CASPM" => (0xE808, IO_DEVICE_ADDR_WIDTH, Module(new cmp.CASPM(nrCores, nrCores * 8)))
       case "AsyncLock" => (0xE809, IO_DEVICE_ADDR_WIDTH, Module(new cmp.AsyncLock(nrCores, nrCores * 2)))
-      case "UartCmp" => (0xF008, IO_DEVICE_ADDR_WIDTH, Module(new cmp.UartCmp(nrCores,CLOCK_FREQ,115200,16)))
+      case "UartCmp" => (0xF008, IO_DEVICE_ADDR_WIDTH, Module(new cmp.UartCmp(nrCores,CLOCK_FREQ,UART_BAUD,16)))
       case "TwoWay" => (0xE80B, IO_DEVICE_ADDR_WIDTH, Module(new cmp.TwoWayOCPWrapper(nrCores, 1024)))
       case "TransactionalMemory" => (0xE80C, IO_DEVICE_ADDR_WIDTH, Module(new cmp.TransactionalMemory(nrCores, 512)))
       case "LedsCmp" => (0xE80D, IO_DEVICE_ADDR_WIDTH, Module(new cmp.LedsCmp(nrCores, 1)))
       case _ => throw new Error("Unknown device " + e)
     }
 
-    connectPins(dev.getClass.getSimpleName, dev.io)
+    registerPins(dev.getClass.getSimpleName, dev.io)
 
     new {
       val addr = off
@@ -262,7 +274,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   for (i <- (0 until nrCores)) {
 
     // Default values for interrupt pins
-    cores(i).io.interrupts := UInt(0)
+      cores(i).io.interrupts := Vec.fill(INTR_COUNT) {false.B}
 
     // Creation of IO devices
     val conf = Config.getConfig
@@ -323,7 +335,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     val spm = Module(new Spm(DSPM_SIZE))
 
     // Dummy ISPM (create fake response)
-    val ispmio = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
+      val ispmio = Wire(new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))
     ispmio.S.Data := 0.U
     ispmio.S.Resp := RegNext(Mux(ispmio.M.Cmd === OcpCmd.IDLE, OcpResp.NULL, OcpResp.DVA))
 
@@ -399,7 +411,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
         cores(i).io.interrupts(NI_EXT_INTR) := argoslaveport.flags(2*i+1)
       }
 
-      connectPins(dev.name, _io)
+      registerPins(dev.name, _io)
     }
 
     // Register for error response
@@ -416,7 +428,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   val ramConf = Config.getConfig.ExtMem.ram
   val ramCtrl = Config.createDevice(ramConf).asInstanceOf[BurstDevice]
 
-  connectPins(ramConf.name, ramCtrl.io)
+  registerPins(ramConf.name, ramCtrl.io)
 
   // TODO: fix memory arbiter to have configurable memory timing.
   // E.g., it does not work with on-chip main memory.
@@ -433,8 +445,18 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     memarbiter.io.slave.S <> ramCtrl.io.ocp.S
   }
 
+  override val io = IO(new PatmosBundle(pins.map{case (pinid, devicepin) => pinid -> DataMirror.internal.chiselTypeClone(devicepin)}.toSeq: _*))
+
+  for((pinid, devicepin) <- pins) {
+    val patmospin = io.elements(pinid)
+    DataMirror.specifiedDirectionOf(devicepin).toString match {
+        case "Input" => devicepin := patmospin
+        case "Output" => patmospin := devicepin
+    }
+  }
+
   // Print out the configuration
-  Utility.printConfig(configFile)
+   Utility.printConfig(configFile)
 }
 
 // this testing and main file should go into it's own folder
@@ -454,15 +476,31 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   }
 }*/
 
-object PatmosMain {
-  def main(args: Array[String]): Unit = {
+/*class SimpleBundle() extends Bundle{
+  val sig = UInt(width=5)
+}
+
+class TestTrait() extends CoreDevice2() {
+  override val io = IO(new CoreDeviceIO2()) /*with patmos.HasPins {
+    override val pins = new Bundle {
+      val tx = Bits(OUTPUT, 1)
+      val rx = Bits(INPUT, 1)
+    }
+  })*/
+
+}*/
+
+object PatmosMain extends App {
+  override def main(args: Array[String]): Unit = {
 
     val chiselArgs = args.slice(3, args.length)
     val configFile = args(0)
     val binFile = args(1)
     val datFile = args(2)
+	  
     new java.io.File("build/").mkdirs // build dir is created
     Config.loadConfig(configFile)
-    chiselMain(chiselArgs, () => Module(new Patmos(configFile, binFile, datFile))) //{ f => new PatmosTest(f) }
+    //chiselMain(chiselArgs, () => Module(new Patmos(configFile, binFile, datFile))) //{ f => new PatmosTest(f) }
+    chisel3.Driver.execute(chiselArgs, () => new Patmos(configFile, binFile, datFile)) //TestTrait())//
   }
 }

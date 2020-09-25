@@ -41,7 +41,7 @@ architecture struct of patmos_tb_sram16 is
 
     component Patmos is
         port(
-            clk             : in  std_logic;
+            clock           : in  std_logic;
             reset           : in  std_logic;
 
             io_comConf_M_Cmd        : out std_logic_vector(2 downto 0);
@@ -81,7 +81,7 @@ architecture struct of patmos_tb_sram16 is
 begin
 
 	patmos_inst : Patmos port map(
-		clk	=>	clk,
+		clock	=>	clk,
 		reset	=>	reset,
         io_comConf_M_Cmd => open,
         io_comConf_M_Addr => open,

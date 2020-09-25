@@ -392,9 +392,9 @@ class StackCache() extends Module {
    * preserve some signals for debugging
    */
 
-  debug(mb_rdAddr)
+  /*debug(mb_rdAddr) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
   debug(mb_rdData)
   debug(mb_wrAddr)
   debug(mb_wrData)
-  debug(mb_wrEna)
+  debug(mb_wrEna)*/
 }

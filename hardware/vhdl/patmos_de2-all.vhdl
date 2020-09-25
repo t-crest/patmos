@@ -100,7 +100,7 @@ end entity patmos_top;
 architecture rtl of patmos_top is
     component Patmos is
         port(
-            clk                              : in  std_logic;
+            clock                            : in  std_logic;
             reset                            : in  std_logic;
             io_Leds_led                      : out std_logic_vector(8 downto 0);
             io_Keys_key                      : in  std_logic_vector(3 downto 0);
@@ -252,7 +252,7 @@ begin
     oDebug_MII_RX <= ENET0_RX_DATA & ENET0_RX_DV & ENET0_RX_CLK;
 
     patmos_inst : Patmos port map(
-        clk => clk_int, 
+        clock => clk_int, 
         reset => int_res,
         io_Leds_led => oLedsPins_led,
         io_Keys_key => iKeysPins_key,

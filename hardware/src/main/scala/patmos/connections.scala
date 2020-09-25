@@ -101,7 +101,7 @@ class DecEx() extends Bundle() {
   val pc = UInt(width = PC_SIZE)
   val base = UInt(width = PC_SIZE)
   val relPc = UInt(width = PC_SIZE)
-  val pred = Vec(PIPE_COUNT, UInt(width = PRED_BITS+1) )
+  val pred = Vec(PIPE_COUNT, UInt((PRED_BITS+1).W) )
   val aluOp = Vec(PIPE_COUNT, new AluOp() )
   val predOp = Vec(PIPE_COUNT, new PredOp() )
   val jmpOp = new JmpOp()

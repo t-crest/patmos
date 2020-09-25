@@ -69,7 +69,7 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends Module {
   wrDataReg := io.master.M.Data
 
   // Write to cache; store only updates what's already there
-  val stmsk = Mux(masterReg.Cmd === OcpCmd.WR, masterReg.ByteEn,  Bits("b0000"))
+  val stmsk = Mux(masterReg.Cmd === OcpCmd.WR, masterReg.ByteEn,  "b0000".U(4.W))
    
   for (i <- 0 until BYTES_PER_WORD) {
       mem1(i) <= (((fillReg && !lruReg) || (tagValid1 && stmsk(i))), wrAddrReg,

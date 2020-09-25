@@ -7,6 +7,7 @@
 package patmos
 
 import Chisel._
+import chisel3.dontTouch
 import IConstants._
 import Constants._
 import ocp._
@@ -152,13 +153,23 @@ class ICacheReplDm() extends Module {
 
   // Variables for call/return
   val callRetBaseReg = RegInit(UInt(1, DATA_WIDTH))
+  val callRetBaseNext = dontTouch(Wire(UInt(DATA_WIDTH.W))) // for emulator
   val callAddrReg = RegInit(UInt(1, DATA_WIDTH))
   val selSpmReg = RegInit(Bool(false))
+  val selSpmNext = dontTouch(Wire(Bool())) //for emulator
   val selCacheReg = RegInit(Bool(false))
+  val selCacheNext = dontTouch(Wire(Bool())) //for emulator
 
   val fetchAddr = Wire(UInt(width = ADDR_WIDTH))
   val hitEven = Wire(Bool())
   val hitOdd = Wire(Bool())
+
+  callRetBaseNext := callRetBaseReg
+  callRetBaseReg := callRetBaseNext
+  selSpmNext := selSpmReg
+  selSpmReg := selSpmNext
+  selCacheNext := selCacheReg
+  selCacheReg := selCacheNext
 
   val relBase = Mux(selCacheReg,
                     callRetBaseReg(ADDR_WIDTH-1, 0),
@@ -172,10 +183,10 @@ class ICacheReplDm() extends Module {
                       UInt(0)))
 
   when (io.exicache.doCallRet && io.ena_in) {
-    callRetBaseReg := io.exicache.callRetBase
+    callRetBaseNext := io.exicache.callRetBase
     callAddrReg := io.exicache.callRetAddr
-    selSpmReg := io.exicache.callRetBase(ADDR_WIDTH-1, ISPM_ONE_BIT-2) === UInt(0x1)
-    selCacheReg := io.exicache.callRetBase(ADDR_WIDTH-1, ISPM_ONE_BIT-1) >= UInt(0x1)
+    selSpmNext := io.exicache.callRetBase(ADDR_WIDTH-1, ISPM_ONE_BIT-2) === UInt(0x1)
+    selCacheNext := io.exicache.callRetBase(ADDR_WIDTH-1, ISPM_ONE_BIT-1) >= UInt(0x1)
   }
 
   // Register addresses
@@ -213,8 +224,8 @@ class ICacheReplDm() extends Module {
     fetchAddr := addrOddReg
   }
   // Keep signals alive for emulator
-  debug(hitEven)
-  debug(hitOdd)
+  //debug(hitEven) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
+  //debug(hitOdd)
 
   val wrAddrTag = io.ctrlrepl.wAddr(TAG_HIGH,TAG_LOW)
   // Index for vector of valid bits
@@ -384,10 +395,10 @@ class ICacheCtrl() extends Module {
   io.fetchEna := fetchEna
 
   // Outputs to external memory
-  io.ocp_port.M.Addr := Cat(ocpAddr, UInt("b00"))
+  io.ocp_port.M.Addr := Cat(ocpAddr, 0.U(2.W))
   io.ocp_port.M.Cmd := ocpCmd
   io.ocp_port.M.Data := UInt(0) //read-only
-  io.ocp_port.M.DataByteEn := UInt("b1111") //read-only
+  io.ocp_port.M.DataByteEn := "b1111".U(4.W) //read-only
   io.ocp_port.M.DataValid := UInt(0) //read-only
 
   // Output to performance counters

@@ -4353,7 +4353,7 @@ We can now install all the needed tools:
 \begin{verbatim}
 sudo apt install git openjdk-8-jdk gitk cmake make g++ texinfo flex bison \
   subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby-full \
-  liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala
+  liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala autoconf libfl2 expect
 \end{verbatim}
 
 Make sure to use Java 8 and remove any later Java version with
@@ -4387,7 +4387,7 @@ First install the Mac compiler (Xcode) and the command line tools.
 For the build of Patmos and the compiler we need to install:
 
 \begin{verbatim}
-brew install cmake boost libelf sbt doxygen
+brew install cmake boost libelf sbt doxygen expect
 \end{verbatim}
 
 Mac OS X comes with Python version 2.7 preinstalled. For Aegean
@@ -4722,9 +4722,11 @@ Make sure that libusb is installed (e.g., in \code{/lib/i386-linux-gnu} on a 32-
 
 \begin{verbatim} 
 sudo ln -s libusb-1.0.so.0 libusb.so
+sudo ln -s /lib/x86_64-linux-gnu/libudev.so.1 /usr/lib/libudev.so.0
+sudo ln -s /lib/x86_64-linux-gnu/libudev.so.1 /lib/x86_64-linux-gnu/libudev.so.0
 \end{verbatim}
 
-Best restart your machine and connect the USB cable again.
+Restart your machine and connect the USB cable again.
 
 \paragraph{Using iMPACT}
 

@@ -14,8 +14,9 @@ import Constants._
 class Decode() extends Module {
   val io = IO(new DecodeIO())
 
-  val rf = Module(new RegisterFile())
 
+
+  val rf = Module(new RegisterFile())
   // register file is connected with unregistered instruction word
   rf.io.rfRead.rsAddr(0) := io.fedec.instr_a(16, 12)
   rf.io.rfRead.rsAddr(1) := io.fedec.instr_a(11, 7)
@@ -56,7 +57,7 @@ class Decode() extends Module {
   }
 
   val decoded = Wire(Vec(PIPE_COUNT, Bool()))
-  decoded.map(_ := Bool(false))
+  decoded := Vec.fill(PIPE_COUNT) {Bool(false)}
 
   // Decoding of dual-issue operations
   val dual = decReg.instr_a(INSTR_WIDTH - 1) && decReg.instr_a(26, 22) =/= OPCODE_ALUL;
@@ -165,7 +166,7 @@ class Decode() extends Module {
   val isStack = Wire(Bool())
 
   val isSTC = Wire(Bool())
-  val stcImm = Cat(UInt(0), instr(17, 0), Bits("b00"))
+  val stcImm = Cat(UInt(0), instr(17, 0), 0.U(2.W))
 
   // Long immediates set this
   longImm := Bool(false)
@@ -357,7 +358,7 @@ class Decode() extends Module {
   // we could mux the imm / register here as well
 
   // Immediate for absolute calls
-  io.decex.callAddr := Cat(UInt(0), instr(21, 0), Bits("b00"))
+  io.decex.callAddr := Cat(UInt(0), instr(21, 0), 0.U(2.W))
 
   // Immediate for branch is sign extended, not extended for call
   // PC-relative value is precomputed here

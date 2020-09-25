@@ -78,13 +78,13 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends Module {
   wrDataReg := io.master.M.Data
 
   // Write to cache; store only updates what's already there
-  val stmsk = Mux(masterReg.Cmd === OcpCmd.WR, masterReg.ByteEn,  Bits("b0000"))
+  val stmsk = Mux(masterReg.Cmd === OcpCmd.WR, masterReg.ByteEn,  "b0000".U(4.W))
   for (i <- 0 until BYTES_PER_WORD) {
     mem(i) <= (fillReg || (tagValid && stmsk(i)), wrAddrReg,
                wrDataReg(BYTE_WIDTH*(i+1)-1, BYTE_WIDTH*i))
   }
   // Update dirty bit when writing
-  when(tagValid && (stmsk =/= Bits("b0000"))) {
+  when(tagValid && (stmsk =/= "b0000".U(4.W))) {
     dirtyMem(masterReg.Addr(addrBits + 1, lineBits)) := Bool(true)
     when(io.master.M.Addr(addrBits + 1, lineBits) === masterReg.Addr(addrBits + 1, lineBits)) {
       dirty := Bool(true);
@@ -173,7 +173,7 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends Module {
     }
     io.slave.M.DataValid := Bits(1)
     io.slave.M.Data := rdData
-    io.slave.M.DataByteEn := Bits("b1111")
+    io.slave.M.DataByteEn := "b1111".U(4.W)
     when(io.slave.S.DataAccept === Bits(1)) {
       burstCntReg := burstCntReg + UInt(1)
       rdAddrCntReg := rdAddrCntReg + UInt(1)

@@ -19,7 +19,7 @@ class TdmArbiterWrapper(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen: In
   // MS: I'm always confused from which direction the name shall be
   // probably the other way round...
   val io = IO(new Bundle {
-    val master = Vec.fill(cnt){new OcpBurstSlavePort(addrWidth, dataWidth, burstLen)} 
+    val master = Vec(cnt, new OcpBurstSlavePort(addrWidth, dataWidth, burstLen))
     val slave = new OcpBurstMasterPort(addrWidth, dataWidth, burstLen)
   })
   

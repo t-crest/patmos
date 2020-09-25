@@ -101,19 +101,22 @@ $(JAVATOOLSBUILDDIR)/classes/%.class: tools/java/src/%.java
 		-sourcepath tools/java/src -d $(JAVATOOLSBUILDDIR)/classes $<
 
 # Build the Chisel emulator
+#emulator: OLD
+#	-mkdir -p $(HWBUILDDIR)
+#	$(MAKE) -C hardware BOOTBUILDROOT=$(CURDIR) BOOTBUILDDIR=$(BUILDDIR) BOOTAPP=$(BOOTAPP) BOOTBIN=$(BUILDDIR)/$(BOOTAPP).bin BOARD=$(BOARD) emulator
+#	-mkdir -p $(HWINSTALLDIR)/bin
+#	cp $(HWBUILDDIR)/emulator $(HWINSTALLDIR)/bin/patemu
+
+# chisel3/verilator emulator
+CORECNTT:=$(shell lscpu | grep 'Core(s) per socket:')
 emulator:
 	-mkdir -p $(HWBUILDDIR)
-	$(MAKE) -C hardware BOOTBUILDROOT=$(CURDIR) BOOTBUILDDIR=$(BUILDDIR) BOOTAPP=$(BOOTAPP) BOOTBIN=$(BUILDDIR)/$(BOOTAPP).bin BOARD=$(BOARD) emulator
-	-mkdir -p $(HWINSTALLDIR)/bin
-	cp $(HWBUILDDIR)/emulator $(HWINSTALLDIR)/bin/patemu
-
-# Temporary chisel3/verilator emulator
-tempemu:
-	-mkdir -p $(HWBUILDDIR)
 	$(MAKE) -C hardware verilog BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
-	-cd $(HWBUILDDIR) && verilator --cc ../harnessConfig.vlt Patmos.v --top-module Patmos +define+TOP_TYPE=VPatmos -CFLAGS "-Wno-undefined-bool-conversion -O1 -DTOP_TYPE=VPatmos -DVL_USER_FINISH -include VPatmos.h" -Mdir $(HWBUILDDIR) --exe ../Patmos-harness.cpp -LDFLAGS -lelf --trace   
+	-cd $(HWBUILDDIR) && verilator --cc ../harnessConfig.vlt Patmos.v --top-module Patmos +define+TOP_TYPE=VPatmos --threads $(lastword $(subst :, ,$(CORECNTT))) -CFLAGS "-Wno-undefined-bool-conversion -O1 -DTOP_TYPE=VPatmos -DVL_USER_FINISH -include VPatmos.h" -Mdir $(HWBUILDDIR) --exe ../Patmos-harness.cpp -LDFLAGS -lelf --trace   
 	-cd $(HWBUILDDIR) && make -j -f VPatmos.mk
-	#-cd $(HWBUILDDIR) && ./VPatmos
+	-cp $(HWBUILDDIR)/VPatmos $(HWBUILDDIR)/emulator
+	-mkdir -p $(HWINSTALLDIR)/bin
+	cp $(HWBUILDDIR)/VPatmos $(HWINSTALLDIR)/bin/patemu
 
 # Assemble a program
 asm: asm-$(BOOTAPP)

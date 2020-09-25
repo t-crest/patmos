@@ -52,7 +52,7 @@ class MpuSensorBB() extends BlackBox {
     //throw new Error("BlackBox wrapper for MpuSensor needs update for Chisel 3")
     // rename component
     //should be commented out when chisel3 is used
-    setModuleName("imu_mpu")
+    /*setModuleName("imu_mpu")
     // rename signals
     renameClock( "clk", "clk")
     addClock(Driver.implicitClock)
@@ -76,7 +76,7 @@ class MpuSensorBB() extends BlackBox {
     io.sda_out.setName("sda_out")   //out
     io.sda_in.setName("sda_in")   //in
     io.we_out.setName("we_out")
-    //io.reset.setName("reset")
+    //io.reset.setName("reset")*/
     
 
 }
