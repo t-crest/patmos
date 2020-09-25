@@ -57,16 +57,16 @@ architecture rtl of patmos_top is
             clock                   : in  std_logic;
             reset                   : in  std_logic;
             io_Leds_led             : out std_logic_vector(7 downto 0);
-            io_AauMpu_data_0        : in  std_logic_vector(31 downto 0);
-            io_AauMpu_data_1        : in  std_logic_vector(31 downto 0);
-            io_AauMpu_data_2        : in  std_logic_vector(31 downto 0);
-            io_AauMpu_data_3        : in  std_logic_vector(31 downto 0);
-            io_AauMpu_data_4        : in  std_logic_vector(31 downto 0);
-            io_AauMpu_data_5        : in  std_logic_vector(31 downto 0);
-            io_AauMpu_data_6        : in  std_logic_vector(31 downto 0);
-            io_AauMpu_data_7        : in  std_logic_vector(31 downto 0);
-            io_AauMpu_data_8        : in  std_logic_vector(31 downto 0);
-            io_AauMpu_data_9        : in  std_logic_vector(31 downto 0);
+--            io_AauMpu_data_0        : in  std_logic_vector(31 downto 0);
+--            io_AauMpu_data_1        : in  std_logic_vector(31 downto 0);
+--            io_AauMpu_data_2        : in  std_logic_vector(31 downto 0);
+--            io_AauMpu_data_3        : in  std_logic_vector(31 downto 0);
+--            io_AauMpu_data_4        : in  std_logic_vector(31 downto 0);
+--            io_AauMpu_data_5        : in  std_logic_vector(31 downto 0);
+--            io_AauMpu_data_6        : in  std_logic_vector(31 downto 0);
+--            io_AauMpu_data_7        : in  std_logic_vector(31 downto 0);
+--            io_AauMpu_data_8        : in  std_logic_vector(31 downto 0);
+--            io_AauMpu_data_9        : in  std_logic_vector(31 downto 0);
             io_I2CInterface_MCmd    : out std_logic_vector(2 downto 0);
             io_I2CInterface_MAddr   : out std_logic_vector(15 downto 0);
             io_I2CInterface_MData   : out std_logic_vector(31 downto 0);
@@ -260,16 +260,16 @@ end component;
                 clock                   => clk_int,
                 reset                   => reset_int,
                 io_Leds_led             => oLedsPins_led,
-                io_AauMpu_data_0        => readdata(0),
-                io_AauMpu_data_1        => readdata(1),
-                io_AauMpu_data_2        => readdata(2),
-                io_AauMpu_data_3        => readdata(3),
-                io_AauMpu_data_4        => readdata(4),
-                io_AauMpu_data_5        => readdata(5),
-                io_AauMpu_data_6        => readdata(6),
-                io_AauMpu_data_7        => readdata(7),
-                io_AauMpu_data_8        => readdata(8),
-                io_AauMpu_data_9        => readdata(9),
+--                io_AauMpu_data_0        => readdata(0),
+--                io_AauMpu_data_1        => readdata(1),
+--                io_AauMpu_data_2        => readdata(2),
+--                io_AauMpu_data_3        => readdata(3),
+--                io_AauMpu_data_4        => readdata(4),
+--                io_AauMpu_data_5        => readdata(5),
+--                io_AauMpu_data_6        => readdata(6),
+--                io_AauMpu_data_7        => readdata(7),
+--                io_AauMpu_data_8        => readdata(8),
+--                io_AauMpu_data_9        => readdata(9),
                 io_I2CInterface_MCmd    => i2CInterfacePins_MCmd,
                 io_I2CInterface_MAddr   => i2CInterfacePins_MAddr,
                 io_I2CInterface_MData   => i2CInterfacePins_MData,

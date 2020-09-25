@@ -9,7 +9,6 @@
 package io
 
 import Chisel._
-//import Node._ //Do not compile to chisel3 - might need adjustment
 
 import patmos.Constants._
 
@@ -25,7 +24,7 @@ object SPIMaster extends DeviceObject {
 
   def init(params: Map[String, String]) = {
     slaveCount = getPosIntParam(params, "slaveCount")  //TODO
-    sclkHz = getPosIntParam(params, "sclk_hz")
+    sclkHz = getPosIntParam(params, "sclk_scale")
     fifoDepth = getPosIntParam(params, "fifoDepth")
     wordLen = getPosIntParam(params, "wordLength")
 
@@ -67,7 +66,7 @@ class SPIMaster(clkFreq : Int, slaveCount : Int, sclkHz : Int, fifoDepth : Int, 
     val wordDone = wordCounterReg === UInt(wordLen)
 
     // IO Signal registers
-    val sclkReg = Reg(init = Bool())
+    val sclkReg = Reg(init = Bool(false))
 
     //val prevSclkReg = Reg(init = UInt(0, 1))
 
@@ -99,8 +98,8 @@ class SPIMaster(clkFreq : Int, slaveCount : Int, sclkHz : Int, fifoDepth : Int, 
     txQueue.io.deq.ready    := Bool(false)
 
     //Serial-out register for mosi
-    val loadToSend = RegInit(false.B)
-    loadToSend := false.B //Default value
+    val loadToSend = Reg(init = Bool(false))
+    loadToSend := Bool(false) //Default value
     val mosiTxReg = Reg(init = UInt(0,wordLen))
     when (loadToSend) {
       txQueue.io.deq.ready := Bool(true)
@@ -155,19 +154,12 @@ class SPIMaster(clkFreq : Int, slaveCount : Int, sclkHz : Int, fifoDepth : Int, 
       }
       
     }
-    // Wait one for the tx register 
-    // when (state === waitOne)
-    // {
-    //   state := send
-    // }
     when (state === send)
     {
-
       //Toggle sclk
       when(tick){
           sclkReg := ~sclkReg;
       }
-
       // Shift out the bits in the tx register
 
       when(sclkReg)
@@ -195,17 +187,6 @@ class SPIMaster(clkFreq : Int, slaveCount : Int, sclkHz : Int, fifoDepth : Int, 
         state := idle
       }
     }
-
-    // if (slaveCount > 1)
-    // {
-    //   //Connect nSSReg to M.Addr
-    // }
-    // else
-    // {
-    //    //Connect to internal?
-    // }
-
-
 
     //Pin connections
     io.pins.sclk := sclkReg

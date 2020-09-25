@@ -139,40 +139,40 @@ int main(int argc, char **argv)
     printf("Writing...\n");
     adc_val = read_adc();
     printf("%d\n",adc_val);
-    // blink_once();
-    // unsigned int rec0 = actuator_read(0);
-    // printf("PWM cycles: %d = %d\n", 0, rec0);
-    // blink_once();
-    // unsigned int rec1 = actuator_read(1);
-    // printf("PWM cycles: %d = %d\n", 1, rec1);
-    // blink_once();
-    // unsigned int rec2 = actuator_read(2);
-    // printf("PWM cycles: %d = %d\n", 2, rec2);
-    // blink_once();
-    // unsigned int rec3 = actuator_read(3);
-    // printf("PWM cycles: %d = %d\n", 3, rec3);
+    blink_once();
+    unsigned int rec0 = actuator_read(0);
+    printf("PWM cycles: %d = %d\n", 0, rec0);
+    blink_once();
+    unsigned int rec1 = actuator_read(1);
+    printf("PWM cycles: %d = %d\n", 1, rec1);
+    blink_once();
+    unsigned int rec2 = actuator_read(2);
+    printf("PWM cycles: %d = %d\n", 2, rec2);
+    blink_once();
+    unsigned int rec3 = actuator_read(3);
+    printf("PWM cycles: %d = %d\n", 3, rec3);
 
-    // blink_once();
-    // propulsion_write(0, 0);
-    // printf("Propulsion %d = %d\n", 0, 0);
-    // blink_once();
-    // propulsion_write(1, 50);
-    // printf("Propulsion %d = %d\n", 1, 50);
-    // blink_once();
-    // propulsion_write(2, 100);
-    // printf("Propulsion %d = %d\n", 2, 100);
-    // blink_once();
-    // propulsion_write(3, 150);
-    // printf("Propulsion %d = %d\n", 3, 150);
-    // blink_once();
-    // if (uart2_read(&uart2_data) == -1)
-    // {
-    //   printf("Nothing received form UART2\n");
-    // }
-    // else
-    // {
-    //   printf("UART2 received: %d\n", uart2_data);
-    // }
+    blink_once();
+    propulsion_write(0, 0);
+    printf("Propulsion %d = %d\n", 0, 0);
+    blink_once();
+    propulsion_write(1, 50);
+    printf("Propulsion %d = %d\n", 1, 50);
+    blink_once();
+    propulsion_write(2, 100);
+    printf("Propulsion %d = %d\n", 2, 100);
+    blink_once();
+    propulsion_write(3, 150);
+    printf("Propulsion %d = %d\n", 3, 150);
+    blink_once();
+    if (uart2_read(&uart2_data) == -1)
+    {
+      printf("Nothing received form UART2\n");
+    }
+    else
+    {
+      printf("UART2 received: %d\n", uart2_data);
+    }
 
     
 
