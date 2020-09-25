@@ -1,6 +1,7 @@
 # MAIN?=hello_MPU6050
 #MAIN?=blinking
 MAIN?=acts_props_uart2
+SERIAL?=/dev/ttyUSB0
 # This is the trivial Hello World example, distributed over two .c files
 
 LDFLAGS?= \
@@ -10,4 +11,7 @@ LDFLAGS?= \
 
 all:
 	patmos-clang -I ../.. -O2 $(LDFLAGS) $(MAIN).c -o de10-nano.elf
+
+download:
+	patserdow -v $(SERIAL) de10-nano.elf
 
