@@ -16,7 +16,7 @@
 #define UART2 ((volatile _IODEV unsigned *)PATMOS_IO_UART2)
 
 //SPI
-#define SPI ((volatile _IODEV unsigned *)0xf00e0000)
+#define ADC ((volatile _IODEV unsigned *)0xf00e0000)
 
 const unsigned int CPU_PERIOD = 20; //CPU period in ns.
 
@@ -81,6 +81,35 @@ int uart2_read(unsigned char *data)
   }
 }
 
+unsigned int reverseBits(unsigned int n)
+{
+  unsigned int rev = 0;
+  while(n > 0)
+  {
+    rev <<= 1;
+    if((n&1) == 1)
+    {
+      rev ^= 1;
+    }
+    n >>= 1;
+  }
+
+  return rev;
+}
+
+void write_adc()
+{
+  unsigned int config_word = 0;
+  *(ADC) = config_word;
+}
+
+int read_adc()
+{
+  return reverseBits(*(ADC));
+}
+
+
+
 //Blinks the LEDs once
 void blink_once()
 {
@@ -99,13 +128,17 @@ void blink_once()
 int main(int argc, char **argv)
 {
   unsigned char uart2_data;
-
+  unsigned int adc_val;
   printf("Hello actuators, propellers, and UART2!\n");
 
   blink_once();
 
   while (1)
   {
+    write_adc();
+    printf("Writing...\n");
+    adc_val = read_adc();
+    printf("%d\n",adc_val);
     blink_once();
     unsigned int rec0 = actuator_read(0);
     printf("PWM cycles: %d = %d\n", 0, rec0);
@@ -140,6 +173,9 @@ int main(int argc, char **argv)
     {
       printf("UART2 received: %d\n", uart2_data);
     }
+
+    
+
     blink_once();
   }
 

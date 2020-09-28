@@ -19,7 +19,7 @@ class RegisterFile() extends Module {
 
   // We are registering the inputs here, similar as it would
   // be with an on-chip memory for the register file
-  val addrReg = Reg(Vec(2*PIPE_COUNT, UInt(width=REG_BITS)))
+  val addrReg = Reg(Vec(2*PIPE_COUNT, UInt(REG_BITS.W)))
   val wrReg   = Reg(Vec(PIPE_COUNT, new Result()))
   val fwReg   = Reg(Vec(2*PIPE_COUNT, Vec(PIPE_COUNT, Bool())))
 
@@ -55,12 +55,12 @@ class RegisterFile() extends Module {
   }
 
   // Signal for debugging register values - Chisel3: wierdly gave errors in chisel3 as it was used for debugging it has been commented out
-  val rfDebug = Vec(REG_COUNT, Reg(UInt(width = DATA_WIDTH)))
+  /*val rfDebug = Vec(REG_COUNT, Reg(UInt(width = DATA_WIDTH)))
   for(i <- 0 until REG_COUNT) {
     rfDebug(i) := rf(UInt(i))
     // Keep signal alive
-    if(Driver.isVCD){
-    debug(rfDebug(i)) 
-    }
-  }
+    //if(Driver.isVCD){
+    //debug(rfDebug(i)) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
+    //}
+  }*/
 }

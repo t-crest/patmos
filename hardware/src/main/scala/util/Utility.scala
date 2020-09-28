@@ -67,37 +67,39 @@ object Utility {
   }
 
   def printConfig(configFile: String): Unit = {
-    printf("\nPatmos configuration \"" + util.Config.getConfig.description + "\"\n")
-    printf("\tFrequency: "+ (CLOCK_FREQ/1000000).toString +" MHz\n")
-    printf("\tPipelines: "+ PIPE_COUNT.toString +"\n")
-    printf("\tCores: "+ Config.getConfig.coreCount.toString +"\n")
+    var tempStr = ""
+    println("\nPatmos configuration \"" + util.Config.getConfig.description + "\"")
+    println("\tFrequency: "+ (CLOCK_FREQ/1000000).toString +" MHz")
+    println("\tPipelines: "+ PIPE_COUNT.toString)
+    println("\tCores: "+ Config.getConfig.coreCount.toString)
     if (ICACHE_TYPE == ICACHE_TYPE_METHOD) {
-      printf("\tMethod cache: "+ sizeToStr(ICACHE_SIZE) +", "+ ICACHE_ASSOC.toString +" methods\n")
+      println("\tMethod cache: "+ sizeToStr(ICACHE_SIZE) +", "+ ICACHE_ASSOC.toString +" methods")
     } else {
-      printf("\tInstruction cache: "+ sizeToStr(ICACHE_SIZE))
+      tempStr = "\tInstruction cache: "+ sizeToStr(ICACHE_SIZE)
+      
       if (ICACHE_ASSOC == 1) {
-        printf(", direct-mapped\n")
+        println(tempStr + ", direct-mapped")
       } else {
-        printf(", "+ ICACHE_ASSOC.toString +"-way set associative with %s replacement\n")
+        println(tempStr + ", "+ ICACHE_ASSOC.toString +"-way set associative with %s replacement")
       }
     }
-    printf("\tData cache: "+ sizeToStr(DCACHE_SIZE))
+    tempStr = "\tData cache: "+ sizeToStr(DCACHE_SIZE)
     if (DCACHE_ASSOC == 1) {
-      printf(", direct-mapped")
+      tempStr = tempStr + ", direct-mapped"
     } else {
-      printf(", "+ DCACHE_ASSOC.toString +"-way set associative with "+ DCACHE_REPL +" replacement")
+      tempStr = tempStr + ", "+ DCACHE_ASSOC.toString +"-way set associative with "+ DCACHE_REPL +" replacement"
     }
     if (DCACHE_WRITETHROUGH){
-      printf(", write through\n")
+      println(tempStr + ", write through")
     }else{
-      printf(", write back\n")
+      println(tempStr + ", write back")
     }
-    printf("\tStack cache: "+ sizeToStr(SCACHE_SIZE) +"\n")
-    printf("\tInstruction SPM: "+ sizeToStr(ISPM_SIZE) +"\n")
-    printf("\tData SPM: "+ sizeToStr(DSPM_SIZE) +"\n")
-    printf("\tAddressable external memory: "+ sizeToStr(util.Config.getConfig.ExtMem.size) +"\n")
-    printf("\tMMU: "+HAS_MMU+"\n")
-    printf("\tBurst length: "+ util.Config.getConfig.burstLength +"\n")
-    printf("\n")
+    println("\tStack cache: "+ sizeToStr(SCACHE_SIZE))
+    println("\tInstruction SPM: "+ sizeToStr(ISPM_SIZE))
+    println("\tData SPM: "+ sizeToStr(DSPM_SIZE))
+    println("\tAddressable external memory: "+ sizeToStr(util.Config.getConfig.ExtMem.size))
+    println("\tMMU: "+HAS_MMU)
+    println("\tBurst length: "+ util.Config.getConfig.burstLength)
+    println("")
   }
 }

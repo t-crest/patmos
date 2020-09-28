@@ -13,6 +13,8 @@ import Chisel._
 
 import patmos.Constants._
 
+import chisel3.dontTouch
+
 import ocp._
 
 object Uart extends DeviceObject {
@@ -38,6 +40,10 @@ class Uart(clk_freq: Int, baud_rate: Int, fifoDepth: Int) extends CoreDevice() {
         val rx = Bits(INPUT, 1)
       }
     })
+    //Forcing signals availability in emulator
+    val uartOcpEmu = Wire(new OcpMasterSignals(ADDR_WIDTH, DATA_WIDTH))
+    dontTouch(uartOcpEmu)
+    uartOcpEmu <> io.ocp.M
 
     val c_tx_divider_val    = clk_freq/baud_rate
     val tx_baud_counter     = Reg(init = UInt(0, log2Up(clk_freq/baud_rate)))

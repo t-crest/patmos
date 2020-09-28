@@ -12,7 +12,7 @@
   <IO DevTypeRef="Leds" offset="9"/>
   <IO DevTypeRef="I2CInterface" offset="11"/>
   <IO DevTypeRef="Actuators" offset="12"/>
-  <IO DevTypeRef="AauMpu" offset="15"/>
+  <!-- <IO DevTypeRef="AauMpu" offset="15"/> -->
   <IO DevTypeRef="SPIMaster" offset="14"/>
   </IOs>
 
@@ -40,13 +40,13 @@
           <param name="dataWidth" value="32" />
       </params>
     </Dev>
-    <Dev DevType="AauMpu" entity="AauMpu" iface="OcpCore" />
+    <!-- <Dev DevType="AauMpu" entity="AauMpu" iface="OcpCore" /> -->
 
     <Dev DevType="SPIMaster" entity="SPIMaster" iface="OcpCore">
       <params>
           <param name="slaveCount" value="1" />
-          <param name="sclk_hz" value="25000000" />
-          <param name="fifoDepth" value="16"/>
+          <param name="sclk_scale" value="1" /> 
+          <param name="fifoDepth" value="6"/>
           <param name="wordLength" value="12"/>
       </params>
     </Dev>

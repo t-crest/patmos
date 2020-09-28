@@ -12,6 +12,7 @@ import Chisel._
 import ocp._
 import patmos.Constants._
 
+
 /**
   * Dummy for ~/t-crest/argo/src/mem/com_spm_wrapper.vhd
   * It emulates a single-port SPM for testing Patmos access
@@ -42,10 +43,10 @@ class ComSpmDummy(argoConf: ArgoConfig) extends Module {
 class ComSpmWrapper(argoConf: ArgoConfig) extends BlackBox {
  // throw new Error("BlackBox wrapper for ComSpm needs update for Chisel 3")
   // should be commented out in order to compile for Chisel3
-  setModuleName("com_spm_wrapper")
+  /*setModuleName("com_spm_wrapper")
   addClock(Driver.implicitClock)
   renameClock("clk", "clk")
-  renameReset("reset")
+  renameReset("reset")*/
   val io = IO(new Bundle(){
     val ocp = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
     val spm = new SPMSlavePort(argoConf.HEADER_FIELD_WIDTH, argoConf.HEADER_CTRL_WIDTH)

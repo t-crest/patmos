@@ -9,7 +9,6 @@
 package io
 
 import Chisel._
-import Node._
 
 import patmos.Constants._
 
@@ -25,7 +24,7 @@ object SPIMaster extends DeviceObject {
 
   def init(params: Map[String, String]) = {
     slaveCount = getPosIntParam(params, "slaveCount")  //TODO
-    sclkHz = getPosIntParam(params, "sclk_hz")
+    sclkHz = getPosIntParam(params, "sclk_scale")
     fifoDepth = getPosIntParam(params, "fifoDepth")
     wordLen = getPosIntParam(params, "wordLength")
 
@@ -67,21 +66,28 @@ class SPIMaster(clkFreq : Int, slaveCount : Int, sclkHz : Int, fifoDepth : Int, 
     val wordDone = wordCounterReg === UInt(wordLen)
 
     // IO Signal registers
-    val sclkReg = Reg(init = UInt(0, 1))
-    val mosiReg = Reg(init = UInt(0, 1))
-    mosiReg := Bits(0)
+    val sclkReg = Reg(init = Bool(false))
 
-    val misoReg = Reg(init = UInt(0, 32))
-    val nSSReg = Reg(init = UInt(0, 32))
+    //val prevSclkReg = Reg(init = UInt(0, 1))
+
+
+    val sclkEdge = sclkReg && !RegNext(sclkReg)
+    val sclkFall = !sclkReg && RegNext(sclkReg)
+
+    val mosiReg = Reg(init = UInt(0, 1))
+    
+
+    val misoReg = Reg(init = UInt(0, 1))
+    val nSSReg = Reg(init = UInt(0, 1))
 
 
     //Serial-in parallel out register for miso
-    val misoRxReg = Reg(init = UInt(0, wordLen))
-    misoRxReg := Cat(misoReg , misoRxReg (wordLen-1, 1))
+    //val misoRxReg = Reg(init = UInt(0, wordLen))
+    val misoRxReg = Reg(Vec(wordLen, UInt(0,1)))
 
     // Queue of received messages 
     val rxQueue = Module(new Queue(Bits(width = wordLen), fifoDepth))
-    rxQueue.io.enq.bits     := misoRxReg
+    rxQueue.io.enq.bits     := misoRxReg.asUInt
     rxQueue.io.enq.valid    := Bool(false)
     rxQueue.io.deq.ready    := Bool(false)
 
@@ -92,8 +98,8 @@ class SPIMaster(clkFreq : Int, slaveCount : Int, sclkHz : Int, fifoDepth : Int, 
     txQueue.io.deq.ready    := Bool(false)
 
     //Serial-out register for mosi
-    val loadToSend = RegInit(false.B)
-    loadToSend := false.B //Default value
+    val loadToSend = Reg(init = Bool(false))
+    loadToSend := Bool(false) //Default value
     val mosiTxReg = Reg(init = UInt(0,wordLen))
     when (loadToSend) {
       txQueue.io.deq.ready := Bool(true)
@@ -112,6 +118,7 @@ class SPIMaster(clkFreq : Int, slaveCount : Int, sclkHz : Int, fifoDepth : Int, 
     // Connections to master
     io.ocp.S.Resp := respReg
     io.ocp.S.Data := rdDataReg
+    
 
     //Read any stored data in miso queue. 
     when(io.ocp.M.Cmd === OcpCmd.RD) {
@@ -137,52 +144,48 @@ class SPIMaster(clkFreq : Int, slaveCount : Int, sclkHz : Int, fifoDepth : Int, 
     {
       nSSReg := Bits(1)
       wordCounterReg := Bits(0)
+      mosiReg := Bits(0)
+      sclkReg := Bool(false)
       //When TX queue has data send
       when (txQueue.io.count > UInt(0) )
       {
         loadToSend := true.B
-        state := waitOne 
+        state := send 
       }
       
     }
-    // Wait one for the tx register 
-    when (state === waitOne)
-    {
-      state := send
-    }
     when (state === send)
     {
+      //Toggle sclk
+      when(tick){
+          sclkReg := ~sclkReg;
+      }
       // Shift out the bits in the tx register
-      mosiReg := mosiTxReg(wordCounterReg)
-      when(sclkReg === Bits(1)){
+
+      when(sclkReg)
+      {
+        mosiReg := mosiTxReg(wordCounterReg)
+        
+        //misoRxReg := Cat(misoReg , misoRxReg (wordLen-1, 1))
+        misoRxReg(wordCounterReg) := misoReg
+      }
+
+      when(sclkFall){
         wordCounterReg := wordCounterReg + UInt(1)
       }
 
       // Pull slave select low TODO:multiple slaves?
       nSSReg := Bits(0)
 
+      
       // When a word length is sent close the transmission 
       // and write to the rx queue any incoming messages from the slave
       when(wordDone)
       {
-        rxQueue.io.enq.bits     := misoRxReg
+        rxQueue.io.enq.bits     := misoRxReg.asUInt
         rxQueue.io.enq.valid    := Bool(true)
         state := idle
       }
-    }
-
-    // if (slaveCount > 1)
-    // {
-    //   //Connect nSSReg to M.Addr
-    // }
-    // else
-    // {
-    //    //Connect to internal?
-    // }
-
-    //Toggle sclk
-    when(tick){
-        sclkReg := ~sclkReg;
     }
 
     //Pin connections

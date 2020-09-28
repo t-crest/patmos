@@ -36,7 +36,7 @@ class AsyncArbiterBB() extends BlackBox {
 
   // should be commented out to compile for chisel3
   // rename component
-  setModuleName("AsyncArbiter")
+  /*setModuleName("AsyncArbiter")
 
   renameClock(clock, "clk")
   renameReset("rst")
@@ -46,7 +46,7 @@ class AsyncArbiterBB() extends BlackBox {
   io.req2.setName("req2")
   io.ack.setName("ack")
   io.ack1.setName("ack1")
-  io.ack2.setName("ack2")
+  io.ack2.setName("ack2")*/
 }
 
 abstract class AsyncArbiterBase(corecnt: Int) extends Module {

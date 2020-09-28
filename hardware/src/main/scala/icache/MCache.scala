@@ -7,6 +7,7 @@
 package patmos
 
 import Chisel._
+import chisel3.dontTouch
 import MConstants._
 import Constants._
 import ocp._
@@ -149,15 +150,26 @@ class MCacheReplFifo() extends Module {
   //variables when call/return occurs to check tag field
   val posReg = Reg(init = UInt(0, width = MCACHE_SIZE_WIDTH))
   val hitReg = Reg(init = Bool(true))
+  val hitNext = dontTouch(Wire(Bool())) //For emulator
   val wrPosReg = Reg(init = UInt(0, width = MCACHE_SIZE_WIDTH))
   val callRetBaseReg = Reg(init = UInt(1, DATA_WIDTH))
+  val callRetBaseNext = dontTouch(Wire(UInt(DATA_WIDTH.W))) // emulator
   val callAddrReg = Reg(init = UInt(1, DATA_WIDTH))
   val selSpmReg = Reg(init = Bool(false))
+  val selSpmNext = dontTouch(Wire(Bool())) //for emulator
   val selCacheReg = Reg(init = Bool(false))
+  val selCacheNext = dontTouch(Wire(Bool())) //for emulator
 
   io.perf.hit := Bool(false)
   io.perf.miss := Bool(false)
-
+  hitNext := hitReg
+  hitReg := hitNext
+  callRetBaseNext := callRetBaseReg
+  callRetBaseReg := callRetBaseNext
+  selSpmNext := selSpmReg
+  selSpmReg := selSpmNext
+  selCacheNext := selCacheReg
+  selCacheReg := selCacheNext
   // hit detection
   val hitVec =  Wire(Vec(METHOD_COUNT, Bool() ))
   val mergePosVec = Wire(Vec(METHOD_COUNT,  UInt(width = MCACHE_SIZE_WIDTH) ))
@@ -175,13 +187,13 @@ class MCacheReplFifo() extends Module {
   //read from tag memory on call/return to check if method is in the cache
   when (io.exmcache.doCallRet && io.ena_in) {
 
-    callRetBaseReg := io.exmcache.callRetBase
+    callRetBaseNext := io.exmcache.callRetBase
     callAddrReg := io.exmcache.callRetAddr
-    selSpmReg := io.exmcache.callRetBase(ADDR_WIDTH-1, ISPM_ONE_BIT-2) === UInt(0x1)
+    selSpmNext := io.exmcache.callRetBase(ADDR_WIDTH-1, ISPM_ONE_BIT-2) === UInt(0x1)
     val selCache = io.exmcache.callRetBase(ADDR_WIDTH-1, ISPM_ONE_BIT-1) >= UInt(0x1)
-    selCacheReg := selCache
+    selCacheNext := selCache
     when (selCache) {
-      hitReg := hit
+      hitNext := hit
       posReg := pos
 
       when (hit) {
@@ -205,7 +217,7 @@ class MCacheReplFifo() extends Module {
 
   //insert new tags when control unit requests
   when (io.ctrlrepl.wTag) {
-    hitReg := Bool(true) //start fetch, we have again a hit!
+    hitNext := Bool(true) //start fetch, we have again a hit!
     wrPosReg := posReg
     //update free space
     freeSpaceReg := freeSpaceReg - io.ctrlrepl.wData(MCACHE_SIZE_WIDTH,0).asSInt + sizeVec(nextIndexReg).asSInt
@@ -295,6 +307,7 @@ class MCacheCtrl() extends Module {
   val burstCntReg = Reg(UInt(width = log2Up(BURST_LENGTH)))
   //input/output registers
   val callRetBaseReg = Reg(UInt(width = ADDR_WIDTH))
+  val callRetBaseNext = dontTouch(Wire(UInt(ADDR_WIDTH.W))) //For emulator
   val msizeAddr = callRetBaseReg - UInt(1)
   val addrEvenReg = Reg(UInt())
   val addrOddReg = Reg(UInt())
@@ -310,20 +323,23 @@ class MCacheCtrl() extends Module {
   wAddr := UInt(0)
   fetchEna := Bool(true)
 
+  callRetBaseNext := callRetBaseReg
+  callRetBaseReg := callRetBaseNext
+
   // reset command when accepted
   when (io.ocp_port.S.CmdAccept === UInt(1)) {
     ocpCmdReg := OcpCmd.IDLE
   }
 
   //output to external memory
-  io.ocp_port.M.Addr := Cat(ocpAddrReg, UInt("b00"))
+  io.ocp_port.M.Addr := Cat(ocpAddrReg, 0.U(2.W))
   io.ocp_port.M.Cmd := ocpCmdReg
   io.ocp_port.M.Data := UInt(0)
-  io.ocp_port.M.DataByteEn := UInt("b1111")
+  io.ocp_port.M.DataByteEn := "b1111".U(4.W)
   io.ocp_port.M.DataValid := UInt(0)
 
   when (io.exmcache.doCallRet) {
-    callRetBaseReg := io.exmcache.callRetBase // use callret to save base address for next cycle
+    callRetBaseNext := io.exmcache.callRetBase // use callret to save base address for next cycle
     addrEvenReg := io.femcache.addrEven
     addrOddReg := io.femcache.addrOdd
   }
@@ -366,7 +382,7 @@ class MCacheCtrl() extends Module {
           when (io.ocp_port.S.CmdAccept === UInt(0)) {
             ocpCmdReg := OcpCmd.RD
           }
-          io.ocp_port.M.Addr := Cat(callRetBaseReg, UInt("b00"))
+          io.ocp_port.M.Addr := Cat(callRetBaseReg, 0.U(2.W))
           ocpAddrReg := callRetBaseReg
           burstCntReg := UInt(0)
         }
@@ -395,7 +411,7 @@ class MCacheCtrl() extends Module {
             when (io.ocp_port.S.CmdAccept === UInt(0)) {
               ocpCmdReg := OcpCmd.RD
             }
-            io.ocp_port.M.Addr := Cat(callRetBaseReg + fetchCntReg + UInt(1), UInt("b00"))
+            io.ocp_port.M.Addr := Cat(callRetBaseReg + fetchCntReg + UInt(1), 0.U(2.W))
             ocpAddrReg := callRetBaseReg + fetchCntReg + UInt(1) //need +1 because start fetching with the size of method
             burstCntReg := UInt(0)
           }

@@ -44,7 +44,7 @@ end entity patmos_top;
 architecture rtl of patmos_top is
   component Patmos is
     port(
-      clk                           : in  std_logic;
+      clock                         : in  std_logic;
       reset                         : in  std_logic;
 
       io_MemBridge_M_Cmd        : out std_logic_vector(2 downto 0);
@@ -165,8 +165,8 @@ begin
   dram_clk_int <= sys_clk;
 
   comp : Patmos port map(
-      clk                           => sys_clk, --             : in  std_logic;
-      reset                         => rst, --           : in  std_logic;
+      clockk                    => sys_clk, --             : in  std_logic;
+      reset                     => rst, --           : in  std_logic;
 
       io_MemBridge_M_Cmd        => MCmd_int, --: out  std_logic_vector(2 downto 0); 
       io_MemBridge_M_Addr       => MAddr_int, -- : out  std_logic_vector(25 downto 0);

@@ -17,7 +17,7 @@ class OcpBurstMasterSignals(addrWidth : Int, dataWidth : Int)
   val DataByteEn = Output(UInt(width = dataWidth/8))
 
   // This does not really clone, but Data.clone doesn't either
-  override def cloneType() = {
+  override def clone() = {
     val res = new OcpBurstMasterSignals(addrWidth, dataWidth)
     res.asInstanceOf[this.type]
   }
@@ -30,7 +30,7 @@ class OcpBurstSlaveSignals(dataWidth : Int)
   val DataAccept = Input(UInt(width = 1))
 
   // This does not really clone, but Data.clone doesn't either
-  override def cloneType() = {
+  override def clone() = {
     val res = new OcpBurstSlaveSignals(dataWidth)
     res.asInstanceOf[this.type]
   }
