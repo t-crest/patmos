@@ -8,10 +8,12 @@
 #include "assemblage_includes.h"
 #include "assemblage.h"
 #include "barrier_counter.h"
+#include "pthread_barrier.h"
 
 // This should be set to 1 to run in "real-time" in the sense 
 // that the simulation time is close to the real world time
-#define RUN_WITH_REAL_TIME	0
+#define RUN_WITH_REAL_TIME	1
+#define DEADLINE *((volatile _SPM unsigned int *) (PATMOS_IO_DEADLINE))
 
 // Task set
 struct nonencoded_task_params* tasks;
@@ -22,23 +24,19 @@ uint64_t step_simu;
 uint64_t max_step_simu;
 
 // Barriers for thread synchro
-// pthread_barrier_t cycle_start_b;
-// pthread_barrier_t engine_elevator_b;
-// pthread_barrier_t filter_b;
-// pthread_barrier_t control_b;
-// pthread_barrier_t output_b;
+pthread_barrier_t cycle_start_b;
+pthread_barrier_t engine_elevator_b;
+pthread_barrier_t filter_b;
+pthread_barrier_t control_b;
+pthread_barrier_t output_b;
 
-barrier_counter_t cycle_start_b;
-barrier_counter_t engine_elevator_b;
-barrier_counter_t filter_b;
-barrier_counter_t control_b;
-barrier_counter_t output_b;
+// barrier_counter_t cycle_start_b;
+// barrier_counter_t engine_elevator_b;
+// barrier_counter_t filter_b;
+// barrier_counter_t control_b;
+// barrier_counter_t output_b;
 
-pthread_mutex_t cycle_start_l;
-pthread_mutex_t engine_elevator_l;
-pthread_mutex_t filter_l;
-pthread_mutex_t control_l;
-pthread_mutex_t output_l;
+pthread_mutex_t common_l;
 
 // Output variables
 extern double aircraft_dynamics495_Va_Va_filter_100449_Va[2];
@@ -60,12 +58,18 @@ void copy_output_vars(output_t* v, uint64_t step){
 }
 
 void rosace_init() {
-	// Init barriers
-	barrier_counter_init(&cycle_start_b, &cycle_start_l, 5);
-	barrier_counter_init(&engine_elevator_b, &engine_elevator_l, 2);
-	barrier_counter_init(&filter_b, &filter_l, 5);
-	barrier_counter_init(&control_b, &control_l, 2);
-	barrier_counter_init(&output_b, &output_l, 2);
+  // Init barriers
+	pthread_barrier_init(&cycle_start_b, NULL, 5);
+	pthread_barrier_init(&engine_elevator_b, NULL, 2);
+	pthread_barrier_init(&filter_b, NULL, 5);
+	pthread_barrier_init(&control_b, NULL, 2);
+	pthread_barrier_init(&output_b, NULL, 2);
+
+	// barrier_counter_init(&cycle_start_b, 5, "cyclsta");
+	// barrier_counter_init(&engine_elevator_b, 2, "engelev");
+	// barrier_counter_init(&filter_b, 5, "filterb");
+	// barrier_counter_init(&control_b, 2, "cotrolb");
+	// barrier_counter_init(&output_b, 2, "outputb");
 
 	// Initial values
 	outs.sig_outputs.Va = 0;
@@ -81,23 +85,21 @@ void rosace_init() {
 	get_task_set(&tmp, &tasks);
 }
 
-
-
 #define CALL(val)	tasks[(val)].ne_t_body(NULL)
 
 void* thread1(void* arg) {
 	uint64_t mystep_simu = step_simu;
 	while(step_simu<max_step_simu) {
-		barrier_counter_wait(&cycle_start_b);
+		pthread_barrier_wait(&cycle_start_b);
 
 		// --- 200 Hz ---
 		CALL(ENGINE);
-		barrier_counter_wait(&engine_elevator_b);
+		pthread_barrier_wait(&engine_elevator_b);
 		// --- End 200 Hz ---
 
 		// --- 100 Hz ---
 		if(mystep_simu%2 == 0) {
-			barrier_counter_wait(&filter_b);
+			pthread_barrier_wait(&filter_b);
 			CALL(VZ_FILTER);
 		}
 		// --- End 100 Hz ---
@@ -109,11 +111,11 @@ void* thread1(void* arg) {
 
 		// --- 50 Hz ---
 		if(mystep_simu%4 == 0) {
-			barrier_counter_wait(&control_b);
+			pthread_barrier_wait(&control_b);
 			CALL(VA_CONTROL);
 		}
 		if(mystep_simu%4 == 3) {
-			barrier_counter_wait(&output_b);
+			pthread_barrier_wait(&output_b);
 			CALL(DELTA_TH_C0);
 		}
 		// --- End 50 Hz ---
@@ -123,11 +125,19 @@ void* thread1(void* arg) {
 
 		// Print output
 		copy_output_vars(&outs, step_simu);
-                if (step_simu%10)
-                  ROSACE_write_outputs(&outs);
+		if (step_simu%10)
+		{
+      // pthread_mutex_lock(&common_l);
+			ROSACE_write_outputs(&outs);
+      // pthread_mutex_unlock(&common_l);
+		}
 
 		if(RUN_WITH_REAL_TIME)
-			usleep(5000); // "Real-time" execution
+    {
+      DEADLINE = 400000;
+      unsigned int var = DEADLINE;
+			// usleep(5000); // "Real-time" execution
+    }
 
 		mystep_simu++;
 	}
@@ -137,18 +147,18 @@ void* thread1(void* arg) {
 void* thread2(void* arg) {
 	uint64_t mystep_simu = step_simu;
 	while(step_simu<max_step_simu) {
-		barrier_counter_wait(&cycle_start_b);
+		pthread_barrier_wait(&cycle_start_b);
 
 		// --- 200 Hz ---
 		CALL(ELEVATOR);
-		barrier_counter_wait(&engine_elevator_b);
+		pthread_barrier_wait(&engine_elevator_b);
 
 		CALL(AIRCRAFT_DYN);
 		// --- End 200 Hz ---
 
 		// --- 100 Hz ---
 		if(mystep_simu%2 == 0) {
-			barrier_counter_wait(&filter_b);
+			pthread_barrier_wait(&filter_b);
 			CALL(H_FILTER);
 		}
 		// --- End 100 Hz ---
@@ -161,11 +171,11 @@ void* thread2(void* arg) {
 		// --- 50 Hz ---
 		if(mystep_simu%4 == 0) {
 			CALL(ALTI_HOLD);
-			barrier_counter_wait(&control_b);
+			pthread_barrier_wait(&control_b);
 			CALL(VZ_CONTROL);
 		}
 		if(mystep_simu%4 == 3) {
-			barrier_counter_wait(&output_b);
+			pthread_barrier_wait(&output_b);
 			CALL(DELTA_E_C0);
 		}
 		// --- End 50 Hz ---
@@ -178,10 +188,10 @@ void* thread2(void* arg) {
 void* thread3(void* arg) {
 	uint64_t mystep_simu = step_simu;
 	while(step_simu<max_step_simu) {
-		barrier_counter_wait(&cycle_start_b);
+		pthread_barrier_wait(&cycle_start_b);
 		// --- 100 Hz ---
 		if(mystep_simu%2 == 0) {
-			barrier_counter_wait(&filter_b);
+			pthread_barrier_wait(&filter_b);
 			CALL(Q_FILTER);
 		}
 		// --- End 100 Hz ---
@@ -193,10 +203,10 @@ void* thread3(void* arg) {
 void* thread4(void* arg) {
 	uint64_t mystep_simu = step_simu;
 	while(step_simu<max_step_simu) {
-		barrier_counter_wait(&cycle_start_b);
+		pthread_barrier_wait(&cycle_start_b);
 		// --- 100 Hz ---
 		if(mystep_simu%2 == 0) {
-			barrier_counter_wait(&filter_b);
+			pthread_barrier_wait(&filter_b);
 			CALL(VA_FILTER);
 		}
 		// --- End 100 Hz ---
@@ -205,38 +215,39 @@ void* thread4(void* arg) {
         return NULL;
 }
 
+
 void* thread5(void* arg) {
 	uint64_t mystep_simu = step_simu;
 	while(step_simu<max_step_simu) {
-		barrier_counter_wait(&cycle_start_b);
+		pthread_barrier_wait(&cycle_start_b);
 		// --- 100 Hz ---
 		if(mystep_simu%2 == 0) {
-			barrier_counter_wait(&filter_b);
+			pthread_barrier_wait(&filter_b);
 			CALL(AZ_FILTER);
 		}
 		// --- End 100 Hz ---
 		mystep_simu++;
 	}
-        return NULL;
+  return NULL;
 }
 
 
 int run_rosace(uint64_t nbstep){
-	LED = 0x1FF;
-	
+	LED = 0x1FF;	
 	int i;
 	
 	// Variables for thread management
 	void* fcts[] = {&thread1, &thread2, &thread3, &thread4, &thread5};
 	pthread_t threads[5];
 
+    pthread_mutex_init(&common_l, NULL);
+
 	printf("Initializing ROSACE...\n");
 	rosace_init();
 	max_step_simu = nbstep;
 
 	// Set first command
-	printf("Updating 1st command...\n");
-	ROSACE_update_altitude_command(11000.0);
+	ROSACE_update_altitude_command(10000.0);
 
 	// Create the 5 threads
 	printf("Spawning threads...\n");
@@ -250,16 +261,17 @@ int run_rosace(uint64_t nbstep){
 		LED = i;
 	}
 
-	// SCENARIO
-/*	sleep(20);
-	ROSACE_update_altitude_command(10500.0);
-	sleep(20);
-	ROSACE_update_altitude_command(11500.0);
-	sleep(20);
+  //Scenario
 	ROSACE_update_altitude_command(10000.0);
-	sleep(20);
-	ROSACE_update_altitude_command(9000.0);
-*/
+  // Sleep 50 seconds before climbing
+  // sleep(50);
+	for(int i=0; i<50; i++)
+	{
+    DEADLINE = 80000000;
+    unsigned int var = DEADLINE;
+	}
+	ROSACE_update_altitude_command(11000.0);
+
 	// Exit
 	printf("Joining threads...");
 	for(i=0; i<5; i++)

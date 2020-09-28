@@ -1,41 +1,59 @@
 #include <stdio.h>
 #include "barrier_counter.h"
 
-static pthread_mutex_t common_l;
-
-void barrier_counter_init(barrier_counter_t *barrier,  pthread_mutex_t *lock, unsigned limit)
+void barrier_counter_init(barrier_counter_t *barrier, unsigned required, const char* id)
 {
-    barrier->count = 0;
-    barrier->lock = lock;
-    barrier->limit = limit;
-    barrier->state = LOCKED;
+  for(int i=0; i<8; i++)
+    barrier->id[i] = id[i];
+  barrier->arrived = 0;
+  barrier->required = required;
+  barrier->state = LOCKED;
+  barrier->cycle = 0;
+  pthread_mutex_init(&barrier->mutex, NULL);
+  pthread_cond_init(&barrier->condition_var, NULL);
 }
 
 
-void barrier_counter_wait(barrier_counter_t *barrier) 
+int barrier_counter_wait(barrier_counter_t *barrier) 
 {
-  pthread_mutex_lock(barrier->lock);
+  volatile unsigned char spin = 0;
+
+  pthread_mutex_lock(&barrier->mutex);
   if(barrier->state == LOCKED)
-    barrier->count++;
-  pthread_mutex_unlock(barrier->lock);
-
-
-  // pthread_mutex_lock(&common_l);
-  // printf("tid %u wait for %u === %u \n", get_cpuid(), barrier->count, barrier->limit);
-  // pthread_mutex_unlock(&common_l);
-
-  while(1)
-  {   
-    pthread_mutex_lock(barrier->lock);
-    if (LOCKED){
-      if (barrier->count >= barrier->limit){
-        barrier->state = UNLOCKED;
-      }
-    } else {
-      // printf("tid %u free \n", get_cpuid());
-      barrier->count--;
-      break;
-    }
+  {
+    barrier->arrived++;
+    #ifdef DEBUG_PRINTS
+    pthread_mutex_lock(&common_l);
+    printf("#%u--%s--LCKD\n", get_cpuid(), barrier->id);
+    pthread_mutex_unlock(&common_l);
+    #endif
   }
-  return;
+  spin = barrier->state;
+  pthread_mutex_unlock(&barrier->mutex);  
+ 
+  while(spin)
+  {   
+    pthread_mutex_lock(&barrier->mutex);
+    if (barrier->state == UNLOCKED || barrier->arrived >= barrier->required)
+    {
+      barrier->state = UNLOCKED;
+    }
+    spin = barrier->state;
+    pthread_mutex_unlock(&barrier->mutex);
+  }
+  
+  pthread_mutex_lock(&barrier->mutex);
+  barrier->arrived--;
+  if(barrier->arrived <= 0)
+  {
+    barrier->arrived = 0;
+    barrier->state = LOCKED;
+  }
+  #ifdef DEBUG_PRINTS
+  pthread_mutex_lock(&common_l);
+  printf("#%u--%s-->FREE\n", get_cpuid(), barrier->id);
+  pthread_mutex_unlock(&common_l);
+  #endif
+  pthread_mutex_unlock(&barrier->mutex);
+  return 0;
 }

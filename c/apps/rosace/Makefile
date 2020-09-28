@@ -23,7 +23,10 @@ force:
 	touch rosace_patmos.c
 
 rosace_patmos:
-	patmos-clang $(CFLAGS) $(NOCINIT) assemblage.c assemblage_includes.c io.c barrier_counter.c threads.c rosace_patmos.c  -o rosace_patmos.elf -L$(BUILDDIR) -lm
+	patmos-clang -D USE_FLOAT $(CFLAGS) $(NOCINIT) rosace_patmos.c io.c assemblage_includes.c assemblage.c pthread_barrier.c barrier_counter.c threads.c -o rosace_patmos.elf -L$(BUILDDIR) -lm
+
+rosace_patmos_debug:
+	patmos-clang -D USE_FLOAT -D DEBUG_PRINTS $(CFLAGS) $(NOCINIT) rosace_patmos.c io.c assemblage_includes.c assemblage.c pthread_barrier.c barrier_counter.c threads.c -o rosace_patmos.elf -L$(BUILDDIR) -lm
 
 # running examples
 sim:

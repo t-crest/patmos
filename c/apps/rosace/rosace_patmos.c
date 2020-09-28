@@ -11,7 +11,7 @@
 
 int main(){
   LED = 0x100;
-  uint64_t tsimu=300*200;
+  uint64_t tsimu=600*200;
   return run_rosace(tsimu);
 }
 

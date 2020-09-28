@@ -6,18 +6,21 @@
 #include <machine/rtc.h>
 #include <pthread.h>
 
-typedef enum {LOCKED, UNLOCKED} barrier_state_t;
+typedef enum {UNLOCKED, LOCKED} barrier_state_t;
 
 typedef struct {
-    unsigned count;
-    pthread_mutex_t *lock;
+    char id[8];
+    int arrived;
+    int required;
+    pthread_mutex_t mutex;
+    pthread_cond_t condition_var;
+    int cycle;
     barrier_state_t state;
-    unsigned limit;
 } barrier_counter_t;
 
-// extern pthread_mutex_t common_l;
+extern pthread_mutex_t common_l;
 
-void barrier_counter_init(barrier_counter_t *barrier, pthread_mutex_t *lock, unsigned limit);
-void barrier_counter_wait(barrier_counter_t *barrier);
+void barrier_counter_init(barrier_counter_t *barrier,  unsigned required, const char* id);
+int barrier_counter_wait(barrier_counter_t *barrier);
 
 #endif
