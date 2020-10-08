@@ -34,7 +34,7 @@ int Va_filter_100449_fun(void* args)
   static int Va_f_Va_control_50474_Va_f_wcell=0;
   static int instance=0;
   
-  Va_f=Va_filter_100(aircraft_dynamics495_Va_Va_filter_100449_Va[Va_rcell]);
+  Va_f=Va_filter_25(aircraft_dynamics495_Va_Va_filter_100449_Va[Va_rcell]);
   Va_rcell=(Va_rcell+1)%2;
   if(must_write(Va_f_Va_control_50474_Va_f_write,instance)) {
     Va_filter_100449_Va_f_Va_control_50474_Va_f[Va_f_Va_control_50474_Va_f_wcell]=Va_f;
@@ -67,7 +67,7 @@ int Va_control_50474_fun(void* args)
   static int q_f_rcell=0;
   static int instance=0;
   
-  delta_th_c=Va_control_50(Va_filter_100449_Va_f_Va_control_50474_Va_f[Va_f_rcell],
+  delta_th_c=Va_control_12(Va_filter_100449_Va_f_Va_control_50474_Va_f[Va_f_rcell],
   Vz_filter_100452_Vz_f_Va_control_50474_Vz_f[Vz_f_rcell],q_filter_100455_q_f_Va_control_50474_q_f[q_f_rcell],
   Va_c_Va_control_50474_Va_c);
   Va_f_rcell=(Va_f_rcell+1)%2;
@@ -98,7 +98,7 @@ int altitude_hold_50464_fun(void* args)
   static int h_f_rcell=0;
   static int instance=0;
   
-  Vz_c=altitude_hold_50(h_filter_100446_h_f_altitude_hold_50464_h_f[h_f_rcell],
+  Vz_c=altitude_hold_12(h_filter_100446_h_f_altitude_hold_50464_h_f[h_f_rcell],
   h_c_altitude_hold_50464_h_c);
   h_f_rcell=(h_f_rcell+1)%2;
   altitude_hold_50464_Vz_c_Vz_control_50483_Vz_c=Vz_c;
@@ -126,7 +126,7 @@ int az_filter_100458_fun(void* args)
   static int az_f_Vz_control_50483_az_f_wcell=0;
   static int instance=0;
   
-  az_f=az_filter_100(aircraft_dynamics495_az_az_filter_100458_az[az_rcell]);
+  az_f=az_filter_25(aircraft_dynamics495_az_az_filter_100458_az[az_rcell]);
   az_rcell=(az_rcell+1)%2;
   if(must_write(az_f_Vz_control_50483_az_f_write,instance)) {
     az_filter_100458_az_f_Vz_control_50483_az_f[az_f_Vz_control_50483_az_f_wcell]=az_f;
@@ -149,7 +149,7 @@ int Vz_filter_100452_fun(void* args)
   static int Vz_f_Vz_control_50483_Vz_f_wcell=0;
   static int instance=0;
   
-  Vz_f=Vz_filter_100(aircraft_dynamics495_Vz_Vz_filter_100452_Vz[Vz_rcell]);
+  Vz_f=Vz_filter_25(aircraft_dynamics495_Vz_Vz_filter_100452_Vz[Vz_rcell]);
   Vz_rcell=(Vz_rcell+1)%2;
   if(must_write(Vz_f_Va_control_50474_Vz_f_write,instance)) {
     Vz_filter_100452_Vz_f_Va_control_50474_Vz_f[Vz_f_Va_control_50474_Vz_f_wcell]=Vz_f;
@@ -176,7 +176,7 @@ int q_filter_100455_fun(void* args)
   static int q_f_Vz_control_50483_q_f_wcell=0;
   static int instance=0;
   
-  q_f=q_filter_100(aircraft_dynamics495_q_q_filter_100455_q[q_rcell]);
+  q_f=q_filter_25(aircraft_dynamics495_q_q_filter_100455_q[q_rcell]);
   q_rcell=(q_rcell+1)%2;
   if(must_write(q_f_Va_control_50474_q_f_write,instance)) {
     q_filter_100455_q_f_Va_control_50474_q_f[q_f_Va_control_50474_q_f_wcell]=q_f;
@@ -251,7 +251,7 @@ int h_filter_100446_fun(void* args)
   static int h_f_altitude_hold_50464_h_f_wcell=0;
   static int instance=0;
   
-  h_f=h_filter_100(aircraft_dynamics495_h_h_filter_100446_h[h_rcell]);
+  h_f=h_filter_25(aircraft_dynamics495_h_h_filter_100446_h[h_rcell]);
   h_rcell=(h_rcell+1)%2;
   if(must_write(h_f_altitude_hold_50464_h_f_write,instance)) {
     h_filter_100446_h_f_altitude_hold_50464_h_f[h_f_altitude_hold_50464_h_f_wcell]=h_f;
@@ -284,7 +284,7 @@ int Vz_control_50483_fun(void* args)
   static int az_f_rcell=0;
   static int instance=0;
   
-  delta_e_c=Vz_control_50(Vz_filter_100452_Vz_f_Vz_control_50483_Vz_f[Vz_f_rcell],
+  delta_e_c=Vz_control_12(Vz_filter_100452_Vz_f_Vz_control_50483_Vz_f[Vz_f_rcell],
   altitude_hold_50464_Vz_c_Vz_control_50483_Vz_c,q_filter_100455_q_f_Vz_control_50483_q_f[q_f_rcell],
   az_filter_100458_az_f_Vz_control_50483_az_f[az_f_rcell]);
   Vz_f_rcell=(Vz_f_rcell+1)%2;

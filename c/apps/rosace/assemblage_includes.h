@@ -133,6 +133,9 @@ REAL_TYPE
 altitude_hold_25 (REAL_TYPE h_f, REAL_TYPE h_c);
 
 REAL_TYPE
+altitude_hold_12 (REAL_TYPE h_f, REAL_TYPE h_c);
+
+REAL_TYPE
 altitude_hold_10 (REAL_TYPE h_f, REAL_TYPE h_c);
 
 /**
@@ -154,6 +157,9 @@ REAL_TYPE
 Vz_control_25 (REAL_TYPE Vz_f, REAL_TYPE Vz_c, REAL_TYPE q_f, REAL_TYPE az_f);
 
 REAL_TYPE
+Vz_control_12 (REAL_TYPE Vz_f, REAL_TYPE Vz_c, REAL_TYPE q_f, REAL_TYPE az_f);
+
+REAL_TYPE
 Vz_control_10 (REAL_TYPE Vz_f, REAL_TYPE Vz_c, REAL_TYPE q_f, REAL_TYPE az_f);
 
 /**
@@ -172,6 +178,9 @@ Va_control_33 (REAL_TYPE Va_f, REAL_TYPE Vz_f, REAL_TYPE q_f, REAL_TYPE Va_c);
 
 REAL_TYPE
 Va_control_25 (REAL_TYPE Va_f, REAL_TYPE Vz_f, REAL_TYPE q_f, REAL_TYPE Va_c);
+
+REAL_TYPE
+Va_control_12 (REAL_TYPE Va_f, REAL_TYPE Vz_f, REAL_TYPE q_f, REAL_TYPE Va_c);
 
 REAL_TYPE
 Va_control_10 (REAL_TYPE Va_f, REAL_TYPE Vz_f, REAL_TYPE q_f, REAL_TYPE Va_c);
