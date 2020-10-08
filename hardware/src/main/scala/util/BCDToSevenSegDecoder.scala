@@ -3,63 +3,63 @@ package util
 import Chisel._
 
 class BCDToSevenSegDecoder() extends Module{
-  val io = new Bundle{
+  val io = IO(new Bundle{
     val bcdData = Input(UInt(width = 4))
     val segPolarity = Input(Bool())
     val segData = Output(UInt(width = 7))
-  }
+  })
 
-  val result = Bits(width = 7)
-  result := Bits("b1000001")
+  val result = Wire(UInt(width = 7))
+  result := "b1000001".U
 
   switch(io.bcdData){
-    is(Bits("b0000")){
-      result := Bits("b1000000")    //0
+    is("b0000".U){
+      result := "b1000000".U    //0
     }
-    is(Bits("b0001")){
-      result := Bits("b1111001")    //1
+    is("b0001".U){
+      result := "b1111001".U    //1
     }
-    is(Bits("b0010")){
-      result := Bits("b0100100")    //2
+    is("b0010".U){
+      result := "b0100100".U    //2
     }
-    is(Bits("b0011")){
-      result := Bits("b0110000")    //3
+    is("b0011".U){
+      result := "b0110000".U    //3
     }
-    is(Bits("b0100")){
-      result := Bits("b0011001")    //4
+    is("b0100".U){
+      result := "b0011001".U    //4
     }
-    is(Bits("b0101")){
-      result := Bits("b0010010")    //5
+    is("b0101".U){
+      result := "b0010010".U    //5
     }
-    is(Bits("b0110")){
-      result := Bits("b0000010")    //6
+    is("b0110".U){
+      result := "b0000010".U    //6
     }
-    is(Bits("b0111")){
-      result := Bits("b1111000")    //7
+    is("b0111".U){
+      result := "b1111000".U    //7
     }
-    is(Bits("b1000")){
-      result := Bits("b0000000")    //8
+    is("b1000".U){
+      result := "b0000000".U    //8
     }
-    is(Bits("b1001")){
-      result := Bits("b0011000")    //9
+    is("b1001".U){
+      result := "b0011000".U    //9
     }
-    is(Bits("b1010")){
-      result := Bits("b0001000")    //A
+    is("b1010".U){
+      result := "b0001000".U    //A
     }
-    is(Bits("b1011")){
-      result := Bits("b0000011")    //B
+    is("b1011".U){
+      result := "b0000011".U    //B
     }
-    is(Bits("b1100")){
-      result := Bits("b1000110")    //C
+    is("b1100".U){
+      result := "b1000110".U    //C
     }
-    is(Bits("b1101")){
-      result := Bits("b0100001")    //D
+    is("b1101".U){
+      result := "b0100001".U    //D
     }
-    is(Bits("b1110")){
-      result := Bits("b0000110")    //E
+    is("b1110".U){
+      result := "b0000110".U    //E
     }
-    is(Bits("b1111")){
-      result := Bits("b0001110")    //F
+    is("b1111".U){
+      result := "b0001110".U    //F
     }
   }
 

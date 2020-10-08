@@ -29,11 +29,11 @@ object SegmentDisplay extends DeviceObject {
 class SegmentDisplay(displayCount : Int, segmentPolarity: Int) extends CoreDevice() {
 
     // Override
-    override val io = new CoreDeviceIO() with patmos.HasPins {
+    override val io = IO(new CoreDeviceIO() with patmos.HasPins {
       override val pins = new Bundle() {
-        val hexDisp = Vec.fill(displayCount) {Bits(OUTPUT, 7)}
+        val hexDisp = Output(Vec(displayCount, Bits(width = 7)))
       }
-    }
+    })
 
     // Master register
     val masterReg = Reg(next = io.ocp.M)
@@ -45,10 +45,10 @@ class SegmentDisplay(displayCount : Int, segmentPolarity: Int) extends CoreDevic
     val dataReg = Reg(init = Bits(0, width = DATA_WIDTH))
 
     // Display register
-    val dispRegVec = Reg(Vec.fill(displayCount){Bits(segmentPolarity, width = 7)})
+    val dispRegVec = Reg(Vec(displayCount, Bits(segmentPolarity, width = 7)))
 
     // Decoded master data
-    val decodedMData = Bits(width = 7)
+    val decodedMData = Wire(Bits(width = 7))
     val decoder = Module(new BCDToSevenSegDecoder).io
     decoder.bcdData := masterReg.Data(3, 0)
     decoder.segPolarity := false.B
