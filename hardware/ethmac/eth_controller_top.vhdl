@@ -20,12 +20,12 @@ entity eth_controller_top is
 		rst           : in  std_logic;
 
 		-- OCP IN (slave) for Patmos
-		MCmd          : in  std_logic_vector(2 downto 0);
-		MAddr         : in  std_logic_vector(15 downto 0);
-		MData         : in  std_logic_vector(31 downto 0);
-		MByteEn       : in  std_logic_vector(3 downto 0);
-		SResp         : out std_logic_vector(1 downto 0);
-		SData         : out std_logic_vector(31 downto 0);
+		M_Cmd          : in  std_logic_vector(2 downto 0);
+		M_Addr         : in  std_logic_vector(15 downto 0);
+		M_Data         : in  std_logic_vector(31 downto 0);
+		M_ByteEn       : in  std_logic_vector(3 downto 0);
+		S_Resp         : out std_logic_vector(1 downto 0);
+		S_Data         : out std_logic_vector(31 downto 0);
 
 		--PHY interface
 		-- Tx
@@ -148,12 +148,12 @@ architecture rtl of eth_controller_top is
 	signal next_wb_r_cyc_o, wb_r_cyc_o   : std_logic;
 
 	-- OCP signals for buffer
-	signal MCmd_b                : std_logic_vector(2 downto 0);
-	signal MCmd_r                : std_logic_vector(2 downto 0);
-	signal SResp_b               : std_logic_vector(1 downto 0);
-	signal SData_b               : std_logic_vector(31 downto 0);
-	signal next_SResp_r, SResp_r : std_logic_vector(1 downto 0);
-	signal next_SData_r, SData_r : std_logic_vector(31 downto 0);
+	signal M_Cmd_b                : std_logic_vector(2 downto 0);
+	signal M_Cmd_r                : std_logic_vector(2 downto 0);
+	signal S_Resp_b               : std_logic_vector(1 downto 0);
+	signal S_Data_b               : std_logic_vector(31 downto 0);
+	signal next_S_Resp_r, S_Resp_r : std_logic_vector(1 downto 0);
+	signal next_S_Data_r, S_Data_r : std_logic_vector(31 downto 0);
 	signal next_mux_sel, mux_sel : std_logic;
 
 	-- wishbone signals for buffer
@@ -168,30 +168,30 @@ architecture rtl of eth_controller_top is
 	signal wb_b_err_o  : std_logic;
 
 begin
-	MCmd_b <= "000" when (MAddr(BUFF_ADDR_WIDTH-1 downto 12) = (BUFF_ADDR_WIDTH-1 downto 12=>'1')) else MCmd;	--control buffer, 15th bit is reserved for PTP
-	MCmd_r <= "000" when (MAddr(BUFF_ADDR_WIDTH-1 downto 12) /= (BUFF_ADDR_WIDTH-1 downto 12=>'1')) else MCmd;	--control registers, 15th bit is reserved for PTP
-	SResp  <= SResp_r when (mux_sel = '1') else SResp_b;
-	SData  <= SData_r when (mux_sel = '1') else SData_b;
+	M_Cmd_b <= "000" when (M_Addr(BUFF_ADDR_WIDTH-1 downto 12) = (BUFF_ADDR_WIDTH-1 downto 12=>'1')) else M_Cmd;	--control buffer, 15th bit is reserved for PTP
+	M_Cmd_r <= "000" when (M_Addr(BUFF_ADDR_WIDTH-1 downto 12) /= (BUFF_ADDR_WIDTH-1 downto 12=>'1')) else M_Cmd;	--control registers, 15th bit is reserved for PTP
+	S_Resp  <= S_Resp_r when (mux_sel = '1') else S_Resp_b;
+	S_Data  <= S_Data_r when (mux_sel = '1') else S_Data_b;
 
 	--Control mux
-	process(wb_r_ack_i, MCmd_r, MAddr, MData, wb_r_data_o, wb_r_we_o, wb_r_stb_o, wb_r_cyc_o, wb_r_addr_o, wb_r_data_i)
+	process(wb_r_ack_i, M_Cmd_r, M_Addr, M_Data, wb_r_data_o, wb_r_we_o, wb_r_stb_o, wb_r_cyc_o, wb_r_addr_o, wb_r_data_i)
 	begin
 		if (wb_r_ack_i = '0') then
-			next_SResp_r <= "00";
-			next_SData_r <= (others  => '0');
+			next_S_Resp_r <= "00";
+			next_S_Data_r <= (others  => '0');
 			next_mux_sel <= '0';
-			case MCmd_r is
+			case M_Cmd_r is
 				when "001" =>           -- write
 					next_wb_r_we_o                <= '1';
 					next_wb_r_stb_o               <= '1';
 					next_wb_r_cyc_o               <= '1';
-					next_wb_r_addr_o(11 downto 2) <= MAddr(11 downto 2);
-					next_wb_r_data_o              <= MData;
+					next_wb_r_addr_o(11 downto 2) <= M_Addr(11 downto 2);
+					next_wb_r_data_o              <= M_Data;
 				when "010" =>           -- read
 					next_wb_r_we_o                <= '0';
 					next_wb_r_stb_o               <= '1';
 					next_wb_r_cyc_o               <= '1';
-					next_wb_r_addr_o(11 downto 2) <= MAddr(11 downto 2);
+					next_wb_r_addr_o(11 downto 2) <= M_Addr(11 downto 2);
 					next_wb_r_data_o              <= wb_r_data_o;
 				when others =>          -- idle
 					next_wb_r_we_o                <= wb_r_we_o;
@@ -206,8 +206,8 @@ begin
 			next_wb_r_cyc_o               <= '0';
 			next_wb_r_addr_o(11 downto 2) <= wb_r_addr_o(11 downto 2);
 			next_wb_r_data_o              <= wb_r_data_o;
-			next_SResp_r                  <= "01";
-			next_SData_r                  <= wb_r_data_i;
+			next_S_Resp_r                  <= "01";
+			next_S_Data_r                  <= wb_r_data_i;
 			next_mux_sel                  <= '1'; --put out the data from the registers
 		end if;
 	end process;
@@ -221,8 +221,8 @@ begin
 			wb_r_cyc_o               <= '0';
 			wb_r_addr_o(11 downto 2) <= (others => '0');
 			wb_r_data_o              <= (others => '0');
-			SResp_r                  <= (others => '0');
-			SData_r                  <= (others => '0');
+			S_Resp_r                  <= (others => '0');
+			S_Data_r                  <= (others => '0');
 			mux_sel                  <= '0';
 		elsif rising_edge(clk) then
 			wb_r_we_o                <= next_wb_r_we_o;
@@ -230,8 +230,8 @@ begin
 			wb_r_cyc_o               <= next_wb_r_cyc_o;
 			wb_r_addr_o(11 downto 2) <= next_wb_r_addr_o(11 downto 2);
 			wb_r_data_o              <= next_wb_r_data_o;
-			SResp_r                  <= next_SResp_r;
-			SData_r                  <= next_SData_r;
+			S_Resp_r                  <= next_S_Resp_r;
+			S_Data_r                  <= next_S_Data_r;
 			mux_sel                  <= next_mux_sel;
 		end if;
 	end process;
@@ -296,12 +296,12 @@ begin
 			rst       => rst,
 
 			-- OCP IN (slave) for Patmos
-			MCmd      => MCmd_b,
-			MAddr     => MAddr((BUFF_ADDR_WIDTH - 1) downto 2),
-			MData     => MData,
-			MByteEn   => MByteEn,
-			SResp     => SResp_b,
-			SData     => SData_b,
+			MCmd      => M_Cmd_b,
+			MAddr     => M_Addr((BUFF_ADDR_WIDTH - 1) downto 2),
+			MData     => M_Data,
+			MByteEn   => M_ByteEn,
+			SResp     => S_Resp_b,
+			SData     => S_Data_b,
 
 			-- Wishbone Slave (for EthMac controller)
 			wb_addr_i => wb_b_addr_i((BUFF_ADDR_WIDTH - 1) downto 2), --tanslation from byte to word based address

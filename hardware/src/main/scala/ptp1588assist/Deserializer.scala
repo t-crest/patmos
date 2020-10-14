@@ -26,11 +26,9 @@ class Deserializer(msbFirst: Boolean = false, inputWidth: Int = 4, outputWidth: 
         shiftReg := 0.U
     } .elsewhen(io.en) {
         if (msbFirst) {
-            shiftReg(inputWidth-1, 0) := io.shiftIn
-			      shiftReg(outputWidth-1, inputWidth) := shiftReg(outputWidth-inputWidth-1,0)
+			      shiftReg := shiftReg(outputWidth-inputWidth-1,0) ## io.shiftIn
         } else {
-            shiftReg(outputWidth-inputWidth-1,0) := shiftReg(outputWidth-1, inputWidth)
-            shiftReg(outputWidth-1, outputWidth-inputWidth) := io.shiftIn
+            shiftReg := io.shiftIn ## shiftReg(outputWidth-1, inputWidth)
         }
     }
 

@@ -80,71 +80,97 @@ object EthMac2 extends DeviceObject {
   }
 }
 
-class EthMac2BB(extAddrWidth : Int = 32, dataWidth : Int = 32) extends BlackBox {
-  val io = new OcpCoreSlavePort(extAddrWidth, dataWidth) with EthMac2.Pins
+class EthMac2BB(extAddrWidth : Int = 32, dataWidth : Int = 32) extends BlackBox(
+  Map("BUFF_ADDR_WIDTH" -> extAddrWidth)) {
+  val io = IO(new OcpCoreSlavePort(extAddrWidth, dataWidth) {
+    val clk = Input(Clock())
+    val rst = Input(Bool())
+    // Tx
+    val mtx_clk_pad_i = Bool(INPUT) // Transmit clock (from PHY)
+    val mtxd_pad_o = Bits(OUTPUT, width = 4) // Transmit niethle (to PHY)
+    val mtxen_pad_o = Bits(OUTPUT, width = 1) // Transmit enable (to PHY)
+    val mtxerr_pad_o = Bits(OUTPUT, width = 1) // Transmit error (to PHY)
 
-  throw new Error("BlackBox wrapper for EthMac2 needs update for Chisel 3")
-  // rename component
-  /*should be commented out when chisel3 is used
-  setModuleName("eth_controller_top")
+    // Rx
+    val mrx_clk_pad_i = Bool(INPUT) // Receive clock (from PHY)
+    val mrxd_pad_i = Bits(INPUT, width = 4) // Receive niethle (from PHY)
+    val mrxdv_pad_i = Bits(INPUT, width = 1) // Receive data valid (from PHY)
+    val mrxerr_pad_i = Bits(INPUT, width = 1) // Receive data error (from PHY)
+
+    // Common Tx and Rx
+    val mcoll_pad_i = Bits(INPUT, width = 1) // Collision (from PHY)
+    val mcrs_pad_i = Bits(INPUT, width = 1) // Carrier sense (from PHY)
+
+    // MII Management interface
+    val md_pad_i = Bits(INPUT, width = 1) // MII data input (from I/O cell)
+    val mdc_pad_o = Bits(OUTPUT, width = 1) // MII Management data clock (to PHY)
+    val md_pad_o = Bits(OUTPUT, width = 1) // MII data output (to I/O cell)
+    val md_padoe_o = Bits(OUTPUT, width = 1) // MII data output enable (to I/O cell)
+
+    val int_o = Bits(OUTPUT, width = 1) // Ethernet intr output
+  })
 
   // rename signals
-  renameClock(clock, "clk")
-  reset.setName("rst")
+  io.clk.suggestName("clk")
+  io.rst.suggestName("rst")
 
-  io.M.Cmd.setName("MCmd")
-  io.M.Addr.setName("MAddr")
-  io.M.Data.setName("MData")
-  io.M.ByteEn.setName("MByteEn")
-  io.S.Resp.setName("SResp")
-  io.S.Data.setName("SData")
+  io.M.Cmd.suggestName("MCmd")
+  io.M.Addr.suggestName("MAddr")
+  io.M.Data.suggestName("MData")
+  io.M.ByteEn.suggestName("MByteEn")
+  io.S.Resp.suggestName("SResp")
+  io.S.Data.suggestName("SData")
 
-  io.ethMac2Pins.mtx_clk_pad_i.setName("mtx_clk_pad_i")
-  io.ethMac2Pins.mtxd_pad_o.setName("mtxd_pad_o")
-  io.ethMac2Pins.mtxen_pad_o.setName("mtxen_pad_o")
-  io.ethMac2Pins.mtxerr_pad_o.setName("mtxerr_pad_o")
-  io.ethMac2Pins.mrx_clk_pad_i.setName("mrx_clk_pad_i")
-  io.ethMac2Pins.mrxd_pad_i.setName("mrxd_pad_i")
-  io.ethMac2Pins.mrxdv_pad_i.setName("mrxdv_pad_i")
-  io.ethMac2Pins.mrxerr_pad_i.setName("mrxerr_pad_i")
-  io.ethMac2Pins.mcoll_pad_i.setName("mcoll_pad_i")
-  io.ethMac2Pins.mcrs_pad_i.setName("mcrs_pad_i")
-  io.ethMac2Pins.md_pad_i.setName("md_pad_i")
-  io.ethMac2Pins.mdc_pad_o.setName("mdc_pad_o")
-  io.ethMac2Pins.md_pad_o.setName("md_pad_o")
-  io.ethMac2Pins.md_padoe_o.setName("md_padoe_o")
-  io.ethMac2Pins.int_o.setName("int_o")
-  
-  // set Verilog parameters
-  setVerilogParameters("#(.BUFF_ADDR_WIDTH("+extAddrWidth+"))")
-  */
-  // keep some sigals for emulation
-  //debug(io.M.Cmd)  does nothing in chisel3 (no proning in frontend of chisel3 anyway)
-  //debug(io.M.Addr)
-  //debug(io.M.Data)
+  io.mtx_clk_pad_i.suggestName("mtx_clk_pad_i")
+  io.mtxd_pad_o.suggestName("mtxd_pad_o")
+  io.mtxen_pad_o.suggestName("mtxen_pad_o")
+  io.mtxerr_pad_o.suggestName("mtxerr_pad_o")
+  io.mrx_clk_pad_i.suggestName("mrx_clk_pad_i")
+  io.mrxd_pad_i.suggestName("mrxd_pad_i")
+  io.mrxdv_pad_i.suggestName("mrxdv_pad_i")
+  io.mrxerr_pad_i.suggestName("mrxerr_pad_i")
+  io.mcoll_pad_i.suggestName("mcoll_pad_i")
+  io.mcrs_pad_i.suggestName("mcrs_pad_i")
+  io.md_pad_i.suggestName("md_pad_i")
+  io.mdc_pad_o.suggestName("mdc_pad_o")
+  io.md_pad_o.suggestName("md_pad_o")
+  io.md_padoe_o.suggestName("md_padoe_o")
+  io.int_o.suggestName("int_o")
 
-  // registers to help emulation
-  val respReg = Reg(Bits(width = 2))
-  val dataReg = Reg(Bits(width = dataWidth))
-  io.S.Resp := respReg
-  io.S.Data := dataReg
+  override def desiredName: String = "eth_controller_top"
 }
 
 class EthMac2(extAddrWidth: Int = 32, dataWidth: Int = 32, withPTP: Boolean = false, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTime: BigInt = 0L, ppsDuration: Int = 10) extends CoreDevice() {
   override val io = new CoreDeviceIO() with EthMac2.Pins with patmos.HasInterrupts {
-    override val interrupts = Vec.fill(1) { Bool(OUTPUT) }
+    override val interrupts = Vec(1, Output(Bool()))
   }
 
   val eth = Module(new EthMac2BB(extAddrWidth, dataWidth))
   //Wire IO pins straight through
-  io.pins <> eth.io.pins
+  eth.io.clk              := clock
+  eth.io.rst              := reset
+  eth.io.mtx_clk_pad_i    := io.pins.mtx_clk_pad_i
+  io.pins.mtxd_pad_o      := eth.io.mtxd_pad_o
+  io.pins.mtxen_pad_o     := eth.io.mtxen_pad_o
+  io.pins.mtxerr_pad_o    := eth.io.mtxerr_pad_o
+  eth.io.mrx_clk_pad_i    := io.pins.mrx_clk_pad_i
+  eth.io.mrxd_pad_i       := io.pins.mrxd_pad_i
+  eth.io.mrxdv_pad_i      := io.pins.mrxdv_pad_i
+  eth.io.mrxerr_pad_i     := io.pins.mrxerr_pad_i
+  eth.io.mcoll_pad_i      := io.pins.mcoll_pad_i
+  eth.io.mcrs_pad_i       := io.pins.mcrs_pad_i
+  eth.io.md_pad_i         := io.pins.md_pad_i
+  io.pins.mdc_pad_o       := eth.io.mdc_pad_o
+  io.pins.md_pad_o        := eth.io.md_pad_o
+  io.pins.md_padoe_o      := eth.io.md_padoe_o
+  io.pins.int_o           := eth.io.int_o
 
   // Connection to controller interrupt
-  val syncEthIntrReg = RegNext(eth.io.pins.int_o)
+  val syncEthIntrReg = RegNext(eth.io.int_o)
 
   // Generate interrupts on rising edges
   val pulseEthIntrReg = RegNext(RegNext(syncEthIntrReg) === Bits("b0") && syncEthIntrReg(0) === Bits("b1"))
-  io.interrupts := Cat(Bits("b0"), pulseEthIntrReg)
+  io.interrupts(0) := pulseEthIntrReg
 
   //Check for PTP features
   if(withPTP) {    
@@ -182,10 +208,10 @@ class EthMac2(extAddrWidth: Int = 32, dataWidth: Int = 32, withPTP: Boolean = fa
     ptp.io.ethMacRX.data := io.pins.mrxd_pad_i
     ptp.io.ethMacRX.dv := io.pins.mrxdv_pad_i
     ptp.io.ethMacRX.err := io.pins.mrxerr_pad_i
-    ptp.io.ethMacTX.clk := eth.io.pins.mtx_clk_pad_i
-    ptp.io.ethMacTX.data := eth.io.pins.mtxd_pad_o
-    ptp.io.ethMacTX.dv := eth.io.pins.mtxen_pad_o
-    ptp.io.ethMacTX.err := eth.io.pins.mtxerr_pad_o
+    ptp.io.ethMacTX.clk := eth.io.mtx_clk_pad_i
+    ptp.io.ethMacTX.data := eth.io.mtxd_pad_o
+    ptp.io.ethMacTX.dv := eth.io.mtxen_pad_o
+    ptp.io.ethMacTX.err := eth.io.mtxerr_pad_o
     io.pins.ptpPPS := ptp.io.rtcPPS
   } else {
     println("EthMac2 (eth_addrWidth="+extAddrWidth+")")

@@ -22,26 +22,26 @@ import patmos.Constants._
    val FIFTY_NANO = 50
    val PPS_DURATION = 2 * max(ppsDuration, 10) * MICRO_IN_NANO //should be between 10us to 500ms enough for a microcontroller to sample it (http://digitalsubstation.com/en/2016/11/08/white-paper-on-implementing-ptp-in-substations/)
 
-   println("IEEE 1588 RTC instantiated @ " + clockFreq / 1000000 + " MHz with TIME_STEP= " + TIME_STEP + "with a PPS pulse width= " + ppsDuration + "us")
+   println("--RTC instantiated @ " + clockFreq / 1000000 + " MHz with a PPS pulse width= " + ppsDuration + "us")
 
    // Register command
-   val masterReg = Reg(next = io.ocp.M)
+   val masterReg = RegNext(io.ocp.M)
 
    // Registers
-   val correctionStepReg = Wire(init = SInt(0, width = nanoWidth + 1))
-   val nsOffsetReg = Reg(init = SInt(0, width = nanoWidth + 1))
-   val timeReg = Reg(init = UInt(0, width = secondsWidth + nanoWidth))
-   val secTickReg = Reg(init = UInt(initialTime, width = secondsWidth))
-   val nsTickReg = Reg(init = UInt(0, width = nanoWidth + 1)) //we need an extra bit for precision loss due to fixed point calculations
-   val updateSecReg = Reg(init = false.B)
-   val updateNsReg = Reg(init = false.B)
-   val ppsReg = Reg(init = false.B)
-   val ppsHoldCountReg = Reg(init = UInt(PPS_DURATION, width = log2Up(PPS_DURATION)))
+   val correctionStepReg = Wire(0.S((nanoWidth + 1).W))
+   val nsOffsetReg = RegInit(0.S((nanoWidth + 1).W))
+   val timeReg = RegInit(0.U((secondsWidth + nanoWidth).W))
+   val secTickReg = RegInit(initialTime.U(secondsWidth.W))
+   val nsTickReg = RegInit(0.U((nanoWidth + 1).W)) //we need an extra bit for precision loss due to fixed point calculations
+   val updateSecReg = RegInit(false.B)
+   val updateNsReg = RegInit(false.B)
+   val ppsReg = RegInit(false.B)
+   val ppsHoldCountReg = RegInit(PPS_DURATION.U(log2Up(PPS_DURATION).W))
 
    // Default response
-   val respReg = Reg(init = OcpResp.NULL)
+   val respReg = RegInit(OcpResp.NULL)
    respReg := OcpResp.NULL
-   val dataReg = Reg(init = Bits(0, width = DATA_WIDTH))
+   val dataReg = RegInit(0.U(DATA_WIDTH.W))
 
    //Clock Engine
    val nsIncrement = (TIME_STEP.S + correctionStepReg).asUInt()
@@ -52,7 +52,7 @@ import patmos.Constants._
    }
    //update nanoseconds
    when(updateNsReg) {
-     nsTickReg(32, 1) := timeReg(nanoWidth - 1, 0)
+     nsTickReg := timeReg(nanoWidth - 1, 0) ## 0.U(1.W)
    }.otherwise {
      nsTickReg := nextNano
      nsOffsetReg := nsOffsetReg + correctionStepReg // Always correct towards zero offset
@@ -63,7 +63,7 @@ import patmos.Constants._
    }
 
    //PPS Engine
-   when(~ppsReg) {
+   when(!ppsReg) {
      ppsReg := nsTickReg >= (SEC_IN_NANO.U - nsIncrement)
    }.otherwise {
      when(ppsHoldCountReg > TIME_STEP.U) {
@@ -108,11 +108,11 @@ import patmos.Constants._
      switch(masterReg.Addr(5, 0)) {
        is(Bits("h00")) {
          updateNsReg := true.B
-         timeReg(DATA_WIDTH - 1, 0) := masterReg.Data
+         timeReg := 0.U(DATA_WIDTH.W) ## masterReg.Data.asUInt()
        }
        is(Bits("h04")) {
          updateSecReg := true.B
-         timeReg(2 * DATA_WIDTH - 1, DATA_WIDTH) := masterReg.Data
+         timeReg:= masterReg.Data.asUInt() ## 0.U(DATA_WIDTH.W)
        }
        is(Bits("h20")) {
          nsOffsetReg := masterReg.Data.asSInt()
@@ -131,7 +131,7 @@ import patmos.Constants._
          dataReg := timeReg(2 * DATA_WIDTH - 1, DATA_WIDTH)
        }
        is(Bits("h20")) {
-         dataReg := nsOffsetReg
+         dataReg := nsOffsetReg(32, 1)
        }
      }
    }
