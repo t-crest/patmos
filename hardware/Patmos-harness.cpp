@@ -829,6 +829,9 @@ int main(int argc, char **argv, char **env)
 
   int cnt = 0;
   int waituart = 0;
+  if(reg_print){
+    printf("Patmos start\n");
+  }
   while (limit < 0 || emu->get_tick_count() < limit)
   {
     cnt++;
