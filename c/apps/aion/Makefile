@@ -32,8 +32,9 @@ wcet_tsnsync:
 	platin wcet --disable-ait -i aion_wcet.pml -b aion_wcet.elf -e ptpv2_issue_msg
 	platin wcet --disable-ait -i aion_wcet.pml -b aion_wcet.elf -e ptpv2_handle_msg
 	platin wcet --disable-ait -i aion_wcet.pml -b aion_wcet.elf -e ptpv2_process_received
-	platin wcet --disable-ait -i aion_wcet.pml -b aion_wcet.elf -e slaveSyncLoop
-	platin wcet --disable-ait -i aion_wcet.pml -b aion_wcet.elf -e masterSyncLoop
+	platin wcet --disable-ait -i aion_wcet.pml -b aion_wcet.elf -e slaveSyncCycle
+	platin wcet --disable-ait -i aion_wcet.pml -b aion_wcet.elf -e masterSyncCycle
+	platin wcet --disable-ait -i aion_wcet.pml -b aion_wcet.elf -e tsnSyncDemoLoop
 	
 wcet_ttesync:
 	patmos-clang -O2 $(CFLAGS) $(LIBETH)/*.c -mserialize=aion_wcet.pml tte_timesyncdemo.c -o aion_wcet.elf
@@ -68,8 +69,8 @@ wcet_tteconsumer:
 	
 # running examples
 
-aion_sanity_check:
-	patmos-clang -O2 $(CFLAGS) $(LIBETH)/*.c aion_sanity_check.c -o aion.elf
+aion_sanity_test:
+	patmos-clang -O2 $(CFLAGS) $(LIBETH)/*.c aion_sanity_test.c -o aion.elf
 
 timestamp_compare:
 	patmos-clang -O2 $(CFLAGS) $(LIBETH)/*.c timestamp_compare.c -o aion.elf

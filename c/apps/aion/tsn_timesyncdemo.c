@@ -94,7 +94,7 @@ void waitFor(unsigned int clocks){
 
 int receiveAndHandleFrame(const unsigned int timeout){
 	unsigned short dest_port;
-	if(eth_mac_receive(rx_addr, timeout)){
+	if(eth_mac_receive_nb(rx_addr)){
         switch (mac_packet_type(rx_addr)) {
             case ICMP:
                 return (icmp_process_received(rx_addr, tx_addr)==0) ? -ICMP : ICMP;
@@ -121,7 +121,7 @@ int receiveAndHandleFrame(const unsigned int timeout){
 	}
 }
 
-int masterSyncLoop(unsigned int syncPeriod){
+int masterSyncCycle(unsigned int syncPeriod){
 	unsigned char ans = 0;
 	if(get_ptp_usecs(thisPtpPortInfo.eth_base) - startTime >= syncPeriod){
 		startTime = get_ptp_usecs(thisPtpPortInfo.eth_base);
@@ -139,10 +139,11 @@ int masterSyncLoop(unsigned int syncPeriod){
 			initNanoseconds = hardTimestamp.nanoseconds;
 		}
 	}
+	PTP_RXCHAN_STATUS(PATMOS_IO_ETH) = 0x1;
 	return ans;
 }
 
-int slaveSyncLoop(){
+int slaveSyncCycle(){
 	unsigned char ans = 0;
 	if((rxPacketLog[rxPacketCount] = receiveAndHandleFrame(2*WCET_SYNC_MASTER*CPU_PERIOD*NS_TO_USEC)) == PTP){
 		if(ptpv2_process_received(thisPtpPortInfo, tx_addr, rx_addr) == PTP_DLYRPLY_MSGTYPE){
@@ -155,7 +156,28 @@ int slaveSyncLoop(){
 		deltaTimeLog[rxPacketCount] = abs(initNanoseconds-hardTimestamp.nanoseconds);
 		initNanoseconds = hardTimestamp.nanoseconds;
 	}
+	PTP_RXCHAN_STATUS(PATMOS_IO_ETH) = 0x1;
 	return ans;
+}
+
+void tsnSyncDemoLoop()
+{
+	#pragma loopbound min 1 max 1
+	while(*key_ptr != 0xD){
+		if(thisPtpPortInfo.portRole == PTP_MASTER){
+			masterSyncCycle(SYNC_INTERVAL_OPTIONS[abs(thisPtpPortInfo.syncInterval)]);
+		} else {
+			rxPacketCount = (rxPacketCount + slaveSyncCycle()) % NO_RX_PACKETS;
+		}
+		printSegmentInt(get_ptp_secs(thisPtpPortInfo.eth_base));
+		if(*key_ptr == 0xD) {
+			RTC_ADJUST_OFFSET(thisPtpPortInfo.eth_base) = 0;
+			RTC_TIME_SEC(thisPtpPortInfo.eth_base) = 0;
+			RTC_TIME_NS(thisPtpPortInfo.eth_base) = 0;
+		}
+		if(*key_ptr == 0xE)	break;
+		*led_ptr = rxPacketCount;
+	}
 }
 
 int main(int argc, char **argv){
@@ -193,23 +215,9 @@ int main(int argc, char **argv){
 	RTC_TIME_NS(thisPtpPortInfo.eth_base) = 0;
 	RTC_TIME_SEC(thisPtpPortInfo.eth_base) = 0;
 	startTime = RTC_TIME_NS(thisPtpPortInfo.eth_base);
+	PTP_RXCHAN_STATUS(PATMOS_IO_ETH) = 0x1;
 	while(*key_ptr != 0xE){
-		while(*key_ptr != 0xD){
-			if(thisPtpPortInfo.portRole == PTP_MASTER){
-				masterSyncLoop(SYNC_INTERVAL_OPTIONS[abs(thisPtpPortInfo.syncInterval)]);
-			} else {
-				rxPacketCount = (rxPacketCount + slaveSyncLoop()) % NO_RX_PACKETS;
-			}
-			printSegmentInt(get_ptp_secs(thisPtpPortInfo.eth_base));
-			if(*key_ptr == 0xD) {
-				RTC_ADJUST_OFFSET(thisPtpPortInfo.eth_base) = 0;
-				RTC_TIME_SEC(thisPtpPortInfo.eth_base) = 0;
-				RTC_TIME_NS(thisPtpPortInfo.eth_base) = 0;
-			}
-			if(*key_ptr == 0xE)	break;
-			*led_ptr = rxPacketCount;
-		}
-
+		tsnSyncDemoLoop();
 		if(thisPtpPortInfo.portRole == PTP_SLAVE){
 			//Report
 			printf("PTP Slave Received No. Packets = %d\n", rxPacketCount);

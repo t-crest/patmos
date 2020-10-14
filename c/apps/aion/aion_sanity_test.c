@@ -4,13 +4,19 @@
 #include <machine/rtc.h>
 #include <machine/spm.h>
 #include "ethlib/ptp1588.h"
+#include "ethlib/eth_mac_driver.h"
+#include "ethlib/ipv4.h"
 
 #define TEST_FRAMES 100
 
 // #define TEST_TS
 #define TEST_RATE
 
+#define LEDS *((volatile _SPM unsigned int *) (PATMOS_IO_LED))
 volatile _SPM unsigned *disp_ptr = (volatile _SPM unsigned *) PATMOS_IO_SEGDISP;
+
+const unsigned int rx_buff_addr = 0x000;
+const unsigned int tx_buff_addr = 0x800;
 
 void printSegmentInt(unsigned number) {
     *(disp_ptr+0) = number & 0xF;
@@ -28,15 +34,20 @@ void measure_timestamp_rate(){
     register unsigned long long last_ts = 0;
     register unsigned long long delta_sum = 0;
     unsigned long long start = get_cpu_usecs();
-    while(count_frames < TEST_FRAMES){
+    PTP_RXCHAN_STATUS(PATMOS_IO_ETH) = 0x1;
+    do{
+        if(eth_mac_receive_nb(rx_buff_addr)){
+            printSegmentInt((unsigned short) ((mem_iord_byte(rx_buff_addr + 12) << 8) + (mem_iord_byte(rx_buff_addr + 13))));
+            delta_sum += (last_ts > 0 ? get_rx_timestamp_nanos(PATMOS_IO_ETH) - last_ts : 0);
+            last_ts = get_rx_timestamp_nanos(PATMOS_IO_ETH);
+            count_frames++;
+        }
+        LEDS = count_frames;
         PTP_RXCHAN_STATUS(PATMOS_IO_ETH) = 0x1;
-        while(!PTP_RXCHAN_STATUS(PATMOS_IO_ETH)){continue;} //spin while and clear flag while no frame
-        delta_sum += (last_ts > 0 ? get_rx_timestamp_nanos(PATMOS_IO_ETH) - last_ts : 0);
-        last_ts = get_rx_timestamp_nanos(PATMOS_IO_ETH);
-        count_frames++;
-    }
+    } while(count_frames < TEST_FRAMES);
     unsigned long long finish = get_cpu_usecs();
-    printf("Avg. rx_delta_time = %.3f usec\n", (delta_sum / count_frames) * NS_TO_USEC);
+    printf("\nReceived frames count = %u\n", count_frames);
+    printf("Avg. rx_delta_time = %.3f ms\n", (delta_sum / count_frames) * NS_TO_USEC * USEC_TO_MS);
     printf("Test duration %.3f sec\n", (finish - start) * USEC_TO_SEC);
 }
 
@@ -59,6 +70,8 @@ void test_timestamp_rx_channel(){
 
 int main(){
     puts("Starting AION sanity check\n");
+	eth_mac_initialize(); 
+	ipv4_set_my_ip((unsigned char[4]) {192, 168, 2, 69});
 #ifdef TEST_TS
     test_timestamp_rx_channel();
 #endif
