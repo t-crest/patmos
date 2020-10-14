@@ -67,24 +67,27 @@ VGENCORE=$(HWBUILDDIR)/.vgencore
 CORE_CNT?=4
 EXT_SLOT_SIZE?=5
 
+
 # build the C++ version
-emulator: $(HWBUILDDIR)/emulator
+emulator: 
+	$(MAKE) -C .. emulator BOOTBAPP=$(BOOTAPP)
+#emulator: $(HWBUILDDIR)/emulator
 
-$(HWBUILDDIR)/emulator: emulator.cpp $(HWBUILDDIR)/Patmos.cpp $(HWBUILDDIR)/emulator_config.h
-	$(CXX) $(CXXFLAGS) $(INC_EXTRA) -I $(HWBUILDDIR) -o $@ $(filter %.cpp,$^) -lelf
+#$(HWBUILDDIR)/emulator: emulator.cpp $(HWBUILDDIR)/Patmos.cpp $(HWBUILDDIR)/emulator_config.h
+#	$(CXX) $(CXXFLAGS) $(INC_EXTRA) -I $(HWBUILDDIR) -o $@ $(filter %.cpp,$^) -lelf
 
-$(HWBUILDDIR)/Patmos.cpp $(HWBUILDDIR)/emulator_config.h: $(CGEN)
-	if [ x`cat $(CGEN)` != x"$(CONFIGFILE)+$(BOOTBIN)+$(BOOTDAT)" ]; then \
-		rm $(CGEN); $(MAKE) $(CGEN); \
-	fi
+#$(HWBUILDDIR)/Patmos.cpp $(HWBUILDDIR)/emulator_config.h: $(CGEN)
+#	if [ x`cat $(CGEN)` != x"$(CONFIGFILE)+$(BOOTBIN)+$(BOOTDAT)" ]; then \
+#		rm $(CGEN); $(MAKE) $(CGEN); \
+#	fi
 
-$(CGEN): $(BOOTBIN) $(BOOTDAT) $(SRC)
-	$(SBT) "runMain $(MAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --vcd --targetDir $(HWBUILDDIR) --cse --backend c"
-	echo $(CONFIGFILE)+$(BOOTBIN)+$(BOOTDAT) > $(CGEN)
+#$(CGEN): $(BOOTBIN) $(BOOTDAT) $(SRC)
+#	$(SBT) "runMain $(MAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --vcd --targetDir $(HWBUILDDIR) --cse --backend c"
+#	echo $(CONFIGFILE)+$(BOOTBIN)+$(BOOTDAT) > $(CGEN)
 
 # run emulator
 test: emulator
-	$(HWBUILDDIR)/emulator -r -i -l 1000000 -O /dev/null; exit 0
+	$(HWBUILDDIR)/VPatmos -r -i -l 1000000 -O /dev/null; exit 0
 
 # view detailed emulation results
 view:
