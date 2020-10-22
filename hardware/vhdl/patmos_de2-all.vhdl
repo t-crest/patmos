@@ -25,7 +25,7 @@ entity patmos_top is
         oLedsPins_led : out   std_logic_vector(8 downto 0);
         oLedsPins_ledR : out  std_logic_vector(17 downto 0);
         iKeysPins_key : in    std_logic_vector(3 downto 0);
-        oGpioPins_gpio_0 : out std_logic_vector(7 downto 0);
+        oGpioPins_gpio_0 : inout std_logic_vector(7 downto 0);
         oDebug_MII_RX   : out std_logic_vector(5 downto 0);
         oSegmentDisplayPins_hexDisp_7 : out std_logic_vector(6 downto 0);
     oSegmentDisplayPins_hexDisp_6 : out std_logic_vector(6 downto 0);
@@ -104,7 +104,7 @@ architecture rtl of patmos_top is
             reset                            : in  std_logic;
             io_Leds_led                      : out std_logic_vector(8 downto 0);
             io_Keys_key                      : in  std_logic_vector(3 downto 0);
-            io_Gpio_gpios_0                  : out std_logic_vector(5 downto 0);
+            io_Gpio_gpios_0                  : inout std_logic_vector(5 downto 0);
             io_UartCmp_tx                    : out std_logic;
             io_UartCmp_rx                    : in  std_logic;
             io_Uart_tx                       : out std_logic;

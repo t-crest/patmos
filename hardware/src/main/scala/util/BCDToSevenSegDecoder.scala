@@ -1,15 +1,16 @@
 package util
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 
-class BCDToSevenSegDecoder() extends Module{
+class BCDToSevenSegDecoder extends Module{
   val io = IO(new Bundle{
-    val bcdData = Input(UInt(width = 4))
+    val bcdData = Input(UInt(4.W))
     val segPolarity = Input(Bool())
-    val segData = Output(UInt(width = 7))
+    val segData = Output(UInt(7.W))
   })
 
-  val result = Wire(UInt(width = 7))
+  val result = Wire(UInt(7.W))
   result := "b1000001".U
 
   switch(io.bcdData){
@@ -63,7 +64,7 @@ class BCDToSevenSegDecoder() extends Module{
     }
   }
 
-  when (~io.segPolarity) {
+  when (!io.segPolarity) {
     io.segData := result
   }.otherwise {
     io.segData := ~result

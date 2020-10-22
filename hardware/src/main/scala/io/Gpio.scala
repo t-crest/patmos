@@ -7,7 +7,9 @@
 
 package io
 
-import Chisel._
+import chisel3._
+import chisel3.experimental.Analog
+import chisel3.util._
 import patmos.Constants._
 import ocp._
 
@@ -19,9 +21,9 @@ object Gpio extends DeviceObject {
   def init(params: Map[String, String]) = {
     bankCount = getPosIntParam(params, "bankCount")
     bankWidth = getPosIntParam(params, "bankWidth")
-    if("output" == getParam(params, "ioDirection")){
+    if("Output".equalsIgnoreCase(getParam(params, "ioDirection"))){
       ioDirection = false
-    } else if ("input" == getParam(params, "ioDirection")){
+    } else if ("Input".equalsIgnoreCase(getParam(params, "ioDirection"))){
       ioDirection = true
     }
   }
@@ -33,28 +35,29 @@ object Gpio extends DeviceObject {
 
 class Gpio(bankCount: Int, bankWidth: Int, ioDirection: Boolean = false) extends CoreDevice() {
   // Override
-  override val io = new CoreDeviceIO() with patmos.HasPins {
+  override val io = IO(new CoreDeviceIO() with patmos.HasPins {
     override val pins = new Bundle() {
-      val gpios = Vec.fill(bankCount) {Bits(if (ioDirection) INPUT else OUTPUT, bankWidth)}
+      val gpios = if (!ioDirection) Output(Vec(bankCount,  UInt(bankWidth.W)))
+                  else Input(Vec(bankCount,  UInt(bankWidth.W)))
     }
-  }
+  })
 
   //Constants
   val constAddressWidth : Int = log2Up(bankCount) + 2
 
   // Master register
-  val masterReg = Reg(next = io.ocp.M)
+  val masterReg = RegNext(io.ocp.M)
 
   // Default response
-  val respReg = Reg(init = OcpResp.NULL)
+  val respReg = RegInit(OcpResp.NULL)
   respReg := OcpResp.NULL
 
-  val dataReg = Reg(init = Bits(0, width = DATA_WIDTH))
+  val dataReg = RegInit(0.U(DATA_WIDTH.W))
 
   // Display register
-  val gpioRegVec = RegInit(Vec.fill(bankCount){Bits(0, width = bankWidth)})
+  val gpioRegVec = RegInit(VecInit(Seq.fill(bankCount)(0.U(bankWidth.W))))
 
-  if(ioDirection == false){
+  if(!ioDirection){
     // Read/Write gpios
     for(i <- 0 until bankCount by 1){
       when(masterReg.Addr(constAddressWidth-1, 2) === i.U){
@@ -69,7 +72,7 @@ class Gpio(bankCount: Int, bankWidth: Int, ioDirection: Boolean = false) extends
       respReg := OcpResp.DVA
     }
 
-  } else if(ioDirection == true) {
+  } else if(ioDirection) {
     // Read gpios
     for(i <- 0 until bankCount by 1){
       when(masterReg.Addr(constAddressWidth-1, 2) === i.U){
@@ -91,7 +94,7 @@ class Gpio(bankCount: Int, bankWidth: Int, ioDirection: Boolean = false) extends
   io.ocp.S.Data := dataReg
 
   // Connections to IO
-  io.pins.gpios := gpioRegVec
+  io.pins.gpios <> gpioRegVec
 
 }
 

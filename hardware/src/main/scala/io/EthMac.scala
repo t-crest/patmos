@@ -9,7 +9,8 @@
 
 package io
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import chisel3.internal.HasId
 import ocp._
 import patmos.Constants.CLOCK_FREQ
@@ -47,36 +48,36 @@ object EthMac extends DeviceObject {
   trait Pins extends patmos.HasPins {
     override val pins = new Bundle() {
       // Tx
-      val mtx_clk_pad_i = Bool(INPUT) // Transmit clock (from PHY)
-      val mtxd_pad_o = Bits(OUTPUT, width = 4) // Transmit niethle (to PHY)
-      val mtxen_pad_o = Bits(OUTPUT, width = 1) // Transmit enable (to PHY)
-      val mtxerr_pad_o = Bits(OUTPUT, width = 1) // Transmit error (to PHY)
+      val mtx_clk_pad_i = Input(Bool()) // Transmit clock (from PHY)
+      val mtxd_pad_o = Output(UInt(4.W)) // Transmit niethle (to PHY)
+      val mtxen_pad_o = Output(UInt(1.W)) // Transmit enable (to PHY)
+      val mtxerr_pad_o = Output(UInt(1.W)) // Transmit error (to PHY)
 
       // Rx
-      val mrx_clk_pad_i = Bool(INPUT) // Receive clock (from PHY)
-      val mrxd_pad_i = Bits(INPUT, width = 4) // Receive niethle (from PHY)
-      val mrxdv_pad_i = Bits(INPUT, width = 1) // Receive data valid (from PHY)
-      val mrxerr_pad_i = Bits(INPUT, width = 1) // Receive data error (from PHY)
+      val mrx_clk_pad_i = Input(Bool()) // Receive clock (from PHY)
+      val mrxd_pad_i = Input(UInt(4.W)) // Receive niethle (from PHY)
+      val mrxdv_pad_i = Input(UInt(1.W)) // Receive data valid (from PHY)
+      val mrxerr_pad_i = Input(UInt(1.W)) // Receive data error (from PHY)
 
       // Common Tx and Rx
-      val mcoll_pad_i = Bits(INPUT, width = 1) // Collision (from PHY)
-      val mcrs_pad_i = Bits(INPUT, width = 1) // Carrier sense (from PHY)
+      val mcoll_pad_i = Input(UInt(1.W)) // Collision (from PHY)
+      val mcrs_pad_i = Input(UInt(1.W)) // Carrier sense (from PHY)
 
       // MII Management interface
-      val md_pad_i = Bits(INPUT, width = 1) // MII data input (from I/O cell)
-      val mdc_pad_o = Bits(OUTPUT, width = 1) // MII Management data clock (to PHY)
-      val md_pad_o = Bits(OUTPUT, width = 1) // MII data output (to I/O cell)
-      val md_padoe_o = Bits(OUTPUT, width = 1) // MII data output enable (to I/O cell)
+      val md_pad_i = Input(UInt(1.W)) // MII data input (from I/O cell)
+      val mdc_pad_o = Output(UInt(1.W)) // MII Management data clock (to PHY)
+      val md_pad_o = Output(UInt(1.W)) // MII data output (to I/O cell)
+      val md_padoe_o = Output(UInt(1.W)) // MII data output enable (to I/O cell)
 
-      val int_o = Bits(OUTPUT, width = 1) // Ethernet intr output
+      val int_o = Output(UInt(1.W)) // Ethernet intr output
 
       // PTP Debug Signals
-      val ptpPPS = Bits(OUTPUT, width = 1)
-      val ledPHY = Bits(OUTPUT, width = 1)
-      val ledSOF = Bits(OUTPUT, width = 1)
-      val ledEOF = Bits(OUTPUT, width = 1)
-      // val ledSFD = Bits(OUTPUT, width=8)
-      // val rtcDisp = Vec.fill(8) {Bits(OUTPUT, 7)}
+      val ptpPPS = Output(UInt(1.W))
+      val ledPHY = Output(UInt(1.W))
+      val ledSOF = Output(UInt(1.W))
+      val ledEOF = Output(UInt(1.W))
+      // val ledSFD = Output(UInt(width=8)
+      // val rtcDisp = Vec.fill(8) {Output(UInt(7)}
     }
   }
 
@@ -88,28 +89,28 @@ class EthMacBB(extAddrWidth: Int = 32, dataWidth: Int = 32) extends BlackBox(
     val clk = Input(Clock())
     val rst = Input(Bool())
     // Tx
-    val mtx_clk_pad_i = Bool(INPUT) // Transmit clock (from PHY)
-    val mtxd_pad_o = Bits(OUTPUT, width = 4) // Transmit niethle (to PHY)
-    val mtxen_pad_o = Bits(OUTPUT, width = 1) // Transmit enable (to PHY)
-    val mtxerr_pad_o = Bits(OUTPUT, width = 1) // Transmit error (to PHY)
+    val mtx_clk_pad_i = Input(Bool()) // Transmit clock (from PHY)
+    val mtxd_pad_o = Output(UInt(4.W)) // Transmit niethle (to PHY)
+    val mtxen_pad_o = Output(UInt(1.W)) // Transmit enable (to PHY)
+    val mtxerr_pad_o = Output(UInt(1.W)) // Transmit error (to PHY)
 
     // Rx
-    val mrx_clk_pad_i = Bool(INPUT) // Receive clock (from PHY)
-    val mrxd_pad_i = Bits(INPUT, width = 4) // Receive niethle (from PHY)
-    val mrxdv_pad_i = Bits(INPUT, width = 1) // Receive data valid (from PHY)
-    val mrxerr_pad_i = Bits(INPUT, width = 1) // Receive data error (from PHY)
+    val mrx_clk_pad_i = Input(Bool()) // Receive clock (from PHY)
+    val mrxd_pad_i = Input(UInt(4.W)) // Receive niethle (from PHY)
+    val mrxdv_pad_i = Input(UInt(1.W)) // Receive data valid (from PHY)
+    val mrxerr_pad_i = Input(UInt(1.W)) // Receive data error (from PHY)
 
     // Common Tx and Rx
-    val mcoll_pad_i = Bits(INPUT, width = 1) // Collision (from PHY)
-    val mcrs_pad_i = Bits(INPUT, width = 1) // Carrier sense (from PHY)
+    val mcoll_pad_i = Input(UInt(1.W)) // Collision (from PHY)
+    val mcrs_pad_i = Input(UInt(1.W)) // Carrier sense (from PHY)
 
     // MII Management interface
-    val md_pad_i = Bits(INPUT, width = 1) // MII data input (from I/O cell)
-    val mdc_pad_o = Bits(OUTPUT, width = 1) // MII Management data clock (to PHY)
-    val md_pad_o = Bits(OUTPUT, width = 1) // MII data output (to I/O cell)
-    val md_padoe_o = Bits(OUTPUT, width = 1) // MII data output enable (to I/O cell)
+    val md_pad_i = Input(UInt(1.W)) // MII data input (from I/O cell)
+    val mdc_pad_o = Output(UInt(1.W)) // MII Management data clock (to PHY)
+    val md_pad_o = Output(UInt(1.W)) // MII data output (to I/O cell)
+    val md_padoe_o = Output(UInt(1.W)) // MII data output enable (to I/O cell)
 
-    val int_o = Bits(OUTPUT, width = 1) // Ethernet intr output
+    val int_o = Output(UInt(1.W)) // Ethernet intr output
   })
 
   // rename signals
@@ -171,14 +172,14 @@ class EthMac(extAddrWidth: Int = 32, dataWidth: Int = 32, withPTP: Boolean = fal
   val syncEthIntrReg = RegNext(eth.io.int_o)
 
   // Generate interrupts on rising edges
-  val pulseEthIntrReg = RegNext(RegNext(syncEthIntrReg) === Bits("b0") && syncEthIntrReg(0) === Bits("b1"))
+  val pulseEthIntrReg = RegNext(RegNext(syncEthIntrReg) === 0x0.U && syncEthIntrReg(0) === 0x1.U)
   io.interrupts(0) := pulseEthIntrReg
 
   //Check for PTP features
   if (withPTP) {
     println("EthMac w/ PTP1588 hardware (eth_addrWidth=" + extAddrWidth + ", ptp_addrWidth=" + (extAddrWidth) + ")")
     val ptp = Module(new PTP1588Assist(extAddrWidth, dataWidth, CLOCK_FREQ, secondsWidth, nanoWidth, initialTime, ppsDuration))
-    val masterReg = Reg(next = io.ocp.M)
+    val masterReg = RegNext(io.ocp.M)
     eth.io.M.Data := masterReg.Data
     eth.io.M.ByteEn := masterReg.ByteEn
     eth.io.M.Addr := masterReg.Addr
@@ -186,7 +187,7 @@ class EthMac(extAddrWidth: Int = 32, dataWidth: Int = 32, withPTP: Boolean = fal
     ptp.io.ocp.M.ByteEn := masterReg.ByteEn
     ptp.io.ocp.M.Addr := masterReg.Addr
     //Arbitrate OCP master
-    when(masterReg.Addr(15, 12) === Bits("hE")) {
+    when(masterReg.Addr(15, 12) === 0xE.U) {
       eth.io.M.Cmd := OcpCmd.IDLE
       ptp.io.ocp.M.Cmd := masterReg.Cmd //PTP
     }.otherwise {
@@ -194,8 +195,8 @@ class EthMac(extAddrWidth: Int = 32, dataWidth: Int = 32, withPTP: Boolean = fal
       ptp.io.ocp.M.Cmd := OcpCmd.IDLE
     }
     //Arbitrate OCP slave based on response
-    val replyRegPTP = Reg(next = ptp.io.ocp.S)
-    val replyRegETH = Reg(next = eth.io.S)
+    val replyRegPTP = RegNext(ptp.io.ocp.S)
+    val replyRegETH = RegNext(eth.io.S)
     when(replyRegETH.Resp =/= OcpResp.NULL) {
       io.ocp.S := replyRegETH //ETH
     }.elsewhen(replyRegPTP.Resp =/= OcpResp.NULL) {

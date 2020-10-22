@@ -1,98 +1,98 @@
 package ptp1588assist
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import ocp._
 import patmos.Constants.{ADDR_WIDTH, DATA_WIDTH}
 
 class MIITimestampUnit(timestampWidth: Int) extends Module {
-  val io = new Bundle {
+  val io = IO(new Bundle {
     val ocp = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
     val miiChannel = Input(new MIIChannel())
-    val rtcTimestamp = Bits(INPUT, width = timestampWidth)
-    val timestampAvail = Bool(OUTPUT)
-    val sfdValid = Bits(OUTPUT, width = 8)
-    val sofValid = Bool(OUTPUT)
-    val eofValid = Bool(OUTPUT)
-    val ptpValid = Bool(OUTPUT)
-    val ptpTimestamp = Bits(OUTPUT, width = timestampWidth)
-  }
+    val rtcTimestamp = Input(Bits(timestampWidth.W))
+    val timestampAvail = Output(Bool())
+    val sfdValid = Output(Bits(8.W))
+    val sofValid = Output(Bool())
+    val eofValid = Output(Bool())
+    val ptpTimestamp = Output(Bits(timestampWidth.W))
+  })
 
   // Constants
-  val constSFD = Bits("h55555555555555D5")
-  val constVLANt1 = Bits("h8100")
-  val constVLANt2 = Bits("h88A8")
-  val constVLANt3 = Bits("h9100")
-  val constMPLSt1 = Bits("h8847")
-  val constMPLSt2 = Bits("h8848")
-  val constIPv4t = Bits("h0800")
-  val constIPv6t = Bits("h86DD")
-  val constPCFt = Bits("h891D")
-  val constPTP2t = Bits("h88F7")
-  val constPTP4t1 = Bits("h013F")
-  val constPTP4t2 = Bits("h0140")
+  val constSFD = 0x55555555555555D5L.U(64.W)
+  val constVLANt1 = 0x8100.U
+  val constVLANt2 = 0x88A8.U
+  val constVLANt3 = 0x9100.U
+  val constMPLSt1 = 0x8847.U
+  val constMPLSt2 = 0x8848.U
+  val constIPv4t = 0x0800.U
+  val constIPv6t = 0x86DD.U
+  val constPCFt = 0x891D.U
+  val constPTP2t = 0x88F7.U
+  val constPTP4t1 = 0x013F.U
+  val constPTP4t2 = 0x0140.U
   val constPTPGeneralPort = 319.U
   val constPTPEventPort = 320.U
-  val constPTPSyncType = Bits("h00")
-  val constPTPFollowType = Bits("h08")
-  val constPTPDlyReqType = Bits("h01")
-  val constPTPDlyRplyType = Bits("h09")
+  val constPTPSyncType = 0x00.U
+  val constPTPFollowType = 0x08.U
+  val constPTPDlyReqType = 0x01.U
+  val constPTPDlyRplyType = 0x09.U
 
   // Buffers
-  val sfdReg = Reg(init = UInt(0, width = 8))
-  val srcMACReg = Reg(init = UInt(0, width = 48))
-  val dstMACReg = Reg(init = UInt(0, width = 48))
-  val ethTypeReg = Reg(init = UInt(0, width = 16))
-  val udpDstPortReg = Reg(init = UInt(0, width = 16))
-  val udpSrcPortReg = Reg(init = UInt(0, width = 16))
-  val ptpMsgTypeReg = Reg(init = UInt(0, width = 8))
-  val tempTimestampReg = Reg(init = UInt(0, width = timestampWidth))
-  val rtcTimestampReg = Reg(init = UInt(0, width = timestampWidth))
+  val sfdReg = RegInit(0.U(8.W))
+  val srcMACReg = RegInit(0.U(48.W))
+  val dstMACReg = RegInit(0.U(48.W))
+  val ethTypeReg = RegInit(0.U(16.W))
+  val udpDstPortReg = RegInit(0.U(16.W))
+  val udpSrcPortReg = RegInit(0.U(16.W))
+  val ptpMsgTypeReg = RegInit(0.U(8.W))
+  val tempTimestampReg = RegInit(0.U(timestampWidth.W))
+  val rtcTimestampReg = RegInit(0.U(timestampWidth.W))
 
   // Status registers
-  val isVLANFrameReg = Reg(init = Bool(false))
-  val isIPFrameReg = Reg(init = Bool(false))
-  val isUDPFrameReg = Reg(init = Bool(false))
-  val isPTPFrameReg = Reg(init = Bool(false))
-  val isPCFFrameReg = Reg(init = Bool(false))
-  val sofReg = Reg(init = Bool(false))
-  val eofReg = Reg(init = Bool(false))
-  val bufClrReg = Reg(init = Bool(false))
-  val timestampAvailReg = Reg(init = Bool(false))
+  val isVLANFrameReg = RegInit(false.B)
+  val isIPFrameReg = RegInit(false.B)
+  val isUDPFrameReg = RegInit(false.B)
+  val isPTPFrameReg = RegInit(false.B)
+  val isPCFFrameReg = RegInit(false.B)
+  val sofReg = RegInit(false.B)
+  val eofReg = RegInit(false.B)
+  val bufClrReg = RegInit(false.B)
+  val timestampAvailReg = RegInit(false.B)
 
   // Counters
-  val byteCntReg = Reg(init = UInt(0, width = 11))
+  val byteCntReg = RegInit(0.U(11.W))
 
   // State machine
-  val stCollectSFD :: stDstMAC :: stSrcMAC :: stTypeEth :: stIPhead :: stUDPhead :: stPCFHead :: stPTPhead :: stEOF :: Nil = Enum(UInt(), 9)
-  val stateReg = Reg(init = stCollectSFD)
+  val stCollectSFD :: stDstMAC :: stSrcMAC :: stTypeEth :: stIPhead :: stUDPhead :: stPCFHead :: stPTPhead :: stEOF :: Nil = Enum(9)
+  val stateReg = RegInit(stCollectSFD)
 
   // Sampling clock and line of MII
-  val miiDvReg = Reg(next = io.miiChannel.dv)
-  val miiDvReg2 = Reg(next = miiDvReg)
-  val miiErrReg = Reg(next = io.miiChannel.err)
-  val miiErrReg2 = Reg(next = miiErrReg)
-  val lastMIIClk = Reg(next = io.miiChannel.clk)
-  val miiClkReg = Reg(next = io.miiChannel.clk)
-  val miiClkReg2 = Reg(next = miiClkReg)
-  val miiDataReg = Reg(next = io.miiChannel.data)
-  val miiDataReg2 = Reg(next = miiDataReg)
+  val miiDvReg = RegNext(io.miiChannel.dv)
+  val miiDvReg2 = RegNext(miiDvReg)
+  val miiErrReg = RegNext(io.miiChannel.err)
+  val miiErrReg2 = RegNext(miiErrReg)
+  val lastMIIClk = RegNext(io.miiChannel.clk)
+  val miiClkReg = RegNext(io.miiChannel.clk)
+  val miiClkReg2 = RegNext(miiClkReg)
+  val miiDataReg = RegNext(io.miiChannel.data)
+  val miiDataReg2 = RegNext(miiDataReg)
   // Flags
-  val validPHYData = miiDvReg2 & ~miiErrReg2
-  val risingMIIEdge = miiClkReg & ~miiClkReg2
+  val validPHYData = miiDvReg2 & !miiErrReg2
+  val risingMIIEdge = miiClkReg & !miiClkReg2
 
   // Module
   val deserializePHYbyte = Module(new Deserializer(false, 4, 8))
   deserializePHYbyte.io.en := risingMIIEdge & validPHYData
   deserializePHYbyte.io.shiftIn := miiDataReg2
   deserializePHYbyte.io.clr := bufClrReg
-  val byteReg = Reg(init = Bits(0, width = 8), next = deserializePHYbyte.io.shiftOut)
-  val wrByteReg = Reg(next = deserializePHYbyte.io.done)
+  val byteReg = RegNext(next = deserializePHYbyte.io.shiftOut)
+  val wrByteReg = RegNext(deserializePHYbyte.io.done)
 
   val deserializePHYBuffer = Module(new Deserializer(true, 8, 64))
   deserializePHYBuffer.io.en := deserializePHYbyte.io.done
   deserializePHYBuffer.io.shiftIn := deserializePHYbyte.io.shiftOut
   deserializePHYBuffer.io.clr := bufClrReg
-  val regBuffer = Reg(init = Bits(0, width = 64), next = deserializePHYBuffer.io.shiftOut)
+  val regBuffer = RegNext(deserializePHYBuffer.io.shiftOut)
 
   when(bufClrReg) {
     bufClrReg := false.B
@@ -103,7 +103,7 @@ class MIITimestampUnit(timestampWidth: Int) extends Module {
   }
 
   val sofDetect = Mux(regBuffer === constSFD ||
-                      regBuffer === (constSFD & "h00FFFFFFFFFFFFFF".U), true.B, false.B)
+                      regBuffer === (constSFD & 0x00FFFFFFFFFFFFFFL.U), true.B, false.B)
 
   switch(stateReg) {
     is(stCollectSFD) {
@@ -171,7 +171,7 @@ class MIITimestampUnit(timestampWidth: Int) extends Module {
           printf("[stTypeEth]->[stEOF]\n")
         }
       }.otherwise {
-        when((byteCntReg === 2.U && ~isVLANFrameReg) || (byteCntReg === 6.U && isVLANFrameReg)) {
+        when((byteCntReg === 2.U && !isVLANFrameReg) || (byteCntReg === 6.U && isVLANFrameReg)) {
           ethTypeReg := regBuffer(15, 0)
         }
       }
@@ -249,24 +249,24 @@ class MIITimestampUnit(timestampWidth: Int) extends Module {
 
   // OCP Connectivity
   // Register command
-  val masterReg = Reg(next = io.ocp.M)
+  val masterReg = RegNext(io.ocp.M)
 
   // Default response
-  val dataReg = Reg(init = Bits(0, width = DATA_WIDTH))
-  val respReg = Reg(init = OcpResp.NULL)
+  val dataReg = RegInit(0.U(DATA_WIDTH.W))
+  val respReg = RegInit(OcpResp.NULL)
   respReg := OcpResp.NULL
 
   // Read response
   when(masterReg.Cmd === OcpCmd.RD) {
     respReg := OcpResp.DVA
     switch(masterReg.Addr(4, 0)) {
-      is(Bits("h00")) {
+      is(0x00.U) {
         dataReg := rtcTimestampReg(DATA_WIDTH - 1, 0)
       }
-      is(Bits("h04")) {
+      is(0x04.U) {
         dataReg := rtcTimestampReg(timestampWidth - 1, DATA_WIDTH)
       }
-      is(Bits("h08")) {
+      is(0x08.U) {
         dataReg := timestampAvailReg // Cat(validPTPReg, ptpMsgTypeReg)
       }
     }
@@ -275,7 +275,7 @@ class MIITimestampUnit(timestampWidth: Int) extends Module {
   // Write response
   when(masterReg.Cmd === OcpCmd.WR) {
     switch(masterReg.Addr(4, 0)){
-      is(Bits("h08")){
+      is(0x08.U){
         respReg := OcpResp.DVA
         timestampAvailReg := false.B
       }

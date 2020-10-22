@@ -1,25 +1,26 @@
 package ptp1588assist
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 
 /*
  *  Deserialize$inputWidth to M-bit parallel
  */
 class Deserializer(msbFirst: Boolean = false, inputWidth: Int = 4, outputWidth: Int = 8) extends Module{
-    val io = new Bundle() {
-        val en = Bool(INPUT)
-        val clr = Bool(INPUT)
-        val shiftIn = Bits(INPUT, width = inputWidth)
-        val shiftOut = Bits(OUTPUT, width = outputWidth)
-        val done = Bool(OUTPUT)
-    }
+    val io = IO(new Bundle() {
+        val en = Input(Bool())
+        val clr = Input(Bool())
+        val shiftIn = Input(UInt(inputWidth.W))
+        val shiftOut = Output(UInt(outputWidth.W))
+        val done = Output(Bool())
+    })
 
-    val SHIFT_AMOUNT = (outputWidth / inputWidth).U - 1.U
+    val SHIFT_AMOUNT : UInt = (outputWidth / inputWidth).U - 1.U
 
-    val shiftReg = Reg(init = Bits(0, width = outputWidth))
-    val countReg = Reg(init = UInt(0, width=log2Floor(outputWidth/inputWidth)+1))
-    val dataReg = Reg(init = Bits(0, width = outputWidth))
-    val doneReg = Reg(init = Bool(false))
+    val shiftReg = RegInit(0.U(outputWidth.W))
+    val countReg = RegInit(0.U((log2Floor(outputWidth/inputWidth)+1).W))
+    val dataReg = RegInit(0.U(outputWidth.W))
+    val doneReg = RegInit(false.B)
 
     // Shift-register
     when(io.clr) {
