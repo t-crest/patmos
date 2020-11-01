@@ -56,15 +56,6 @@ object I2CMaster extends DeviceObject {
     Module(new I2CMaster(CLOCK_FREQ, bitRate))
   }
 
-  trait Pins {
-    val i2CMasterPins = new Bundle() {
-      val sdaI = Bits(INPUT, 1)
-      val sdaO = Bits(OUTPUT, 1) // '0' when low, 'Z' when high
-      val sclI = Bits(INPUT, 1)
-      val sclO = Bits(OUTPUT, 1) // '0' when low, 'Z' when high
-    }
-  }
-
   //trait Intrs {
   //  val i2cMasterIntrs = Vec.fill(1) { Bool(OUTPUT) }
   //}
@@ -123,7 +114,14 @@ object I2CMaster extends DeviceObject {
  ******************************************************************************/
 class I2CMaster(clkFreq : Int, bitRate : Int) extends CoreDevice() {
 
-  override val io = new CoreDeviceIO() with I2CMaster.Pins //with I2CMaster.Intrs
+  override val io = new CoreDeviceIO() with patmos.HasPins { //with I2CMaster.Intrs
+    override val pins = new Bundle() {
+      val sdaI = Bits(INPUT, 1)
+      val sdaO = Bits(OUTPUT, 1) // '0' when low, 'Z' when high
+      val sclI = Bits(INPUT, 1)
+      val sclO = Bits(OUTPUT, 1) // '0' when low, 'Z' when high
+    }
+  }
 
   // Control: instruct the bus to ...
   val ackBehavReg = Reg(init = Bits(0, 1))  // ... send ACK or NACK upon reading
@@ -357,8 +355,8 @@ class I2CMaster(clkFreq : Int, bitRate : Int) extends CoreDevice() {
   }
 
   // Connections to pins
-  sdaIReg := io.i2CMasterPins.sdaI
-  io.i2CMasterPins.sdaO := sdaOReg
-  sclIReg := io.i2CMasterPins.sclI
-  io.i2CMasterPins.sclO := sclOReg
+  sdaIReg := io.pins.sdaI
+  io.pins.sdaO := sdaOReg
+  sclIReg := io.pins.sclI
+  io.pins.sclO := sclOReg
 }

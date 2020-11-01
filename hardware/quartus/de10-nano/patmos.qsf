@@ -59,7 +59,7 @@ set_location_assignment PIN_AA18 -to oMpuScl
 set_location_assignment PIN_W14 -to ioMpuSda
 set_location_assignment PIN_Y18 -to oMpuAd0
 
-set_global_assignment -name LAST_QUARTUS_VERSION "20.1.0 Lite Edition"
+set_global_assignment -name LAST_QUARTUS_VERSION "19.1.0 Lite Edition"
 set_global_assignment -name RESERVE_ALL_UNUSED_PINS "AS INPUT TRI-STATED WITH WEAK PULL-UP"
 
 set_global_assignment -name MIN_CORE_JUNCTION_TEMP "-40"
