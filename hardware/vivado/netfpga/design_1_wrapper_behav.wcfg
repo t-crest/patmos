@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="design_1_wrapper_behav.wdb" id="1">
+         <top_modules>
+            <top_module name="design_1_wrapper" />
+            <top_module name="glbl" />
+            <top_module name="mac_pkg" />
+            <top_module name="vcomponents" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="0fs"></ZoomStartTime>
+      <ZoomEndTime time="37950001fs"></ZoomEndTime>
+      <Cursor1Time time="3350000fs"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="232"></NameColumnWidth>
+      <ValueColumnWidth column_width="146"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="27" />
+   <wvobject fp_name="/design_1_wrapper/btn" type="array">
+      <obj_property name="ElementShortName">btn[3:0]</obj_property>
+      <obj_property name="ObjectShortName">btn[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/design_1_wrapper/clk_in_n" type="logic">
+      <obj_property name="ElementShortName">clk_in_n</obj_property>
+      <obj_property name="ObjectShortName">clk_in_n</obj_property>
+   </wvobject>
+   <wvobject fp_name="/design_1_wrapper/clk_in_p" type="logic">
+      <obj_property name="ElementShortName">clk_in_p</obj_property>
+      <obj_property name="ObjectShortName">clk_in_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/design_1_wrapper/design_1_i/clk_wiz_0_clk_out1" type="logic">
+      <obj_property name="ElementShortName">clk_wiz_0_clk_out1</obj_property>
+      <obj_property name="ObjectShortName">clk_wiz_0_clk_out1</obj_property>
+   </wvobject>
+   <wvobject fp_name="/design_1_wrapper/iUartPins_rxd" type="logic">
+      <obj_property name="ElementShortName">iUartPins_rxd</obj_property>
+      <obj_property name="ObjectShortName">iUartPins_rxd</obj_property>
+   </wvobject>
+   <wvobject fp_name="/design_1_wrapper/led" type="array">
+      <obj_property name="ElementShortName">led[3:0]</obj_property>
+      <obj_property name="ObjectShortName">led[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/design_1_wrapper/oUartPins_txd" type="logic">
+      <obj_property name="ElementShortName">oUartPins_txd</obj_property>
+      <obj_property name="ObjectShortName">oUartPins_txd</obj_property>
+   </wvobject>
+   <wvobject fp_name="/design_1_wrapper/phy_rstn_1" type="logic">
+      <obj_property name="ElementShortName">phy_rstn_1</obj_property>
+      <obj_property name="ObjectShortName">phy_rstn_1</obj_property>
+   </wvobject>
+   <wvobject fp_name="/design_1_wrapper/rgmii_rx_ctl_1" type="logic">
+      <obj_property name="ElementShortName">rgmii_rx_ctl_1</obj_property>
+      <obj_property name="ObjectShortName">rgmii_rx_ctl_1</obj_property>
+   </wvobject>
+   <wvobject fp_name="/design_1_wrapper/rgmii_rxc_1" type="logic">
+      <obj_property name="ElementShortName">rgmii_rxc_1</obj_property>
+      <obj_property name="ObjectShortName">rgmii_rxc_1</obj_property>
+   </wvobject>
+   <wvobject fp_name="/design_1_wrapper/rgmii_rxd_1" type="array">
+      <obj_property name="ElementShortName">rgmii_rxd_1[3:0]</obj_property>
+      <obj_property name="ObjectShortName">rgmii_rxd_1[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/design_1_wrapper/rgmii_tx_ctl_1" type="logic">
+      <obj_property name="ElementShortName">rgmii_tx_ctl_1</obj_property>
+      <obj_property name="ObjectShortName">rgmii_tx_ctl_1</obj_property>
+   </wvobject>
+   <wvobject fp_name="/design_1_wrapper/rgmii_txc_1" type="logic">
+      <obj_property name="ElementShortName">rgmii_txc_1</obj_property>
+      <obj_property name="ObjectShortName">rgmii_txc_1</obj_property>
+   </wvobject>
+   <wvobject fp_name="/design_1_wrapper/rgmii_txd_1" type="array">
+      <obj_property name="ElementShortName">rgmii_txd_1[3:0]</obj_property>
+      <obj_property name="ObjectShortName">rgmii_txd_1[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/design_1_wrapper/design_1_i/patmos_top_0/U0/comp/clock" type="logic">
+      <obj_property name="ElementShortName">clock</obj_property>
+      <obj_property name="ObjectShortName">clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/design_1_wrapper/design_1_i/patmos_top_0/U0/comp/reset" type="logic">
+      <obj_property name="ElementShortName">reset</obj_property>
+      <obj_property name="ObjectShortName">reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/design_1_wrapper/design_1_i/patmos_top_0/U0/comp/Leds_io_ocp_M_Cmd" type="array">
+      <obj_property name="ElementShortName">Leds_io_ocp_M_Cmd[2:0]</obj_property>
+      <obj_property name="ObjectShortName">Leds_io_ocp_M_Cmd[2:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/design_1_wrapper/design_1_i/patmos_top_0/U0/comp/Leds_io_ocp_M_Data" type="array">
+      <obj_property name="ElementShortName">Leds_io_ocp_M_Data[31:0]</obj_property>
+      <obj_property name="ObjectShortName">Leds_io_ocp_M_Data[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/design_1_wrapper/design_1_i/patmos_top_0/U0/comp/Leds_io_ocp_S_Resp" type="array">
+      <obj_property name="ElementShortName">Leds_io_ocp_S_Resp[1:0]</obj_property>
+      <obj_property name="ObjectShortName">Leds_io_ocp_S_Resp[1:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/design_1_wrapper/design_1_i/patmos_top_0/U0/comp/Leds_io_ocp_S_Data" type="array">
+      <obj_property name="ElementShortName">Leds_io_ocp_S_Data[31:0]</obj_property>
+      <obj_property name="ObjectShortName">Leds_io_ocp_S_Data[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/design_1_wrapper/design_1_i/patmos_top_0/U0/comp/Leds_io_pins_led" type="array">
+      <obj_property name="ElementShortName">Leds_io_pins_led[3:0]</obj_property>
+      <obj_property name="ObjectShortName">Leds_io_pins_led[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/design_1_wrapper/design_1_i/patmos_top_0/U0/comp/AXI4LiteMMBridge_io_ocp_M_Cmd" type="array">
+      <obj_property name="ElementShortName">AXI4LiteMMBridge_io_ocp_M_Cmd[2:0]</obj_property>
+      <obj_property name="ObjectShortName">AXI4LiteMMBridge_io_ocp_M_Cmd[2:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/design_1_wrapper/design_1_i/patmos_top_0/U0/comp/AXI4LiteMMBridge_io_ocp_M_Addr" type="array">
+      <obj_property name="ElementShortName">AXI4LiteMMBridge_io_ocp_M_Addr[31:0]</obj_property>
+      <obj_property name="ObjectShortName">AXI4LiteMMBridge_io_ocp_M_Addr[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/design_1_wrapper/design_1_i/patmos_top_0/U0/comp/AXI4LiteMMBridge_io_ocp_M_Data" type="array">
+      <obj_property name="ElementShortName">AXI4LiteMMBridge_io_ocp_M_Data[31:0]</obj_property>
+      <obj_property name="ObjectShortName">AXI4LiteMMBridge_io_ocp_M_Data[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/design_1_wrapper/design_1_i/patmos_top_0/U0/comp/AXI4LiteMMBridge_io_ocp_M_ByteEn" type="array">
+      <obj_property name="ElementShortName">AXI4LiteMMBridge_io_ocp_M_ByteEn[3:0]</obj_property>
+      <obj_property name="ObjectShortName">AXI4LiteMMBridge_io_ocp_M_ByteEn[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/design_1_wrapper/design_1_i/patmos_top_0/U0/comp/AXI4LiteMMBridge_io_ocp_S_Resp" type="array">
+      <obj_property name="ElementShortName">AXI4LiteMMBridge_io_ocp_S_Resp[1:0]</obj_property>
+      <obj_property name="ObjectShortName">AXI4LiteMMBridge_io_ocp_S_Resp[1:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/design_1_wrapper/design_1_i/patmos_top_0/U0/comp/AXI4LiteMMBridge_io_ocp_S_Data" type="array">
+      <obj_property name="ElementShortName">AXI4LiteMMBridge_io_ocp_S_Data[31:0]</obj_property>
+      <obj_property name="ObjectShortName">AXI4LiteMMBridge_io_ocp_S_Data[31:0]</obj_property>
+   </wvobject>
+</wave_config>
