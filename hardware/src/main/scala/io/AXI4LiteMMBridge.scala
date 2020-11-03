@@ -49,22 +49,37 @@ class AXI4LiteMMBridge(addrWidth: Int = 32, dataWidth: Int = 32) extends CoreDev
   mAxiPort.aw.bits.prot := 0.U
 
   val mOcpReg = RegInit(io.ocp.M)
+  val holdBusyReg = RegInit(false.B)
 
   // For simplicity we register new commands only when the AXI slave has answered fully
-  when(mOcpReg.Cmd === OcpCmd.IDLE || mAxiPort.b.valid || mAxiPort.r.valid) {
+  when(~holdBusyReg) {
     mOcpReg := io.ocp.M
+  }
+  
+  when(~holdBusyReg) {
+    when(io.ocp.M.Cmd === OcpCmd.RD) {
+      holdBusyReg := ~mAxiPort.ar.ready
+    }.elsewhen(io.ocp.M.Cmd === OcpCmd.WR) {
+      holdBusyReg := ~mAxiPort.aw.ready && ~mAxiPort.w.ready
+    }
+  }.otherwise {
+    when(mOcpReg.Cmd === OcpCmd.RD) {
+      holdBusyReg := ~mAxiPort.ar.ready
+    }.elsewhen(mOcpReg.Cmd === OcpCmd.WR) {
+      holdBusyReg := ~mAxiPort.aw.ready && ~mAxiPort.w.ready
+    }
   }
 
   // Write channel
-  mAxiPort.aw.valid := mOcpReg.Cmd === OcpCmd.WR
+  mAxiPort.aw.valid := mOcpReg.Cmd === OcpCmd.WR && holdBusyReg
   mAxiPort.aw.bits.addr := mOcpReg.Addr
-  mAxiPort.w.valid := mOcpReg.Cmd === OcpCmd.WR
+  mAxiPort.w.valid := mOcpReg.Cmd === OcpCmd.WR && holdBusyReg
   mAxiPort.w.bits.data := mOcpReg.Data
   mAxiPort.w.bits.strb := mOcpReg.ByteEn
 
   // Read channel
   mAxiPort.ar.bits.addr := mOcpReg.Addr
-  mAxiPort.ar.valid := mOcpReg.Cmd === OcpCmd.RD
+  mAxiPort.ar.valid := mOcpReg.Cmd === OcpCmd.RD && holdBusyReg
   mAxiPort.r.ready := true.B // the ocp bus is always ready to accept data
   mAxiPort.b.ready := true.B
 
