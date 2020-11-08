@@ -37,7 +37,57 @@
 #define MPU6050_PWR_MGMT_1         0x6B   // R/W
 #define MPU6050_WHO_AM_I           0x75   // R
 
-
+/*******************************************************************************
+ * I2C Master device registers: 4 registers, each 8 bit wide (32-bit aligned)
+ *
+ * NOTE: Writing any register while the busy flag in the status register is set
+ *       has no effect. Reading any register except the status register while
+ *       the busy flag is set returns 0.
+ *
+ * Control register (+ 0x00), read and write:
+ *  - Bit 0: Specifies whether the bus responds with ACK (0) or NACK (1) upon
+ *           reading. This bit must be set before initiating the read where it
+ *           shall be effective, e.g. before addressing for the first read.
+ *  - Bit 1: Writing 1 to this bit issues a stop condition if the bus is
+ *           connected to a device in write mode; always reads as 0.
+ *  - Bit 2: Writing 1 to this bit enables clock stretching, i.e. the master
+ *           reads back the clock signal after releasing it and waits until the
+ *           clock signal goes high; thus a slave can stretch the clock cycle.
+ *  - Bit 3-7: Unused, always read as 0.
+ *
+ * Status register (+ 0x04), read-only:
+ *  - Bit 0: Busy flag: if set the bus is busy processing a request.
+ *  - Bit 1: Connected flag: if set the bus is connected to a device.
+ *  - Bit 2: RW flag: indicates whether the bus is currently connected in read
+ *           mode (1) or in write mode (0); reads as 0 if not connected.
+ *  - Bit 3: Contains the last acknowledge transmitted on the bus (either sent
+ *           or received); only valid if the busy flag is cleared.
+ *  - Bit 4: Abort flag: if set the last connection was aborted because the bus
+ *           got a NACK upon addressing or writing.
+ *  - Bit 5-7: Unused, always read as 0.
+ *
+ * Address register (+ 0x08), write-only (always reads as 0):
+ * Writing this register attempts to connect the bus to a device. If the bus is
+ * not connected a start condition is issued. If the bus is already connected
+ * in write mode a repeated start is issued, canceling the current connection.
+ * Writing this register has no effect if the bus is already connected to a
+ * device in read mode.
+ * If the bus successfully connects to a device in read mode, it immediately
+ * starts reading the first byte.
+ *  - Bit 0: Select read mode (1) or write mode(0).
+ *  - Bit 1-7: Address of the device to connect to.
+ *
+ * Data register (+ 0x0C), read and write:
+ * In read mode this register holds the data received on the bus. The first
+ * byte is read immediately after a connection has been established. Reading
+ * this register triggers reading of the next byte. Issue a stop condition
+ * before reading this register if you do not want further bytes to be read.
+ * Writing this register in read mode has no effect.
+ * In write mode the data to be transmitted on the bus is written to this
+ * register. If the bus is connected in write mode, writing this register
+ * triggers the transmission of the data. Reading this register in write mode
+ * returns 0.
+ ******************************************************************************/
 volatile _SPM int *i2cctrl  = (volatile _SPM int *) PATMOS_IO_I2C+0x0;
 volatile _SPM int *i2cstatus= (volatile _SPM int *) PATMOS_IO_I2C+0x4;
 volatile _SPM int *i2caddr  = (volatile _SPM int *) PATMOS_IO_I2C+0x8;
@@ -86,19 +136,19 @@ int i2c_begin(unsigned char chipaddress)
   printf("i2cctrl: %X\n",(int)*i2cctrl );
   printf("i2cstatus: %X\n",(int)*i2cstatus );
 
-  while((((int)*i2cstatus & 0x00000001) != 0))
+  while((((int)*i2cstatus & 0x01) != 0))
   {
     printf("register busy\n" );
   }
-  *i2cctrl = 0x00000000;
-  *i2caddr = ((unsigned int)chipaddress & 0x000000FF);
+  *i2cctrl = 0x00;
+  *i2caddr = ((unsigned int)chipaddress & 0xFF)<<1;
 
   if(((int)*i2cstatus & 0x00000004) == 0)
   {
     printf("write mode\n" );
   }
 
-  if(((int)*i2cstatus & 0x00000002) != 0)
+  if(((int)*i2cstatus & 0x02) != 0)
   {
     printf("register already connected\n" );
   }
@@ -119,20 +169,20 @@ int new_i2c_read(unsigned char chipaddress){
   printf("i2cdata: %X\n",(int)*i2cdata );
 
 
-  while((((int)*i2cstatus & 0x00000001) != 0))
+  while((((int)*i2cstatus & 0x01) != 0))
   {
     printf("register busy\n" );
   }
-  *i2cctrl = 0x00000003;
+  *i2cctrl = 0x03;
 
-  *i2caddr = ((unsigned int)chipaddress & 0x000000FF);
+  *i2caddr = (((unsigned int)chipaddress & 0xFF)<<1) | 0x01;
 
-  if(((int)*i2cstatus & 0x00000004) != 0)
+  if(((int)*i2cstatus & 0x04) != 0)
   {
     printf("read mode\n" );
   }
 
-  if(((int)*i2cstatus & 0x00000002) != 0)
+  if(((int)*i2cstatus & 0x02) != 0)
   {
     printf("register already connected\n" );
   }
@@ -143,7 +193,7 @@ int new_i2c_read(unsigned char chipaddress){
   printf("i2cstatus: %X\n",(int)*i2cstatus );
   printf("i2cdata: %X\n",(int)*i2cdata );
 
-  return *i2cdata & 0x000000FF;
+  return *i2cdata & 0xFF;
 }
 
 
@@ -159,18 +209,18 @@ int new_i2c_write(unsigned char data){
   printf("i2cdata: %X\n",(int)*i2cdata );
 
 
-  while((((int)*i2cstatus & 0x00000001) != 0))
+  while((((int)*i2cstatus & 0x01) != 0))
   {
     printf("register busy\n" );
   }
-  *i2cctrl = 0x00000000;
+  *i2cctrl = 0x00;
 
-  if(((int)*i2cstatus & 0x00000004) == 0)
+  if(((int)*i2cstatus & 0x04) == 0)
   {
     printf("write mode\n" );
   }
 
-  if(((int)*i2cstatus & 0x00000002) != 0)
+  if(((int)*i2cstatus & 0x02) != 0)
   {
     printf("register already connected\n" );
   }
@@ -182,7 +232,7 @@ int new_i2c_write(unsigned char data){
   printf("i2cdata: %X\n",(int)*i2cdata );
 
 
-  *i2cdata =  (unsigned int)data & 0x000000FF;
+  *i2cdata =  (unsigned int)data & 0xFF;
   return 0;
 }
 
