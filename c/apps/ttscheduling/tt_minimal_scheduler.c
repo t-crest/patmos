@@ -62,7 +62,7 @@ uint8_t tt_minimal_dispatcher(MinimalTTSchedule *schedule, const schedtime_t sch
           schedule->tasks[i].func(&schedule->tasks[i]);
           schedule->tasks[i].release_times[schedule->tasks[i].release_inst] += schedule->hyper_period;
           schedule->tasks[i].release_inst = (schedule->tasks[i].release_inst + 1) % schedule->tasks[i].nr_releases;
-				  schedule->tasks[i].delta_sum += schedule->tasks[i].last_release_time == 0 ? 0 :
+				  schedule->tasks[i].delta_sum += schedule->tasks[i].last_release_time == 0 ? schedule->tasks[i].period == 0 :
                                           (schedule_time - schedule->tasks[i].last_release_time);
           schedule->tasks[i].last_release_time = schedule_time;
           schedule->tasks[i].exec_count++;

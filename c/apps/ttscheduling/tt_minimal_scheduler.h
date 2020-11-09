@@ -27,6 +27,8 @@
 typedef struct {
     schedtime_t period;
     schedtime_t *release_times;
+    schedtime_t deadline;
+    uint32_t wcet;
     uint32_t release_inst;
     uint32_t nr_releases;
 	schedtime_t delta_sum;

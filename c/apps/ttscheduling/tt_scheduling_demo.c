@@ -34,8 +34,6 @@ int main()
         init_minimal_tttask(&taskSet[i], (uint64_t)(tasks_periods[i] * NS_TO_US), tasks_schedules[i], tasks_insts_counts[i], tasks_func_ptrs[i]);
     }
 
-    sort_asc_minimal_tttasks(taskSet, NUM_OF_TASKS);
-
     schedule = init_minimal_ttschedule((uint64_t)(HYPER_PERIOD * NS_TO_US), NUM_OF_TASKS, taskSet, &get_cpu_usecs);
 
     printf("\nSchedule start_time(us)=%llu\n", get_cpu_usecs());
@@ -52,9 +50,9 @@ int main()
     printf("--Total execution time = %llu μs\n", scheduleTime);
     printf("--Total no. of executed tasks = %d\n", numExecTasks);
     for(int i=0; i<NUM_OF_TASKS; i++){
-        uint64_t avgDelta = (uint64_t) (schedule.tasks[i].delta_sum/ (uint64_t)schedule.tasks[i].exec_count);
-        printf("--task[%d].period = %lld, executed with avg. dt = %llu (jitter = %d) from a total of %lu executions\n", i, schedule.tasks[i].period, 
-        avgDelta, (int) schedule.tasks[i].period - (int) avgDelta, schedule.tasks[i].exec_count);
+        double avgDelta = (double) (schedule.tasks[i].delta_sum/ (double)schedule.tasks[i].exec_count);
+        printf("--task[%d].period = %lld μs, executed with avg. dt = %.3f μs (jitter = %.3f μs) and a total of %lu executions\n", i, schedule.tasks[i].period, 
+        avgDelta, schedule.tasks[i].period - avgDelta, schedule.tasks[i].exec_count);
     }
 
     return 0;
