@@ -49,8 +49,7 @@ wcet_rosace_cyclic_common:
 	platin wcet --disable-ait -i tpip.pml -b rosace_wcet.elf -e execute_cyclic_loop
 
 wcet_aircraft_node:
-	patmos-clang -D USE_FLOAT -D AIRCRAFT_NODE $(CFLAGS) $(NOCINIT) -mserialize=tpip.pml $(LIBETH)/*.c rosace_distributed.c rosace_dist_common.c tteconfig.c io.c sincos_lut.c assemblage_includes.c assemblage.c -o rosace_wcet.elf -L$(BUILDDIR) -lm
-	platin wcet --disable-ait -i tpip.pml -b rosace_wcet.elf -e rosace_init
+	patmos-clang -D USE_FLOAT -D AIRCRAFT_NODE $(CFLAGS) $(NOCINIT) -mserialize=tpip.pml $(LIBETH)/*.c rosace_distributed.c rosace_dist_common.c io.c sincos_lut.c assemblage_includes.c assemblage.c -o rosace_wcet.elf -L$(BUILDDIR) -lm
 	platin wcet --disable-ait -i tpip.pml -b rosace_wcet.elf -e execute_cyclic_loop
 	platin wcet --disable-ait -i tpip.pml -b rosace_wcet.elf -e logging_fun
 	platin wcet --disable-ait -i tpip.pml -b rosace_wcet.elf -e sync_fun
@@ -58,7 +57,7 @@ wcet_aircraft_node:
 	platin wcet --disable-ait -i tpip.pml -b rosace_wcet.elf -e vl_dyn_send_fun
 
 wcet_filter_node:
-	patmos-clang -D USE_FLOAT -D FILTER_NODE $(CFLAGS) $(NOCINIT) -mserialize=tpip.pml $(LIBETH)/*.c rosace_distributed.c rosace_dist_common.c tteconfig.c io.c sincos_lut.c assemblage_includes.c assemblage.c -o rosace_wcet.elf -L$(BUILDDIR) -lm
+	patmos-clang -D USE_FLOAT -D FILTER_NODE $(CFLAGS) $(NOCINIT) -mserialize=tpip.pml $(LIBETH)/*.c rosace_distributed.c rosace_dist_common.c io.c sincos_lut.c assemblage_includes.c assemblage.c -o rosace_wcet.elf -L$(BUILDDIR) -lm
 	platin wcet --disable-ait -i tpip.pml -b rosace_wcet.elf -e rosace_init
 	platin wcet --disable-ait -i tpip.pml -b rosace_wcet.elf -e execute_cyclic_loop
 	platin wcet --disable-ait -i tpip.pml -b rosace_wcet.elf -e sync_fun
@@ -66,7 +65,7 @@ wcet_filter_node:
 	platin wcet --disable-ait -i tpip.pml -b rosace_wcet.elf -e vl_filter_send_fun
 
 wcet_control_node:
-	patmos-clang -D USE_FLOAT -D CONTROL_NODE $(CFLAGS) $(NOCINIT) -mserialize=tpip.pml $(LIBETH)/*.c rosace_distributed.c rosace_dist_common.c tteconfig.c io.c sincos_lut.c assemblage_includes.c assemblage.c -o rosace_wcet.elf -L$(BUILDDIR) -lm
+	patmos-clang -D USE_FLOAT -D CONTROL_NODE $(CFLAGS) $(NOCINIT) -mserialize=tpip.pml $(LIBETH)/*.c rosace_distributed.c rosace_dist_common.c io.c sincos_lut.c assemblage_includes.c assemblage.c -o rosace_wcet.elf -L$(BUILDDIR) -lm
 	platin wcet --disable-ait -i tpip.pml -b rosace_wcet.elf -e rosace_init
 	platin wcet --disable-ait -i tpip.pml -b rosace_wcet.elf -e execute_cyclic_loop
 	platin wcet --disable-ait -i tpip.pml -b rosace_wcet.elf -e sync_fun
@@ -80,7 +79,7 @@ rosace_patmos_cyclic:
 	patmos-clang -D USE_FLOAT $(CFLAGS) $(NOCINIT) rosace_patmos_cyclic.c rosace_dist_common.c io.c sincos_lut.c assemblage_includes.c assemblage.c -o rosace_patmos.elf -L$(BUILDDIR) -lm
 
 rosace_distributed_node:
-	patmos-clang -D USE_FLOAT -D $(NODE) $(CFLAGS) $(NOCINIT) $(LIBETH)/*.c rosace_distributed.c rosace_dist_common.c tteconfig.c io.c sincos_lut.c assemblage_includes.c assemblage.c -o rosace_patmos.elf -L$(BUILDDIR) -lm
+	patmos-clang -D USE_FLOAT -D $(NODE) $(CFLAGS) $(NOCINIT) $(LIBETH)/*.c rosace_distributed.c rosace_dist_common.c io.c sincos_lut.c assemblage_includes.c assemblage.c -o rosace_patmos.elf -L$(BUILDDIR) -lm
 
 # running examples
 sim:
