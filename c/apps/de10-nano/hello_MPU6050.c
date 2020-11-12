@@ -132,18 +132,18 @@ void blink_once(){
 
 int i2c_begin(unsigned char chipaddress)
 {
-  printf("i2caddr: %X\n",(int)*i2caddr );
-  printf("i2cctrl: %X\n",(int)*i2cctrl );
-  printf("i2cstatus: %X\n",(int)*i2cstatus );
+  printf("i2caddr: %X\n",*i2caddr );
+  printf("i2cctrl: %X\n",*i2cctrl );
+  printf("i2cstatus: %X\n",*i2cstatus );
 
-  while((((int)*i2cstatus & 0x01) != 0))
+  while(((*i2cstatus & 0x01) != 0))
   {
     printf("register busy\n" );
   }
   *i2cctrl = 0x00;
   *i2caddr = ((unsigned int)chipaddress & 0xFF)<<1;
 
-  if(((int)*i2cstatus & 0x00000004) == 0)
+  if(((int)*i2cstatus & 0x04) == 0)
   {
     printf("write mode\n" );
   }
@@ -154,26 +154,26 @@ int i2c_begin(unsigned char chipaddress)
   }
 
 
-  printf("i2caddr: %X\n",(int)*i2caddr );
-  printf("i2cctrl: %X\n",(int)*i2cctrl );
-  printf("i2cstatus: %X\n",(int)*i2cstatus );
+  printf("i2caddr: %X\n",*i2caddr );
+  printf("i2cctrl: %X\n",*i2cctrl );
+  printf("i2cstatus: %X\n",*i2cstatus );
 
   return 0;
 }
 
 int new_i2c_read(unsigned char chipaddress){
 
-  printf("i2caddr: %X\n",(int)*i2caddr );
-  printf("i2cctrl: %X\n",(int)*i2cctrl );
-  printf("i2cstatus: %X\n",(int)*i2cstatus );
-  printf("i2cdata: %X\n",(int)*i2cdata );
+  printf("i2caddr: %X\n",*i2caddr );
+  printf("i2cctrl: %X\n",*i2cctrl );
+  printf("i2cstatus: %X\n",*i2cstatus );
+  printf("i2cdata: %X\n",*i2cdata );
 
 
   while((((int)*i2cstatus & 0x01) != 0))
   {
     printf("register busy\n" );
   }
-  *i2cctrl = 0x03;
+  *i2cctrl = 0x02;
 
   *i2caddr = (((unsigned int)chipaddress & 0xFF)<<1) | 0x01;
 
@@ -213,7 +213,7 @@ int new_i2c_write(unsigned char data){
   {
     printf("register busy\n" );
   }
-  *i2cctrl = 0x00;
+  // *i2cctrl = 0x00;
 
   if(((int)*i2cstatus & 0x04) == 0)
   {
