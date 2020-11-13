@@ -42,11 +42,17 @@
 #include "i2c_master.h"
 
 #include <machine/spm.h>
+#include <machine/patmos.h>
 
-static volatile _SPM int *i2c_ctrl   = (volatile _SPM int *) 0xF00C0000;
-static volatile _SPM int *i2c_status = (volatile _SPM int *) 0xF00C0004;
-static volatile _SPM int *i2c_addr   = (volatile _SPM int *) 0xF00C0008;
-static volatile _SPM int *i2c_data   = (volatile _SPM int *) 0xF00C000C;
+#define PATMOS_IO_I2C_CTRL  (PATMOS_IO_I2C)
+#define PATMOS_IO_I2C_STAT  (PATMOS_IO_I2C + 4)
+#define PATMOS_IO_I2C_ADDR  (PATMOS_IO_I2C + 8)
+#define PATMOS_IO_I2C_DATA  (PATMOS_IO_I2C + 12)
+
+static volatile _SPM int *i2c_ctrl   = (volatile _SPM int *)PATMOS_IO_I2C_CTRL;
+static volatile _SPM int *i2c_status = (volatile _SPM int *)PATMOS_IO_I2C_STAT;
+static volatile _SPM int *i2c_addr   = (volatile _SPM int *)PATMOS_IO_I2C_ADDR;
+static volatile _SPM int *i2c_data   = (volatile _SPM int *)PATMOS_IO_I2C_DATA;
 
 static int i2c_write(uint8_t addr, int cnt, uint8_t *buf)
 {
