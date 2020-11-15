@@ -1,4 +1,4 @@
-MAIN?=hello_MS5611
+MAIN?=hello_MPU6050
 #MAIN?=blinking
 # MAIN?=acts_props_uart2
 SERIAL?=/dev/ttyUSB0
@@ -10,8 +10,8 @@ LDFLAGS?= \
         -Xgold --defsym -Xgold __heap_end=0x070000
 
 all:
-	patmos-clang -I ../.. -O2 $(LDFLAGS) $(MAIN).c -o de10-nano.elf -lm
-	patmos-clang -I ../.. -O2 $(LDFLAGS) $(MAIN).c -o ~/t-crest/patmos/tmp/de10-nano.elf -lm
+	patmos-clang -I ../.. -O2 $(LDFLAGS) i2c_master.c $(MAIN).c -o de10-nano.elf -lm
+	patmos-clang -I ../.. -O2 $(LDFLAGS) i2c_master.c $(MAIN).c -o ~/t-crest/patmos/tmp/de10-nano.elf -lm
 
 download:
 	patserdow -v $(SERIAL) de10-nano.elf
