@@ -5,26 +5,10 @@
 #include <stdlib.h>	
 #include <stdbool.h>
 
-#define SET_TO_MS 1000
-#define SEC_TO_US 1000000
-#define SEC_TO_NS 1000000000.0
-#define MS_TO_US 1000
-#define MS_TO_NS 1000000
-#define US_TO_NS 1000
-
-#define NS_TO_SEC 1.0/SEC_TO_NS
-#define NT_TO_MS 1.0/MS_TO_NS
-#define NS_TO_US 1.0/US_TO_NS
-
-#define CLKS_TO_US CPU_PERIOD * NS_TO_US 
-#define US_TO_CLKS (US_TO_NS/CPU_PERIOD)
-
-#define CPU_PERIOD 12.5
-#define WCET_DISPATCHER 2046
-
 #define schedtime_t uint64_t
 
 typedef struct {
+    uint16_t id;
     schedtime_t period;
     schedtime_t *release_times;
     schedtime_t deadline;
@@ -37,16 +21,27 @@ typedef struct {
     void (*func)(const void *self);
 } MinimalTTTask;
 
+typedef struct rm_task_node
+{
+    MinimalTTTask task;
+    struct rm_task_node *next;
+} MinimalTTTaskNode;
+
 typedef struct {
     schedtime_t hyper_period;
-    uint32_t num_tasks;
     schedtime_t (*get_time)(void);
     schedtime_t start_time;
-    MinimalTTTask *tasks;
+    uint32_t task_count;
+    MinimalTTTaskNode *head, *tail;
 } MinimalTTSchedule;
 
-void init_minimal_tttask(MinimalTTTask *newTask, const schedtime_t period, schedtime_t *release_times, const schedtime_t nr_releases, void (*func)(const void *self));
+void init_minimal_tttask(MinimalTTTask *newTask, const uint16_t id, const schedtime_t period, schedtime_t *release_times, const schedtime_t nr_releases, void (*func)(const void *self));
 MinimalTTSchedule init_minimal_ttschedule(const schedtime_t hyperperiod, const uint32_t num_tasks, MinimalTTTask *tasks, schedtime_t (*get_time)(void));
 uint32_t tt_minimal_schedule_loop(MinimalTTSchedule *schedule, const uint32_t noLoops, const bool infinite);
 uint8_t tt_minimal_dispatcher(MinimalTTSchedule *schedule, const schedtime_t schedule_ime);
-void sort_asc_minimal_tttasks(MinimalTTTask *tasks, const uint32_t num_tasks);
+MinimalTTTaskNode* create_tttasknode(MinimalTTTask task);
+void ttschedule_enqueue(MinimalTTSchedule* schedule, MinimalTTTask task);
+void ttschedule_sortedinsert_period(MinimalTTSchedule *schedule, MinimalTTTaskNode* new_node);
+void ttschedule_sortedinsert_release(MinimalTTSchedule *schedule, MinimalTTTaskNode* new_node);
+MinimalTTTaskNode* ttschedule_dequeue(MinimalTTSchedule* schedule);
+void print_ttschedule(MinimalTTTaskNode* n);

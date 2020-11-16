@@ -253,28 +253,6 @@ schedtime_t calc_hyperperiod(const MinimalRMSchedule *schedule, const uint32_t s
   return lcm;
 }
 
-
-#ifdef WCET
-__attribute__((noinline))
-#endif
-void sort_period_rmtasks(MinimalRMTask *tasks, const uint32_t tasks_count)
-{
-  #pragma loopbound min 1 max 1
-  for (int i = 0; i < tasks_count; i++)                     
-	{
-    #pragma loopbound min 1 max 1
-		for (int j = 0; j < tasks_count; j++)             
-		{
-			if (tasks[j].period > tasks[i].period)                    
-			{
-				MinimalRMTask tmp = tasks[i];         
-				tasks[i] = tasks[j];            
-				tasks[j] = tmp;             
-			}
-		}
-	}
-}
-
 // This function prints contents of the schedule
 void print_rmschedule(MinimalRMTaskNode* n) 
 { 

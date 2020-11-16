@@ -16,7 +16,7 @@
 #define NT_TO_MS 1.0/MS_TO_NS
 #define NS_TO_US 1.0/US_TO_NS
 
-#define HYPER_ITERATIONS 100
+#define HYPER_ITERATIONS 2
 #define RUN_INFINITE false
 
 #define LED (*((volatile _IODEV unsigned *)PATMOS_IO_LED))
@@ -56,7 +56,7 @@ void create_taskset_table_9_2(MinimalRMSchedule *schedule){
     schedule->head = NULL;
     schedule->tail = NULL;
     for(int i=0; i<10; i++){
-        rmschedule_enqueue(schedule, taskSet[i]);
+        rmschedule_sortedinsert_period(schedule, create_rmtasknode(taskSet[i]));
     }
     printf("Calculating hyper-period...\n");
     schedule->hyper_period = calc_hyperperiod(schedule, MS_TO_US);
@@ -81,7 +81,7 @@ void create_taskset_table_9_6(MinimalRMSchedule *schedule){
     schedule->tail = NULL;
     schedule->task_count = 0;
     for(int i=0; i<7; i++){
-        rmschedule_enqueue(schedule, taskSet[i]);
+        rmschedule_sortedinsert_period(schedule, create_rmtasknode(taskSet[i]));
     }
     printf("Calculating hyper-period...\n");
     schedule->hyper_period = calc_hyperperiod(schedule, MS_TO_US);
@@ -106,10 +106,10 @@ void create_taskset_table_tttasks(MinimalRMSchedule *schedule){
     schedule->head = NULL;
     schedule->tail = NULL;
     for(int i=0; i<8; i++){
-        rmschedule_enqueue(schedule, taskSet[i]);
+        rmschedule_sortedinsert_period(schedule, create_rmtasknode(taskSet[i]));
     }
     printf("Calculating hyper-period...\n");
-    schedule->hyper_period = calc_hyperperiod(schedule, MS_TO_US);
+    schedule->hyper_period = 50000;
 }
 
 int main()
@@ -119,7 +119,7 @@ int main()
     
     uint16_t numExecTasks;
     uint64_t scheduleTime;
-    uint64_t startTime;
+    uint64_t endTime;
     MinimalRMSchedule schedule;
 
     // create_taskset_table_9_2(&schedule);
@@ -135,12 +135,13 @@ int main()
     {
         numExecTasks += minimal_rm_scheduler(&schedule);
     }
+    endTime = schedule.get_time();
     // Report
     LED = 0xFF;
     printf("\nGathered Statistics...\n");
     printf("-- No. of hyper period iterations = %u\n", HYPER_ITERATIONS);
     printf("-- Theoritic duration = %llu μs\n", (uint64_t) HYPER_ITERATIONS * schedule.hyper_period);
-    printf("-- Total execution time = %llu μs\n", schedule.get_time() - schedule.start_time);
+    printf("-- Total execution time = %llu μs\n", endTime - schedule.start_time);
     printf("-- Total no. of executed tasks = %d\n", numExecTasks);
     MinimalRMTaskNode* itr_task = schedule.head;
     while(itr_task != NULL){
