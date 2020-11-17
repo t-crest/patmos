@@ -148,7 +148,6 @@ set_global_assignment -name VHDL_FILE "../../../../argo/src/routers/synchronous/
 set_global_assignment -name VHDL_FILE "../../../../argo/src/routers/synchronous/router.vhd"
 set_global_assignment -name VHDL_FILE "../../../../argo/src/noc/synchronous/noc_node.vhd"
 set_global_assignment -name VHDL_FILE "../../vhdl/argo/noc_node_wrapper.vhd"
-set_global_assignment -name VHDL_FILE "../../vhdl/argo/noc_wrapper_2x2.vhd"
 
 set_global_assignment -name VHDL_FILE ../../vhdl/fpu_double/comppack.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/fpu_double/fpupack.vhd
