@@ -97,6 +97,18 @@ class MemOp() extends Bundle() {
   }
 }
 
+class CopOp() extends Bundle() {
+  val isCop = Bool()
+  val copId = UInt(width = COP_ID_WIDTH)
+  val funcId = UInt(width = COP_FUNCID_WIDTH)
+
+  def defaults() = {
+    isCop := Bool(false)
+    copId := UInt(0)
+    funcId := UInt(0)
+  }
+}
+
 class DecEx() extends Bundle() {
   val pc = UInt(width = PC_SIZE)
   val base = UInt(width = PC_SIZE)
@@ -107,6 +119,7 @@ class DecEx() extends Bundle() {
   val jmpOp = new JmpOp()
   val memOp = new MemOp()
   val stackOp = UInt(width = SC_OP_BITS)
+  val copOp = new CopOp()
 
   // the register fields are very similar to RegFileRead
   // maybe join the structures
@@ -133,6 +146,7 @@ class DecEx() extends Bundle() {
   def flush() = {
     pred := Vec.fill(PIPE_COUNT) { PRED_IFFALSE }
     illOp := Bool(false)
+    copOp.isCop := Bool(false)
   }
 
   def defaults() = {
@@ -144,6 +158,7 @@ class DecEx() extends Bundle() {
     jmpOp.defaults()
     memOp.defaults()
     stackOp := sc_OP_NONE
+    copOp.defaults()
     rsAddr := Vec.fill(2*PIPE_COUNT) { UInt(0) }
     rsData := Vec.fill(2*PIPE_COUNT) { UInt(0) }
     rdAddr := Vec.fill(PIPE_COUNT) { UInt(0) }
@@ -311,7 +326,8 @@ class DecodeIO() extends Bundle() {
 }
 
 class ExecuteIO() extends Bundle() {
-  val ena = Bool(INPUT)
+  val ena_in = Bool(INPUT)
+  val ena_out = Bool(OUTPUT)
   val flush = Bool(INPUT)
   val brflush = Bool(OUTPUT)
   val decex = new DecEx().asInput
@@ -326,6 +342,9 @@ class ExecuteIO() extends Bundle() {
   //stack cache
   val exsc = new ExSc().asOutput
   val scex = new ScEx().asInput
+  // coprocessor
+  val cop_out = Vec(COP_COUNT, new PatmosToCoprocessor().asOutput)
+  val cop_in = Vec(COP_COUNT, new CoprocessorToPatmos().asInput)
 }
 
 class BootMemIO() extends Bundle() {
@@ -359,6 +378,35 @@ class MemoryIO() extends Bundle() {
   val icacheIllMem = Bool(INPUT)
   val scacheIllMem = Bool(INPUT)
   val exc = new MemExc().asOutput
+}
+
+class PatmosToCoprocessor() extends Bundle()
+{
+  val ena_in  = Bool()
+  val trigger = Bool()
+  val read    = Bool()
+  val funcId  = UInt(width = COP_FUNCID_WIDTH)
+  val opData  = Vec(2, UInt(width = DATA_WIDTH) )
+  
+  def defaults() = {
+    ena_in := Bool(false)
+    trigger := Bool(false)
+    read := Bool(false)
+    funcId := UInt(0)
+    opData := Vec.fill(2) { UInt(0) }
+  }
+}
+
+class CoprocessorToPatmos() extends Bundle()
+{
+  val ena_out = Bool()
+  val result  = UInt(width = DATA_WIDTH)
+}
+
+class CoprocessorIO() extends Bundle()
+{
+  val patmosCop = new PatmosToCoprocessor().asOutput
+  val copPatmos = new CoprocessorToPatmos().asInput  
 }
 
 //stack cache

@@ -18,6 +18,7 @@ import io._
 import datacache._
 import ocp.{OcpCoreSlavePort, _}
 import argo._
+import cop._
 
 import scala.collection.immutable.Stream.Empty
 import scala.collection.mutable
@@ -35,6 +36,7 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
     val memInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
     val excInOut = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
     val mmuInOut = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
+    val copInOut = Vec(COP_COUNT, new CoprocessorIO())
   })
 
   val icache =
@@ -123,15 +125,17 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
   burstBus.io.master.S <> mmu.io.virt.S
 
   // Enable signals for memory stage, method cache and stack cache
-  memory.io.ena_in := icache.io.ena_out && !dcache.io.scIO.stall
-  icache.io.ena_in := memory.io.ena_out && !dcache.io.scIO.stall
-  dcache.io.scIO.ena_in := memory.io.ena_out && icache.io.ena_out
+  memory.io.ena_in := icache.io.ena_out && !dcache.io.scIO.stall && execute.io.ena_out
+  icache.io.ena_in := memory.io.ena_out && !dcache.io.scIO.stall && execute.io.ena_out
+  dcache.io.scIO.ena_in := memory.io.ena_out && icache.io.ena_out && execute.io.ena_out
+
+  // Enable signals for execute stage
+  execute.io.ena_in := memory.io.ena_out && icache.io.ena_out && !dcache.io.scIO.stall
 
   // Enable signal
-  val enable = memory.io.ena_out & icache.io.ena_out & !dcache.io.scIO.stall
+  val enable = memory.io.ena_out & icache.io.ena_out & !dcache.io.scIO.stall & execute.io.ena_out
   fetch.io.ena := enable
   decode.io.ena := enable
-  execute.io.ena := enable
   writeback.io.ena := enable
   exc.io.ena := enable
   val enableReg = Reg(next = enable)
@@ -167,6 +171,12 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
 
   // Keep signal alive for debugging
   //debug(enableReg) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
+
+  // connect coprocessor to execute state 
+  for (i <- (0 until COP_COUNT)) {
+    io.copInOut(i).patmosCop <> execute.io.cop_out(i)
+    execute.io.cop_in(i) <> io.copInOut(i).copPatmos
+  }
 }
 
 trait HasPins {
@@ -270,6 +280,9 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       val name = dev.getClass.getSimpleName
     }
   })
+
+  val cops = Array.ofDim[Coprocessor](nrCores,COP_COUNT)
+  var memAccessCount = 0
 
   for (i <- (0 until nrCores)) {
 
@@ -423,30 +436,87 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
     // Merge responses
     cores(i).io.memInOut.S.Resp := errRespReg | devios.map(e => getSlavePort(getIO(e.io, i)).S.Resp).fold(OcpResp.NULL)(_|_)
+
+
+    // Instantiate coprocessors
+    for (k <- (0 until COP_COUNT)) {
+      val copConf = Config.getConfig.Coprocessors(k)
+      val id = copConf.CoprocessorID;
+
+      if(copConf.requiresMemoryAccess)
+      {
+        val copMem = Config.createCoprocessor(copConf).asInstanceOf[Coprocessor_MemoryAccess]
+        copMem.io.copIn <> cores(i).io.copInOut(k).patmosCop
+        cores(i).io.copInOut(k).copPatmos <> copMem.io.copOut
+        memAccessCount = memAccessCount+1;
+        cops(i)(id) = copMem
+        
+      }
+      else
+      {
+        val copNoMem = Config.createCoprocessor(copConf).asInstanceOf[BaseCoprocessor]
+        copNoMem.io.copIn <> cores(i).io.copInOut(k).patmosCop
+        cores(i).io.copInOut(k).copPatmos <> copNoMem.io.copOut
+        cops(i)(id) = copNoMem
+      }
+      
+    }
   }
 
   // Connect memory controller
   val ramConf = config.ExtMem.ram
   val ramCtrl = Config.createDevice(ramConf).asInstanceOf[BurstDevice]
+  
 
   registerPins(ramConf.name, ramCtrl.io)
 
   // TODO: fix memory arbiter to have configurable memory timing.
   // E.g., it does not work with on-chip main memory.
-  if (cores.length == 1) {
+  if (cores.length + memAccessCount == 1) {
     ramCtrl.io.ocp.M <> cores(0).io.memPort.M
     cores(0).io.memPort.S <> ramCtrl.io.ocp.S
     ramCtrl.io.superMode <> cores(0).io.superMode
   } else {
+    
+    // memAccessCount stores the totale number of required memory access ports
+    val memarbiterCount = if(memAccessCount>0)
+    {
+      memAccessCount +nrCores
+    }
+    else
+    {
+      nrCores
+    } 
+
     val memarbiter =
       if(ramCtrl.isInstanceOf[DDR3Bridge] || ramCtrl.isInstanceOf[OCRamCtrl]) {
-        Module(new ocp.Arbiter(nrCores, ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
+        Module(new ocp.Arbiter(memarbiterCount, ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
       } else {
-        Module(new ocp.TdmArbiterWrapper(nrCores, ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
+        Module(new ocp.TdmArbiterWrapper(memarbiterCount, ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
       }
+      
+    var arbiterEntry = 0
     for (i <- (0 until cores.length)) {
-      memarbiter.io.master(i).M <> cores(i).io.memPort.M
-      cores(i).io.memPort.S <> memarbiter.io.master(i).S
+      
+      memarbiter.io.master(arbiterEntry).M <> cores(i).io.memPort.M
+      cores(i).io.memPort.S <> memarbiter.io.master(arbiterEntry).S
+
+      arbiterEntry = arbiterEntry +1
+      
+      for(j <- (0 until COP_COUNT)) {
+        val copConf = Config.getConfig.Coprocessors(j)
+        val id = copConf.CoprocessorID;
+
+        if(copConf.requiresMemoryAccess)
+        {
+          // as memory access is required object is actually of CoprocessorMemory
+          val copMem = cops(i)(id).asInstanceOf[Coprocessor_MemoryAccess]
+          memarbiter.io.master(arbiterEntry).M <> copMem.io.memPort.M
+          copMem.io.memPort.S <> memarbiter.io.master(arbiterEntry).S
+          arbiterEntry = arbiterEntry +1
+        }
+    
+      }
     }
     ramCtrl.io.ocp.M <> memarbiter.io.slave.M
     memarbiter.io.slave.S <> ramCtrl.io.ocp.S

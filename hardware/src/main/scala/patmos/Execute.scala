@@ -15,8 +15,11 @@ import Constants._
 class Execute() extends Module {
   val io = IO(new ExecuteIO())
 
+  val enable_cop = Wire(Bool(), true.B)
+  io.ena_out := enable_cop
+
   val exReg = Reg(new DecEx())
-  when(io.ena) {
+  when(enable_cop && io.ena_in) {
     exReg := io.decex
     when(io.flush || io.brflush) {
       exReg.flush()
@@ -107,11 +110,11 @@ class Execute() extends Module {
     }
   }
 
-  when (!io.ena) {
+  when (!enable_cop || !io.ena_in) {
     fwReg := fwReg
     fwSrcReg := fwSrcReg
   }
-  when (io.ena) {
+  when (enable_cop && io.ena_in) {
     memResultDataReg := io.memResult.map(_.data)
     exResultDataReg := io.exResult.map(_.data)
   }
@@ -162,7 +165,7 @@ class Execute() extends Module {
   val mulPipeReg = Reg(Bool())
 
   // multiplication only in first pipeline
-  when(io.ena) {
+  when(io.ena_in) {
     mulPipeReg := exReg.aluOp(0).isMul && doExecute(0)
 
     val signed = exReg.aluOp(0).func === MFUNC_MUL
@@ -339,7 +342,7 @@ class Execute() extends Module {
     retBaseReg := Cat(exReg.base, 0.U(2.W))
   }
   // the offset is saved when the call is already in the MEM statge
-  saveRetOff := exReg.call && doExecute(0) && io.ena
+  saveRetOff := exReg.call && doExecute(0) && io.ena_in
   saveND := exReg.nonDelayed
 
   // exception return information
@@ -366,8 +369,34 @@ class Execute() extends Module {
   io.exicache.callRetBase := callRetBase(31,2)
   io.exicache.callRetAddr := callRetAddr(31,2)
 
+  // coprocessor handling
+  if (COP_COUNT > 0) {
+    when(!io.flush && doExecute(0)) {
+      val copStarted = RegInit(Bool(false))
+      io.cop_out.map(_.defaults())
+      when(exReg.copOp.isCop) {
+        io.cop_out(exReg.copOp.copId).ena_in := io.ena_in
+        io.cop_out(exReg.copOp.copId).trigger := io.ena_in && !copStarted
+        io.cop_out(exReg.copOp.copId).read := exReg.wrRd(0)
+        io.cop_out(exReg.copOp.copId).funcId := exReg.copOp.funcId
+        io.cop_out(exReg.copOp.copId).opData(0) := op(0)
+        io.cop_out(exReg.copOp.copId).opData(1) := op(1)
+    
+        enable_cop := io.cop_in(exReg.copOp.copId).ena_out
+        io.exmem.rd(0).data := io.cop_in(exReg.copOp.copId).result
+
+        when(io.ena_in) {
+          copStarted := Bool(true)
+          when(enable_cop) {
+            copStarted := Bool(false)
+          }
+        }
+      }
+    }
+  }
+
   // suppress writes to special registers
-  when(!io.ena) {
+  when(!enable_cop || !io.ena_in) {
     predReg := predReg
     mulLoReg := mulLoReg
     mulHiReg := mulHiReg
@@ -377,7 +406,7 @@ class Execute() extends Module {
     excOffReg := excOffReg
   }
 
-  // saveRetOff overrides io.ena for writes to retOffReg
+  // saveRetOff overrides io.ena_in for writes to retOffReg
   when(saveRetOff) {
     retOffReg := Cat(Mux(saveND, exReg.relPc, io.feex.pc), 0.U(2.W))
   }
