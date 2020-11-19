@@ -88,7 +88,18 @@ class FPUDouble() extends CoreDevice() {
   val operandAReg = RegInit(0.U(64.W))
   val operandBReg = RegInit(0.U(64.W))
   val resultsReg = RegInit(0.U(64.W))
-  val statusReg = RegInit(0.U(6.W))
+  val statusReg = Wire(UInt(6.W))
+
+  // Connections to FPUBB
+  fpuBB.io.clk := clock
+  fpuBB.io.rst := reset
+  fpuBB.io.enable := enableReg
+  fpuBB.io.rmode := roundingModeReg
+  fpuBB.io.fpu_op := selOperationReg
+  fpuBB.io.opa := operandAReg
+  fpuBB.io.opb := operandBReg
+  resultsReg := Mux(fpuBB.io.ready, fpuBB.io.out_fp, resultsReg)
+  statusReg := fpuBB.io.underflow ## fpuBB.io.overflow ## fpuBB.io.inexact ## fpuBB.io.exception ## fpuBB.io.invalid ## fpuBB.io.ready
 
   // Write response
   enableReg := false.B
@@ -151,17 +162,6 @@ class FPUDouble() extends CoreDevice() {
       }
     }
   }
-
-  // Connections to FPUBB
-  fpuBB.io.clk := clock
-  fpuBB.io.rst := reset
-  fpuBB.io.enable := enableReg
-  fpuBB.io.rmode := roundingModeReg
-  fpuBB.io.fpu_op := selOperationReg
-  fpuBB.io.opa := operandAReg
-  fpuBB.io.opb := operandBReg
-  resultsReg := Mux(fpuBB.io.ready, fpuBB.io.out_fp, resultsReg)
-  statusReg := Mux(fpuBB.io.ready, fpuBB.io.underflow ## fpuBB.io.overflow ## fpuBB.io.inexact ## fpuBB.io.exception ## fpuBB.io.invalid ## fpuBB.io.ready, statusReg)
 
   // Connections to master
   io.ocp.S.Resp := respReg
