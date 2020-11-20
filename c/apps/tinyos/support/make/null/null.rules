@@ -1,0 +1,28 @@
+#-*-Makefile-*- vim:syntax=make
+define NULL_HELP
+
+ NULL extras:
+
+   debug    : compile with minimal optimization and debug symbols
+
+endef
+HELP += $(NULL_HELP)
+
+GCC     = gcc
+OBJCOPY = objcopy
+OBJDUMP = objdump
+SIZE    = size
+NM      = nm
+LIBS    = -lm
+
+INSTALL_SREC = $(MAIN_SREC).out$(if $(NODEID),-$(NODEID),)
+
+TOSMAKE_FLASH_CHIP ?= at45db
+
+PFLAGS += -Wall -Wshadow
+
+ifeq ($(findstring Darwin, $(shell uname)), Darwin)
+  CFLAGS += -D_FORTIFY_SOURCE=0
+  OBJCOPY = /usr/bin/true
+  OBJDUMP = /usr/bin/true
+endif

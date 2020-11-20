@@ -1,0 +1,19 @@
+#-*-Makefile-*- vim:syntax=make
+
+ifeq ($(JTAGICEMKII),)
+$(error $(shell echo -e '$(ERROR_STRING) JTAGICEMKII must be defined, try "make $(TARGETS) help"'))
+endif
+
+TOSMAKE_PROGRAMMER_TYPE = jtagicemkii
+PROGRAMMER_NAME = AVR JTAGICE mkII
+
+ifeq ($(PROGRAMMER),avrdude)
+  ifdef BOOTLOADER_IMG
+    ifeq ($(shell [ -f /bin/cygwin1.dll ] && echo cygwin),cygwin)
+      BOOTLOADER_IMG := $(shell cygpath -m $(BOOTLOADER_IMG))
+    endif
+  endif
+  PROGRAMMER_FLAGS = -c jtag2fast -P $(JTAGICEMKII) -U hfuse:w:$(AVR_FUSE_H):m -U lfuse:w:$(AVR_FUSE_L):m $(PROGRAMMER_PART) $(PROGRAMMER_EXTRA_FLAGS)
+  PROGRAMMER_INSTALL_SREC_FLAGS = -U flash:w:$(INSTALL_SREC):a
+  PROGRAMMER_INSTALL_BOOTLOADER_FLAGS = -D -U flash:w:$(BOOTLOADER_IMG):a
+endif

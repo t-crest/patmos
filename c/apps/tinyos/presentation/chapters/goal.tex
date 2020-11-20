@@ -1,0 +1,39 @@
+\section{Goals}
+    
+    \begin{frame}{TinyOS on Patmos Goals}
+        \begin{itemize}
+            \item Running TinyOS\newline
+            TinyOS-core-interfaces
+            \begin{itemize}
+                \item Leds
+                \item SendMsg
+                \item ReceiveMsg
+                \item ...
+            \end{itemize}
+            
+            \item on Patmos\newline
+            Implement new platform, linking interfaces to explicit hardware
+            
+        \end{itemize}
+        \begin{figure}[h]
+              \centering
+              \includegraphics[width=0.5\textwidth]{images/aca.png}
+            \end{figure}
+        
+    \end{frame}
+    
+    \begin{frame}{Repo and Building}
+        \begin{itemize}
+            \item Implement Makefile structure\newline
+            One \texttt{make} to build everything
+            \item Find suitable integration of the TinyOS OS in Patmos\newline
+            TinyOS in \texttt{apps}?
+            \item Create an easily buildable repo for the project\newline
+            \xrightarrow{}GitHub
+            
+        \end{itemize}
+        \begin{itemize}
+            \item Implement examples using all implemented interfaces
+        \end{itemize}
+        
+    \end{frame}

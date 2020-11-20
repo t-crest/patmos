@@ -1,0 +1,42 @@
+#-*-Makefile-*- vim:syntax=make
+define SAM3_HELP
+
+ SAM3 extras:
+
+   mpu : Compile with memory protection
+
+ Programmer options:
+
+   sam-ba,<port> : use samba programmer on <port> serial port
+
+endef
+
+HELP += $(SAM3_HELP)
+
+GCC     = arm-none-eabi-gcc
+OBJCOPY = arm-none-eabi-objcopy
+OBJDUMP = arm-none-eabi-objdump
+SIZE    = arm-none-eabi-size
+NM      = arm-none-eabi-nm
+LIBS    = -lm
+
+OPTFLAGS ?= -O3 -g
+CFLAGS += -mthumb -fno-strict-aliasing
+PFLAGS += -Wall -Wshadow
+PFLAGS += -finline-limit=100000
+
+# can be overridden by MP-enabled linker file (see mpu.extra)
+LINKERFILE_PREFIX ?= sam3u-ek-flash
+LINKERFILE ?= $(LINKERFILE_PREFIX).x
+LDFLAGS += -L$(TINYOS_OS_DIR)/platforms/$(PLATFORM) -T $(LINKERFILE)
+LDFLAGS += -Wl,-Map=$(MAIN_MAP) -Wl,--gc-sections
+
+ifndef TOSMAKE_PROGRAMMER_TYPE
+  $(call TOSMake_include,sam3/sam-ba.extra)
+endif
+
+INSTALL_BIN = $(MAIN_BIN).out$(if $(NODEID),-$(NODEID),)
+
+TOSMAKE_BINARY_FORMAT = bin
+TOSMAKE_BINARY_IN = $(MAIN_BIN)
+TOSMAKE_BINARY_OUT = $(INSTALL_BIN)

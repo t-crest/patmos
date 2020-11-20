@@ -1,0 +1,357 @@
+/*
+ * Copyright (c) 2011 University of Utah
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * - Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in the
+ *   documentation and/or other materials provided with the
+ *   distribution.
+ * - Neither the name of the copyright holders nor the names of its
+ *   contributors may be used to endorse or promote products derived
+ *   from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY
+ * WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+#include <sam3uusarthardware.h>
+
+module HplSam3uUsart1P{
+  provides interface HplSam3uUsartControl as Usart; 
+  
+  uses{
+    interface HplNVICInterruptCntl as USARTInterrupt1;
+    interface HplSam3GeneralIOPin as USART_CTS1;
+    interface HplSam3GeneralIOPin as USART_RTS1;
+    interface HplSam3GeneralIOPin as USART_RXD1;
+    interface HplSam3GeneralIOPin as USART_SCK1;
+    interface HplSam3GeneralIOPin as USART_TXD1;
+    interface HplSam3PeripheralClockCntl as USARTClockControl1;
+    interface HplSam3Clock as ClockConfig;
+    interface McuSleep;
+    interface Leds;
+  }
+}
+implementation{
+
+#define USART1_BASE_ADDR 0x40094000
+
+  enum{
+    S_READ,
+    S_WRITE,
+    S_IDLE,
+  };
+
+  uint8_t STATE;
+
+  void enableInterruptRead(){
+    // enables interrupt for read
+    volatile usart_ier_t *IER = (volatile usart_ier_t*) (USART1_BASE_ADDR + 0x8);
+    usart_ier_t ier = *IER;
+    ier.bits.rxrdy = 1;
+    *IER = ier;
+  }
+
+  void enableInterruptWrite(){
+    // enables interrupt for write    
+    volatile usart_ier_t *IER = (volatile usart_ier_t*) (USART1_BASE_ADDR + 0x8);
+    usart_ier_t ier = *IER;
+    //ier.flat = 0xFFFFFFFF;
+    ier.bits.txrdy = 1;
+    *IER = ier;
+  }
+
+  void disableInterrupt(){
+    // disable all interrupts
+    volatile usart_idr_t *IDR = (volatile usart_idr_t*) (USART1_BASE_ADDR + 0xC);
+    usart_idr_t idr = *IDR;
+    idr.bits.txrdy = 1;
+    idr.bits.rxrdy = 1;
+    *IDR = idr;
+  }
+
+  void disableRxInterrupt(){
+    volatile usart_idr_t *IDR = (volatile usart_idr_t*) (USART1_BASE_ADDR + 0xC);
+    usart_idr_t idr = *IDR;
+    idr.bits.rxrdy = 1;
+    *IDR = idr;
+  }
+
+  void disableTxInterrupt(){
+    volatile usart_idr_t *IDR = (volatile usart_idr_t*) (USART1_BASE_ADDR + 0xC);
+    usart_idr_t idr = *IDR;
+    idr.bits.txrdy = 1;
+    *IDR = idr;
+  }
+
+  command void Usart.init(){
+
+    // init pins and clock
+
+    call USART_CTS1.disablePioControl();
+    call USART_CTS1.selectPeripheralB();
+
+    call USART_RTS1.disablePioControl();
+    call USART_RTS1.selectPeripheralB();
+
+    call USART_RXD1.disablePioControl();
+    call USART_RXD1.selectPeripheralA();
+
+    call USART_SCK1.disablePioControl();
+    call USART_SCK1.selectPeripheralB();
+
+    call USART_TXD1.disablePioControl();
+    call USART_TXD1.selectPeripheralA();
+
+    call USARTClockControl1.enable();
+
+  }
+
+  command void Usart.configure(uint32_t mode, uint32_t baudrate){
+    //configure control mode and baud rate
+    volatile usart_cr_t *CR = (volatile usart_cr_t*) (USART1_BASE_ADDR + 0x0);
+    usart_cr_t cr = *CR;
+
+    volatile usart_mr_t *MR = (volatile usart_mr_t*) (USART1_BASE_ADDR + 0x4);
+    usart_mr_t mr = *MR;
+
+    volatile usart_brgr_t *BRGR = (volatile usart_brgr_t*) (USART1_BASE_ADDR + 0x20);
+    usart_brgr_t brgr = *BRGR;
+
+    uint32_t cd;
+    uint32_t masterClock = call ClockConfig.getMainClockSpeed();
+    cd = (masterClock * 1000 / baudrate) / 16;
+
+    cr.bits.rsttx = 1;
+    cr.bits.rstrx = 1;
+    cr.bits.rxdis = 1;
+    cr.bits.txdis = 1;
+    *CR = cr;
+
+    mr = (usart_mr_t) mode;
+    *MR = mr;
+
+    if(mr.bits.sync_cpha == 0 && mr.bits.over == 0){
+      // Async mode and no oversampling
+      brgr.bits.fp = 0;
+      brgr.bits.cd = cd; // check 35.7.9 of sam3u specs for other modes
+      *BRGR = brgr;
+    }
+
+    call USARTInterrupt1.configure(IRQ_PRIO_USART1);
+    call USARTInterrupt1.enable();
+
+    STATE = S_IDLE;
+  }
+
+  command void Usart.enableTx(){
+    volatile usart_cr_t *CR = (volatile usart_cr_t*) (USART1_BASE_ADDR + 0x0);
+    usart_cr_t cr;
+
+    cr.bits.txdis = 0;
+    *CR = cr;
+
+    cr.bits.txen = 1;
+    *CR = cr;
+  }
+
+  command void Usart.disableTx(){
+    volatile usart_cr_t *CR = (volatile usart_cr_t*) (USART1_BASE_ADDR + 0x0);
+    usart_cr_t cr = *CR;
+    cr.bits.txdis = 1;
+    *CR = cr;
+  }
+
+  command void Usart.enableRx(){
+    volatile usart_cr_t *CR = (volatile usart_cr_t*) (USART1_BASE_ADDR + 0x0);
+    usart_cr_t cr = *CR;
+    cr.bits.rxen = 1;
+    *CR = cr;
+    call Usart.enableRxInterrupt();
+  }
+
+  command void Usart.enableRxInterrupt(){
+    enableInterruptRead();
+  }
+
+  command void Usart.enableTxInterrupt(){
+    enableInterruptWrite();
+  }
+
+  command void Usart.disableRx(){
+    volatile usart_cr_t *CR = (volatile usart_cr_t*) (USART1_BASE_ADDR + 0x0);
+    usart_cr_t cr = *CR;
+    cr.bits.rxdis = 1;
+    *CR = cr;
+  }
+
+  command error_t Usart.write(uint8_t sync, uint16_t data, uint32_t timeout){
+    volatile usart_thr_t *THR = (volatile usart_thr_t*) (USART1_BASE_ADDR + 0x1C);
+    usart_thr_t thr = *THR;
+
+    call Usart.enableTx();
+
+    STATE = S_WRITE;
+
+    thr.bits.txsynh = sync;
+    thr.bits.txchr = data;
+    *THR = thr;
+
+    enableInterruptWrite();
+    // enable interrupts here!
+
+    return SUCCESS;
+  }
+
+  command error_t Usart.read(uint16_t *data, uint32_t timeout){
+    volatile usart_csr_t *CSR = (volatile usart_csr_t*) (USART1_BASE_ADDR + 0x14);
+    usart_csr_t csr = *CSR;
+
+    volatile usart_rhr_t *RHR = (volatile usart_rhr_t*) (USART1_BASE_ADDR + 0x18);
+    usart_rhr_t rhr = *RHR;
+
+    /*
+    if(timeout == 0){
+      while(csr.bits.rxrdy == 0);
+    }else{
+      while(csr.bits.txrdy == 0){
+	timeout --;
+	if(timeout == 0)
+	  return FAIL;
+      }
+    }
+    */
+
+    STATE = S_READ;
+
+    *data = rhr.bits.rxchr;
+    //&recv_data = data;
+    // enable interrupts here!
+    //enableInterruptRead();
+
+    return SUCCESS;
+  }
+
+  command bool Usart.isDataAvailable(){
+    volatile usart_csr_t *CSR = (volatile usart_csr_t*) (USART1_BASE_ADDR + 0x14);
+    usart_csr_t csr = *CSR;
+    if(csr.bits.rxrdy != 0)
+      return TRUE;
+    else
+      return FALSE;
+  }
+
+  command void Usart.setIrdaFilter(uint32_t filter){
+    volatile usart_if_t *IF = (volatile usart_if_t*) (USART1_BASE_ADDR + 0x4C);
+    usart_if_t if_usart = *IF;
+
+    if_usart = (usart_if_t) filter;
+    *IF = if_usart;
+  }
+
+  command error_t Usart.putChar(uint8_t sync, uint16_t data){
+
+    volatile usart_csr_t *CSR = (volatile usart_csr_t*) (USART1_BASE_ADDR + 0x14);
+    usart_csr_t csr = *CSR;
+
+    volatile usart_thr_t *THR = (volatile usart_thr_t*) (USART1_BASE_ADDR + 0x1C);
+    usart_thr_t thr = *THR;
+
+    while(csr.bits.txempty == 0);
+
+    thr.bits.txsynh = sync;
+    thr.bits.txchr = data;
+    *THR = thr;
+
+    csr = *CSR;
+    while(csr.bits.txempty == 0);
+
+    STATE = S_WRITE;
+
+    // enable interrupts here!
+    enableInterruptWrite();
+
+    return SUCCESS;
+  }
+
+  command bool Usart.isRxReady(){
+    volatile usart_csr_t *CSR = (volatile usart_csr_t*) (USART1_BASE_ADDR + 0x14);
+    usart_csr_t csr = *CSR;
+    if(csr.bits.rxrdy != 0)
+      return FALSE;
+    else
+      return TRUE;
+  }
+
+  command error_t Usart.getChar(uint16_t *data){
+    
+    volatile usart_csr_t *CSR = (volatile usart_csr_t*) (USART1_BASE_ADDR + 0x14);
+    usart_csr_t csr = *CSR;
+
+    volatile usart_rhr_t *RHR = (volatile usart_rhr_t*) (USART1_BASE_ADDR + 0x18);
+    usart_rhr_t rhr = *RHR;
+
+    while(csr.bits.rxrdy == 0);
+
+    *data = rhr.bits.rxchr;
+
+    STATE = S_READ;
+
+    // enable interrupts here!
+    enableInterruptRead();
+
+    return SUCCESS;
+  }
+
+
+  volatile usart_rhr_t *RHR = (volatile usart_rhr_t*) (USART1_BASE_ADDR + 0x18);
+  volatile usart_csr_t *CSR = (volatile usart_csr_t*) (USART1_BASE_ADDR + 0x14);
+
+
+  uint16_t recv_data;
+
+  task void readDoneTask(){
+    signal Usart.readDone((uint8_t)recv_data);
+  }
+
+
+  __attribute__((interrupt)) void Usart1IrqHandler() @C() @spontaneous(){
+
+    atomic {
+      call McuSleep.irq_preamble();
+      disableInterrupt();
+    }
+
+    if(CSR->bits.rxrdy){
+      atomic recv_data = RHR->bits.rxchr;
+      signal Usart.readDone((uint8_t)recv_data);
+    } else if(STATE == S_WRITE && CSR->bits.txrdy) {
+      signal Usart.writeDone(); // tx done
+    }
+
+    atomic {
+      STATE = S_IDLE;
+      enableInterruptRead();
+      call McuSleep.irq_postamble();
+    }
+  }
+
+  async event void ClockConfig.mainClockChanged() {};
+  default event void Usart.writeDone(){}
+  default event void Usart.readDone(uint8_t data){}
+}

@@ -1,0 +1,10 @@
+Package: tinyos-tools-devel
+Version: %{version}
+Section: devel
+Priority: optional
+Architecture: %{architecture}
+Depends: python, python-serial, perl, nesc, default-jdk, default-jre
+Provides: tinyos-tools
+Conflicts: tinyos-tools
+Maintainer: Eric B. Decker <cire831@gmail.com>
+Description: Development Trunk tools for TinyOS.

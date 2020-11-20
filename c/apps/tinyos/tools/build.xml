@@ -1,0 +1,27 @@
+<project name="tinyos-2.x tools" default="all">
+
+	<target name="all" >
+		<echo message = "Building tinyos-2.x tools" />
+		<exec executable="./Bootstrap" failonerror="true">
+		</exec>
+		<exec executable="./configure" failonerror="true">
+			<arg  line="--quiet" />
+		</exec>
+		<exec executable="make" failonerror="true">
+			<arg line="all" />
+		</exec>
+	</target>
+
+	<target name="install" >
+		<echo message = "Installing tinyos-2.x tools" />
+		<exec executable="./Bootstrap" failonerror="true">
+		</exec>
+		<exec executable="./configure" failonerror="true">
+			<arg line="--prefix=/scratch/tos2_trial --quiet" />
+			</exec>
+		<exec executable="make" failonerror="true">
+			<arg line="install" />
+		</exec>
+	</target>
+
+</project>

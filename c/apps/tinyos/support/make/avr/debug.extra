@@ -1,0 +1,4 @@
+#-*-Makefile-*- vim:syntax=make
+
+CFLAGS += -DENABLE_JTAG_DEBUG
+OPTFLAGS += -O1 -g -fnesc-no-inline

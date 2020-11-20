@@ -1,0 +1,8 @@
+#-#-Makefile-#- vim:syntax=make
+
+NODEID = $(INSTALL)
+BUILD_DEPS = delsetid
+
+ifeq ($(BOOTLOADER),tosboot)
+  BUILD_DEPS = delsetid_bl
+endif

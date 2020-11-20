@@ -1,0 +1,83 @@
+#-*-Makefile-*- vim:syntax=make
+
+define AVR_HELP
+
+ AVR extras:
+
+   debug    : compile with minimal optimization and debug symbols
+   debugopt : compile with debug symbols
+
+ Programmer options:
+
+   dapa         : (default) use parallel port programmer
+   mib510,<dev> : use MIB510/MIB520 serial port programming board at port <dev>
+   eprb,<host>	: use EPRB (MIB600) at hostname <host>
+   avrisp,<dev> : use AVRISP serial programmer at port <dev>
+
+   The dev or host parameter for the programmer option need not be specified,
+   in which case it is expected to be defined as in an environment variable of
+   the same name in all caps (such as MIB510, EPRB, or AVRISP).
+
+endef
+
+HELP += $(AVR_HELP)
+
+GCC        ?= avr-gcc
+OBJCOPY     = avr-objcopy
+OBJDUMP     = avr-objdump
+SIZE        = avr-size
+NM          = avr-nm
+LIBS        = -lm
+PROGRAMMER ?= avrdude
+
+INSTALL_SREC = $(MAIN_SREC).out$(if $(NODEID),-$(NODEID),)
+
+TOSMAKE_FLASH_CHIP ?= at45db
+
+PFLAGS += -Wall -Wshadow
+
+AVRGCCMAJOR = $(shell avr-gcc -v 2>&1 | grep "gcc version" | sed -n 's/gcc version \([2-5]\)\.\([0-9]\)\.\([0-9]\).*/\1/p')
+AVRGCCMINOR = $(shell avr-gcc -v 2>&1 | grep "gcc version" | sed -n 's/gcc version \([2-5]\)\.\([0-9]\)\.\([0-9]\).*/\2/p')
+ifeq ($(AVRGCCMAJOR),4)
+  PFLAGS += --param max-inline-insns-single=100000
+  ifneq ($(AVRGCCMINOR),1)
+    PFLAGS+=-Wno-unused-but-set-variable -Wno-enum-compare
+  endif
+else
+  PFLAGS += -finline-limit=100000
+endif
+
+
+ifeq ($(PROGRAMMER),avrdude)
+  ifeq ($(findstring Darwin, $(shell uname)), Darwin)
+    AVRDUDE_CONF ?= /opt/local/etc/avrdude.conf
+  endif
+  ifeq ($(shell [ -f /etc/avrdude/avrdude.conf ] && echo subdir),subdir)
+    AVRDUDE_CONF ?= /etc/avrdude/avrdude.conf
+  else
+    AVRDUDE_CONF ?= /etc/avrdude.conf
+  endif
+  ifeq ($(shell [ -f /bin/cygwin1.dll ] && echo cygwin),cygwin)
+    AVRDUDE_CONF := $(shell cygpath -ms $(AVRDUDE_CONF))
+  endif
+  PROGRAMMER_EXTRA_FLAGS += -C$(AVRDUDE_CONF)
+endif
+
+ifndef TOSMAKE_NO_WIRING_CHECK
+  $(call TOSMake_include,extras/wiring.extra)
+endif
+
+ifndef TOSMAKE_PROGRAMMER_TYPE
+  $(call TOSMake_include,avr/dapa.extra)
+endif
+
+TOSMAKE_BINARY_FORMAT = srec
+TOSMAKE_BINARY_IN = $(MAIN_SREC)
+TOSMAKE_BINARY_OUT = $(INSTALL_SREC)
+
+ifeq ($(STACK_CHECK),1)
+TOSMAKE_POST_EXE_DEPS += stack_check
+endif
+
+delsetid_bl: program_bl FORCE
+	rm -f $(subst .srec.,.exe.,$(INSTALL_SREC)) $(INSTALL_SREC)

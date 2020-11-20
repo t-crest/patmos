@@ -1,0 +1,26 @@
+#!/bin/bash
+
+set -e
+
+srcdir=src
+
+ACLOCAL="aclocal"
+AUTOMAKE="automake"
+AUTOCONF="autoconf"
+AUTOHEADER="autoheader"
+
+set -x
+(
+    $ACLOCAL
+    $AUTOHEADER
+    $AUTOCONF
+    [ -d config-aux ] || mkdir config-aux
+    $AUTOMAKE -a -c
+    pushd tinyos/c/coap
+    $AUTOHEADER
+    $AUTOCONF
+    popd
+
+)
+
+rm -f config.cache $srcdir/config.cache

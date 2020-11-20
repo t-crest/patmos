@@ -1,0 +1,12 @@
+#-*-Makefile-*- vim:syntax=make
+
+NODEID ?= $(REINSTALL)
+BUILD_DEPS = program
+TOSMAKE_DO_REINSTALL = y
+
+ifeq ($(BOOTLOADER),tosboot)
+  BUILD_DEPS = program_no_e
+endif
+
+check_tosboot: FORCE
+	@perl -e 'exit 0 if (<> =~ /^\:103000/); print "\nERROR: Trying to install with tosboot support.\n       main.ihex was not built properly, please recompile.\n\n"; exit 1;' $(INSTALL_IHEX)

@@ -1,0 +1,21 @@
+#-*-Makefile-*- vim:syntax=make
+
+ifeq ($(MIB510),)
+$(error $(shell echo -e '$(ERROR_STRING) MIB510 must be defined, try "make $(TARGETS) help"'))
+endif
+
+TOSMAKE_PROGRAMMER_TYPE ?= mib510
+
+ifeq ($(PROGRAMMER),avrdude)
+  ifeq ($(shell [ -f /bin/cygwin1.dll ] && echo cygwin),cygwin)
+    MIB510 := '\\.\$(MIB510)'
+  endif
+  ifdef BOOTLOADER_IMG
+    ifeq ($(shell [ -f /bin/cygwin1.dll ] && echo cygwin),cygwin)
+      BOOTLOADER_IMG := $(shell cygpath -m $(BOOTLOADER_IMG))
+    endif
+  endif
+  PROGRAMMER_FLAGS = -cmib510 -P$(MIB510) -U hfuse:w:$(AVR_FUSE_H):m $(PROGRAMMER_PART) $(PROGRAMMER_EXTRA_FLAGS) $(PROGRAMMER_EXTRA_FLAGS_MIB)
+  PROGRAMMER_INSTALL_SREC_FLAGS = -U flash:w:$(INSTALL_SREC):a
+  PROGRAMMER_INSTALL_BOOTLOADER_FLAGS = -V -D -U flash:w:$(BOOTLOADER_IMG):a
+endif

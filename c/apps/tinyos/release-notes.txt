@@ -1,0 +1,148 @@
+These release notes are as of: 2012-12-17
+
+2.1.2.1: 1st post T2.1.2 release patches.
+
+(same as development tree, not cherry picked).
+DOES THIS NEED TO BE PRUNED?
+
+Summary:
+
+  o updated release notes for T2.1.2 -> T2.1.2.1
+  o revised build scripts for various toolchains.
+  o Misc buf fixes.
+  o PPPSniffer
+  o fix I2CDR in msp430 USART code.
+  o rf230 bug fixes
+  o rfa1: fixes.
+  o msp430 x2/usci: i2c uctxstt fix.
+  o update Python Serial Stack
+  o add support for the MDA300 sensorboard (new implementation)
+
+
+4449bba MDA300 support from Franco Di Persio.
+d89fe5e Last commit for serial patch that resolves Google Code issue 152.
+c40067f Patch serial stack.   (Python Serial Stack fix)
+c70c461 rf212/rf230: Check that radio chip is not in sleep mode while reading the IRQ status register.
+        There is a small chance that an interrupt fires just before the radio is put into sleep mode.
+        Accessing the status register while the radio is sleeping will result in a wrong reading
+        (all status bits read as high due to the pull-up resistor on the SPI data line).
+0e4829e Added two default command handlers, otherwise MCPS_PURGE will not work in
+        nonbeacon-enabled mode. This problem was discovered by David Rodenas.
+26823b5 removed uisp references from Makefiles (but kept the definable PROGRAMMER)
+1c888f0 Removed uisp from tinyos-tools
+ee1b931 Use avrdude as default programmer on all platforms (instead of uisp)
+50be665 Bug fix from a Michiel Konstapel <m.konstapel@sownet.nl> to fix buffer locking bug.
+cf0731b  disable route command so application fits with the release version of msp430-gcc
+23591e0 Adding new application PPPSniffer.
+e4e7402 Various: add overrideable POST_VER to DEB_VER, default to -tinyos
+7cf3de8 msp430-46: add 2 patches and move install to /usr
+160c035 packaging: removed old avr packaging scripts
+36e7f7b Renamed register in I2C driver. The old I2CDR name is no longer defined in the TI headers.
+d303730 msp430 packaging: move to packaging directory
+60836ab avr packaging: move to packaging location
+411b1d3 rf230: for the hardware ack driver also rework the upload logic to make it faster.
+04eb28c rfa1: add capabilities for external amplifier switching and antenna switching/diversity
+b12646f rf212: update readme file for the new option
+faec7cf rf212: rework the upload logic to make it faster and to make it work with slow SPI (based on rf230)
+3862465 rf230: rework the upload logic to make it faster and to make it work with slow SPI
+11833b0 Forgot to add the  UCTXSTT check in USCI B0
+da9e0be rfa1: reworked the timer transformation
+e93b9ed rfa1: reimplement busy wait (reduce code size).
+f505c3d rename timer components (AtmegaCompare to AtmegaAlarm)
+58ab4ed rfa1: renamed hpl timer interfaces
+5e1ead9 Fix: UCTXSTT is now checked, fixes I2C_ACK_END implementation
+ea9f7d5 packaging: updated the tinyos packaging script to generate rpms
+703d9e1 updates to support new commands that enable and disable the dock interrupt
+b3a02d7 updates to support new commands that enable and disable the dock interrupt
+42bdfb7 Add #def for MAX_PARENT
+d5f968b In nonbeacon-enabled mode a device should not answer to an active scan.
+5751707 rfxlink: fixed timestamps in the debug message
+34ca30a Add note on Z1 support in release notes for 2.1.2
+b1b027d Add note on CoAP implementation to release notes for 2.1.2
+b1a4d30 packaging: moved everything related to packaging out of the tools directory
+84e83a2 updated the release-notes.txt
+6ccf23b removed all .cvsignore files
+
+
+2.1.2:   (2.1.2.0)
+  Supports updated msp430 (4.6.3) and avr (4.1.2) compilers
+  Added RPL stack
+  Support for the ucmini platform and ATmega128RFA1 chip
+  Support for the Zolertia Z1 platform
+  Fixed bugs in RFX2xx radio stack
+  Added CoAP implementation
+
+2.1.1:
+  Added support for automatic default LPL interval
+  Added platform-indepdent TOS_SLEEP_NONE for McuPowerOverride
+  Added support for mulle platform
+  Added support for epic platform
+  Added support for shimmer2 platform
+  Added DHV dissemination protocol in lib/net/dhv
+  Added 6lowpan/IP support in lib/net/blip
+  Improved CTP forwarder code to save code and RAM
+  Improved MSP430 sleep code to default to LPM4
+  Improved TOSSIM PRR curve to prevent very low SNR packets
+  Improved Queue performance by changing % to inequality test
+  Improved TOSThreads tutorials and documentation
+  Improved python sdk
+  Refactored AM layer to better support 6lowpan
+  Fixed TOSSIM bug where nodes could receive while transmitting
+  Fixed TOSSIM ack bug for nodes that change their AM id at runtime
+  Fixed Trickle bugs that could cause timers to fire slightly off
+  Fixed Pool bug that did not allow large (> 127 element) pools
+  Updated CoAP implementation to draft-ietf-core-coap-17
+
+2.1:
+  Added support for iris platform
+  Added support for shimmer platform
+  Added 4-bit link estimator to CTP in lib/net/4bitle
+  Added DIP dissemination protocol in lib/net/dip
+  Added FTSP time synchronization service in lib/ftsp
+  Added TOSThreads library in lib/tosthreads
+  Added SafeTinyOS support with 'safe' make option
+  Added support for 802.15.4 T-Frames through 'tframe' make option
+  Added TKN15.4, a platform-independent 802.15.4-2006 MAC implementation
+  Added low-power application tutorial
+  Added printf tutorial
+  Added TEPs
+  Changed 802.15.4 stacks to use I-Frames by default (TEP 125)
+  Changed Packet interface to better support type checking
+  Changed Receive interface to support fan-in
+  Changed atm128 I2C bus to obey same addressing as MSP430
+  Changed printf implementation to no longer require explicit wiring of PrintfC component
+  Fixed memory leak in CTP on duplicate suppression
+
+2.0.2:
+  Added reimplementation of low-power CC2420 stack to support AUTOACK and SACK
+  Added Deluge and related tools (support for micaZ and telosb only)
+  Added TEPs
+  Added 64-bit support for Java support code
+  Fixed oscillator calibration bug in MSP430 USART
+  Fixed clear channel detection bug in TOSSIM
+  Fixed errors in tutorial text
+  Fixed deadlock in C-based serial forwarder
+  Fixed bugs in at45db and stm25p storage stacks
+
+2.0.1:
+  Added low-power cc2420 stack as default on relevant platforms
+  Added lib/printf (simple serial messages)
+  Added lib/net/lqi (LQI-based collection layer for CC2420 platforms)
+  Added sensorboards/mts300 (mica sensor board)
+  Added noise modeling to TOSSIM (captures temporal correlation)
+  Added TEPs
+  Added tutorials
+  Changes to Resource management interfaces and components
+  Change to atmega128 ADC: output is no longer left-justified
+  Fixed cancellation bug in active message layers (no sendDone)
+  Fixed errors in tutorial text
+  Fixed interface errors in dissemination
+  Fixed lockup bug in atmega128 streaming reads
+  Fixed lockup bug in atmega128 SPI stack (0-length writes)
+  Fixed lockup bug in atmega128 I2C stack (power management)
+  Fixed memory access bugs in serial stack and AM queue (from John Regehr)
+  Fixed TMote sleep power consumption for newest RHoS nodes
+  New atmega128 timer stack fixes mica-family timer problems
+  Numerous optimizations and performance improvements
+  Numerous additional bug fixes
+

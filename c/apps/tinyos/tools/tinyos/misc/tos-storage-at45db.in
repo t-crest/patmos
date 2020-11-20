@@ -1,0 +1,280 @@
+#!@pathpython@
+# Copyright (c) 2006-2007 Intel Corporation
+# All rights reserved.
+#
+# This file is distributed under the terms in the attached INTEL-LICENSE
+# file. If you do not find these files, copies can be found by writing to
+# Intel Research Berkeley, 2150 Shattuck Avenue, Suite 1300, Berkeley, CA,
+# 94704.  Attention:  Intel License Inquiry.
+
+from xml.dom import *
+from xml.dom.minidom import *
+from re import match
+from sys import *
+from subprocess import Popen, PIPE
+
+from getopt import *
+import string
+import commands
+
+def print_usage():
+  stderr.write("Usage: tos-storage-at45db [-t] [-s <sector size>] \
+[-f <flash size in sectors>] [--tosdir <path to tos directory>] \
+<platform directory>\n")
+
+#New way of handling arguments........
+try:
+  opts, args = getopt(argv[1:], "ts:f:", ["tosdir="])
+except GetoptError, err:
+  print str(err) # will print something like "option -a not recognized"
+  print_usage()
+  quit(1)
+
+sector_size = 256
+flash_size = 2048 # in sectors
+
+cthreads = False
+tosdir = ""
+for o, a in opts:
+  if o == "-t":
+    cthreads = True
+  elif o == "-s":
+    sector_size = int(a)
+  elif o == "-f":
+    flash_size = int(a)
+  elif o == "--tosdir":
+    tosdir = str(a)
+  else:
+    assert False, "unhandled option"
+
+if len( args ) == 1:
+  platformdir = args[0]
+  # This gives the whole string when there's no / in platformdir
+  platform = platformdir[platformdir.rfind( "/" ) + 1:]
+elif len( args ) == 0:
+  platformdir = ""
+  platform = ""
+else:
+  print_usage()
+  quit(1)
+
+# print an error message and exit
+def nfail(s):
+  stderr.write(s + "\n")
+  exit(2)
+
+volumes = {}
+volmap = []
+volumeNames = []
+volumeTypes = dict()
+volumeOptions = dict()
+
+def check_volume(name, base, size):
+  if base == "":
+    base = None
+  else:
+    try:
+      base = int(base)
+    except ValueError:
+      nfail("invalid base for volume %s" % name)
+    if (base & (sector_size - 1)) != 0:
+      nfail("base of volume %s is not a multiple of %d" % (name, sector_size))
+    base /= sector_size
+
+  try:
+    size = int(size)
+  except ValueError:
+    nfail("invalid size for volume %s" % name)
+  if (size & (sector_size - 1)) != 0:
+    nfail("size of volume %s is not a multiple of %d" % (name, sector_size))
+  size /= sector_size
+
+  name = name.upper()
+  if volumes.has_key(name):
+    nfail("duplicate definition of volume %s" % name)
+  if not match("^[a-zA-Z0-9_]+$", name):
+    nfail("invalid volume name %s" % name)
+  volumes[name] = (base, size)
+
+def allocate_at(name, base, size):
+  # check for overlap of existing allocations
+  for (vname, vbase, vsize) in volmap:
+    if base in range(vbase, vbase + vsize) or base + size - 1 in range(vbase, vbase + vsize) or vbase in range(base, base + size) or vbase + vsize - 1 in range(base, base + size):
+      nfail("volume %s overlaps volume %s" % (name, vname))
+
+  # insert at correct position
+  for i in range(len(volmap)):
+    if base < volmap[i][1]:
+      volmap.insert(i, (name, base, size))
+      return
+
+  # it's the last volume...
+  volmap.append((name, base, size))
+
+def allocate(name, size):
+  # We just do first fit. We could spend endless effort doing better.
+  base = 0
+  for i in range(len(volmap)):
+    (vname, vbase, vsize) = volmap[i]
+    if base < vbase and size <= vbase - base:
+      volmap.insert(i, (name, base, size))
+      return
+    base = vbase + vsize
+  volmap.append((name, base, size))
+
+def expand_path(path):
+  substrs = path.split("%")
+  path = substrs[0]
+  i = 1
+  while i < len(substrs):
+    if substrs[i] == "":
+      # There was a %%, leading to a blank substring, and the next string
+      # should just be appended
+      path += "%"
+      i = i + 1
+      if i < len(substrs):
+        path += substrs[i]
+    else:
+      # The first character of the string is the one that followed %
+      c = substrs[i][0]
+      if c == 'p':
+        sub = platform
+      elif c == 'P':
+        sub = platformdir
+      elif c == 'T':
+        sub = tosdir
+      else:
+        nfail("unknown include-path substitution character " + c)
+      path += sub
+      path += substrs[i][1:]
+    i = i + 1
+  return path
+
+def volumeparse(file, fname, depth):
+  if depth > 10:
+    nfail("include nesting too deep - check for cycles")
+  try:
+    dom = parse(file)
+  except xml.parsers.expat.ExpatError:
+    nfail(fname + " is not a valid input file")
+  except IOError:
+    nfail("couldn't open file " + fname)
+
+  for volume in dom.documentElement.getElementsByTagName("volume"):
+    name = volume.getAttribute("name")
+    size = volume.getAttribute("size")
+    base = volume.getAttribute("base")
+    type = string.lower(volume.getAttribute("type"))
+    isCircular = string.upper(volume.getAttribute("circular"))
+    if isCircular == "":
+      isCircular = "FALSE"
+    if name == None:
+      nfail("name omitted in volume " + fname)
+    if size == None:
+      nfail("size omitted in volume %s %s" % (name, fname))
+    check_volume(name, base, size)
+
+    volumeNames.append( "VOLUME_" + name )
+    volumeTypes["VOLUME_" + name] = type
+    volumeOptions["VOLUME_" + name] = isCircular
+
+  for include in dom.documentElement.getElementsByTagName("include"):
+    included = include.firstChild
+    if included != None and included.nodeType == included.TEXT_NODE:
+      included = expand_path(included.data)
+      volumeparse(included, "(file %s)" % included, depth + 1)
+    else:
+      nfail("invalid include directive " + fname)
+  dom.unlink()
+
+volumeparse(stdin, "(standard input)", 0)
+
+# allocate fixed-address volumes
+for name in volumes.keys():
+  (base, size) = volumes[name]
+  if base != None:
+    allocate_at(name, base, size)
+
+# allocate movable volumes
+for name in volumes.keys():
+  (base, size) = volumes[name]
+  if base == None:
+    allocate(name, size)
+
+if len(volmap) == 0:
+  nfail("no volumes")
+
+(lastname, lastbase, lastsize) = volmap[len(volmap) - 1]
+if lastbase + lastsize > flash_size:
+  nfail("out of space (using %d bytes, have only %d)" %
+        ((lastbase + lastsize) * sector_size, flash_size * sector_size))
+
+# print some code
+print "#ifndef STORAGE_VOLUMES_H"
+print "#define STORAGE_VOLUMES_H"
+print
+print "enum {"
+for (vname, vbase, vsize) in volmap:
+  print "  VOLUME_%s, " % vname
+print "};"
+print
+print "#endif"
+
+print "#if defined(VS)"
+for (vname, vbase, vsize) in volmap:
+  print "VS(VOLUME_%s, %d)" % (vname, vsize)
+print "#undef VS"
+print "#endif"
+
+print "#if defined(VB)"
+for (vname, vbase, vsize) in volmap:
+  print "VB(VOLUME_%s, %d)" % (vname, vbase)
+print "#undef VB"
+print "#endif"
+
+# output nc file for threads
+if cthreads == True:
+  outFile = open(commands.getstatusoutput("pwd")[1] + "/VolumeMapC.nc", "w")
+  outFile.write("#include \"StorageVolumes.h\" \n")
+  outFile.write("\n")
+  outFile.write("configuration VolumeMapC { \n")
+  outFile.write("  provides { \n")
+  outFile.write("    interface BlockRead[uint8_t volume_id]; \n")
+  outFile.write("    interface BlockWrite[uint8_t volume_id]; \n")
+  outFile.write("    interface LogRead[uint8_t volumeId]; \n")
+  outFile.write("    interface LogWrite[uint8_t volumeId]; \n")
+  outFile.write("    interface Mount[uint8_t volumeId]; \n")
+  outFile.write("    interface ConfigStorage[uint8_t volumeId]; \n")
+  outFile.write("  } \n")
+  outFile.write("} \n")
+  outFile.write("\n")
+  outFile.write("implementation { \n")
+  outFile.write("  components VolumeMapP; \n")
+  outFile.write("\n")
+  outFile.write("  BlockRead = VolumeMapP; \n")
+  outFile.write("  BlockWrite = VolumeMapP; \n")
+  outFile.write("  LogRead = VolumeMapP; \n")
+  outFile.write("  LogWrite = VolumeMapP; \n")
+  outFile.write("  Mount = VolumeMapP; \n")
+  outFile.write("  ConfigStorage = VolumeMapP; \n")
+
+  for i in range(len(volumeNames)):
+    if volumeTypes[volumeNames[i]] == "block":
+      outFile.write("\n")
+      outFile.write("  components new BlockStorageC(" + volumeNames[i] + ") as BlockStorageC_" + volumeNames[i] + "; \n")
+      outFile.write("  VolumeMapP.SubBlockRead[" + volumeNames[i] + "] -> BlockStorageC_" + volumeNames[i] + "; \n")
+      outFile.write("  VolumeMapP.SubBlockWrite[" + volumeNames[i] + "] -> BlockStorageC_" + volumeNames[i] + "; \n")
+      outFile.write("\n")
+
+    elif volumeTypes[volumeNames[i]] == "log":
+      outFile.write("\n")
+      outFile.write("  components new LogStorageC(" + volumeNames[i] + ", " + volumeOptions[volumeNames[i]] + ") as LogStorageC_" + volumeNames[i] + "; \n")
+      outFile.write("  VolumeMapP.SubLogRead[" + volumeNames[i] + "] -> LogStorageC_" + volumeNames[i] + "; \n")
+      outFile.write("  VolumeMapP.SubLogWrite[" + volumeNames[i] + "] -> LogStorageC_" + volumeNames[i] + "; \n")
+      outFile.write("\n")
+
+    elif volumeTypes[volumeNames[i]] == "config":
+      outFile.write("  components new ConfigStorageC(" + volumeNames[i] + ") as ConfigStorageC_" + volumeNames[i] + "; \n")
+      outFile.write("  Mount[" + volumeNames[i] + "] = ConfigStorageC_" + volumeNames[i] + "; \n")
+      outFile.write("  ConfigStorage[" + volumeNames[i] + "] = ConfigStorageC_" + volumeNames[i] + "; \n")
+  outFile.write("} \n")

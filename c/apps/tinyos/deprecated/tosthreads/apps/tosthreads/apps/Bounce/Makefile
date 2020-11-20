@@ -1,0 +1,4 @@
+COMPONENT=BarrierBounceAppC
+PFLAGS += -DCC2420_HW_ACKNOWLEDGEMENTS
+TINYOS_ROOT_DIR?=../../../..
+include $(TINYOS_ROOT_DIR)/Makefile.include

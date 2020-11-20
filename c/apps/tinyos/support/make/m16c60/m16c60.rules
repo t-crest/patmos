@@ -1,0 +1,85 @@
+#-#-Makefile-#- vim:syntax=make
+
+ifeq ($(M16C60_MCU),62p)
+define M16C60_HELP
+
+ Programmer options:
+
+   sm16cf : use SM16CF programmer on port '/dev/ttyUSB0'.
+   sm16cf,<dev> : use SM16CF programmer on port <dev>.
+
+endef
+DEFAULT_PROGRAM ?= sm16cf
+endif
+
+ifeq ($(M16C60_MCU),65)
+define M16C60_HELP
+ Programmer options:
+
+   sflash : use SFLASH programmer on port '/dev/ttyUSB0'.
+   sflash,<dev> : use SFLASH programmer on port <dev>.
+
+endef
+DEFAULT_PROGRAM ?= sflash
+endif
+
+HELP += $(M16C60_HELP)
+
+GCC     = m32c-elf-gcc
+OBJCOPY = m32c-elf-objcopy
+OBJDUMP = m32c-elf-objdump
+SIZE    = m32c-elf-size
+NM      = m32c-elf-nm
+LIBS    = #-lm -lc -lgcc
+NESC    = nescc
+SET_ID  = tos-set-symbols --objcopy $(OBJCOPY) --objdump $(OBJDUMP)
+
+TOSMAKE_AMADDR_STR = _ActiveMessageAddressC__addr
+TOSMAKE_TOS_NODE_ID_STR = _TOS_NODE_ID
+
+INSTALL_SREC = $(MAIN_SREC).out$(if $(NODEID),-$(NODEID),)
+
+PFLAGS += -Wshadow
+
+# We need a different start address for the flash in the linker script when building TOSBoot.
+ifeq ($(M16C60_MCU),62p)
+  ifeq ($(COMPONENT),TosBootC)
+    $(shell sed -e "s/0x00a0000/0x00f8000/ig" $(TOSMAKE_MAKE_PLATFORM_DIR)/linker_62p.x > $(TOSMAKE_MAKE_PLATFORM_DIR)/linker_62p_bootloader.x)
+    LDFLAGS += -nostartfiles -T$(TOSMAKE_MAKE_PLATFORM_DIR)/linker_62p_bootloader.x $(TOSMAKE_MAKE_PLATFORM_DIR)/crt_62p.S
+  else
+    LDFLAGS += -nostartfiles -T$(TOSMAKE_MAKE_PLATFORM_DIR)/linker_62p.x $(TOSMAKE_MAKE_PLATFORM_DIR)/crt_62p.S
+  endif
+endif
+
+ifeq ($(M16C60_MCU),65)
+  ifeq ($(COMPONENT),TosBootC)
+    $(shell sed -e "s/0x80000/0xC0000/ig" $(TOSMAKE_MAKE_PLATFORM_DIR)/linker_65.x > $(TOSMAKE_MAKE_PLATFORM_DIR)/linker_65_bootloader.x)
+    LDFLAGS += -nostartfiles -T$(TOSMAKE_MAKE_PLATFORM_DIR)/linker_65_bootloader.x $(TOSMAKE_MAKE_PLATFORM_DIR)/crt_65.S
+  else
+    LDFLAGS += -nostartfiles -T$(TOSMAKE_MAKE_PLATFORM_DIR)/linker_65.x $(TOSMAKE_MAKE_PLATFORM_DIR)/crt_65.S
+  endif
+endif
+
+
+# This is needed so that we know that the BusyWaitMicroC.BusyWait.wait()
+# function always gets aligned.
+CFLAGS += -falign-functions=2
+
+
+# Use the 'if' function instead of the 'ifdef' construct because ifdef freaks
+# out with call in there.  I don't know why.
+ifndef TOSMAKE_PROGRAMMER_TYPE
+  $(call TOSMake_include,m16c60/$(DEFAULT_PROGRAM).extra)
+endif
+
+delsetid: program FORCE
+	rm -f $(subst .srec.,.exe.,$(INSTALL_SREC)) $(INSTALL_SREC)
+
+
+delsetid_bl: program_bl FORCE
+	rm -f $(subst .srec.,.exe.,$(INSTALL_SREC)) $(INSTALL_SREC)
+
+
+TOSMAKE_BINARY_FORMAT = srec
+TOSMAKE_BINARY_IN = $(MAIN_SREC)
+TOSMAKE_BINARY_OUT = $(INSTALL_SREC)

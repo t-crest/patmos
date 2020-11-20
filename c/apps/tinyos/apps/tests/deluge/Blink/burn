@@ -1,0 +1,84 @@
+#!/bin/bash
+
+TOS_DELUGE=`type -p tos-deluge`
+if [[ ! -x ${TOS_DELUGE} ]] ; then 
+    TOS_DELUGE=../../../../tools/tinyos/misc/tos-deluge
+fi 
+
+$TOS_DELUGE > /dev/null
+
+if [[ $? != 0 ]]
+then
+  echo "Unable to locate tos-deluge."
+  exit 2
+fi
+
+if [[ $# -ne 3 ]]; then
+  echo "Usage: $0 <prog_source> <comm_source> <platform>"
+  echo "  <prog_source> bsl,PORT | mib510,PORT | eprb,HOST | sm16cf,PORT"
+  echo "  <comm_source> serial@PORT:SPEED | network@HOST:PORT"
+  echo "  <platform>    micaz | telosb | iris | epic | mulle"
+  echo " Common combinations"
+  echo "  <prog_source> <comm_source>       <platform>" 
+  echo "  bsl,PORT      serial@PORT:SPEED   telosb|iris"
+  echo "  mib510,PORT   serial@PORT:SPEED   micaz"
+  echo "  eprb,HOST     network@HOST:PORT   micaz"
+  echo "  sm16cf,PORT   serial@PORT:SPEED   mulle"
+  exit 2
+fi
+
+PPORT=$1
+CPORT=$2
+PLATFORM=$3
+
+if [ ${PLATFORM} != 'micaz' -a \
+     ${PLATFORM} != 'telosb' -a \
+     ${PLATFORM} != 'iris' -a \
+     ${PLATFORM} != 'mulle' -a \
+     ${PLATFORM} != 'tinynode' -a \
+     ${PLATFORM} != 'epic' ]
+then
+  echo "\"${PLATFORM}\" is not a supported platform"
+  exit 2
+fi
+
+echo ========================== Compile tosboot for ${PLATFORM} ===========================
+( cd $TINYOS_OS_DIR/lib/tosboot ; make ${PLATFORM} ) 
+
+make clean
+
+echo ============================ Compile and load Blink ============================
+CFLAGS=-DDELUGE_BASESTATION make ${PLATFORM} install ${PPORT}
+
+
+echo '           +-------------------------------------------------------+'
+echo '           |                                                       |'
+echo '           | At this point the first led (red) should be blinking. |'
+echo '           |                                                       |'
+echo '           |               Press ENTER to continue...              |'
+echo '           |                                                       |'
+echo '           +-------------------------------------------------------+'
+read
+
+echo  ============================= Compile a new Blink ==============================
+CFLAGS=-DBLINK_REVERSE\ -DDELUGE_BASESTATION make ${PLATFORM}
+
+echo =============================== Upload the image ===============================
+${TOS_DELUGE} ${CPORT} -i 1 build/${PLATFORM}/tos_image.xml
+
+echo '       +----------------------------------------------------------------+'
+echo '       |                                                                |'
+echo '       | In the next step the following things will take place:         |'
+echo '       | - the mote will be rebooted                                    |'
+echo '       | - all the leds will blink for some time as the                 |'
+echo '       |   reprogramming by tosboot takes place.                        |'
+echo '       | - a fading of the leds will indicate the exiting from tosboot. |'
+echo '       | - the mote should start blinking the 3rd led (blue/yellow).    |'
+echo '       |                                                                |'
+echo '       |                   Press ENTER to continue...                   |'
+echo '       |                                                                |'
+echo '       +----------------------------------------------------------------+'
+read
+
+echo =========================== Reboot the base station ============================
+${TOS_DELUGE} ${CPORT} -r 1 

@@ -1,0 +1,58 @@
+.TH tos-deluge 1 "Jul 16, 2007"
+.SH NAME
+tos-deluge \- Management tool for Deluge T2
+
+.SH SYNOPSIS
+\fBtos-deluge\fR \fIdevice\fR \fIbaudrate\fR <\fB-p\fR|\fB-r\fR|\fB-d\fR|\fB-e\fR|\fB-s\fR> \fIimage_number\fR
+
+\fBtos-deluge\fR \fIdevice\fR \fIbaudrate\fR \fB-i\fR \fIimage_number\fR \fItos_image.xml\fR
+
+.SH DESCRIPTION
+
+\fBtos-deluge\fR is the management tool for Deluge T2. The available operations are: 
+
+.SH ARGUMENTS
+.TP
+.I device
+Any device accepted by PySerial. Examples:
+.RS
+.IP \(bu 4
+/dev/ttyUSB0
+.IP \(bu 4
+COM10
+.IP \(bu 4
+11
+.RE
+
+.TP
+.I baudrate
+Three shortcuts are available: \fBmicaz\fR and \fBiris\fR for 57600 and \fBtelosb\fR for 115200.
+.TP
+.I image_number
+A integer number. 0 is the first image.
+
+.SH OPTIONS
+.TP
+.B -p, --ping
+This command is useful for checking the status of program images on a mote. It provides information such as program name, compile time, size of the image, and so on.
+.TP
+.B -i, --inject
+This command creates a program image from the supplied tos_image.xml file, and it injects the image into specified volume on the mote.
+.TP
+.B -r, --reprogram
+This command sets up the directly-connected mote to reprogram itself after reboot, and then it reboots the mote.
+.TP
+.B -d, --disseminate
+This command instructs the base station mote to disseminate an image to the network. This image is specified by the volume ID.
+.TP
+.B -dr, --disseminate-and-reprogram
+This command asks the motes in the network not only to disseminate an image but also to start running it. This is accomplish using a reboot.
+.TP
+.B -e, --erase
+This command erases a flash volume on the base station mote.
+.TP
+.B -s, --stop
+The effect of -d and -dr is continuous which means a new mote will become infected if he is nearby. This command stops the infection.
+.TP
+.B -ls, --local-stop
+When -d or -dr are in effect, the volume used by them is locked. This command can be used to unlock the volume in order to erase or inject a new image. 

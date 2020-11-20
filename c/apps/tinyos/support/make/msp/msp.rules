@@ -1,0 +1,49 @@
+#-*-Makefile-*- vim:syntax=make
+
+define MSP_HELP
+
+ MSP extras:
+
+   debug    : compile with minimal optimization and debug symbols
+   debugopt : compile with debug symbols
+
+ Programmer options:
+
+   bsl,auto      : (default) use BSL programmer on the first mote found
+   bsl,<port>    : use BSL programmer on <port> serial port
+   bsl,ref,<ref> : use BSL programmer on the mote with reference <ref>
+
+   The dev or host parameter for the programmer option need not be specified,
+   in which case it is expected to be defined as in an environment variable of
+   the same name in all caps (such as BSL).
+
+endef
+HELP += $(MSP_HELP)
+
+#  Check if the user has a new enough version of msp430-gcc
+MSPGCC_MIN_VER := 4.6.3
+MSPGCC_VER_OK := $(shell expr `msp430-gcc -dumpversion` \>= '$(MSPGCC_MIN_VER)')
+ifeq ("$(MSPGCC_VER_OK)","0")
+  $(warning $(shell echo -e '$(WARN_STRING) Minimum recommended msp430-gcc version for this TinyOS release is $(MSPGCC_MIN_VER)'))
+endif
+
+GCC     = msp430-gcc
+OBJCOPY = msp430-objcopy
+OBJDUMP = msp430-objdump
+SIZE    = msp430-size
+NM      = msp430-nm
+LIBS    = -lm
+
+INSTALL_IHEX = $(MAIN_IHEX).out$(if $(NODEID),-$(NODEID),)
+
+PFLAGS += -Wall -Wshadow
+
+# Check if the user specified a programmer type with a .extra file.
+# If not, use bsl by default.
+ifndef TOSMAKE_PROGRAMMER_TYPE
+  $(call TOSMake_include,msp/bsl.extra)
+endif
+
+TOSMAKE_BINARY_FORMAT = ihex
+TOSMAKE_BINARY_IN = $(MAIN_IHEX)
+TOSMAKE_BINARY_OUT = $(INSTALL_IHEX)

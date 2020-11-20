@@ -1,0 +1,7 @@
+#-*-Makefile-*- vim:syntax=make
+
+# The MIB520 uses the same protocol as the MIB510, so we
+# just include mib510.extra
+MIB510 = $(MIB520)
+TOSMAKE_PROGRAMMER_TYPE = mib520
+$(call TOSMake_include,avr/mib510.extra)

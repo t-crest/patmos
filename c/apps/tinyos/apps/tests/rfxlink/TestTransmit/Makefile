@@ -1,0 +1,12 @@
+COMPONENT=TestRadioDriverC
+
+# send every 2 milliseconds
+CFLAGS += -DSEND_INTERVAL=2000
+
+CFLAGS += -I$(TINYOS_OS_DIR)/lib/diagmsg
+CFLAGS += -DDIAGMSG_RECORDED_MSGS=60
+CFLAGS += -DRADIO_DEBUG 
+CFLAGS += -DRADIO_DEBUG_PARTNUM
+
+TINYOS_ROOT_DIR?=../../../..
+include $(TINYOS_ROOT_DIR)/Makefile.include

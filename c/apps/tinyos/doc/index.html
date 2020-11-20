@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//Dtd XHTML 1.0 Transitional//EN" "http://www.w3.org/tr/xhtml1/Dtd/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <title>TinyOS 2.0.2 Documentation</title>
+    <link href="stylesheets/tinyos.css" rel="stylesheet" type="text/css"/>
+  </head>
+
+  <body>
+   <center> 
+      <table width="800" cellpadding="4">
+	<tr>
+	  <td class="title">
+	    TinyOS 2.0.2 Documentation<br/>
+	    <div class="subtitle">Last Modified: Jul 30 2007</div>
+	  </td>
+	</tr>
+	<tr>
+	  <td>
+	  <p>
+	    This is the documentation for the TinyOS 2.0.2 release.
+	    There is also documentation for versions <a href="http://www.tinyos.net/dist-2.0.0/tinyos-2.0.1/doc/">2.0.1</a>, <a href="http://www.tinyos.net/dist-2.0.0/tinyos-2.0.0/doc/">2.0.0</a> and <a href="http://www.tinyos.net/tinyos-1.x/doc/">1.x</a>.
+	  </p>
+	  <p>
+	    TinyOS 2.0 has three sets of documentation. The first
+	    set is the release notes and high-level overviews of the
+	    system. The second set is a series of tutorials and a
+	    TinyOS programming manual, which explore different parts
+	    of the system in order to help you get started.  The third
+	    set is detailed documentation of the system, including TEP
+	    (TinyOS Enhancement Proposals), which describe the
+	    structure, design goals, and implementation of parts of
+	    the system as well as nesC and Java source code
+	    documentation.
+	  </p>
+	  <p>
+	    If you're just getting started, the best place to start is with the 
+	    tutorials.
+	  </p>
+	  </td>
+	</tr>
+
+	<tr>
+	  <td class="subtitle">1. Release Notes</td>
+	</tr>
+	<tr>
+	  <td>
+	    <ul>
+	      <li><a href="html/overview.html">TinyOS 2.0 overview</a></li>
+	      <li><a href="html/install-tinyos.html">TinyOS 2.0 install instructions </a></li>
+	      <li><a href="html/upgrade-tinyos.html">TinyOS 2.0 upgrade instructions (includes instructions for how to upgrade your tools for 2.0)</a></li>
+              <li><a href="html/porting.html">A brief set of notes on porting code from TinyOS 1.x to 2.0.</a></li>
+	    </ul>
+	  </td>
+	</tr>
+
+
+	<tr>
+	  <td class="subtitle"><a href="html/tutorial/index.html">2. Tutorials</a></td>
+	</tr>
+	<tr>
+	  <td>
+	  <p>TinyOS 2.0 has a few <a href="html/tutorial/index.html">tutorials</a> to get a new user started with programming
+              the system. These tutorials introduce nesC programming and some major
+              TinyOS abstractions, such as timers and communication.</p>
+	    
+	    <p>Additionally, for more advanced programming, there is a
+	      <a href="pdf/tinyos-programming.pdf">TinyOS Programming Manual</a>.
+	      The book describes nesC's features in greater detail,
+	      including generic components, concurrency, and common
+	      component design patterns.</p>
+	</td>
+	</tr>
+
+
+	<tr>
+	  <td class="subtitle">3A. TEPs and source code documentation</td>
+	</tr>
+	<tr>
+	  <td>
+    <p>
+	    TEPs are written in <a href="http://docutils.sourceforge.net/rst.html">ReStructured
+	    Text</a>, and so can be read either as HTML or as a text
+	    document. TEP 1 describes the different kinds of TEPs and
+	    their roles. TEPs 1-100 are BCP (Best Current Practice)
+	    TEPs, while TEPS 101+ are Informational, Documentary, or
+	    Experimental. Currently, many TEPs are Drafts: comments
+	    and feedback to the authors or the associated working
+	    group is welcome. The following TEPs are Documentary and
+	    BCP: they deal with TinyOS, its protocols, and its
+	    programming interfaces:
+   </p>
+	    <ul>
+	      <li>TEP 1: TEP Structure and Key Words                   [<a href="html/tep1.html">HTML</a>]     [<a href="pdf/tep1.pdf">PDF</a>]   [<a href="txt/tep1.txt">TXT</a>]</li>
+	      <li>TEP 2: Hardware Abstraction Architecture             [<a href="html/tep2.html">HTML</a>]     [<a href="pdf/tep2.pdf">PDF</a>]   [<a href="txt/tep2.txt">TXT</a>]</li>
+	      <li>TEP 3: Coding Standards                              [<a href="html/tep3.html">HTML</a>]     [<a href="pdf/tep3.pdf">PDF</a>]   [<a href="txt/tep3.txt">TXT</a>]</li>
+	      <li>TEP 101: ADC                                         [<a href="html/tep101.html">HTML</a>] [<a href="pdf/tep101.pdf">PDF</a>] [<a href="txt/tep101.txt">TXT</a>]</li>
+	      <li>TEP 102: Timers                                      [<a href="html/tep102.html">HTML</a>] [<a href="pdf/tep102.pdf">PDF</a>] [<a href="txt/tep102.txt">TXT</a>]</li>
+	      <li>TEP 103: Storage                                     [<a href="html/tep103.html">HTML</a>] [<a href="pdf/tep103.pdf">PDF</a>] [<a href="txt/tep103.txt">TXT</a>]</li>
+	      <li>TEP 106: Schedulers and Tasks                        [<a href="html/tep106.html">HTML</a>] [<a href="pdf/tep106.pdf">PDF</a>] [<a href="txt/tep106.txt">TXT</a>]</li>
+	      <li>TEP 107: Boot Sequence                               [<a href="html/tep107.html">HTML</a>] [<a href="pdf/tep107.pdf">PDF</a>] [<a href="txt/tep107.txt">TXT</a>]</li>
+	      <li>TEP 108: Resource Arbitration                        [<a href="html/tep108.html">HTML</a>] [<a href="pdf/tep108.pdf">PDF</a>] [<a href="txt/tep108.txt">TXT</a>]</li>
+	      <li>TEP 109: Sensorboards                                [<a href="html/tep109.html">HTML</a>] [<a href="pdf/tep109.pdf">PDF</a>] [<a href="txt/tep109.txt">TXT</a>]</li>
+	      <li>TEP 111: message_t                                   [<a href="html/tep111.html">HTML</a>] [<a href="pdf/tep111.pdf">PDF</a>] [<a href="txt/tep111.txt">TXT</a>]</li>
+	      <li>TEP 112: Microcontroller Power Management            [<a href="html/tep112.html">HTML</a>] [<a href="pdf/tep112.pdf">PDF</a>] [<a href="txt/tep112.txt">TXT</a>]</li>
+	      <li>TEP 113: Serial Communication                        [<a href="html/tep113.html">HTML</a>] [<a href="pdf/tep113.pdf">PDF</a>] [<a href="txt/tep113.txt">TXT</a>]</li>
+	      <li>TEP 114: SIDs: Source and Sink Independent Drivers   [<a href="html/tep114.html">HTML</a>] [<a href="pdf/tep114.pdf">PDF</a>] [<a href="txt/tep114.txt">TXT</a>]</li>
+	      <li>TEP 115: Power Management of Non-Virtualized Devices [<a href="html/tep115.html">HTML</a>] [<a href="pdf/tep115.pdf">PDF</a>] [<a href="txt/tep115.txt">TXT</a>]</li>
+	      <li>TEP 116: Packet Protocols                            [<a href="html/tep116.html">HTML</a>] [<a href="pdf/tep116.pdf">PDF</a>] [<a href="txt/tep116.txt">TXT</a>]</li>
+	      <li>TEP 117: Low-Level I/O                               [<a href="html/tep117.html">HTML</a>] [<a href="pdf/tep117.pdf">PDF</a>] [<a href="txt/tep117.txt">TXT</a>]</li>
+	      <li>TEP 118: Dissemination                               [<a href="html/tep118.html">HTML</a>] [<a href="pdf/tep118.pdf">PDF</a>] [<a href="txt/tep118.txt">TXT</a>]</li>
+	      <li>TEP 119: Collection                                  [<a href="html/tep119.html">HTML</a>] [<a href="pdf/tep119.pdf">PDF</a>] [<a href="txt/tep119.txt">TXT</a>]</li>
+	      <li>TEP 123: Collection Tree Protocol (CTP)              [<a href="html/tep123.html">HTML</a>] [<a href="pdf/tep123.pdf">PDF</a>] [<a href="txt/tep123.txt">TXT</a>]</li>
+	      <li>TEP 124: Link Estimation Exchange Protocol (LEEP)    [<a href="html/tep124.html">HTML</a>] [<a href="pdf/tep124.pdf">PDF</a>] [<a href="txt/tep124.txt">TXT</a>]</li>
+	      <li>TEP 125: TinyOS 802.15.4 Frames                      [<a href="html/tep125.html">HTML</a>] [<a href="pdf/tep125.pdf">PDF</a>] [<a href="txt/tep125.txt">TXT</a>]</li>
+	      <li>TEP 126: CC2420 Radio Stack                          [<a href="html/tep126.html">HTML</a>] [<a href="pdf/tep126.pdf">PDF</a>] [<a href="txt/tep126.txt">TXT</a>]</li>
+	      <li>TEP 127: Packet Link Layer                           [<a href="html/tep127.html">HTML</a>] [<a href="pdf/tep127.pdf">PDF</a>] [<a href="txt/tep127.txt">TXT</a>]</li>
+	      <li>TEP 128: Platform Independent Non-Volatile Storage Abstractions [<a href="html/tep128.html">HTML</a>] [<a href="pdf/tep128.pdf">PDF</a>] [<a href="txt/tep128.txt">TXT</a>]</li>
+	      <li>TEP 129: Basic Platform Independent Non-Volatile Storage Layers [<a href="html/tep129.html">HTML</a>] [<a href="pdf/tep129.pdf">PDF</a>] [<a href="txt/tep129.txt">TXT</a>]</li>
+	      <li>TEP 130: Testbeds - Setup and Interfaces             [<a href="html/tep130.html">HTML</a>] [<a href="pdf/tep130.pdf">PDF</a>] [<a href="txt/tep130.txt">TXT</a>]</li>
+	    </ul>
+
+	    <p>In addition, there are several TEPs which deal with issues besides TinyOS code, such
+	      as the structure of the TinyOS Alliance and design considerations:</p>
+
+	    <ul>
+	      <li>TEP 120: TinyOS Alliance Structure                   [<a href="html/tep120.html">HTML</a>] [<a href="pdf/tep120.pdf">PDF</a>] [<a href="txt/tep120.txt">TXT</a>]</li>
+	      <li>TEP 121: Towards TinyOS for 8051                     [<a href="html/tep121.html">HTML</a>] [<a href="pdf/tep121.pdf">PDF</a>] [<a href="txt/tep121.txt">TXT</a>]</li>
+	    </ul>
+          </td>
+        </tr>
+	<tr>
+	  <td class="subtitle"><a href="nesdoc/">3B. TinyOS Source Code Documentation</a></td>
+	</tr>
+  <tr>
+    <td>
+	  <p>In addition to TEPs, which document the organization and design behind 
+	  important parts of TinyOS, there is also <a href="nesdoc/">source code
+	  documentation</a> for the following platforms: 
+	  <a href="nesdoc/eyesIFXv2/index.html">eyesIFXv2</a>, 
+	  <a href="nesdoc/iris/index.html">iris</a>, 
+	  <a href="nesdoc/mica2/index.html">mica2</a>, 
+	  <a href="nesdoc/mica2dot/index.html">mica2dot</a>, 
+	  <a href="nesdoc/micaz/index.html">micaz</a>, 
+	  <a href="nesdoc/shimmer/index.html">shimmer</a>,
+	  <a href="nesdoc/telosa/index.html">telosb</a>, 
+	  <a href="nesdoc/telosb/index.html">telosb</a> and 
+	  <a href="nesdoc/tinynode/index.html">tinynode</a>.</p>
+
+	<p>The build status, history, memory statistics and power profiles of 
+	regression builds of selected TinyOS applications can be seen online on the 
+	<a href="http://tik42x.ee.ethz.ch:8080">TinyOS CruiseControl Server</a>.</p>	 
+    </td>
+  </tr>
+  <tr>
+	<td class="subtitle"><a href="javadoc/index.html"> 3C. TinyOS Java toolchain Code Documentation</a></td>
+  </tr>
+  <tr>
+    <td>
+          <p>There is similar 
+	  <a href="javadoc/index.html">javadoc documentation</a> for the Java toolchain, 
+             which describes the Java classes and their functionality. This documentation
+             is incomplete. 
+          </p>
+
+	  </td>
+	</tr>
+      </table>
+    </center>
+  </body>
+
+</html>

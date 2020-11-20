@@ -1,0 +1,11 @@
+#-*-Makefile-*- vim:syntax=make
+
+TARGET = patmos
+PFLAGS += -finline-limit=100000
+
+$(call TOSMake_include_platform,patmos)
+
+$(call TOSMake_include_make_platform,patmos)
+
+patmos: $(BUILD_DEPS)
+	@:

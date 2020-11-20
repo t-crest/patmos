@@ -1,0 +1,27 @@
+#!/usr/bin/perl
+$name = $ARGV[0];
+$file_path = $ARGV[1];
+
+@files = split /\n/, `find .`;
+@result = @files;
+
+while (<STDIN>) {
+    if (/^!(.*)/) { # exclude
+	$pat = $1;
+	@result = grep !/$pat/, @result;
+    }
+    else { # include
+	$pat = $_;
+	chop $pat;
+	push @result, grep /$pat/, @files;
+    }
+}
+
+mkdir $name;
+open TAR, "|tar cf - -T - --no-recursion | tar xf - -C $name";
+print TAR join("\n", @result);
+close TAR;
+system("tar cfz $file_path $name");
+system("rm -rf $name");
+
+

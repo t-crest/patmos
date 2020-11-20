@@ -1,0 +1,131 @@
+<div style='
+     font-family: Georgia, serif;
+     font-size: 17px;
+     line-height: 1.2em;'
+>
+<br>
+<p><b>
+MSPGCC 4.7.0 20120425 Release (Experimental)
+</b></p>
+
+This release is experimental and not intended for production.  Use at your own risk.
+It is provided to allow for early testing.
+
+<p><b>Last update: 20190522, cire</b></p>
+<p>(Changelog at end)</p>
+
+
+<p>The 4.7.0-20120425 repository contains the following packages for the <i>i386</i> and <i>amd64</i>
+architectures:</p>
+<ul>
+<li>msp430-47: 20120428
+<li>msp430-binutils-47: 2.22-20120425
+<li>msp430-gcc-47: 4.7.0-20120425
+<li>msp430-gdb-47: 7.2-20120425+20120430
+<li>msp430-libc-47: 20120425
+<li>msp430mcu-47: 20120425
+</ul>
+
+<p>To use this repository you need to:</p>
+
+<ol>
+<li>Add the following lines to /etc/apt/sources.list.d/tinyprod-debian.list:
+<pre>
+  deb http://tinyprod.net/repos/debian stretch   main
+  deb http://tinyprod.net/repos/debian msp430-47 main
+</pre>
+<pre>
+
+  $ cd /etc/apt/sources.list.d
+  $ sudo echo "deb http://tinyprod.net/repos/debian stretch   main" >> tinyprod-debian.list
+  $ sudo echo "deb http://tinyprod.net/repos/debian msp430-47 main" >> tinyprod-debian.list
+
+</pre>
+
+<li>Install the new packages:
+<pre>
+  $ sudo apt update
+  $ sudo apt install msp430-47 tinyos-tools-devel nesc
+</pre>
+
+</ol>
+
+<p>If you want to uninstall the packages you can do it like this:</p>
+
+<pre>
+  $ sudo apt autoremove --purge msp430-47 tinyos-tools-devel nesc
+</pre>
+
+<b>Note:</b>
+
+<p>
+<ol>
+<li>
+Other packages from the main tinyprod debian repository (<b>stretch</b>) are needed to make a functioning nesc
+development system.  In particular, you will need <b>nesc</b> and <b>tinyos-tools-devel</b>.  These have been
+included in the instructions above.
+<br><br>
+</pre>
+<li>The experimental tools install into /opt/msp430-47.   This allows the default and experimental mspgcc compilers to be
+installed side by side on the same system.  Selection of the operational toolchain is done via the PATH environment variable.
+This allows for easy comparisons between current and experimental toolchains.
+</ol>
+</p>
+<pre>
+
+</pre>
+
+<div style='
+     border: 1px solid red;
+     padding: 10px;
+     background-color: #FFC2C2;
+     width: 45em;'>
+
+<div style='font-family: sans-serif; font-weight: bold;'>Note</div>
+
+<p>This repository is signed with the following key:</p>
+<pre>
+  sec   rsa4096/F6ECE923 2019-04-04 [SC]
+        8353BDF9145D1ADA4CA36E75EC5A7CD2F6ECE923
+  uid         [ultimate] TinyProd Signing Key (tinyprod.net) <cire831@gmail.com>
+  ssb   rsa4096/EF125D9B 2019-04-04 [E]
+  ssb   rsa4096/D503DFFA 2019-05-20 [S] [expires: 2022-05-19]
+</pre>
+
+<p>A public copy of the key can be found in repos/debian/tinyprod.key.  It can
+be installed by the following:</p>
+
+<pre>
+  $ wget -O - http://tinyprod.net/repos/debian/tinyprod.key | sudo apt-key add -
+</pre>
+
+<p>Alternatively, the key can be added from the ubuntu keyserver via:</p>
+
+<pre>
+  $ gpg --keyserver keyserver.ubuntu.com --recv-keys F6ECE923
+  $ gpg -a --export F6ECE923 | sudo apt-key add -
+</pre>
+
+</div>
+
+<p>-- cire (May 22, 2019)</p>
+
+
+<pre>
+
+
+</pre>
+
+<p><b>Changelog:</b></p>
+<pre>
+  20190522, cire: switch to stretch, 4096 signing key
+  20190501, cire: update to stretch (debian 9.9)
+  20140715, cire: default main repo is wheezy
+  20140522, cire: convert to using the TinyProd signing key
+  20120716, cire: restructure tinyprod repository.  reorganization,  update.
+  20120430, cire: update gdb to include patch for Unhandled dwarf expression opcode 0xf3
+    (added in gcc 4.7)
+  20120427, cire: initial release
+</pre>
+
+</div>

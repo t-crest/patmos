@@ -1,0 +1,21 @@
+#-*-Makefile-*-
+TOSMAKE_PROGRAMMER_TYPE = gdb
+
+INIT_GDB = $(call TOSMake_find,tinynode/init.gdb.in)
+
+FLASH_GDB ?= $(call TOSMake_find,tinynode/flash.gdb.in)
+FLASH_GDB_NO_E ?= $(call TOSMake_find,tinynode/flashnoerase.gdb.in)
+
+PROXY_HOST ?= localhost
+GDB_ARGS = -batch
+
+
+program: setid FORCE
+	@echo -e '$(INFO_STRING) installing $(PLATFORM) binary using gdb'
+	cat $(INIT_GDB) $(FLASH_GDB) $(GDB_SCRIPT) | sed -e "s/@HOST@/$(PROXY_HOST)/g" -e "s#@EXE@#$(MAIN_EXE)#g" -e "s#@PROMPT@#msp-gdb $(COMPONENT)#g"> $(TOSMAKE_BUILD_DIR)/init.gdb
+	msp430-gdb $(GDB_ARGS) -silent -x $(TOSMAKE_BUILD_DIR)/init.gdb -se $(MAIN_EXE)
+
+program_no_e: setid FORCE
+	@echo -e '$(INFO_STRING) installing $(PLATFORM) binary using gdb (without mass erase)'
+	cat $(INIT_GDB) $(FLASH_GDB) $(FLASH_GDB_NO_E) $(GDB_SCRIPT) | sed -e "s/@HOST@/$(PROXY_HOST)/g" -e "s#@EXE@#$(BOOTLOADER_IMG)#g" -e "s#@MAIN@#$(MAIN_EXE)#g" -e "s#@PROMPT@#msp-gdb $(COMPONENT)#g"> $(TOSMAKE_BUILD_DIR)/init.gdb
+	msp430-gdb $(GDB_ARGS) -silent -x $(TOSMAKE_BUILD_DIR)/init.gdb -se $(MAIN_EXE)

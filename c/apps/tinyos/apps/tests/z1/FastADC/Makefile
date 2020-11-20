@@ -1,0 +1,8 @@
+COMPONENT=FastADCAppC
+CFLAGS += -DPRINTFUART_ENABLED
+CFLAGS += -DADC12_ONLY_WITH_DMA
+# already defined in msp430/adc12/Msp430Adc12.h
+#CFLAGS += -DADC12_TIMERA_ENABLED
+
+TINYOS_ROOT_DIR?=../../../..
+include $(TINYOS_ROOT_DIR)/Makefile.include

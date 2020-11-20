@@ -1,0 +1,55 @@
+#!@pathperl@ -w
+#$Id: tos-ident-flags.in,v 1.6 2008-05-29 20:08:03 razvanm Exp $
+#@author Cory Sharp <cssharp@eecs.berkeley.edu>
+
+use strict;
+use File::Basename;
+
+my $MaxNameLength = 16;
+
+if( @ARGV != 1 ) {
+  print "usage: tos-ident-flags program_name\n";
+  exit 0;
+}
+
+my $name = basename($ARGV[0]);
+my $time = sprintf( "0x%08x", `date +%s` );
+
+(my $whoami = `whoami`) =~ s/\s//g;
+(my $hostname = `hostname`) =~ s/\s//g;
+my ($uidhash, $idhash);
+if( `uname` =~ /Darwin/ ) {
+  $uidhash = `echo "$name$time$whoami$hostname" | md5`;
+  $idhash = `echo "$whoami$hostname" | md5`;
+} else {
+  $uidhash = `echo "$name$time$whoami$hostname" | sha1sum`;
+  $idhash = `echo "$whoami$hostname" | sha1sum`;
+}
+my $uid = ($uidhash =~/^(.{8})/) ? "0x$1" : 0;
+my $id = ($idhash =~/^(.{8})/) ? "0x$1" : 0;
+
+my @defs = ();
+my $qname = "";
+if( defined $name && $name !~ /^\s*$/ ) {
+  ($qname = $name) =~ s/['"]//g;
+  substr( $qname, $MaxNameLength-1 ) = "" if length $qname >= $MaxNameLength;
+  my @bytes = unpack( "C*", $qname );
+  push( @defs, "-DIDENT_APPNAME=\\\"$qname\\\"" );
+}
+if( defined $whoami && $whoami !~ /^\s*$/ ) {
+  ($qname = $whoami) =~ s/['"]//g;
+  substr( $qname, $MaxNameLength-1 ) = "" if length $qname >= $MaxNameLength;
+  my @bytes = unpack( "C*", $qname );
+  push( @defs, "-DIDENT_USERNAME=\\\"$qname\\\"" );
+}
+if( defined $hostname && $hostname !~ /^\s*$/ ) {
+  ($qname = $hostname) =~ s/['"]//g;
+  substr( $qname, $MaxNameLength-1 ) = "" if length $qname >= $MaxNameLength;
+  my @bytes = unpack( "C*", $qname );
+  push( @defs, "-DIDENT_HOSTNAME=\\\"$qname\\\"" );
+}
+push( @defs, "-DIDENT_USERHASH=${id}L" );
+push( @defs, "-DIDENT_TIMESTAMP=${time}L" );
+push( @defs, "-DIDENT_UIDHASH=${uid}L" );
+
+print join(" ",@defs) . "\n";

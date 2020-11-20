@@ -1,0 +1,143 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Copyright (c) 2004 The University of Southern California"
+% All rights reserved.
+%
+ % Redistribution and use in source and binary forms, with or without
+ % modification, are permitted provided that the following conditions
+ % are met:
+ %
+ % - Redistributions of source code must retain the above copyright
+ %   notice, this list of conditions and the following disclaimer.
+ % - Redistributions in binary form must reproduce the above copyright
+ %   notice, this list of conditions and the following disclaimer in the
+ %   documentation and/or other materials provided with the
+ %   distribution.
+ % - Neither the name of the copyright holders nor the names of
+ %   its contributors may be used to endorse or promote products derived
+ %   from this software without specific prior written permission.
+ %
+ % THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ % "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ % LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ % FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL
+ % THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ % INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ % (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ % SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ % HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ % STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ % ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ % OF THE POSSIBILITY OF SUCH DAMAGE..
+%
+% Author:		Marco Zuniga
+% Director: Prof. Bhaskar Krishnamachari
+% Autonomous Networks Research Group, University of Southern California
+% http://ceng.usc.edu/~anrg/
+% Contact: marcozun@usc.edu
+%
+% Date last modified:	2004/06/23 marcozun
+%
+% Description:  configuration file for link gain model
+%
+% This example configuration file will produce a network topology for TOSSIM
+% that represents a mica2 network deployed in a tight (1m spacing) 15x15 grid.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%
+%
+% Channel Parameters
+%
+%%%%%%%%%%%%%%%%%%%%%%
+%
+% The channel model is based on the Log-Normal Shadowing Path Loss Model.
+% It defines the gain at which other nodes receive a signal when a node
+% transmits. All values must be positive. Parameters:
+%     PATH_LOSS_EXPONENT           an adimensional constant
+%     SHADOWING_STANDARD_DEVIATION in dB
+%     PL_D0                        close-in reference pathloss, in dB 
+%     D0                           close-in reference distance, in meters 
+
+PATH_LOSS_EXPONENT = 3.0;
+SHADOWING_STANDARD_DEVIATION = 4.0;
+PL_D0 = 55.0;
+D0 = 1.0;
+
+%%%%%%%%%%%%%%%%%%%%
+%
+% Radio Parameters 
+%
+%%%%%%%%%%%%%%%%%%%%
+%
+% The radio parameters provide a mechanism to incorporate node variations.
+% These variations introduce link asymmetry. The variations have a static
+% and a dynamic component. WHITE_GAUSSIAN_NOISE encodes the dynamic
+% variation of a node's noise floor readings at runtime, while the
+% covariance matrix encodes the static differences in noise floor and
+% output strength across nodes.
+%
+% Parameters:
+%     NOISE_FLOOR          the baseline noise floor in dBm
+%     WHITE_GAUSSIAN_NOISE the standard deviation of noise measurements
+%     S11, S12, S21, S22   the values of the covariance matrix that
+%                          represents hardware variations.
+%     S11                  the per-node variance of the noise floor
+%     S12                  covariance between noise floor and output power
+%     S21                  must be equal to S12
+%     S22                  the per-node variance of output power
+
+
+NOISE_FLOOR = -105.0;
+WHITE_GAUSSIAN_NOISE = 4;
+
+% These values are for MICA2 radios.
+S11 = 3.7;
+S12 = -3.3;
+S21 = -3.3;
+S22 = 6.0;
+
+%%%%%%%%%%%%%%%%%%%%%%%
+%		  
+% Topology Parameters 
+%		  
+%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Terrain dimensions and node positions are in meters.
+% Parameters:
+%     TOPOLOGY       the basic topology to use, whose valid values are:
+%                      1 for a GRID
+%                      2 for a UNIFORM distribution
+%                      3 for a RANDOM distribution
+%                      4 for positions read from a FILE
+%                    details:
+%                      o GRID: Node placement starts at (0, 0). You must
+%                      specify the GRID_UNIT variable (spacing in meters).
+%                      The number of nodes has to be square of an integer.
+%                      o UNIFORM: Based on the number of nodes, the physical
+%                      terrain is divided into a number of cells. Within
+%                      each cell, a node is placed randomly.
+%                      o RANDOM: Nodes are placed randomly within the physical
+%                      terrain.
+%                      o FILE: Position of nodes is read from TOPOLOGY_FILE
+%                      (user-defined). The format of the file is:
+%                           nodeid  Xcoordinate  Ycoordinate
+%                      The nodeid values must start with 0.
+%     TERRAIN_DIMENSIONS_X the width of the terrain area (meters)
+%     TERRAIN_DIMENSIONS_Y the depth of the terrain area (meters)
+%                          
+
+TOPOLOGY = 1;
+GRID_UNIT = 5.0;
+NUMBER_OF_NODES = 225;
+
+% topology file provided by user
+%TOPOLOGY_FILE = topologyFile.m;
+
+% Physical terrain (meters), not required when user provides topology file
+% nor in GRID topologies.
+% The density (NUMBER_OF_NODES / area) can not be higher than
+% 0.5 nodes / D0^2.
+%TERRAIN_DIMENSIONS_X = 50.0;
+%TERRAIN_DIMENSIONS_Y = 50.0;
+

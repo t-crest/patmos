@@ -1,0 +1,95 @@
+#!/bin/bash
+
+# Copyright (c) 2008 Johns Hopkins University.
+# All rights reserved.
+#
+ # Redistribution and use in source and binary forms, with or without
+ # modification, are permitted provided that the following conditions
+ # are met:
+ #
+ # - Redistributions of source code must retain the above copyright
+ #   notice, this list of conditions and the following disclaimer.
+ # - Redistributions in binary form must reproduce the above copyright
+ #   notice, this list of conditions and the following disclaimer in the
+ #   documentation and/or other materials provided with the
+ #   distribution.
+ # - Neither the name of the copyright holders nor the names of
+ #   its contributors may be used to endorse or promote products derived
+ #   from this software without specific prior written permission.
+ #
+ # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ # "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ # LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ # FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL
+ # THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ # INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ # (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ # SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ # HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ # STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ # OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# @author Chieh-Jan Mike Liang <cliang4@cs.jhu.edu>
+
+if [ $# -ne 1 -a $# -ne 2 ]
+then
+  echo "Usage: `basename $0` path_to_cthread_app [options]"
+  echo ""
+  echo "-a --array"
+  echo "     Print out the loadable binary code as a byte array."
+  exit -1
+fi
+
+CFILE=$1
+FLAG=$2
+
+GCC="msp430-gcc"
+OBJCOPY="msp430-objcopy"
+NESCFLAGS="-target=telosb -x nesc -fnesc-target=msp430"
+CFLAGS="-c -gcc=$GCC -mmcu=msp430x1611 -Os -mdisable-hwmul -Wall -Wshadow"
+
+OBJFILE=`basename $CFILE .c`.o
+BINFILE=`basename $CFILE .c`.bin
+TOSFILE=`basename $CFILE .c`.tos
+
+TOS_THREADS_DIR=$TINYOS_OS_DIR/lib/tosthreads
+THREADS_CSYSTEM_DIR=$TOS_THREADS_DIR/csystem
+THREADS_SYSTEM_DIR=$TOS_THREADS_DIR/system
+THREADS_INTERFACES_DIR=$TOS_THREADS_DIR/interfaces
+THREADS_TYPES_DIR=$TOS_THREADS_DIR/types
+THREADS_MSP430_DIR=$TOS_THREADS_DIR/chips/msp430
+THREADS_TMOTE_SENSORS_DIR=$TOS_THREADS_DIR/tos/sensorboards/tmote_onboard
+THREADS_PRINTF_DIR=$TOS_THREADS_DIR/tos/lib/printf
+TOS_TELOSA_DIR=$TINYOS_OS_DIR/platforms/telosa
+TOS_TELOSB_DIR=$TINYOS_OS_DIR/platforms/telosb
+TOS_CC2420_DIR=$TINYOS_OS_DIR/chips/cc2420
+TOS_SERIAL_DIR=$TINYOS_OS_DIR/lib/serial
+TOS_SYSTEM_DIR=$TINYOS_OS_DIR/system
+TOS_TYPES_DIR=$TINYOS_OS_DIR/types
+
+#Set up includes 
+CFLAGS="$CFLAGS -I$THREADS_CSYSTEM_DIR -I$THREADS_SYSTEM_DIR -I$THREADS_INTERFACES_DIR -I$THREADS_TYPES_DIR -I$THREADS_MSP430_DIR"
+CFLAGS="$CFLAGS -I$THREADS_PRINTF_DIR"
+CFLAGS="$CFLAGS -I$THREADS_TMOTE_SENSORS_DIR"
+CFLAGS="$CFLAGS -DTOSTHREAD_EXTERNAL_BINARY"
+
+#Set up the proper scheduler
+NESCFLAGS="$NESCFLAGS -tosscheduler=TinyTaskSchedulerC,TinyTaskSchedulerC.TaskBasic,TaskBasic,TaskBasic,runTask,postTask"
+
+rm -rf $OBJFILE
+rm -rf $TOSFILE
+
+COMMAND="ncc $CFLAGS $NESCFLAGS $CFILE"
+echo $COMMAND
+command  $COMMAND
+
+COMMAND="$OBJCOPY --output-target=binary $OBJFILE $BINFILE"
+echo $COMMAND
+command  $COMMAND
+
+COMMAND="tosthreads-dynamic-app $FLAG $OBJFILE $BINFILE $TOSFILE"
+echo $COMMAND
+command $COMMAND
+rm $BINFILE
+rm $OBJFILE

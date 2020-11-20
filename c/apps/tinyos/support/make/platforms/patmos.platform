@@ -1,0 +1,19 @@
+#-*-Makefile-*- vim:syntax=make
+
+PFLAGS += -I%T/platforms/patmos
+PFLAGS += -I%T/platforms/patmos/pins
+PFLAGS += -I%T/platforms/patmos/uart
+PFLAGS += -I%T/platforms/patmos/timer
+PFLAGS += -I%T/platforms/patmos/deadline
+PFLAGS += -I%T/platforms/patmos/exception
+PFLAGS += -I%T/platforms/patmos/ethernet
+PFLAGS += -I%T/platforms/patmos/mmu
+PFLAGS += -I%T/platforms/patmos/cpuinfo
+PFLAGS += -I%T/platforms/patmos/sleep
+
+PFLAGS += -I%T/lib/timer
+
+PFLAGS += -L%T/platforms/patmos/libs/nesc_dummy
+
+PFLAGS += -fnesc-target=pc
+PFLAGS += -fnesc-no-debug

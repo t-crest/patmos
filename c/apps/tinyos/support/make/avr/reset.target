@@ -1,0 +1,9 @@
+#-*-Makefile-*- vim:syntax=make
+
+BUILD_DEPS = harmless
+
+reset: FORCE
+	@echo -e '$(INFO_STRING) resetting $(PLATFORM)'
+	$(PROGRAMMER) $(PROGRAMMER_FLAGS)
+
+harmless:

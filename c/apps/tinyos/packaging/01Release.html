@@ -1,0 +1,213 @@
+<div style='
+     font-family: Georgia, serif;
+     font-size: 17px;
+     line-height: 1.2em;'
+>
+
+<p><b>TinyOS (TinyProd) Debian Development Repository</b></p>
+Last update: 201900601, cire
+<br>(Changelog at end)
+
+<br><br>
+4 TinyOS development repositories are homed here.  Debian based development (debian or ubuntu).
+
+<ul>
+<li><b><i>wheezy</i></b>: contain general tinyos tools.   Useful for multiple target motes.
+<li><b><i>stretch</i></b>: (debian 9.9) general tinyos tools.  Useful for multiple target motes.
+<li><b><i>msp430-46</i></b>: current cross compiler toolchain for msp430 based TinyOS development,
+<a href='http://tinyprod.net/repos/debian/README-46.html'> README-46</a>.
+<br>
+<li><b><i>msp430-47</i></b>: experimental mspgcc 4.7.0 cross compiler for msp430 platforms, (20 bit support),
+<a href='http://tinyprod.net/repos/debian/README-47.html'> README-47</a>.
+</ul>
+<p><b>Wheezy</b> is the main repository and provides packages built on Debian 7.5 (wheezy).  <b>Stretch</b>
+is a copy of wheezy, resigned with the new tinyos signing key (4096 bits).
+
+<p>Wheezy/Stretch contains the following packages for <i>i386</i> and <i>amd64</i>:</p>
+<ul>
+<li>nesc: 1.3.6
+<li>tinyos-tools: 1.4.2-tinyprod2
+<li>tinyos-tools-14: 1.4.2-tinyprod2
+<li>tinyos-tools-devel: 1.5.0-tinyprod2
+<li>mspdebug: 0.22
+<br><br>
+<li>avarice-tinyos: 2.11-20110905
+<li>avr-binutils-tinyos: 2.17-20110905
+<li>avr-gcc-tinyos: 4.1.2-20110905
+<li>avr-libc-tinyos: 1.6.7-20110905
+<li>avr-tinyos: 20110905
+<li>avrdude-tinyos: 5.10-20110905
+</ul>
+
+<div style='
+     font-size: 14px;
+     line-height: 1.1em;
+     color: #777;'
+>
+</div>
+<br>
+tinyos-tools-devel has been updated to use the new build system (version 3).
+It is not backward compatible with tinyos releases prior to 2.1.3/2.2.0.
+
+<br><br>
+If you are using the development trunk you must use tinyos-tools-devel (1.5.0 or later).
+This includes the TinyProd mutation of TinyOS.  TinyProd flavors track the
+development trunk of tinyos-main.
+
+<br><br>
+For the TinyOS 2.1.2 release, you should install tinyos-tools-14 (tinyos-tools).  TinyOS releases
+prior to 2.1.2 are not supported.
+
+<br><br>
+If you are using the development trunk you must use tinyos-tools-devel (1.5.0 or later).
+This includes the TinyProd mutation of TinyOS.  TinyProd flavors track the development trunk
+of tinyos-main.
+
+<pre>
+  $ sudo
+  $ apt purge tinyos-tools
+  $ apt install tinyos-tools-devel
+</pre>
+
+<br>
+<p>You may need to remove old *-tinyos packages.   To do so, follow these instructions:</p>
+
+<ul>
+<li>Remove previously installed *-tinyos packages:
+
+<pre>
+  $ sudo dpkg -P `dpkg -l nesc '*tinyos*' | grep ^ii | awk '{ print $2 }' | xargs`
+  $ sudo apt clean
+</pre>
+
+</ul>
+
+<p>To use these packages, follow these instructions:</p>
+<ol>
+<li>Tell <em>apt</em> about the TinyProd Signing Key.
+<pre>
+  $ wget -O - http://tinyprod.net/repos/debian/tinyprod.key | sudo apt-key add -
+
+      ... or ...
+
+  $ gpg --keyserver keyserver.ubuntu.com --recv-keys F6ECE923
+  $ gpg -a --export F6ECE923 | sudo apt-key add -
+</pre>
+
+
+<li>Add the following lines to /etc/apt/sources.list.d/tinyprod-debian.list:
+<pre>
+  deb http://tinyprod.net/repos/debian stretch   main
+  deb http://tinyprod.net/repos/debian msp430-46 main
+
+  $ sudo -s
+  $ cd /etc/apt/sources.list.d
+  $ echo "deb http://tinyprod.net/repos/debian stretch   main" >> tinyprod-debian.list
+  $ echo "deb http://tinyprod.net/repos/debian msp430-46 main" >> tinyprod-debian.list
+  $ exit
+
+</pre>
+
+<li>Install the new packages:
+<pre>
+  $ sudo apt update
+  $ sudo apt install nesc tinyos-tools-devel msp430-46 avr-tinyos
+
+</pre>
+
+</ol>
+
+<p>If you want to uninstall the packages you can do it like this:</p>
+
+<pre>
+  $ sudo apt autoremove --purge nesc tinyos-tools-devel msp430-46 avr-tinyos
+</pre>
+
+<br><br>
+<div style='
+     border:   1px solid red;
+     padding: 10px;
+     background-color: #FFC2C2;
+     width: 45em;'>
+
+<div style='font-family: sans-serif; font-weight: bold;'>Note</div>
+
+<p>These repositories are signed with the following key:</p>
+<pre>
+  sec   rsa4096/F6ECE923 2019-04-04 [SC]
+        8353BDF9145D1ADA4CA36E75EC5A7CD2F6ECE923
+  uid         [ultimate] TinyProd Signing Key (tinyprod.net) <cire831@gmail.com>
+  ssb   rsa4096/EF125D9B 2019-04-04 [E]
+  ssb   rsa4096/D503DFFA 2019-05-20 [S] [expires: 2022-05-19]
+</pre>
+
+</div>
+
+<br>
+<p>-- Eric Decker (cire831@gmail.com) (May 29, 2019)</p>
+
+<pre>
+
+
+</pre>
+
+<p><b>Changelog:</b></p>
+<pre>
+  20190601, cire: rebuild tinyos-tools-* packages to include additional
+    tos-locate-jre locations, include $jhome/lib.
+
+  20190529, cire: convert to stretch. add 4096 signing key
+    deprecated: msp430-45, msp430-legacy, old-release, old-toolcain
+        avr-binutils-tinyos-legacy, avr-gcc-tinyos-legacy,
+        avr-libc-tinyos-legacy, avr-tinyos-legacy
+        msp430-binutils-tinyos-legacy, msp430-gcc-tinyos-legacy,
+        msp430-libc-tinyos-legacy, msp430-tinyos-legacy,
+        arm-all-tinyos
+    deprecated: wheezy, squeeze.
+    added stretch.
+
+  20151016, cire: reflect nesc-1.3.6 is in repository
+                  nesc-1.3.6 has support for Mac OS X alignment (16 bit)
+                  Xcode 5.1 needs -O2
+
+                  clean up information about tinyos-tools and tinyos-tools-devel
+                  incompatibilty.
+  20140715, cire: add tinyos-tools-14, tinyos-tools-devel
+                  create Wheezy compiled packages
+                  make wheezy be the primary repository
+  20140624, cire: remove 1.4.3, replace with 1.4.2 (from Stanford)
+  20140612, cire: move signing key around
+  20140527, cire: tweaks
+                  nuke references to wheezy
+  20140522, cire: update mspdebug to 0.22
+                  update nesc to 1.3.5
+                  update tinyos-tools to 1.4.3
+                  change signing key to the TinyProd signing key
+                  add wheezy references
+  20120815, cire: update mspdebug to 0.20
+  20120720, cire: bring arm-all back in.
+  20120717, cire: typos in README.
+  20120716, cire: rebuild tinyprod repository, squeeze, msp430-4{5-7}
+
+  20120427, cire: add mspgcc 4.7.0 reference
+
+  20120410, cire: mspdebug 0.19
+	add msp430-46, mspgcc 4.6.3 experimental repository.
+
+  20120319, cire: amd64 fixed. new msp430-gcc package that includes SF3500740 and
+	SF3420924.  Add ReleaseNotes.txt
+
+  20120305, cire:  resync'd with Razvan's debian repo to make sure AMD64 works
+	properly.  It doesn't.   AMD64 is still back rev'd.
+
+  20120107, cire: update msp430-gcc-tinyos to include patches through 20111105
+	note: (msp430-*) tinyos-tools, binutils, gdb, libc, mcu are repackaged as
+	an artifact of the package build process.
+
+	mspdebug revised to version 0.18.
+
+  20111127, cire: new tinyos-tools, uisp-tinyos packages
+  20111010, cire: installed as debian-dev
+</pre>
+
+</div>

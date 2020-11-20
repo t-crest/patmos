@@ -1,0 +1,15 @@
+#-*-Makefile-*- vim:syntax=make
+
+BUILD_DEPS += build_elf
+APPC_WINPATH = $(TOSMAKE_BUILD_DIR)/app-winpath.c
+
+# no inlining or optimizations
+OPTFLAGS += -O0 -fnesc-no-inline
+
+# produce dwarf-2 debug information for AVR Studio
+OPTFLAGS += -gdwarf-2
+
+build_elf: exe FORCE
+	@echo -e '$(INFO_STRING) building ELF output $(MAIN_ELF) for debugging in AVR Studio'
+	@perl -pe 's/#(.*)\"(.*)\"/ "#$$1\"".`cygpath -ma $$2`."\""/e; s/\n\"/\"/;' $(TOSMAKE_BUILD_DIR)/app.c > $(APPC_WINPATH)
+	@$(NESC) -o $(MAIN_ELF) $(SAFE_FLAGS) $(OPTFLAGS) $(NESC_PFLAGS) $(CFLAGS) $(APPC_WINPATH) $(LIBS) $(LDFLAGS)

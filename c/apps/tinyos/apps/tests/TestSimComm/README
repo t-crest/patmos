@@ -1,0 +1,63 @@
+TestSimComm, 5/22/07 
+
+This application tests the TOSSIM radio model by setting up a simple
+hidden terminal case. It checks whether packets collide correctly and
+whether SNR thresholds work correctly..
+
+The relevant output channel is "TestComm".
+
+There are three test cases:
+
+test-equal.py: Tests whether two nodes that are hidden terminals
+cause collisions. The two nodes have equal signal strengths, so a
+collision should corrupt both packets. If one packet is lost due to
+a collision, the other should be too. Note that packets can be 
+lost in the absence of collisions due to external interference.
+
+test-unequal.py: Tests whether two nodes that are hidden terminals
+cause collisions. The two nodes have signal strengths that differ
+by 10dB, and node 1 is stronger. This means that node 2 should hear
+node 1's packets if they start first, but not second. If a packet
+from node 1 is lost, the packet from node 3 should be as well. However,
+a loss from node 3 does not imply a loss from node 1, as it is
+stronger.
+
+test-asym.py: Tests whether asymmetric links can have high delivery
+rates but low acknowledgement rates. Checks that acknowledgements
+follow SNR curves properly. In this test, both 1 and 3 have high
+quality links (-60 dBm) to node 2, but the reverse links (2 to 1 and
+2 to 3) are much worse (-80 dBm). You should see packet deliveries
+like test-equal.py but few acknowledgements.
+
+The ./run script runs all the three tests and counts the number of
+ACKed and non-ACKed send packets. The output will look something
+like this:
+
+test-equal.log
+           ACK           NOACK   total
+         1 21197         19666   40863
+         3 21320         19543   40863
+test-asym.log
+           ACK           NOACK   total
+         1 4930          35923   40853
+         3 4983          35870   40853
+test-unequal.log
+           ACK           NOACK   total
+         1 27619         12966   40585
+         3 21040         19545   40585
+
+ACK is the number of acknowledged packets from that node to node 2;
+NOACK is the number of unacknowledged packets. Total is the sum.
+The output should show three things:
+
+  1) In test-equal, both node 1 and node 3 have very
+  similar delivery ratios, losing about half of their packets.
+
+  2) In test-asym, the number of ACKs is much less than in
+  test-equal because the reverse links are poor.
+
+  3) In test-unequal, node 1 has more acknowledged packets
+  than node 3, because it has a higher SNR link.
+
+Philip Levis
+

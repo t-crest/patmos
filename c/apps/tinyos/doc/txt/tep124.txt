@@ -1,0 +1,222 @@
+============================================================================
+The Link Estimation Exchange Protocol (LEEP)
+============================================================================
+
+:TEP: 124 
+:Group: Network Protocol Working Group 
+:Type: Documentary
+:Status: Final
+:TinyOS-Version: > 2.1
+:Author: Omprakash Gnawali
+
+:Draft-Created: 05-Feb-2006
+:Draft-Version: $Revision: 1.12 $
+:Draft-Modified: $Date: 2009-02-08 19:54:16 $
+:Draft-Discuss: TinyOS Developer List <tinyos-devel at mail.millennium.berkeley.edu>
+
+.. Note::
+
+   This memo documents a part of TinyOS for the TinyOS Community, and
+   requests discussion and suggestions for improvements.  Distribution
+   of this memo is unlimited. This memo is in full compliance with
+   TEP 1.
+
+Abstract
+============================================================================
+
+The memo documents the Link Estimation Exchange Protocol (LEEP). Nodes
+use LEEP to estimate and exchange information about the quality of
+links to the neighbors.
+
+1. Introduction
+============================================================================
+
+Routing protocols often require bi-directional link qualities to
+compute the routes. Nodes can estimate the quality of the in-bound
+link from a neighbor by estimating the ratio of successfully received
+messages to the total transmitted messages. LEEP appends in-bound
+packet reception rate (PRR) estimates to packets. Other nodes hearing
+these packets can combine the in-bound PRR values with their own
+in-bound values to compute bi-directional link quality. Thus, LEEP is
+a discovery and link table bootstrapping mechanism. The link quality
+is often fine-tuned using different mechanisms.
+
+Link quality estimates obtained using LEEP are often used as
+bootstrapping values in the link quality table; data transmission
+statistics can later be used to make these estimates more accurate.
+
+2. Definitions
+============================================================================
+
+2.1 In-bound Link Quality
+--------------------------------------------------------------------
+
+In a node pair (A,B), with B as the node of reference, in-bound link
+quality is a value in the range of 0 to 255 that describes the quality
+of the link from A to B estimated by B as the ratio of successfully
+received to all packets transmitted by A. Thus, in-bound link quality
+is the empirical probability that a packet will be successfully
+received on a given link. A value of 255 represents a probability of 1
+and a value of 0 represents a probability of 0 of successfully
+receiving a packet on a given link.
+
+2.2 Out-bound Link Quality
+--------------------------------------------------------------------
+
+In a node pair (A,B), with B as the node of reference, out-bound link
+quality is defined as the quality of the link from B to A. B can
+determine the out-bound link quality if A advertises its in-bound link
+qualities. LEEP is the protocol that is used to exchange the in-bound
+link qualities.
+
+2.3 Bi-directional Link Quality
+--------------------------------------------------------------------
+
+LEEP does not define or compute bi-directional link quality. LEEP
+provides a way to exchange sufficient information to compute in-bound
+and out-bound link qualities. These two link qualities can be used to
+compute the bi-directional link quality. Routing protocols often
+compute the bi-directional link quality of a node pair (A,B) as a
+function (product, min, etc.) of the link quality of (A,B) and (B,A).
+
+
+2.4 Link Information Entry
+--------------------------------------------------------------------
+
+Link Information Entry created by node k is a tuple (n,q) where q is
+the in-bound link quality from node n to k.
+
+3. The Link Estimation Exchange Protocol (LEEP)
+============================================================================
+
+3.1 Assumptions
+--------------------------------------------------------------------
+
+Following are the assumptions made by LEEP:
+
+3.1.1. The data link frame has a single-hop source field.
+3.1.2. The data link layer provides a broadcast address.
+3.1.3. The data link layer provides the length of the LEEP frame.
+
+3.2 The Protocol
+--------------------------------------------------------------------
+
+To compute the bi-directional link quality, in-bound link quality must
+be exchanged among the neighbors. LEEP maintains a sequence number
+that is incremented by one for each outgoing LEEP frame. The sequence
+number in the LEEP frame MUST be incremented by one even if the data
+link layer retransmits the LEEP frame. The LEEP sequence number MAY be
+used to count the number of missing packets to estimate the in-bound
+link quality from the transmitter. LEEP MUST transmit Link Information
+entries describing the in-bound link qualities for a subset of its
+neighbors. The Link Information entry on the LEEP frame allows the
+receiver node to find the out-bound link quality to the transmitter
+node identified by the data link source address. Thus, LEEP is also a
+way for nodes to discover new nodes and links in the network.
+
+Link quality estimation is inherently imperfect - data transmission
+and link quality estimation might be done at different timescales. The
+PRR for LEEP frames (broadcast) and data frames (unicast) might be
+different. So LEEP is better used as a link quality bootstrapping
+mechanism. The link quality estimate can be made more accurate later
+using data transmission statistics.
+
+
+
+3.3 LEEP Frame
+--------------------------------------------------------------------
+
+A LEEP frame has a header, the payload, and a footer with the Link
+Information (LI) entries as shown in this diagram::
+
+  -------------------------------------------------------------
+  |   LEEP   | Payload | LI Entry | LI Entry | ... | LI Entry |
+  |  Header  |         |     1    |     2    |     |     n    |
+  -------------------------------------------------------------
+
+The number of Link Information entries can be different in each
+outgoing LEEP frame. The number of Link Information entries MUST not
+increase the size of the LEEP frame beyond the maximum payload length
+allowed by the data link layer. A LEEP frame can have 0 Link
+Information entry.
+
+3.3.1 LEEP header
+--------------------------------------------------------------------
+
+The following diagram shows the LEEP header format::
+
+                           1
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |nentry | rsrvd |     seqno     |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+
+Field definitions:
+
+  * nentry - Number of Link Information entries in the footer
+  * seqno - LEEP sequence number.
+  * rsrvd - Reserved and must be set to 0.
+
+
+3.3.2 Link Information Entry
+--------------------------------------------------------------------
+
+The following diagram shows the Link Information Entry format::
+
+                           1
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |            node id            |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      | link quality  |
+      +-+-+-+-+-+-+-+-+
+
+Field definitions:
+
+  * node id: the link layer address of the neighbor
+  * link quality: The in-bound link quality from the node identified by node id
+    to the node that transmits this Link Information entry
+
+
+4. Implementation
+============================================================================
+
+The following files in ``tinyos-2.x/tos/lib/net/le`` provide a
+reference implementation of LEEP described in this TEP.
+
+  * ``LinkEstimator.h`` and ``LinkEstimatorP.nc``
+
+The reference implementation uses the LEEP sequence number to count
+the number of missing packets to estimate the in-bound link
+quality. The implementation tries to append Link Information entry for
+all the neighbors in its neighbor table by sending the largest
+possible data link frame. If there is still not enough room to fit all
+the Link Information entries, it uses a round-robin policy to select
+the entries to be exchanged that could not fit in the previous LEEP
+frame. The LEEP frames are transmitted whenever the CTP [1]_ beacons,
+sent as a LEEP payload, are sent.
+
+Another reference implementation resides in
+``tinyos-2.x/tos/lib/net/4bitle``. This implementation is described in
+detail in [2]_.
+
+5. Author's Address
+============================================================================
+
+| Omprakash Gnawali
+| Ronald Tutor Hall (RTH) 418 
+| 3710 S. McClintock Avenue
+| Los Angeles, CA 90089 
+|
+| phone - +1 213 821-5627
+| email - gnawali@usc.edu
+|
+
+6. Citations
+============================================================================
+
+.. [1] TEP 123: The Collection Tree Protocol.
+.. [2] Rodrigo Fonseca, Omprakash Gnawali, Kyle Jamieson, and Philip Levis.
+       "Four Bit Wireless Link Estimation." In Proceedings of the Sixth Workshop
+       on Hot Topics in Networks (HotNets VI), November 2007.

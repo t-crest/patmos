@@ -1,0 +1,7 @@
+COMPONENT=GoldenImageAppC
+BOOTLOADER=tosboot
+
+CFLAGS+=-DDELUGE_LIGHT_BASESTATION
+
+TINYOS_ROOT_DIR?=../../../..
+include $(TINYOS_ROOT_DIR)/Makefile.include

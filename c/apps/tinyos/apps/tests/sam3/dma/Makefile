@@ -1,0 +1,7 @@
+COMPONENT=MoteAppC
+
+CFLAGS += -DTOSH_DATA_LENGTH=114
+CFLAGS += -DTFRAME_ENABLED
+
+TINYOS_ROOT_DIR?=../../../..
+include $(TINYOS_ROOT_DIR)/Makefile.include

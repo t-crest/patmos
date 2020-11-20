@@ -1,0 +1,151 @@
+/* 
+ * $Id: tinyos.css,v 1.5 2006-12-12 18:22:53 vlahan Exp $ 
+ */
+body {	
+	background: #FFFFFF; 
+	color: #000000; 
+	font-family: Times, serif; 
+	font-weight: normal;
+	font-size: 14px;
+	list-style: outside;
+}
+table {
+	font-family: Times, serif; 
+        font-size: 14px;
+}
+a:link { 
+	color: #c3494e;
+	text-decoration: none;
+	font-weight: bold; 
+} 
+a:visited { 
+	color: #c3494e;
+	text-decoration: none;
+	font-weight: bold; 
+}
+a:hover {
+	text-decoration: underline;
+	font-weight: bold; 
+}
+
+b { 
+	font-weight: bold; 
+}
+
+em {
+	font-style: oblique;
+}
+
+h1 {    
+	font-size: x-large;
+	font-weight: bold; 
+	font-style: oblique; 
+}
+h2 { 
+	font-size: x-large; 
+	font-weight: bold;
+}
+h3 { 
+	font-size: large;
+	font-weight: bold;
+}
+
+h4 { 
+	font-size: large;
+	font-weight: normal; 
+}
+sup {
+	font-size: x-small;
+} 
+sub {
+	font-size: x-small;
+} 
+
+
+ul.links {
+	border: 0;
+	margin-left: 1.5em;
+	padding: 0;
+	text-decoration: none;
+	text-align: left; 
+	font-size: small; 
+}
+
+.menu {
+	width: 100%;
+	background-color: #d0d0d0;
+	padding: .2em 1em .2em 1em;
+	border: 0;
+	margin: 0;
+}
+
+.paperlinks {
+	background-color: #d0d0d0; 
+	font-size: small;
+	text-align: right; 
+	padding: 0.2em; 
+	margin-right: .4em;
+}
+.docinfo { 
+	width: 100%;
+ 	margin: 0 0 0 0;
+	border-width: 0 0 0 0;
+	padding: .2em .2em .2em .2em;
+	font-size: small;
+	text-align: right; 
+	background-color: #800000; 
+	padding-bottom : 0.2em; 
+}
+
+.headline { 
+	width: 100%;
+	margin: 0 0 0 0;
+	border: 0 0 0 0;
+        background-color: #d0d0d0;
+        color: #000000;
+}
+
+.subheadline { 
+	width: 100%;
+	margin: 0 0 0 0;
+	border: 0 0 0 0;
+	padding: .2em .2em .2em .2em;
+	text-align: left; 
+	background-color: #d0d0d0;
+}
+
+.title {
+        background-color: #d0d0d0;
+        font-family: Helvetica, sans-serif;
+        font-size: x-large;
+	font-weight: bold; 
+}
+.subtitle {
+        background-color: #d0d0d0;
+        font-family: Helvetica, sans-serif;
+	font-weight: normal;
+        font-size: medium;
+}
+.sublink {
+        font-family: Helvetica, sans-serif;
+	font-weight: normal;
+        font-size: large;
+	padding: .2em 0em 0em 4em;
+}
+
+
+code { 
+	font-family: monospace; 
+	font-size: medium;
+}
+pre { 
+	font-family: monospace; 
+	margin-left: 2em; 
+}
+dt, dd, ul { 
+	margin-top: 0; 
+	margin-bottom: 0; 
+}
+dt { 
+	font-weight: bold; 
+}

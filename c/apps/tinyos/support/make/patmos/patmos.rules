@@ -1,0 +1,28 @@
+#-*-Makefile-*- vim:syntax=make
+define PATMOS_HELP
+
+ PATMOS extras:
+
+   debug    : compile with minimal optimization and debug symbols
+
+endef
+HELP += $(PATMOS_HELP)
+
+GCC     = gcc
+OBJCOPY = objcopy
+OBJDUMP = objdump
+SIZE    = size
+NM      = nm
+LIBS    = -lm -lTinyosPatmos
+
+INSTALL_SREC = $(MAIN_SREC).out$(if $(NODEID),-$(NODEID),)
+
+TOSMAKE_FLASH_CHIP ?= at45db
+
+PFLAGS += -Wall -Wshadow -Wno-attributes
+
+ifeq ($(findstring Darwin, $(shell uname)), Darwin)
+  CFLAGS += -D_FORTIFY_SOURCE=0
+  OBJCOPY = /usr/bin/true
+  OBJDUMP = /usr/bin/true
+endif

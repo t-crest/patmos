@@ -1,0 +1,18 @@
+#-*-Makefile-*- vim:syntax=make
+
+ifeq ($(EPRB),)
+$(error $(shell echo -e '$(ERROR_STRING) EPRB must be defined, try "make $(TARGETS) help"'))
+endif
+
+TOSMAKE_PROGRAMMER_TYPE = eprb
+
+ifeq ($(PROGRAMMER),avrdude)
+  ifdef BOOTLOADER_IMG
+    ifeq ($(shell [ -f /bin/cygwin1.dll ] && echo cygwin),cygwin)
+      BOOTLOADER_IMG := $(shell cygpath -m $(BOOTLOADER_IMG))
+    endif
+  endif
+  PROGRAMMER_FLAGS = -cmib510 -Pnet:$(EPRB):10001    -U hfuse:w:$(AVR_FUSE_H):m $(PROGRAMMER_PART) $(PROGRAMMER_EXTRA_FLAGS) $(PROGRAMMER_EXTRA_FLAGS_STK)
+  PROGRAMMER_INSTALL_SREC_FLAGS = -U flash:w:$(INSTALL_SREC):a
+  PROGRAMMER_INSTALL_BOOTLOADER_FLAGS = -V -D -U flash:w:$(BOOTLOADER_IMG):a
+endif

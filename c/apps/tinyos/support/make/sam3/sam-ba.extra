@@ -1,0 +1,4 @@
+#-*-Makefile-*- vim:syntax=make
+
+TOSMAKE_PROGRAMMER_TYPE = samba
+PROGRAMMER ?= samba-program.py

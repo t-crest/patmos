@@ -1,0 +1,111 @@
+#!/bin/bash
+
+TOS_DELUGE=`type -p tos-deluge`
+if [[ ! -x ${TOS_DELUGE} ]] ; then 
+    TOS_DELUGE=../../../../tools/tinyos/misc/tos-deluge
+fi 
+
+$TOS_DELUGE > /dev/null
+
+if [[ $? != 0 ]]
+then
+  echo "Unable to locate tos-deluge."
+  exit 2
+fi
+
+if [ $# -ne 2 ]; then
+  echo "Usage: $0 <platform> <number of motes>"
+  echo "  <platform>         micaz, telosb, iris or mulle"
+  echo "  <number of motes>  how many motes will be used in the test"
+  exit 2
+fi
+
+PLATFORM=$1
+NO_MOTES=$2
+
+if [ ${PLATFORM} != 'micaz' -a \
+     ${PLATFORM} != 'telosb' -a \
+     ${PLATFORM} != 'iris' \
+     ${PLATFORM} != 'iris' -a \
+     ${PLATFORM} != 'mulle' -a \
+     ${PLATFORM} != 'epic' ]
+then
+  echo "\"${PLAFTORM}\" is not a supported platform"
+  exit 2
+fi
+
+if ! [ -a ${TINYOS_OS_DIR}/lib/tosboot/build/${PLATFORM}/main.ihex ]
+then
+  echo ========================== Compile tosboot for ${PLATFORM} ===========================
+  ( cd $TINYOS_OS_DIR/lib/tosboot ; make ${PLATFORM} ) 
+fi
+
+echo ================================ Compile Blink =================================
+make clean
+ID=0
+
+function burn_one() {
+    ID=`expr $ID + 1`
+    echo -n ">>> Please plug mote $ID and type the programming sorce (bsl,PORT | mib510,PORT | eprb,HOST): "
+    read PORT
+
+    CFLAGS=$1 make ${PLATFORM} install,$ID ${PORT}
+}
+
+while [[ ${NO_MOTES} > 1 ]]
+do
+  burn_one -DDELUGE_LIGHT_BASESTATION
+  NO_MOTES=`expr ${NO_MOTES} - 1`
+done
+echo ">>> Note: this last mote will be the basestation! <<<"
+burn_one -DDELUGE_BASESTATION
+echo -n ">>> Please plug mote $ID and type the communication sorce (serial@PORT:SPEED | network@HOST:PORT) to continue: "
+read CPORT
+
+echo '   +------------------------------------------------------------------------+'
+echo '   |                                                                        |'
+echo '   | At this point the first led (red) of all the motes should be blinking. |'
+echo '   |                                                                        |'
+echo '   |                       Press ENTER to continue...                       |'
+echo '   |                                                                        |'
+echo '   +------------------------------------------------------------------------+'
+read
+
+echo ============================= Compile a new Blink ==============================
+CFLAGS=-DBLINK_REVERSE\ -DDELUGE_LIGHT_BASESTATION make ${PLATFORM} 
+
+echo ========= Upload the new image to the external flash of the last mote ==========
+${TOS_DELUGE} ${CPORT} -i 1 build/${PLATFORM}/tos_image.xml
+
+echo '            +-----------------------------------------------------+'
+echo '            |                                                     |'
+echo '            | In the next step the dissemination will be started. |'
+echo '            | When a node receives a page, the second led (green) |'
+echo '            | will blink.                                         |'
+echo '            |                                                     |'
+echo '            |              Press ENTER to continue...             |'
+echo '            |                                                     |'
+echo '            +-----------------------------------------------------+'
+read
+
+echo ============================= Start dissemination ==============================
+${TOS_DELUGE} ${CPORT} -dr 1
+
+echo '         +------------------------------------------------------------+'
+echo '         |                                                            |'
+echo '         | The dissemination is completed when the second and third   |'
+echo '         | led from all the motes except the last one stops blinking. |'
+echo '         |                                                            |'
+echo '         | After a mote gets the whole image he will reboot and       |'
+echo '         | reprogram itself. If the new image contains Deluge he will |'
+echo '         | continue participating in dissemination.                   |'
+echo '         |                                                            |'
+echo '         | In the next step all the motes except the basestation will |'
+echo '         | be rebooted to allow the reprogramming to take place.      |'
+echo '         |                                                            |'
+echo '         | After reboot the motes should start blinking the 3rd led   |'
+echo '         | (blue/yellow).                                             |'
+echo '         |                                                            |'
+echo '         +------------------------------------------------------------+'
+
+
