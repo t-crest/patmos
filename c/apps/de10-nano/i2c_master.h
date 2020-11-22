@@ -94,6 +94,7 @@ int i2c_reg16b_read16b(uint8_t addr, uint16_t reg);
  * @param data  The data that shall be placed in the register.
  * @return      0 if the operation was successful or -1 if an error occurred.
  */
+int i2c_reg8_write8_empty(uint8_t addr, uint8_t reg);
 int i2c_reg8_write8(uint8_t addr, uint8_t reg, uint8_t data);
 int i2c_reg8_write16l(uint8_t addr, uint8_t reg, uint16_t data);
 int i2c_reg8_write16b(uint8_t addr, uint8_t reg, uint16_t data);

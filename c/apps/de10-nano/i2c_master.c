@@ -216,6 +216,19 @@ int i2c_reg16b_read16b(uint8_t addr, uint16_t reg)
     return (buf[0] << 8) | buf[1];
 }
 
+int i2c_reg8_write8_empty(uint8_t addr, uint8_t reg)
+{
+    uint8_t buf[2];
+    buf[0] = reg;
+    buf[1] = (int)NULL;
+
+    if (i2c_write(addr, 2, buf) < 0)
+        return -1;
+
+    i2c_stop();
+    return 0;
+}
+
 int i2c_reg8_write8(uint8_t addr, uint8_t reg, uint8_t data)
 {
     uint8_t buf[2];

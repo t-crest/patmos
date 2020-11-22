@@ -1,4 +1,4 @@
-MAIN?=hello_MPU6050
+MAIN?=baro_test
 #MAIN?=blinking
 # MAIN?=acts_props_uart2
 SERIAL?=/dev/ttyUSB0
