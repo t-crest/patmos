@@ -4,7 +4,7 @@
 #include <machine/patmos.h>
 #include <stdbool.h>
 #include <math.h>
-#include "i2c_master.h"
+#include "../i2c-master/i2c_master.h"
 void micros(int microseconds)
 {
   unsigned int timer_ms = (get_cpu_usecs());
@@ -52,15 +52,15 @@ void LED_out(int i){
 
 void check_barometerv2(void)
 {
-  i2c_reg8_write8_empty(MS5611_ADDR, 0x1E);
+  i2c_reg8_write8(MS5611_ADDR, 0x1E, (int)NULL);
   millis(5);
-  i2c_reg8_write8_empty(MS5611_ADDR, 0x48);
+  i2c_reg8_write8(MS5611_ADDR, 0x48, (int)NULL);
   millis(10);
   
   unsigned long ptemp = i2c_reg8_read24b(MS5611_ADDR, 0x00);
   
 
-  i2c_reg8_write8_empty(MS5611_ADDR, 0x58);
+  i2c_reg8_write8(MS5611_ADDR, 0x58, (int)NULL);
   millis(10);
   
 

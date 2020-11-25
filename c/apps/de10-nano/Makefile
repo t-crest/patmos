@@ -10,8 +10,7 @@ LDFLAGS?= \
         -Xgold --defsym -Xgold __heap_end=0x070000
 
 all:
-	patmos-clang -I ../.. -O2 $(LDFLAGS) i2c_master.c $(MAIN).c -o de10-nano.elf -lm
-	patmos-clang -I ../.. -O2 $(LDFLAGS) i2c_master.c $(MAIN).c -o ~/t-crest/patmos/tmp/de10-nano.elf -lm
+	patmos-clang -I ../.. -O2 $(LDFLAGS) ../i2c-master/i2c_master.c $(MAIN).c -o de10-nano.elf -lm
 
 download:
 	patserdow -v $(SERIAL) de10-nano.elf
