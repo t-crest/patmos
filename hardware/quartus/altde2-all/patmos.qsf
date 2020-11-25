@@ -229,17 +229,17 @@ set_location_assignment PIN_AH17 -to oSegmentDisplayPins_hexDisp_7[3]
 set_location_assignment PIN_AF17 -to oSegmentDisplayPins_hexDisp_7[4]
 set_location_assignment PIN_AG18 -to oSegmentDisplayPins_hexDisp_7[5]
 set_location_assignment PIN_AA14 -to oSegmentDisplayPins_hexDisp_7[6]
-set_location_assignment PIN_G19  -to oLedsPins_ledR[0]
-set_location_assignment PIN_F19  -to oLedsPins_ledR[1]
-set_location_assignment PIN_E19  -to oLedsPins_ledR[2]
-set_location_assignment PIN_F21  -to oLedsPins_ledR[3]
-set_location_assignment PIN_F18  -to oLedsPins_ledR[4]
-set_location_assignment PIN_E18  -to oLedsPins_ledR[5]
-set_location_assignment PIN_J19  -to oLedsPins_ledR[6]
-set_location_assignment PIN_H19  -to oLedsPins_ledR[7]
-set_location_assignment PIN_G15  -to oLedsPins_ledR[15]
-set_location_assignment PIN_G16  -to oLedsPins_ledR[16]
-set_location_assignment PIN_H15  -to oLedsPins_ledR[17]
+set_location_assignment PIN_G19 -to oLedsPins_ledR[0]
+set_location_assignment PIN_F19 -to oLedsPins_ledR[1]
+set_location_assignment PIN_E19 -to oLedsPins_ledR[2]
+set_location_assignment PIN_F21 -to oLedsPins_ledR[3]
+set_location_assignment PIN_F18 -to oLedsPins_ledR[4]
+set_location_assignment PIN_E18 -to oLedsPins_ledR[5]
+set_location_assignment PIN_J19 -to oLedsPins_ledR[6]
+set_location_assignment PIN_H19 -to oLedsPins_ledR[7]
+set_location_assignment PIN_G15 -to oLedsPins_ledR[15]
+set_location_assignment PIN_G16 -to oLedsPins_ledR[16]
+set_location_assignment PIN_H15 -to oLedsPins_ledR[17]
 
 set_global_assignment -name SYNTH_TIMING_DRIVEN_SYNTHESIS ON
 set_global_assignment -name CYCLONEII_OPTIMIZATION_TECHNIQUE SPEED
@@ -275,32 +275,41 @@ set_global_assignment -name VERILOG_FILE ../../ethmac/ethmac/eth_wishbone.v
 set_global_assignment -name VERILOG_FILE ../../ethmac/ethmac/eth_macstatus.v
 set_global_assignment -name VERILOG_FILE ../../ethmac/ethmac/eth_top.v
 set_global_assignment -name VHDL_FILE ../../ethmac/eth_controller_top.vhdl
-set_global_assignment -name VHDL_FILE "../../../../argo/src/ocp/ocp_config.vhd"
-set_global_assignment -name VHDL_FILE "../../../../argo/src/ocp/ocp.vhd"
-set_global_assignment -name VHDL_FILE "../../../../argo/src/util/math_util.vhd"
-set_global_assignment -name VHDL_FILE "../../../../argo/src/config_types.vhd"
-set_global_assignment -name VHDL_FILE "../../vhdl/argo/config.vhd"
-set_global_assignment -name VHDL_FILE "../../../../argo/src/argo_types.vhd"
-set_global_assignment -name VHDL_FILE "../../../../argo/src/noc_interface.vhd"
-set_global_assignment -name VHDL_FILE "../../../../argo/src/mem/tdp_ram.vhd"
-set_global_assignment -name VHDL_FILE "../../../../argo/src/mem/tdp_bram.vhd"
-set_global_assignment -name VHDL_FILE "../../../../argo/src/mem/com_spm.vhd"
-set_global_assignment -name VHDL_FILE "../../vhdl/argo/com_spm_wrapper.vhd"
-set_global_assignment -name VHDL_FILE "../../../../argo/src/ni/rx_unit.vhd"
-set_global_assignment -name VHDL_FILE "../../../../argo/src/ni/irq_fifo.vhd"
-set_global_assignment -name VHDL_FILE "../../../../argo/src/ni/config_bus.vhd"
-set_global_assignment -name VHDL_FILE "../../../../argo/src/ni/spm_bus.vhd"
-set_global_assignment -name VHDL_FILE "../../../../argo/src/ni/packet_manager.vhd"
-set_global_assignment -name VHDL_FILE "../../../../argo/src/ni/schedule_table.vhd"
-set_global_assignment -name VHDL_FILE "../../../../argo/src/ni/TDM_controller.vhd"
-set_global_assignment -name VHDL_FILE "../../../../argo/src/ni/MC_controller.vhd"
-set_global_assignment -name VHDL_FILE "../../../../argo/src/ni/network_interface.vhd"
-set_global_assignment -name VHDL_FILE "../../../../argo/src/routers/synchronous/xbar.vhd"
-set_global_assignment -name VHDL_FILE "../../../../argo/src/routers/synchronous/hpu.vhd"
-set_global_assignment -name VHDL_FILE "../../../../argo/src/routers/synchronous/router.vhd"
-set_global_assignment -name VHDL_FILE "../../../../argo/src/noc/synchronous/noc_node.vhd"
-set_global_assignment -name VHDL_FILE "../../vhdl/argo/noc_node_wrapper.vhd"
-set_global_assignment -name VHDL_FILE "../../vhdl/argo/noc_wrapper_2x2.vhd"
+set_global_assignment -name VHDL_FILE ../../../../argo/src/ocp/ocp_config.vhd
+set_global_assignment -name VHDL_FILE ../../../../argo/src/ocp/ocp.vhd
+set_global_assignment -name VHDL_FILE ../../../../argo/src/util/math_util.vhd
+set_global_assignment -name VHDL_FILE ../../../../argo/src/config_types.vhd
+set_global_assignment -name VHDL_FILE ../../vhdl/argo/config.vhd
+set_global_assignment -name VHDL_FILE ../../../../argo/src/argo_types.vhd
+set_global_assignment -name VHDL_FILE ../../../../argo/src/noc_interface.vhd
+set_global_assignment -name VHDL_FILE ../../../../argo/src/mem/tdp_ram.vhd
+set_global_assignment -name VHDL_FILE ../../../../argo/src/mem/tdp_bram.vhd
+set_global_assignment -name VHDL_FILE ../../../../argo/src/mem/com_spm.vhd
+set_global_assignment -name VHDL_FILE ../../vhdl/argo/com_spm_wrapper.vhd
+set_global_assignment -name VHDL_FILE ../../../../argo/src/ni/rx_unit.vhd
+set_global_assignment -name VHDL_FILE ../../../../argo/src/ni/irq_fifo.vhd
+set_global_assignment -name VHDL_FILE ../../../../argo/src/ni/config_bus.vhd
+set_global_assignment -name VHDL_FILE ../../../../argo/src/ni/spm_bus.vhd
+set_global_assignment -name VHDL_FILE ../../../../argo/src/ni/packet_manager.vhd
+set_global_assignment -name VHDL_FILE ../../../../argo/src/ni/schedule_table.vhd
+set_global_assignment -name VHDL_FILE ../../../../argo/src/ni/TDM_controller.vhd
+set_global_assignment -name VHDL_FILE ../../../../argo/src/ni/MC_controller.vhd
+set_global_assignment -name VHDL_FILE ../../../../argo/src/ni/network_interface.vhd
+set_global_assignment -name VHDL_FILE ../../../../argo/src/routers/synchronous/xbar.vhd
+set_global_assignment -name VHDL_FILE ../../../../argo/src/routers/synchronous/hpu.vhd
+set_global_assignment -name VHDL_FILE ../../../../argo/src/routers/synchronous/router.vhd
+set_global_assignment -name VHDL_FILE ../../../../argo/src/noc/synchronous/noc_node.vhd
+set_global_assignment -name VHDL_FILE ../../vhdl/argo/noc_node_wrapper.vhd
+
+set_global_assignment -name VHDL_FILE ../../vhdl/fpu_double/comppack.vhd
+set_global_assignment -name VHDL_FILE ../../vhdl/fpu_double/fpupack.vhd
+set_global_assignment -name VHDL_FILE ../../vhdl/fpu_double/fpu_add.vhd
+set_global_assignment -name VHDL_FILE ../../vhdl/fpu_double/fpu_sub.vhd
+set_global_assignment -name VHDL_FILE ../../vhdl/fpu_double/fpu_div.vhd
+set_global_assignment -name VHDL_FILE ../../vhdl/fpu_double/fpu_mul.vhd
+set_global_assignment -name VHDL_FILE ../../vhdl/fpu_double/fpu_round.vhd
+set_global_assignment -name VHDL_FILE ../../vhdl/fpu_double/fpu_exceptions.vhd
+set_global_assignment -name VHDL_FILE ../../vhdl/fpu_double/fpu_double.vhd
 set_global_assignment -name VERILOG_FILE ../../build/Patmos.v
 set_global_assignment -name VHDL_FILE "../../vhdl/patmos_de2-all.vhdl"
 
@@ -447,3 +456,10 @@ set_global_assignment -name VERILOG_MACRO "SYNTHESIS=<None>"
 
 
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
+set_global_assignment -name OPTIMIZATION_MODE "AGGRESSIVE PERFORMANCE"
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:patmos_inst|PatmosCore:PatmosCore|InOut:iocomp|EthMac:EthMac|eth_controller_top:eth|eth_top:eth_top_comp_0|eth_txethmac:txethmac1|MTxD[0][3..0]~reg"
+set_global_assignment -name ALLOW_ANY_RAM_SIZE_FOR_RECOGNITION ON
+set_global_assignment -name ALLOW_ANY_ROM_SIZE_FOR_RECOGNITION ON
+set_global_assignment -name ALLOW_ANY_SHIFT_REGISTER_SIZE_FOR_RECOGNITION ON
+set_global_assignment -name SYNTH_GATED_CLOCK_CONVERSION ON
+set_global_assignment -name FORCE_SYNCH_CLEAR ON

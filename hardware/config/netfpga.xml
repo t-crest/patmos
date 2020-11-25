@@ -1,7 +1,7 @@
 <patmos default="default.xml">
   <description>default configuration for NetFPGA board</description>
 
-  <frequency Hz="80000000"/>  
+  <frequency Hz="100000000"/>  
 
   <!-- Default is single core -->
   <!-- <pipeline dual="false" />
@@ -16,6 +16,7 @@
   <IOs>
   <IO DevTypeRef="Leds" offset="9"/>
   <IO DevTypeRef="Keys" offset="10" intrs="2,3,4,5"/>
+  <IO DevTypeRef="AXI4LiteMMBridge" offset="5" />
   </IOs>
 
   <Devs>
@@ -27,6 +28,12 @@
     <Dev DevType="Keys" entity="Keys" iface="OcpCore">
       <params>
         <param name="keyCount" value="4"/>
+      </params>
+    </Dev>
+    <Dev DevType="AXI4LiteMMBridge" entity="AXI4LiteMMBridge" iface="OcpCore">
+      <params>
+        <param name="extAddrWidth" value="12"/>
+        <param name="dataWidth" value="32"/>
       </params>
     </Dev>
   <Dev DevType="Sram16" entity="SRamCtrl" iface="OcpBurst">

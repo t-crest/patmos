@@ -39,7 +39,6 @@
 package io
 
 import Chisel._
-//import Node._ // cannot be imported with chisel3
 
 import patmos.Constants._
 
@@ -55,10 +54,6 @@ object I2CMaster extends DeviceObject {
   def create(params: Map[String, String]) : I2CMaster = {
     Module(new I2CMaster(CLOCK_FREQ, bitRate))
   }
-
-  //trait Intrs {
-  //  val i2cMasterIntrs = Vec.fill(1) { Bool(OUTPUT) }
-  //}
 }
 
 /*******************************************************************************
@@ -114,14 +109,14 @@ object I2CMaster extends DeviceObject {
  ******************************************************************************/
 class I2CMaster(clkFreq : Int, bitRate : Int) extends CoreDevice() {
 
-  override val io = new CoreDeviceIO() with patmos.HasPins { //with I2CMaster.Intrs
-    override val pins = new Bundle() {
+  override val io = IO(new CoreDeviceIO() with patmos.HasPins {
+    override val pins = new Bundle {
       val sdaI = Bits(INPUT, 1)
       val sdaO = Bits(OUTPUT, 1) // '0' when low, 'Z' when high
       val sclI = Bits(INPUT, 1)
       val sclO = Bits(OUTPUT, 1) // '0' when low, 'Z' when high
     }
-  }
+  })
 
   // Control: instruct the bus to ...
   val ackBehavReg = Reg(init = Bits(0, 1))  // ... send ACK or NACK upon reading

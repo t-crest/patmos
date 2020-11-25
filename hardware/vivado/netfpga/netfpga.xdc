@@ -7,8 +7,8 @@ set_property CLOCK_DEDICATED_ROUTE BACKBONE [get_nets clk_manager_inst_0/inst/cl
 #set_property CLOCK_DEDICATED_ROUTE BACKBONE [get_nets u_clk_manager/inst/clk_in_clk_manager]
 
 ## Clock Signal
-set_property -dict {PACKAGE_PIN AA3 IOSTANDARD LVDS} [get_ports clk_in_n]
-set_property -dict {PACKAGE_PIN AA2 IOSTANDARD LVDS} [get_ports clk_in_p]
+set_property -dict {PACKAGE_PIN AA2 IOSTANDARD LVDS} [get_ports clk_in_n]
+set_property -dict {PACKAGE_PIN AA3 IOSTANDARD LVDS} [get_ports clk_in_p]
 
 ## Reset button (BTN4)
 set_property -dict {PACKAGE_PIN AA8 IOSTANDARD LVCMOS18} [get_ports reset]
@@ -286,8 +286,8 @@ set_property -dict {PACKAGE_PIN AB6 IOSTANDARD LVCMOS15} [get_ports { btn[3]}];
 
 #PMOD Ports
 set_property -dict {PACKAGE_PIN D19 IOSTANDARD LVCMOS33} [get_ports { pmod_ja_1}];
-set_property -dict {PACKAGE_PIN E23 IOSTANDARD LVCMOS33} [get_ports { oUartPins_txd}]; #pmod_ja_2
-set_property -dict {PACKAGE_PIN D25 IOSTANDARD LVCMOS33} [get_ports { iUartPins_rxd}]; #pmod_ja_3
+set_property -dict {PACKAGE_PIN E23 IOSTANDARD LVCMOS33} [get_ports { iUartPins_rxd}]; #pmod_ja_2
+set_property -dict {PACKAGE_PIN D25 IOSTANDARD LVCMOS33} [get_ports { oUartPins_txd}]; #pmod_ja_3
 set_property -dict {PACKAGE_PIN F23 IOSTANDARD LVCMOS33} [get_ports { pmod_ja_4}];
 set_property -dict {PACKAGE_PIN F19 IOSTANDARD LVCMOS33} [get_ports { pmod_ja_7}];
 set_property -dict {PACKAGE_PIN G22 IOSTANDARD LVCMOS33} [get_ports { pmod_ja_8}];
