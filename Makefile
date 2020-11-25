@@ -16,8 +16,8 @@ APP?=hello_puts
 # Altera FPGA configuration cables
 #BLASTER_TYPE=ByteBlasterMV
 #BLASTER_TYPE=Arrow-USB-Blaster
-BLASTER_TYPE?=DE-SoC 
-# BLASTER_TYPE?=USB-Blaster
+#BLASTER_TYPE?=DE-SoC 
+BLASTER_TYPE?=USB-Blaster
 
 # Path delimiter for Wdoz and others
 ifeq ($(WINDIR),)
@@ -35,8 +35,8 @@ VENDOR?=Altera
 #BOARD=ml605oc
 #BOARD=bemicro
 #BOARD?=altde2-70
-# BOARD?=altde2-115
-BOARD?=altde10-NANO-oc
+BOARD?=altde2-115
+#BOARD?=altde10-NANO-oc
 
 # Where to put elf files and binaries
 BUILDDIR?=$(CURDIR)/tmp

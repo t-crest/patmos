@@ -10,7 +10,7 @@
   <IOs>
   <IO DevTypeRef="Uart" offset="6"/>
   <IO DevTypeRef="Leds" offset="9"/>
-  <IO DevTypeRef="I2CInterface" offset="11"/>
+  <IO DevTypeRef="I2CMaster" offset="11"/>
   <IO DevTypeRef="Actuators" offset="12"/>
   <!-- <IO DevTypeRef="AauMpu" offset="15"/> -->
   <IO DevTypeRef="SPIMaster" offset="14"/>
@@ -28,10 +28,9 @@
         <param name="ledCount" value="8"/>
       </params>
     </Dev>
-    <Dev DevType="I2CInterface" entity="I2CInterface" iface="OcpCore">
+    <Dev DevType="I2CMaster" entity="I2CMaster" iface="OcpCore">
       <params>
-        <param name="extAddrWidth" value="16" />
-        <param name="dataWidth" value="32" />
+        <param name="i2cBitRate" value="100000" />
       </params>
     </Dev>
     <Dev DevType="Actuators" entity="Actuators" iface="OcpCore">
@@ -51,10 +50,10 @@
       </params>
     </Dev>
 
-  <Dev DevType="OCRam" entity="OCRamCtrl" iface="OcpBurst">
-    <params>
-       <param name="sramAddrWidth" value="19" />
-    </params>
-  </Dev>
+    <Dev DevType="OCRam" entity="OCRamCtrl" iface="OcpBurst">
+      <params>
+         <param name="sramAddrWidth" value="19" />
+      </params>
+    </Dev>
   </Devs>
 </patmos>
