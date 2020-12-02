@@ -22,10 +22,14 @@ class sd_crc_16 extends Module {
       val crc_reg_11 = crc_reg(11)
       val crc_reg_4 = crc_reg(4)
       crc_reg := crc_reg << 1
-      crc_reg(12) := crc_reg_11 ^ inv
-      crc_reg(5) := crc_reg_4 ^ inv
-      crc_reg(0) := inv
+      crc_reg.bitSet(12.U, (crc_reg_11 ^ inv).asBool())
+      crc_reg.bitSet(5.U, (crc_reg_4 ^ inv).asBool())
+      crc_reg.bitSet(0.U, inv.asBool())
     }
   }
   io.crc <> crc_reg
+}
+
+object sd_crc_16 extends App {
+  chisel3.Driver.execute(Array("--target-dir", "generated"), () => new sd_crc_16())
 }
