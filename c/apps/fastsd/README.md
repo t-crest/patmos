@@ -1,5 +1,5 @@
 # FastSD
-This is the software part of the sd controller based on the SD interface.
+This is the software part of the SD controller based on the SD interface.
 
 ## Structure
-`libfastsd` includes all functionality needed for interacting with the sd controller.
+`libfastsd` includes all functionality needed for interacting with the SD controller.
