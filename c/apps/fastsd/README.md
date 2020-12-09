@@ -10,4 +10,4 @@ The code is structured in logical blocks.
 
 ## References
 [1]: http://elm-chan.org/
-[1]: https://github.com/t-crest/patmos-newlib/blob/4c149a53f8cb2478d99aac731b61b5e4ed63543f/libgloss/patmos/write.c#L41
+[2]: https://github.com/t-crest/patmos-newlib/blob/4c149a53f8cb2478d99aac731b61b5e4ed63543f/libgloss/patmos/write.c#L41
