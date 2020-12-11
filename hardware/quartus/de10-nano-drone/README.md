@@ -53,7 +53,27 @@ linker options:
         -Xgold --defsym -Xgold __heap_end=0x070000
 ```
 
-Best see in the example in c/apps/de10-nano. Compile and download that example with:
+Best see in the example in c/apps/de10-nano. 
+
+Alternatively, it is possible to use the external 1 GB DDR3 memory. In
+de10-nano-drone.xml comment the line
+```
+<ExtMem size="500k" DevTypeRef="OCRam" />
+```
+and uncomment the line
+```
+<ExtMem size="1g" DevTypeRef="DDR3Bridge" />
+```
+Additionally, download the "DE10-Nano_v.1.3.8_HWrevC_SystemCD.zip" demo cd from 
+```
+http://download.terasic.com/downloads/cd-rom/de10-nano/
+```
+and write the SD card image from Demonstrations/FPGA/SdcardImage
+to an SD card which is inserted into the SD card slot of the de10 Nano.
+Power on the board, and after a few seconds, program the FPGA,
+allowing the FPGA to access the DDR3 memory controller.
+
+Compile and download that example with:
 
 ```
 make app APP=de10-nano download
@@ -78,8 +98,4 @@ make app APP=de10-nano MAIN=acts_props_uart2 download
  * Register definitions in C for the MPU-6050 can be found at https://playground.arduino.cc/Main/MPU-6050
 
 ## TODO
-
- * If needed, add external memory (the ARM boot program needs to be changed to allow access to the memory from the FPGA fabric, Florian has the solution)
-
-
 

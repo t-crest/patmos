@@ -3,12 +3,13 @@
 
   <frequency Hz="50000000"/>
   <pipeline dual="false" />
-
+  <!-- <cores count="4" /> -->
   <ExtMem size="500k" DevTypeRef="OCRam" />
-  
+  <!-- <ExtMem size="1g" DevTypeRef="DDR3Bridge" /> -->
 
   <IOs>
-  <IO DevTypeRef="Uart" offset="6"/>
+  <IO DevTypeRef="Uart1" offset="6"/>
+  <IO DevTypeRef="Uart2" offset="7"/>
   <IO DevTypeRef="Leds" offset="9"/>
   <IO DevTypeRef="I2CMaster" offset="11"/>
   <IO DevTypeRef="Actuators" offset="12"/>
@@ -17,9 +18,15 @@
   </IOs>
 
   <Devs>
-    <Dev DevType="Uart" entity="Uart" iface="OcpCore">
+    <Dev DevType="Uart1" entity="Uart" iface="OcpCore">
       <params>
         <param name="baudRate" value="115200"/>
+        <param name="fifoDepth" value="16"/>
+      </params>
+    </Dev>
+    <Dev DevType="Uart2" entity="Uart" iface="OcpCore">
+      <params>
+        <param name="baudRate" value="9200"/>
         <param name="fifoDepth" value="16"/>
       </params>
     </Dev>
@@ -50,6 +57,7 @@
       </params>
     </Dev>
 
+    <Dev DevType="DDR3Bridge" entity="DDR3Bridge" iface="OcpBurst" />
     <Dev DevType="OCRam" entity="OCRamCtrl" iface="OcpBurst">
       <params>
          <param name="sramAddrWidth" value="19" />
