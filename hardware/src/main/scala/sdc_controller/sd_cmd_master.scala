@@ -41,7 +41,7 @@ class sd_cmd_master extends Module {
   val watchdog_cnt = RegInit(0.U(16.W))
   val complete = RegInit(0.U(1.W))
   val state = RegInit(0.U(3.W))
-  //val next_state = RegInit(0.U(3.W)) no reg
+  //val next_state = RegInit(0.U(3.W)) // no reg
 
   val IDLE = (1<<0).U(3.W)
   val SETUP = (1<<1).U(3.W)
@@ -140,7 +140,7 @@ class sd_cmd_master extends Module {
       go_idle_o := 0.U
       req_out := 0.U
       ack_out := 0.U
-      CICMD(false.B)
+      CICMD(0.U)
       when(req_in_int.andR()) {
         status := io.serial_status
         ack_out := 1.U
