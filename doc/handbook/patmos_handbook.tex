@@ -4353,7 +4353,7 @@ We can now install all the needed tools:
 \begin{verbatim}
 sudo apt install git openjdk-8-jdk gitk cmake make g++ texinfo flex bison \
   subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby-full \
-  liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala autoconf libfl2 expect
+  liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala autoconf libfl2 expect verilator
 \end{verbatim}
 
 Make sure to use Java 8 and remove any later Java version with
@@ -4390,14 +4390,6 @@ For the build of Patmos and the compiler we need to install:
 brew install cmake boost libelf sbt doxygen expect
 \end{verbatim}
 
-Mac OS X comes with Python version 2.7 preinstalled. For Aegean
-we need Python 3 and the xml library that can be installed with:
-
-\begin{verbatim}
-brew install python3
-pip3 install lxml
-\end{verbatim}
-
 For WCET analysis install
 
 \begin{verbatim}
@@ -4410,13 +4402,8 @@ For wave viewing install GTKWave with
 brew install homebrew/x11/gtkwave
 \end{verbatim}
 
-\todo{The following should probably be deleted as we switched to homebrew for the setup.}
-
-Several tools are needed, best installed with MacPorts. For Patmos simulator and assembler:
+Several tools are needed, best installed with \code{brew}. For Patmos simulator and assembler:
 \code{boost}, \code{libelf}.
-For simulation with ModelSim: \code{wine}
-For Aegean: \code{python33}, \code{py33-lxml}. Make a link from \code{python3} to \code{python3.3} as this is the way it is invoked.
-\todo{Alex suggested a way to avoid this by querying how to invoke python.}
 
 \subsection{Windows 10}
 
