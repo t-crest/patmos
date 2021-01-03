@@ -1,5 +1,5 @@
 
-`include "timescale.v"
+//`include "timescale.v"
 `include "sd_defines.v"
 module sd_tx_fifo
   (

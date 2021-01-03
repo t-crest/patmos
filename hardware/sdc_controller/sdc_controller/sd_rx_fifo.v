@@ -1,5 +1,5 @@
 `include "sd_defines.v"
-`include "timescale.v"
+//`include "timescale.v"
 module sd_rx_fifo
   (
    input [4-1:0] d,
