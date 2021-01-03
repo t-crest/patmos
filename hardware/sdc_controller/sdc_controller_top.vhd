@@ -126,7 +126,7 @@ architecture arch of sdc_controller_top is
 	signal next_mux_sel, mux_sel : std_logic;
 
 	-- wishbone signals for buffer
-	signal wb_b_addr_i : std_logic_vector(BUFF_ADDR_WIDTH-1 downto 0);
+	signal wb_b_addr_i : std_logic_vector(31 downto 0);
 	signal wb_b_sel_i  : std_logic_vector(3 downto 0);
 	signal wb_b_we_i   : std_logic;
 	signal wb_b_data_o : std_logic_vector(31 downto 0);
@@ -264,7 +264,7 @@ begin
 			SData     => S_Data_b,
 
 			-- wishbone slave
-			wb_addr_i => wb_b_addr_i,
+			wb_addr_i => wb_b_addr_i(BUFF_ADDR_WIDTH-1 downto 0),
 			wb_sel_i  => wb_b_sel_i,
 			wb_we_i   => wb_b_we_i,
 			wb_data_o => wb_b_data_o,
