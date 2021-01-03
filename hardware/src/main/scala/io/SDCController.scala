@@ -84,7 +84,7 @@ class SDCController(extAddrWidth: Int = 16, dataWidth: Int = 32) extends CoreDev
   sdc.io.clk <> clock
   sdc.io.rst <> reset
   sdc.io.M <> io.ocp.M
-  sdc.io.S <> io.ocp.S
+  io.ocp.S <> sdc.io.S
   sdc.io.sd_dat_dat <> io.pins.sd_dat_dat
   sdc.io.sd_dat_out <> io.pins.sd_dat_out
   sdc.io.sd_dat_oe <> io.pins.sd_dat_oe
