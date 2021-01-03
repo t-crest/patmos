@@ -10,7 +10,7 @@
 #include <machine/patmos.h>
 #include <stdint.h>
 
-#if !defined PATMOS_IO_FASTSD && PATMOS_IO_FASTSD == 0
+#if !defined PATMOS_IO_FASTSD || PATMOS_IO_FASTSD == 0
 #error "Martin, du musst die Base Addresse `PATMOS_IO_FASTSD` im Makefile definieren :)"
 #endif
 
