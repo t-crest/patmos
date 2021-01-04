@@ -137,8 +137,8 @@ architecture arch of sdc_controller_top is
 
 begin
 
-	M_Cmd_b <= "000" when M_Addr(M_Addr'length-1) = '1' else M_Cmd;	--control buffer, if MSB is 1
-	M_Cmd_r <= "000" when M_Addr(M_Addr'length-1) = '0' else M_Cmd;	--control registers, if MSB is 0
+	M_Cmd_b <= "000" when M_Addr(M_Addr'length-1) = '1' else M_Cmd;	--control buffer, if MSB is 0
+	M_Cmd_r <= "000" when M_Addr(M_Addr'length-1) = '0' else M_Cmd;	--control registers, if MSB is 1
 	S_Resp  <= S_Resp_r when (mux_sel = '1') else S_Resp_b;
 	S_Data  <= S_Data_r when (mux_sel = '1') else S_Data_b;
 	
