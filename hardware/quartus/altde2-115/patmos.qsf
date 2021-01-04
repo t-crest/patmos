@@ -197,17 +197,12 @@ set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:comp|SRamCtrl:
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:comp|SRamCtrl:ramCtrl|nubReg"
 
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
-set_global_assignment -name VHDL_FILE ../../sdc_controller/buffer/wb_to_bram.vhd
-set_global_assignment -name VHDL_FILE ../../sdc_controller/buffer/tdp_sc_bram.vhd
-set_global_assignment -name VHDL_FILE ../../sdc_controller/buffer/rx_tx_buffer.vhd
-set_global_assignment -name VHDL_FILE ../../sdc_controller/buffer/ocp_to_bram.vhd
+set_global_assignment -name VHDL_FILE ../../sdc_controller/sdc_controller_top.vhd
 set_global_assignment -name VERILOG_FILE ../../sdc_controller/sdc_controller/sdc_controller.v
-set_global_assignment -name VERILOG_FILE ../../sdc_controller/sdc_controller/sd_tx_fifo.v
-set_global_assignment -name VERILOG_FILE ../../sdc_controller/sdc_controller/sd_rx_fifo_tb.v
-set_global_assignment -name VERILOG_FILE ../../sdc_controller/sdc_controller/sd_rx_fifo.v
-set_global_assignment -name VERILOG_FILE ../../sdc_controller/sdc_controller/sd_fifo_tx_filler.v
-set_global_assignment -name VERILOG_FILE ../../sdc_controller/sdc_controller/sd_fifo_rx_filler.v
-set_global_assignment -name VERILOG_FILE ../../sdc_controller/sdc_controller/sd_defines.v
+set_global_assignment -name VERILOG_FILE ../../sdc_controller/sdc_controller/sd_wb_sel_ctrl.v
+set_global_assignment -name VERILOG_FILE ../../sdc_controller/sdc_controller/sd_fifo_filler.v
+set_global_assignment -name SOURCE_FILE ../../sdc_controller/sdc_controller/sd_defines.h
+set_global_assignment -name VERILOG_FILE ../../sdc_controller/sdc_controller/sd_data_xfer_trig.v
 set_global_assignment -name VERILOG_FILE ../../sdc_controller/sdc_controller/sd_data_serial_host.v
 set_global_assignment -name VERILOG_FILE ../../sdc_controller/sdc_controller/sd_data_master.v
 set_global_assignment -name VERILOG_FILE ../../sdc_controller/sdc_controller/sd_crc_16.v
@@ -216,8 +211,16 @@ set_global_assignment -name VERILOG_FILE ../../sdc_controller/sdc_controller/sd_
 set_global_assignment -name VERILOG_FILE ../../sdc_controller/sdc_controller/sd_cmd_serial_host.v
 set_global_assignment -name VERILOG_FILE ../../sdc_controller/sdc_controller/sd_cmd_master.v
 set_global_assignment -name VERILOG_FILE ../../sdc_controller/sdc_controller/sd_clock_divider.v
-set_global_assignment -name VERILOG_FILE ../../sdc_controller/sdc_controller/sd_bd.v
-set_global_assignment -name VHDL_FILE ../../sdc_controller/sdc_controller_top.vhd
+set_global_assignment -name VERILOG_FILE ../../sdc_controller/sdc_controller/monostable_domain_cross.v
+set_global_assignment -name VERILOG_FILE ../../sdc_controller/sdc_controller/generic_fifo_dc_gray.v
+set_global_assignment -name VERILOG_FILE ../../sdc_controller/sdc_controller/generic_dpram.v
+set_global_assignment -name VERILOG_FILE ../../sdc_controller/sdc_controller/edge_detect.v
+set_global_assignment -name VERILOG_FILE ../../sdc_controller/sdc_controller/byte_en_reg.v
+set_global_assignment -name VERILOG_FILE ../../sdc_controller/sdc_controller/bistable_domain_cross.v
+set_global_assignment -name VHDL_FILE ../../sdc_controller/buffer/wb_to_bram.vhd
+set_global_assignment -name VHDL_FILE ../../sdc_controller/buffer/tdp_sc_bram.vhd
+set_global_assignment -name VHDL_FILE ../../sdc_controller/buffer/rx_tx_buffer.vhd
+set_global_assignment -name VHDL_FILE ../../sdc_controller/buffer/ocp_to_bram.vhd
 set_global_assignment -name VHDL_FILE "../../vhdl/patmos_de2-115.vhdl"
 set_global_assignment -name VHDL_FILE ../../vhdl/altera/cyc2_pll.vhd
 set_global_assignment -name VERILOG_FILE ../../build/Patmos.v
@@ -247,3 +250,10 @@ set_global_assignment -name VHDL_FILE ../../../../argo/src/routers/synchronous/r
 set_global_assignment -name VHDL_FILE ../../../../argo/src/noc/synchronous/noc_node.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/argo/noc_node_wrapper.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/argo/noc_wrapper_2x2.vhd
+set_location_assignment PIN_AD14 -to sd_cmd
+set_location_assignment PIN_AC14 -to sd_data[3]
+set_location_assignment PIN_AB14 -to sd_data[2]
+set_location_assignment PIN_AF13 -to sd_data[1]
+set_location_assignment PIN_AE14 -to sd_data[0]
+set_location_assignment PIN_AF14 -to sd_write_protect
+set_location_assignment PIN_AE13 -to sdc_clk
