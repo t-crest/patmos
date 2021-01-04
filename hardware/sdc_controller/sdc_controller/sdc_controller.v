@@ -56,49 +56,49 @@
 //////////////////////////////////////////////////////////////////////
 `include "sd_defines.h"
 
-module sdc_controller(
-           // WISHBONE common
-           wb_clk_i, 
-           wb_rst_i, 
-           // WISHBONE slave
-           wb_dat_i, 
-           wb_dat_o,
-           wb_adr_i, 
-           wb_sel_i, 
-           wb_we_i, 
-           wb_cyc_i, 
-           wb_stb_i, 
-           wb_ack_o,
-           // WISHBONE master
-           m_wb_dat_o,
-           m_wb_dat_i,
-           m_wb_adr_o, 
-           m_wb_sel_o, 
-           m_wb_we_o,
-           m_wb_cyc_o,
-           m_wb_stb_o, 
-           m_wb_ack_i,
-           m_wb_cti_o, 
-           m_wb_bte_o,
-           //SD BUS
-           sd_cmd_dat_i, 
-           sd_cmd_out_o, 
-           sd_cmd_oe_o, 
-           //card_detect,
-           sd_dat_dat_i, 
-           sd_dat_out_o, 
-           sd_dat_oe_o, 
-           sd_clk_o_pad,
-           sd_clk_i_pad,
-           int_cmd, 
-           int_data
-       );
+module sdc_controller
+(
+	// WISHBONE common
+	wb_clk_i, 
+	wb_rst_i, 
+	// WISHBONE slave
+	wb_dat_i, 
+	wb_dat_o,
+	wb_adr_i, 
+	wb_sel_i, 
+	wb_we_i, 
+	wb_cyc_i, 
+	wb_stb_i, 
+	wb_ack_o,
+	// WISHBONE master
+	m_wb_dat_o,
+	m_wb_dat_i,
+	m_wb_adr_o, 
+	m_wb_sel_o, 
+	m_wb_we_o,
+	m_wb_cyc_o,
+	m_wb_stb_o, 
+	m_wb_ack_i,
+	m_wb_cti_o, 
+	m_wb_bte_o,
+	//SD BUS
+	sd_cmd_dat_i, 
+	sd_cmd_out_o, 
+	sd_cmd_oe_o, 
+	//card_detect,
+	sd_dat_dat_i, 
+	sd_dat_out_o, 
+	sd_dat_oe_o, 
+	sd_clk_o_pad,
+	sd_clk_i_pad,
+	int_cmd, 
+	int_data
+);
 
 input wb_clk_i;
 input wb_rst_i;
 input [31:0] wb_dat_i;
 output [31:0] wb_dat_o;
-//input card_detect;
 input [7:0] wb_adr_i;
 input [3:0] wb_sel_i;
 input wb_we_i;

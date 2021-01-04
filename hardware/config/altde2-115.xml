@@ -35,7 +35,6 @@
     <Dev DevType="SDCController" entity="SDCController" iface="OcpCore">
      <params>
       <param name="extAddrWidth" value="16"/>
-      <param name="dataWidth" value="32" />
      </params>
     </Dev>
   <Dev DevType="Sram16" entity="SRamCtrl" iface="OcpBurst">

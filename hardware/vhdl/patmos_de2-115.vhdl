@@ -122,7 +122,7 @@ begin
   end process;
 
 
-    -- tristate output to ssram
+	-- tristate output to ssram
     process(sram_out_dout_ena, sram_out_dout)
     begin
       if sram_out_dout_ena='1' then
@@ -132,9 +132,9 @@ begin
       end if;
     end process;
 	 
-	 -- sdcard tristate stuff
+	-- sdcard tristate stuff
 	sd_cmd <= sd_cmd_out when sd_cmd_oe = '1' else 'Z';
-   sd_data <= sd_dat_out when sd_dat_oe = '1' else (others => 'Z');
+	sd_data <= sd_dat_out when sd_dat_oe = '1' else (others => 'Z');
 
     comp : Patmos port map(
 	    clock => clk_int, 

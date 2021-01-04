@@ -5,13 +5,11 @@ import ocp._
 
 object SDCController extends DeviceObject{
   var extAddrWidth = 16
-  var dataWidth = 32
 
   def init(params: Map[String, String]) = {
     extAddrWidth = getPosIntParam(params, "extAddrWidth")
-    dataWidth = getPosIntParam(params, "dataWidth")
   }
-  def create(params: Map[String, String]): SDCController = Module(new SDCController(extAddrWidth, dataWidth))
+  def create(params: Map[String, String]): SDCController = Module(new SDCController(extAddrWidth))
 
   trait Pins extends patmos.HasPins{
     override val pins = new Bundle() {
@@ -23,15 +21,13 @@ object SDCController extends DeviceObject{
       val sd_cmd_out = Output(Bool())
       val sd_cmd_oe = Output(Bool())
       val sd_clk_o_pad = Output(Bool())
-      val int_cmd = Output(Bool())  // maybe remove
-      val int_data = Output(Bool()) // maybe remove
     }
   }
 }
 
-class SDCControllerBB(extAddrWidth: Int = 16, dataWidth: Int = 32) extends BlackBox(
-  Map("BUFF_ADDR_WIDTH" -> extAddrWidth)) {
-  val io = IO(new OcpCoreSlavePort(extAddrWidth, dataWidth) {
+class SDCControllerBB(extAddrWidth: Int = 16) extends BlackBox(
+  Map("ADDR_WIDTH" -> extAddrWidth)) {
+  val io = IO(new OcpCoreSlavePort(extAddrWidth, 32) {
     val clk = Input(Clock())
     val rst = Input(Bool())
     // sdcard port
@@ -71,12 +67,12 @@ class SDCControllerBB(extAddrWidth: Int = 16, dataWidth: Int = 32) extends Black
   override def desiredName: String = "sdc_controller_top"
 }
 
-class SDCController(extAddrWidth: Int = 16, dataWidth: Int = 32) extends CoreDevice() {
+class SDCController(extAddrWidth: Int = 16) extends CoreDevice() {
   override val io = IO(new CoreDeviceIO() with SDCController.Pins with patmos.HasInterrupts {
     override val interrupts = Vec(2, Output(Bool()))
   })
 
-  val sdc = Module(new SDCControllerBB(extAddrWidth, dataWidth))
+  val sdc = Module(new SDCControllerBB(extAddrWidth))
   // wire all pins
   sdc.io.clk <> clock
   sdc.io.rst <> reset
@@ -89,8 +85,6 @@ class SDCController(extAddrWidth: Int = 16, dataWidth: Int = 32) extends CoreDev
   sdc.io.sd_cmd_out <> io.pins.sd_cmd_out
   sdc.io.sd_cmd_oe <> io.pins.sd_cmd_oe
   sdc.io.sd_clk_o_pad <> io.pins.sd_clk_o_pad
-  sdc.io.int_cmd <> io.pins.int_cmd
-  sdc.io.int_data <> io.pins.int_data
   // sync interrupts
   val syncIntA = RegNext(sdc.io.int_cmd)
   val syncIntB = RegNext(sdc.io.int_data)
