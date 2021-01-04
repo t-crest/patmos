@@ -2,14 +2,17 @@
 ////                                                              ////
 //// WISHBONE SD Card Controller IP Core                          ////
 ////                                                              ////
-//// sd_clock_divider.v                                           ////
+//// monostable_domain_cross.v                                    ////
 ////                                                              ////
 //// This file is part of the WISHBONE SD Card                    ////
 //// Controller IP Core project                                   ////
 //// http://opencores.org/project,sd_card_controller              ////
 ////                                                              ////
 //// Description                                                  ////
-//// Control of sd card clock rate                                ////
+//// Clock synchronisation beetween two clock domains.            ////
+//// Assumption is that input signal duration is always           //// 
+//// one clk_a clock period. If that is true output signal        ////
+//// duration is always one clk_b clock period.                   ////
 ////                                                              ////
 //// Author(s):                                                   ////
 ////     - Marek Czerski, ma.czerski@gmail.com                    ////
@@ -17,11 +20,6 @@
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
 //// Copyright (C) 2013 Authors                                   ////
-////                                                              ////
-//// Based on original work by                                    ////
-////     Adam Edvardsson (adam.edvardsson@orsoc.se)               ////
-////                                                              ////
-////     Copyright (C) 2009 Authors                               ////
 ////                                                              ////
 //// This source file may be used and distributed without         ////
 //// restriction provided that this copyright statement is not    ////
@@ -46,34 +44,35 @@
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
 
-module sd_clock_divider (
-           input CLK,
-           input [7:0] DIVIDER,
-           input RST,
-           output SD_CLK
-       );
+module monostable_domain_cross(
+    input rst,
+    input clk_a,
+    input in, 
+    input clk_b,
+    output out
+);
 
-reg [7:0] ClockDiv;
-reg SD_CLK_O;
-
-//assign SD_CLK = DIVIDER[7] ? CLK : SD_CLK_O;
-assign SD_CLK = SD_CLK_O;
-
-always @(posedge CLK or posedge RST)
+// this changes level when the in is seen in clk_a
+reg toggle_clk_a;
+always @(posedge clk_a or posedge rst)
 begin
-    if (RST) begin
-        ClockDiv <= 8'b0000_0000;
-        SD_CLK_O <= 0;
-    end
-    else if (ClockDiv == DIVIDER) begin
-        ClockDiv <= 0;
-        SD_CLK_O <= ~SD_CLK_O;
-    end else begin
-        ClockDiv <= ClockDiv + 8'h1;
-        SD_CLK_O <= SD_CLK_O;
-    end
+    if (rst)
+        toggle_clk_a <= 0;
+    else
+        toggle_clk_a <= toggle_clk_a ^ in;
 end
 
-endmodule
+// which can then be sync-ed to clk_b
+reg [2:0] sync_clk_b;
+always @(posedge clk_b or posedge rst)
+begin
+    if (rst)
+        sync_clk_b <= 0;
+    else
+        sync_clk_b <= {sync_clk_b[1:0], toggle_clk_a};
+end
 
+// and recreate the flag in clk_b
+assign out = (sync_clk_b[2] ^ sync_clk_b[1]);
 
+endmodule 

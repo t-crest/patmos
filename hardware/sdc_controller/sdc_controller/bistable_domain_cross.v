@@ -2,14 +2,16 @@
 ////                                                              ////
 //// WISHBONE SD Card Controller IP Core                          ////
 ////                                                              ////
-//// sd_clock_divider.v                                           ////
+//// bistable_domain_cross.v                                      ////
 ////                                                              ////
 //// This file is part of the WISHBONE SD Card                    ////
 //// Controller IP Core project                                   ////
 //// http://opencores.org/project,sd_card_controller              ////
 ////                                                              ////
 //// Description                                                  ////
-//// Control of sd card clock rate                                ////
+//// Clock synchronisation beetween two clock domains.            ////
+//// Assumption is that input signal duration has to be at least  ////
+//// one clk_b clock period.                                      //// 
 ////                                                              ////
 //// Author(s):                                                   ////
 ////     - Marek Czerski, ma.czerski@gmail.com                    ////
@@ -17,11 +19,6 @@
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
 //// Copyright (C) 2013 Authors                                   ////
-////                                                              ////
-//// Based on original work by                                    ////
-////     Adam Edvardsson (adam.edvardsson@orsoc.se)               ////
-////                                                              ////
-////     Copyright (C) 2009 Authors                               ////
 ////                                                              ////
 //// This source file may be used and distributed without         ////
 //// restriction provided that this copyright statement is not    ////
@@ -46,34 +43,33 @@
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
 
-module sd_clock_divider (
-           input CLK,
-           input [7:0] DIVIDER,
-           input RST,
-           output SD_CLK
-       );
+module bistable_domain_cross(
+    rst,
+    clk_a,
+    in,
+    clk_b,
+    out
+);
+parameter width = 1;
+input rst;
+input clk_a;
+input [width-1:0] in;
+input clk_b;
+output [width-1:0] out;
 
-reg [7:0] ClockDiv;
-reg SD_CLK_O;
-
-//assign SD_CLK = DIVIDER[7] ? CLK : SD_CLK_O;
-assign SD_CLK = SD_CLK_O;
-
-always @(posedge CLK or posedge RST)
+// We use a two-stages shift-register to synchronize in to the clk_b clock domain
+reg [width-1:0] sync_clk_b [1:0];
+always @(posedge clk_b or posedge rst)
 begin
-    if (RST) begin
-        ClockDiv <= 8'b0000_0000;
-        SD_CLK_O <= 0;
-    end
-    else if (ClockDiv == DIVIDER) begin
-        ClockDiv <= 0;
-        SD_CLK_O <= ~SD_CLK_O;
+    if (rst == 1) begin
+        sync_clk_b[0] <= 0;
+        sync_clk_b[1] <= 0;
     end else begin
-        ClockDiv <= ClockDiv + 8'h1;
-        SD_CLK_O <= SD_CLK_O;
+        sync_clk_b[0] <= in;
+        sync_clk_b[1] <= sync_clk_b[0];
     end
 end
 
-endmodule
+assign out = sync_clk_b[1];  // new signal synchronized to (=ready to be used in) clk_b domain
 
-
+endmodule 

@@ -28,9 +28,8 @@ entity sdc_controller_top is
 		sd_clk_o_pad 	: out 	std_logic; -- clk for sdcard
 		
 		-- interrupts
-		int_a : out std_logic;
-		int_b : out std_logic;
-		int_c : out std_logic
+		int_cmd : out std_logic;
+		int_data : out std_logic
 	);
 end entity;
 
@@ -43,7 +42,7 @@ architecture arch of sdc_controller_top is
 			wb_rst_i 		: in 	std_logic;
 			wb_dat_i 		: in 	std_logic_vector(31 downto 0);
 			wb_dat_o 		: out 	std_logic_vector(31 downto 0);
-			card_detect 	: in 	std_logic;
+			--card_detect 	: in 	std_logic;
 			-- wishbone slave
 			wb_adr_i    	: in 	std_logic_vector(7 downto 0);
 			wb_sel_i		: in 	std_logic_vector(3 downto 0);
@@ -70,10 +69,10 @@ architecture arch of sdc_controller_top is
 			sd_cmd_out_o	: out 	std_logic;
 			sd_cmd_oe_o		: out 	std_logic;
 			sd_clk_o_pad	: out 	std_logic;
+			sd_clk_i_pad    : in 	std_logic;
 			-- interrupts
-			int_a 			: out 	std_logic;
-			int_b			: out 	std_logic;
-			int_c			: out 	std_logic
+			int_cmd 		: out 	std_logic;
+			int_data		: out 	std_logic
 		);
 	end component;
 	
@@ -212,7 +211,6 @@ begin
 			-- wishbone common
 			wb_clk_i 		=> clk,
 			wb_rst_i 		=> rst,
-			card_detect 	=> '1',  -- check
 			-- wishbone slave
 			wb_dat_i 		=> wb_r_data_o,
 			wb_dat_o 		=> wb_r_data_i,
@@ -241,10 +239,10 @@ begin
 			sd_cmd_out_o	=> sd_cmd_out,
 			sd_cmd_oe_o		=> sd_cmd_oe,
 			sd_clk_o_pad	=> sd_clk_o_pad,
+			sd_clk_i_pad    => clk,
 			-- interrupts
-			int_a 			=> int_a,
-			int_b			=> int_b,
-			int_c			=> int_c
+			int_cmd 		=> int_cmd,
+			int_data		=> int_data
 		);
 	
 	rx_tx_buffer_comp_0 : rx_tx_buffer

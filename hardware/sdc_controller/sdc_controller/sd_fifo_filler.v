@@ -2,14 +2,15 @@
 ////                                                              ////
 //// WISHBONE SD Card Controller IP Core                          ////
 ////                                                              ////
-//// sd_clock_divider.v                                           ////
+//// sd_fifo_filler.v                                             ////
 ////                                                              ////
 //// This file is part of the WISHBONE SD Card                    ////
 //// Controller IP Core project                                   ////
 //// http://opencores.org/project,sd_card_controller              ////
 ////                                                              ////
 //// Description                                                  ////
-//// Control of sd card clock rate                                ////
+//// Fifo interface between sd card and wishbone clock domains    ////
+//// and DMA engine eble to write/read to/from CPU memory         ////
 ////                                                              ////
 //// Author(s):                                                   ////
 ////     - Marek Czerski, ma.czerski@gmail.com                    ////
@@ -46,33 +47,98 @@
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
 
-module sd_clock_divider (
-           input CLK,
-           input [7:0] DIVIDER,
-           input RST,
-           output SD_CLK
+module sd_fifo_filler(
+           input wb_clk,
+           input rst,
+           //WB Signals
+           output reg [31:0] wbm_adr_o,
+           output wbm_we_o,
+           output [31:0] wbm_dat_o,
+           input [31:0] wbm_dat_i,
+           output wbm_cyc_o,
+           output wbm_stb_o,
+           input wbm_ack_i,
+           //Data Master Control signals
+           input en_rx_i,
+           input en_tx_i,
+           input [31:0] adr_i,
+           //Data Serial signals
+           input sd_clk,
+           input [31:0] dat_i,
+           output [31:0] dat_o,
+           input wr_i,
+           input rd_i,
+           output sd_full_o,
+           output sd_empty_o,
+           output wb_full_o,
+           output wb_empty_o
        );
 
-reg [7:0] ClockDiv;
-reg SD_CLK_O;
+`define FIFO_MEM_ADR_SIZE 4
+`define MEM_OFFSET 4
 
-//assign SD_CLK = DIVIDER[7] ? CLK : SD_CLK_O;
-assign SD_CLK = SD_CLK_O;
+wire reset_fifo;
+wire fifo_rd;
+reg fifo_rd_ack;
+reg fifo_rd_reg;
 
-always @(posedge CLK or posedge RST)
-begin
-    if (RST) begin
-        ClockDiv <= 8'b0000_0000;
-        SD_CLK_O <= 0;
+assign fifo_rd = wbm_cyc_o & wbm_ack_i;
+assign reset_fifo = !en_rx_i & !en_tx_i;
+
+assign wbm_we_o = en_rx_i & !wb_empty_o;
+assign wbm_cyc_o = en_rx_i ? en_rx_i & !wb_empty_o : en_tx_i & !wb_full_o;
+assign wbm_stb_o = en_rx_i ? wbm_cyc_o & fifo_rd_ack : wbm_cyc_o;
+
+generic_fifo_dc_gray #(
+    .dw(32), 
+    .aw(`FIFO_MEM_ADR_SIZE)
+    ) generic_fifo_dc_gray0 (
+    .rd_clk(wb_clk),
+    .wr_clk(sd_clk), 
+    .rst(!(rst | reset_fifo)), 
+    .clr(1'b0), 
+    .din(dat_i), 
+    .we(wr_i),
+    .dout(wbm_dat_o), 
+    .re(en_rx_i & wbm_cyc_o & wbm_ack_i), 
+    .full(sd_full_o), 
+    .empty(wb_empty_o), 
+    .wr_level(), 
+    .rd_level() 
+    );
+    
+generic_fifo_dc_gray #(
+    .dw(32), 
+    .aw(`FIFO_MEM_ADR_SIZE)
+    ) generic_fifo_dc_gray1 (
+    .rd_clk(sd_clk),
+    .wr_clk(wb_clk), 
+    .rst(!(rst | reset_fifo)), 
+    .clr(1'b0), 
+    .din(wbm_dat_i), 
+    .we(en_tx_i & wbm_cyc_o & wbm_stb_o & wbm_ack_i),
+    .dout(dat_o), 
+    .re(rd_i), 
+    .full(wb_full_o), 
+    .empty(sd_empty_o), 
+    .wr_level(), 
+    .rd_level() 
+    );
+
+always @(posedge wb_clk or posedge rst)
+    if (rst) begin
+        wbm_adr_o <= 0;
+        fifo_rd_reg <= 0;
+        fifo_rd_ack <= 1;
     end
-    else if (ClockDiv == DIVIDER) begin
-        ClockDiv <= 0;
-        SD_CLK_O <= ~SD_CLK_O;
-    end else begin
-        ClockDiv <= ClockDiv + 8'h1;
-        SD_CLK_O <= SD_CLK_O;
+    else begin
+        fifo_rd_reg <= fifo_rd;
+        fifo_rd_ack <= fifo_rd_reg | !fifo_rd;
+        if (wbm_cyc_o & wbm_stb_o & wbm_ack_i)
+            wbm_adr_o <= wbm_adr_o + `MEM_OFFSET;
+        else if (reset_fifo)
+            wbm_adr_o <= adr_i;
     end
-end
 
 endmodule
 

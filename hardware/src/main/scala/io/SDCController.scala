@@ -23,9 +23,8 @@ object SDCController extends DeviceObject{
       val sd_cmd_out = Output(Bool())
       val sd_cmd_oe = Output(Bool())
       val sd_clk_o_pad = Output(Bool())
-      val int_a = Output(Bool())
-      val int_b = Output(Bool())
-      val int_c = Output(Bool())
+      val int_cmd = Output(Bool())  // maybe remove
+      val int_data = Output(Bool()) // maybe remove
     }
   }
 }
@@ -44,9 +43,8 @@ class SDCControllerBB(extAddrWidth: Int = 16, dataWidth: Int = 32) extends Black
     val sd_cmd_oe = Output(Bool())
     val sd_clk_o_pad = Output(Bool())
     // interrupts
-    val int_a = Output(Bool())
-    val int_b = Output(Bool())
-    val int_c = Output(Bool())
+    val int_cmd = Output(Bool())
+    val int_data = Output(Bool())
   })
 
   // rename signals
@@ -67,16 +65,15 @@ class SDCControllerBB(extAddrWidth: Int = 16, dataWidth: Int = 32) extends Black
   io.sd_cmd_out.suggestName("sd_cmd_out")
   io.sd_cmd_oe.suggestName("sd_cmd_oe")
   io.sd_clk_o_pad.suggestName("sd_clk_o_pad")
-  io.int_a.suggestName("int_a")
-  io.int_b.suggestName("int_b")
-  io.int_c.suggestName("int_c")
+  io.int_cmd.suggestName("int_cmd")
+  io.int_data.suggestName("int_data")
 
   override def desiredName: String = "sdc_controller_top"
 }
 
 class SDCController(extAddrWidth: Int = 16, dataWidth: Int = 32) extends CoreDevice() {
   override val io = IO(new CoreDeviceIO() with SDCController.Pins with patmos.HasInterrupts {
-    override val interrupts = Vec(3, Output(Bool()))
+    override val interrupts = Vec(2, Output(Bool()))
   })
 
   val sdc = Module(new SDCControllerBB(extAddrWidth, dataWidth))
@@ -92,15 +89,12 @@ class SDCController(extAddrWidth: Int = 16, dataWidth: Int = 32) extends CoreDev
   sdc.io.sd_cmd_out <> io.pins.sd_cmd_out
   sdc.io.sd_cmd_oe <> io.pins.sd_cmd_oe
   sdc.io.sd_clk_o_pad <> io.pins.sd_clk_o_pad
-  sdc.io.int_a <> io.pins.int_a
-  sdc.io.int_b <> io.pins.int_b
-  sdc.io.int_c <> io.pins.int_c
+  sdc.io.int_cmd <> io.pins.int_cmd
+  sdc.io.int_data <> io.pins.int_data
   // sync interrupts
-  val syncIntA = RegNext(sdc.io.int_a)
-  val syncIntB = RegNext(sdc.io.int_b)
-  val syncIntC = RegNext(sdc.io.int_c)
+  val syncIntA = RegNext(sdc.io.int_cmd)
+  val syncIntB = RegNext(sdc.io.int_data)
   // connect to interrupt controller
   io.interrupts(0) := RegNext(RegNext(syncIntA) === 0.U && syncIntA === 0x1.U)
   io.interrupts(1) := RegNext(RegNext(syncIntB) === 0.U && syncIntB === 0x1.U)
-  io.interrupts(2) := RegNext(RegNext(syncIntC) === 0.U && syncIntC === 0x1.U)
 }

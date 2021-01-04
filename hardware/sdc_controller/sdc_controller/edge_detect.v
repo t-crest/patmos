@@ -2,14 +2,15 @@
 ////                                                              ////
 //// WISHBONE SD Card Controller IP Core                          ////
 ////                                                              ////
-//// sd_clock_divider.v                                           ////
+//// edge_detect.v                                                ////
 ////                                                              ////
 //// This file is part of the WISHBONE SD Card                    ////
 //// Controller IP Core project                                   ////
 //// http://opencores.org/project,sd_card_controller              ////
 ////                                                              ////
 //// Description                                                  ////
-//// Control of sd card clock rate                                ////
+//// Signal edge detection. If input signal transitions between   ////
+//// two states, output signal is generated for one clock cycle.  ////
 ////                                                              ////
 //// Author(s):                                                   ////
 ////     - Marek Czerski, ma.czerski@gmail.com                    ////
@@ -17,11 +18,6 @@
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
 //// Copyright (C) 2013 Authors                                   ////
-////                                                              ////
-//// Based on original work by                                    ////
-////     Adam Edvardsson (adam.edvardsson@orsoc.se)               ////
-////                                                              ////
-////     Copyright (C) 2009 Authors                               ////
 ////                                                              ////
 //// This source file may be used and distributed without         ////
 //// restriction provided that this copyright statement is not    ////
@@ -46,34 +42,23 @@
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
 
-module sd_clock_divider (
-           input CLK,
-           input [7:0] DIVIDER,
-           input RST,
-           output SD_CLK
-       );
+module sd_edge_detect (
+    input rst,
+    input clk, 
+    input sig,
+    output rise,
+    output fall
+);
 
-reg [7:0] ClockDiv;
-reg SD_CLK_O;
+reg [1:0] sig_reg;
 
-//assign SD_CLK = DIVIDER[7] ? CLK : SD_CLK_O;
-assign SD_CLK = SD_CLK_O;
+always @(posedge clk or posedge rst)
+    if (rst == 1'b1)
+        sig_reg <= 2'b00;
+    else
+        sig_reg <= {sig_reg[0], sig};
 
-always @(posedge CLK or posedge RST)
-begin
-    if (RST) begin
-        ClockDiv <= 8'b0000_0000;
-        SD_CLK_O <= 0;
-    end
-    else if (ClockDiv == DIVIDER) begin
-        ClockDiv <= 0;
-        SD_CLK_O <= ~SD_CLK_O;
-    end else begin
-        ClockDiv <= ClockDiv + 8'h1;
-        SD_CLK_O <= SD_CLK_O;
-    end
-end
+assign rise = sig_reg[0] == 1'b1 && sig_reg[1] == 1'b0 ? 1'b1 : 1'b0;
+assign fall = sig_reg[0] == 1'b0 && sig_reg[1] == 1'b1 ? 1'b1 : 1'b0;
 
 endmodule
-
-

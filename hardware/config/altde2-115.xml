@@ -17,7 +17,7 @@
   <IO DevTypeRef="Leds" offset="9"/>
   <IO DevTypeRef="Keys" offset="10" intrs="2,3,4,5"/>
   <!-- <IO DevTypeRef="Counter" offset="11"/> -->
-  <IO DevTypeRef="SDCController" offset="11" intrs="6,7,8"/>
+  <IO DevTypeRef="SDCController" offset="11" intrs="6,7"/>
   </IOs>
 
   <Devs>

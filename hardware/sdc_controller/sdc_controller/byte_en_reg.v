@@ -2,14 +2,15 @@
 ////                                                              ////
 //// WISHBONE SD Card Controller IP Core                          ////
 ////                                                              ////
-//// sd_clock_divider.v                                           ////
+//// byte_en_reg.v                                                ////
 ////                                                              ////
 //// This file is part of the WISHBONE SD Card                    ////
 //// Controller IP Core project                                   ////
 //// http://opencores.org/project,sd_card_controller              ////
 ////                                                              ////
 //// Description                                                  ////
-//// Control of sd card clock rate                                ////
+//// Register with byte enable. (write is performe only to        //// 
+//// enebled bytes)                                               ////
 ////                                                              ////
 //// Author(s):                                                   ////
 ////     - Marek Czerski, ma.czerski@gmail.com                    ////
@@ -46,34 +47,35 @@
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
 
-module sd_clock_divider (
-           input CLK,
-           input [7:0] DIVIDER,
-           input RST,
-           output SD_CLK
-       );
+module byte_en_reg (
+    clk,
+    rst,
+    we,
+    en,
+    d,
+    q
+    );
 
-reg [7:0] ClockDiv;
-reg SD_CLK_O;
+parameter DATA_W = 32;
+parameter INIT_VAL = {DATA_W{1'b0}};
 
-//assign SD_CLK = DIVIDER[7] ? CLK : SD_CLK_O;
-assign SD_CLK = SD_CLK_O;
+input clk;
+input rst;
+input we;
+input [(DATA_W-1)/8:0] en;
+input [DATA_W-1:0] d;
+output reg [DATA_W-1:0] q;
 
-always @(posedge CLK or posedge RST)
+integer i;
+
+always @(posedge clk or posedge rst)
 begin
-    if (RST) begin
-        ClockDiv <= 8'b0000_0000;
-        SD_CLK_O <= 0;
-    end
-    else if (ClockDiv == DIVIDER) begin
-        ClockDiv <= 0;
-        SD_CLK_O <= ~SD_CLK_O;
-    end else begin
-        ClockDiv <= ClockDiv + 8'h1;
-        SD_CLK_O <= SD_CLK_O;
-    end
+    if (rst == 1)
+        q <= INIT_VAL;
+    else
+        for (i = 0; i < DATA_W; i = i + 1)
+            if (we && en[i/8])
+                q[i] <= d[i];
 end
 
 endmodule
-
-
