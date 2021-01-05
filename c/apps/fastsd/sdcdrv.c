@@ -153,14 +153,37 @@ static int sdcdrv_mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_
     if (sdcdrv_mmc_finish(dev, cmd) < 0)
         return -1;
     if (data && data->blocks)
-        return sdcdrv_mmc_data_finish(dev);
+    {
+        if (data->flags & MMC_DATA_READ)
+        {
+
+            int retcode = sdcdrv_mmc_data_finish(dev);
+            // data should be in buffer
+            for (int cur_block = 0; cur_block < data->blocks; cur_block++)
+            {
+                for (int cur_data = 0; cur_data < data->blocksize; cur_data += 4)
+                {
+                    uint32_t buffer = sdc_buffer_read(cur_block * data->blocksize + cur_data);
+                    data->dest[cur_block * data->blocksize + cur_data] = buffer;
+                }
+            }
+
+            return retcode;
+        }
+        else
+        {
+            return sdcdrv_mmc_data_finish(dev);
+        }
+    }
     else
         return 0;
 }
 
 static void sdcdrv_mmc_setup_data_xfer(struct sdcdrv *dev, struct mmc_cmd *cmd, struct mmc_data *data)
 {
-    // TODO: R/W does nothing
+    sdc_reg_write(R_BUFF_ADDR, 0);
+    sdc_reg_write(R_BLOCK_SIZE, data->blocksize - 1);
+    sdc_reg_write(R_BLOCK_COUNT, data->blocks - 1);
 }
 
 static int sdcdrv_mmc_finish(struct sdcdrv *dev, struct mmc_cmd *cmd)
