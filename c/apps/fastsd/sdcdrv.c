@@ -91,7 +91,7 @@ static void sdcdrv_set_clock(struct sdcdrv *dev, uint clock)
 {
     int clk_div = dev->clk_freq / (2.0 * clock) - 1;
 
-    DEBUG_PRINT("ocsdc_set_clock %d, div %d\n\r", clock, clk_div);
+    DEBUG_PRINT("sdcdrv_set_clock %d, div %d\n\r", clock, clk_div);
     //software reset
     sdc_reg_write(R_RESET, 1);
     //set clock devider
@@ -145,7 +145,7 @@ static int sdcdrv_mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_
         sdcdrv_mmc_setup_data_xfer(dev, cmd, data);
     }
 
-    DEBUG_PRINT("ocsdc_send_cmd %04x\n\r", command);
+    DEBUG_PRINT("sdcdrv_mmc_send_cmd %04x\n\r", command);
 
     sdc_reg_write(R_COMMAND, command);
     sdc_reg_write(R_ARGUMENT, cmd->cmdarg);
@@ -184,6 +184,23 @@ static void sdcdrv_mmc_setup_data_xfer(struct sdcdrv *dev, struct mmc_cmd *cmd, 
     sdc_reg_write(R_BUFF_ADDR, 0);
     sdc_reg_write(R_BLOCK_SIZE, data->blocksize - 1);
     sdc_reg_write(R_BLOCK_COUNT, data->blocks - 1);
+    if (data->flags & MMC_DATA_WRITE)
+    {
+        // prepare the buffer for writing
+        for (int cur_block = 0; cur_block < data->blocks; cur_block++)
+        {
+            for (int cur_data = 0; cur_data < data->blocksize; cur_data += 4)
+            {
+                uint32_t aligned_addr = cur_block * data->blocksize + cur_data;
+                uint32_t buff
+                    =   data->src[aligned_addr+0] << 24
+                    &&  data->src[aligned_addr+1] << 16
+                    &&  data->src[aligned_addr+2] << 8
+                    &&  data->src[aligned_addr+3] << 0;
+                sdc_buffer_write(aligned_addr, buff);
+            }
+        }
+    }
 }
 
 static int sdcdrv_mmc_finish(struct sdcdrv *dev, struct mmc_cmd *cmd)
@@ -207,7 +224,7 @@ static int sdcdrv_mmc_finish(struct sdcdrv *dev, struct mmc_cmd *cmd)
             sdc_reg_write(R_CMD_EV_STATUS, 0);
             //get response
             cmd->response[0] = sdc_reg_read(R_RESP1);
-            DEBUG_PRINT("ocsdc_finish:  %d response %x ", cmd->cmdidx, cmd->response[0]);
+            DEBUG_PRINT("sdcdrv_mmc_finish:  %d response %x ", cmd->cmdidx, cmd->response[0]);
             if (cmd->resp_type & MMC_RSP_136)
             {
                 cmd->response[1] = sdc_reg_read(R_RESP2);
@@ -215,13 +232,13 @@ static int sdcdrv_mmc_finish(struct sdcdrv *dev, struct mmc_cmd *cmd)
                 cmd->response[3] = sdc_reg_read(R_RESP4);
                 DEBUG_PRINT("%x %x %x", cmd->response[1], cmd->response[2], cmd->response[3]);
             }
-            DEBUG_PRINT("ocsdc_finish:  %d ok\n\r", cmd->cmdidx);
+            DEBUG_PRINT("sdcdrv_mmc_finish:  %d ok\n\r", cmd->cmdidx);
             retval = 0;
 
             break;
         }
-        //else if (!(r2 & OCSDC_CMD_INT_STATUS_CIE)) {
-        //	printf("ocsdc_finish: cmd %d no exec %x\n", cmd->cmdidx, r2);
+        //else if (!(r2 & SDC_CMD_INT_STATUS_CIE)) {
+        //	printf("sdcdrv_mmc_finish: cmd %d no exec %x\n", cmd->cmdidx, r2);
         //}
     }
     return retval;
@@ -237,12 +254,12 @@ static int sdcdrv_mmc_data_finish(struct sdcdrv *dev)
 
     if (status & SDC_DAT_INT_STATUS_TRS)
     {
-        DEBUG_PRINT("ocsdc_data_finish: ok\n\r");
+        DEBUG_PRINT("sdcdrv_mmc_data_finish: ok\n\r");
         return 0;
     }
     else
     {
-        DEBUG_PRINT("ocsdc_data_finish: status %x\n\r", status);
+        DEBUG_PRINT("sdcdrv_mmc_data_finish: status %x\n\r", status);
         return -1;
     }
 }
