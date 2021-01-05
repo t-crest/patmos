@@ -623,7 +623,7 @@ static int mmc_startup(struct mmc *mmc)
         cmult = (mmc->csd[2] & 0x00038000) >> 15;
     }
 
-    mmc->capacity = (csize + 1) << (cmult + 2);
+    mmc->capacity = ((unsigned long long)(csize + 1)) << (cmult + 2);
     mmc->capacity *= mmc->read_bl_len;
 
     if (mmc->read_bl_len > 512)
@@ -877,7 +877,7 @@ size_t mmc_bread(struct mmc *mmc, size_t start, size_t blkcnt, void *dst)
 
     if ((start + blkcnt) > mmc->capacity / mmc->read_bl_len)
     {
-        printf("MMC: block number 0x%lx exceeds max(0x%lx)\n",
+        printf("MMC: block number 0x%lx exceeds max(0x%llx)\n",
                start + blkcnt, mmc->capacity / mmc->read_bl_len);
         return 0;
     }
@@ -914,7 +914,7 @@ void print_mmcinfo(struct mmc *mmc)
            (mmc->version >> 4) & 0xf, mmc->version & 0xf);
 
     printf("High Capacity: %s\n\r", mmc->high_capacity ? "Yes" : "No");
-    printf("Capacity: %ld\n\r", mmc->capacity);
+    printf("Capacity: %llu\n\r", mmc->capacity);
 
     printf("Bus Width: %d-bit\n\r", mmc->bus_width);
 }

@@ -256,7 +256,7 @@ struct mmc
 	uint read_bl_len;
 	uint write_bl_len;
 	uint erase_grp_size;
-	size_t capacity;
+	unsigned long long capacity;
 	//	block_dev_desc_t block_dev;
 	int (*send_cmd)(struct mmc *mmc,
 					struct mmc_cmd *cmd, struct mmc_data *data);
