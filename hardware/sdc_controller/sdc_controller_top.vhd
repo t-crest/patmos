@@ -4,7 +4,7 @@ use ieee.numeric_std.all;
 
 entity sdc_controller_top is
 	generic(
-		ADDR_WIDTH 		: 		natural 	:= 16				-- determines the size of rx-tx buffer, should be at least 8; MSB is toggle
+		ADDR_WIDTH 		: 		natural 	:= 14				-- determines the size of rx-tx buffer, should be at least 8; MSB is toggle
 	);
 	port(
 		clk           	: in  	std_logic;
@@ -26,7 +26,8 @@ entity sdc_controller_top is
 		sd_clk_o_pad 	: out 	std_logic; 						-- clk for sdcard
 		-- interrupts
 		int_cmd 		: out 	std_logic;
-		int_data 		: out 	std_logic
+		int_data 		: out 	std_logic;
+		rleds			: out std_logic_vector(14 downto 0)
 	);
 end entity;
 
@@ -132,6 +133,17 @@ architecture arch of sdc_controller_top is
 
 begin
 
+	process(rst, clk)
+	begin
+		if rst = '1' then
+			rleds <= (others => '0');
+		elsif rising_edge(clk) then
+			if wb_r_we_o = '1' then
+				rleds <= std_logic_vector(resize(unsigned(wb_r_addr_o), rleds'length));
+			end if;
+		end if;
+	end process;
+
 	M_Cmd_r <= M_Cmd when M_Addr(M_Addr'length-1) = '0' else (others => '0');	--control registers, 	if MSB is 0
 	M_Cmd_b <= M_Cmd when M_Addr(M_Addr'length-1) = '1' else (others => '0');	--control buffer, 		if MSB is 1
 	S_Resp  <= S_Resp_r when (mux_sel = '1') else S_Resp_b;
@@ -149,14 +161,14 @@ begin
 					next_wb_r_we_o              <= '1';
 					next_wb_r_stb_o             <= '1';
 					next_wb_r_cyc_o             <= '1';
-					next_wb_r_addr_o			<= M_Addr(7 downto 0);
-					next_wb_r_sel_o				<= M_ByteEn;
-					next_wb_r_data_o           	<= M_Data;
+					next_wb_r_addr_o	    <= M_Addr(9 downto 2);
+					next_wb_r_sel_o		    <= M_ByteEn;
+					next_wb_r_data_o            <= M_Data;
 				when "010" =>           -- read
 					next_wb_r_we_o              <= '0';
 					next_wb_r_stb_o             <= '1';
 					next_wb_r_cyc_o             <= '1';
-					next_wb_r_addr_o 			<= M_Addr(7 downto 0);
+					next_wb_r_addr_o 			<= M_Addr(9 downto 2);
 					next_wb_r_sel_o				<= M_ByteEn;
 					next_wb_r_data_o            <= wb_r_data_o;
 				when others =>          -- idle

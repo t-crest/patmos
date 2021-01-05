@@ -21,6 +21,7 @@ object SDCController extends DeviceObject{
       val sd_cmd_out = Output(Bool())
       val sd_cmd_oe = Output(Bool())
       val sd_clk_o_pad = Output(Bool())
+      val rleds = Output(UInt(15.W))
     }
   }
 }
@@ -41,6 +42,8 @@ class SDCControllerBB(extAddrWidth: Int = 16) extends BlackBox(
     // interrupts
     val int_cmd = Output(Bool())
     val int_data = Output(Bool())
+    // leds
+    val rleds = Output(UInt(15.W))
   })
 
   // rename signals
@@ -63,6 +66,7 @@ class SDCControllerBB(extAddrWidth: Int = 16) extends BlackBox(
   io.sd_clk_o_pad.suggestName("sd_clk_o_pad")
   io.int_cmd.suggestName("int_cmd")
   io.int_data.suggestName("int_data")
+  io.rleds.suggestName("rleds")
 
   override def desiredName: String = "sdc_controller_top"
 }
@@ -85,6 +89,7 @@ class SDCController(extAddrWidth: Int = 16) extends CoreDevice() {
   sdc.io.sd_cmd_out <> io.pins.sd_cmd_out
   sdc.io.sd_cmd_oe <> io.pins.sd_cmd_oe
   sdc.io.sd_clk_o_pad <> io.pins.sd_clk_o_pad
+  sdc.io.rleds <> io.pins.rleds
   // sync interrupts
   val syncIntA = RegNext(sdc.io.int_cmd)
   val syncIntB = RegNext(sdc.io.int_data)

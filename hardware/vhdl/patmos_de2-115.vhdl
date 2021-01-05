@@ -32,7 +32,8 @@ entity patmos_top is
 	 sdc_clk : out std_logic;
 	 sd_cmd : inout std_logic;
 	 sd_data : inout std_logic_vector(3 downto 0);
-	 sd_write_protect : in std_logic
+	 sd_write_protect : in std_logic;
+	rleds : out std_logic_vector(14 downto 0)
   );
 end entity patmos_top;
 
@@ -62,7 +63,8 @@ architecture rtl of patmos_top is
 			io_SDCController_sd_cmd_dat : in std_logic;
 			io_SDCController_sd_cmd_out : out std_logic;
 			io_SDCController_sd_cmd_oe  : out std_logic;
-			io_SDCController_sd_clk_o_pad : out std_logic
+			io_SDCController_sd_clk_o_pad : out std_logic;
+			io_SDCController_rleds : out std_logic_vector(14 downto 0)
     );
   end component;
 
@@ -158,7 +160,8 @@ begin
 		io_SDCController_sd_cmd_dat => sd_cmd,
 		io_SDCController_sd_cmd_out => sd_cmd_out,
 		io_SDCController_sd_cmd_oe  => sd_cmd_oe,
-		io_SDCController_sd_clk_o_pad => sdc_clk
+		io_SDCController_sd_clk_o_pad => sdc_clk,
+		io_SDCController_rleds => rleds
 	);
 
 end architecture rtl;
