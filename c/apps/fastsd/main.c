@@ -2,30 +2,30 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include "sdcio.h"
+#include "sdcdrv.h"
+#include "mmc.h"
 
-int main() {
+int main()
+{
+    printf("SD CARD TEST !!!\n");
+    struct mmc *drv = sdcdrv_init();
+    if (!drv)
+    {
+        printf("sdcdrv_init failed\n\r");
+        return -1;
+    }
+    printf("sdcdrv_init success\n");
 
-    // write to argument
-    sdc_reg_write(R_ARGUMENT, 0xAA55AA55);
-    // write to command
-    // note bits 31 downto 14 are reserved and therefore always 0 on read.
-    sdc_reg_write(R_COMMAND, 0xFFFFFFFF);
-    // ...
-    // read a read only register e.g. voltage
-    uint32_t voltage = sdc_reg_read(R_VOLTAGE);
+    drv->has_init = 0;
+    int err = mmc_init(drv);
+    if (err != 0 || drv->has_init == 0)
+    {
+        printf("mmc_init failed\n");
+        return -1;
+    }
+    printf("mmc_init success\n\r");
 
-    // write to rx_tx_buffer (bit 11 is the toggle bit for ADDR_WIDTH=14 in HW)
-    sdc_buffer_write(0, 0x0000000f);
-    sdc_buffer_write(1, 0x000000ff);
+    print_mmcinfo(drv);
 
-    // read and print the crap we have written before
-    printf("Content of argument is %08lx\n", sdc_reg_read(R_ARGUMENT));
-    printf("Content of command is %08lx\n", sdc_reg_read(R_COMMAND));
-    printf("Voltage is %lu\n", voltage);
-    printf("Content of addr 0 of rx_tx_buffer is %08lx\n", sdc_buffer_read(0));
-    printf("Content of addr 0 of rx_tx_buffer is %08lx\n", sdc_buffer_read(1));
-
-   return 0;
+    return 0;
 }
-

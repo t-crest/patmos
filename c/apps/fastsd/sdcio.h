@@ -33,6 +33,8 @@ typedef enum {
     R_BUFF_ADDR     = 0x60
 } sdc_reg_t;
 
+#define R_CONTROL_4BIT (((uint32_t) 0x00) | 1 << 0)
+
 void sdc_reg_write(const sdc_reg_t reg, const uint32_t value);
 uint32_t sdc_reg_read(const sdc_reg_t reg);
 
