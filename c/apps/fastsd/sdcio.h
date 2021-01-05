@@ -8,6 +8,7 @@
 #define SDCIO_H
 
 #include <stdint.h>
+#include <stddef.h>
 
 typedef enum {
     R_ARGUMENT      = 0x00,
@@ -35,6 +36,6 @@ typedef enum {
 void sdc_reg_write(const sdc_reg_t reg, const uint32_t value);
 uint32_t sdc_reg_read(const sdc_reg_t reg);
 
-void sdc_buffer_write(const sdc_reg_t reg, const uint32_t value);
-uint32_t sdc_buffer_read(const sdc_reg_t reg);
+void sdc_buffer_write(const size_t address, const uint32_t value);
+uint32_t sdc_buffer_read(const size_t address);
 #endif
