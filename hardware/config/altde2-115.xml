@@ -17,7 +17,7 @@
   <IO DevTypeRef="Leds" offset="9"/>
   <IO DevTypeRef="Keys" offset="10" intrs="2,3,4,5"/>
   <!-- <IO DevTypeRef="Counter" offset="11"/> -->
-  <IO DevTypeRef="SDCController" offset="11" intrs="6,7"/>
+  <IO DevTypeRef="SDCController" offset="13" intrs="6,7"/>
   </IOs>
 
   <Devs>
@@ -34,8 +34,7 @@
     <!-- <Dev DevType="Counter" entity="Counter" iface="OcpCore"/> -->
     <Dev DevType="SDCController" entity="SDCController" iface="OcpCore">
      <params>
-      <param name="extAddrWidth" value="16"/>
-      <param name="dataWidth" value="32" />
+      <param name="extAddrWidth" value="14"/>
      </params>
     </Dev>
   <Dev DevType="Sram16" entity="SRamCtrl" iface="OcpBurst">

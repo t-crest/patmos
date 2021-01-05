@@ -1,9 +1,6 @@
 CC			= patmos-clang
 TARGET		= fastsd
 
-# PATMOS_IO_FASTSD base address
-PATMOS_IO_FASTSD = 0 
-
 SOURCES		= $(wildcard *.c)
 OBJECTS		= $(SOURCES:.c=.o)
 
