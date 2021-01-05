@@ -184,11 +184,13 @@ static int sdcdrv_mmc_finish(struct sdcdrv *dev, struct mmc_cmd *cmd)
             sdc_reg_write(R_CMD_EV_STATUS, 0);
             //get response
             cmd->response[0] = sdc_reg_read(R_RESP1);
+            DEBUG_PRINT("ocsdc_finish:  %d response %x ", cmd->cmdidx, cmd->response[0]);
             if (cmd->resp_type & MMC_RSP_136)
             {
                 cmd->response[1] = sdc_reg_read(R_RESP2);
                 cmd->response[2] = sdc_reg_read(R_RESP3);
                 cmd->response[3] = sdc_reg_read(R_RESP4);
+                DEBUG_PRINT("%x %x %x", cmd->response[1], cmd->response[2], cmd->response[3]);
             }
             DEBUG_PRINT("ocsdc_finish:  %d ok\n\r", cmd->cmdidx);
             retval = 0;
