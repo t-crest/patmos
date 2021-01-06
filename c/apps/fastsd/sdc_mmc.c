@@ -23,9 +23,10 @@
  * MA 02111-1307 USA
  */
 
-#include "mmc.h"
 #include <stdio.h>
 #include <string.h>
+
+#include "sdc_mmc.h"
 
 void udelay(int t)
 {

@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include "sdcdrv.h"
-#include "mmc.h"
+#include "sdc_drv.h"
+#include "sdc_mmc.h"
 
 int main()
 {

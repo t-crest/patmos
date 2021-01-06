@@ -4,7 +4,7 @@ TARGET		= fastsd
 SOURCES		= $(wildcard *.c)
 OBJECTS		= $(SOURCES:.c=.o)
 
-CFLAGS		+= -DDEBUG_SDC -O2
+CFLAGS		+= -DDEBUG_SDC -O2 -Wall -std=gnu11
 
 
 $(TARGET).elf: $(OBJECTS)

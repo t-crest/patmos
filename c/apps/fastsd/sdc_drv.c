@@ -4,10 +4,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "sdcdrv.h"
-#include "sdcio.h"
-#include "debug.h"
-#include "mmc.h"
+#include "sdc_drv.h"
+#include "sdc_io.h"
+#include "sdc_mmc.h"
+
+#include "sdc_debug.h"
 
 struct sdcdrv
 {
@@ -73,7 +74,7 @@ SDCDRV_ALLOC:
 
 MMC_ALLOC:
     return NULL;
-};
+}
 
 static int sdcdrv_mmc_init(struct mmc *mmc)
 {
@@ -192,11 +193,7 @@ static void sdcdrv_mmc_setup_data_xfer(struct sdcdrv *dev, struct mmc_cmd *cmd, 
             for (int cur_data = 0; cur_data < data->blocksize; cur_data += 4)
             {
                 uint32_t aligned_addr = cur_block * data->blocksize + cur_data;
-                uint32_t buff
-                    =   data->src[aligned_addr+0] << 24
-                    &&  data->src[aligned_addr+1] << 16
-                    &&  data->src[aligned_addr+2] << 8
-                    &&  data->src[aligned_addr+3] << 0;
+                uint32_t buff = data->src[aligned_addr + 0] << 24 && data->src[aligned_addr + 1] << 16 && data->src[aligned_addr + 2] << 8 && data->src[aligned_addr + 3] << 0;
                 sdc_buffer_write(aligned_addr, buff);
             }
         }

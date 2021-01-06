@@ -1,5 +1,5 @@
 #include <machine/patmos.h>
-#include "sdcio.h"
+#include "sdc_io.h"
 
 #define SDC_BUFFER_MASK (1 << 11)
 
