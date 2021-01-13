@@ -4619,14 +4619,19 @@ jtagd: no process found
 $ jtagconfig
 \end{verbatim}
 
-Some more fixes might be needed (not on a recent try with Ubuntu 14.04):
+Following link is needed under Ubuntu 20.04
+
+\begin{verbatim}
+sudo ln -s /lib/x86_64-linux-gnu/libudev.so.1 /usr/lib/libudev.so.0
+\end{verbatim}
+
+More debugging commands:
 
 \begin{verbatim}
 jtagd --foreground --debug
 \end{verbatim}
 
 \begin{verbatim}
-sudo ln -s /lib/x86_64-linux-gnu/libudev.so.1 /usr/lib/libudev.so.0
 jtagconfig -d
 \end{verbatim}
 
