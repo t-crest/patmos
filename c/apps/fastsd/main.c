@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include "sdc_debug.h"
 #include "ff.h"
 
 FRESULT scan_files (
@@ -15,15 +16,25 @@ FRESULT scan_files (
 
 
     res = f_opendir(&dir, path);                       /* Open the directory */
+    DEBUG_PRINT("res = %d", res);
     if (res == FR_OK) {
         for (;;) {
             res = f_readdir(&dir, &fno);                   /* Read a directory item */
-            if (res != FR_OK || fno.fname[0] == 0) break;  /* Break on error or end of dir */
+            DEBUG_PRINT("res = %d", res);
+            if (res != FR_OK || fno.fname[0] == 0){
+                //DEBUG_PRINT("res = %d", res);
+                break;  /* Break on error or end of dir */
+            } 
+            DEBUG_PRINT("res = %d", res);
             if (fno.fattrib & AM_DIR) {                    /* It is a directory */
                 i = strlen(path);
                 sprintf(&path[i], "/%s", fno.fname);
                 res = scan_files(path);                    /* Enter the directory */
-                if (res != FR_OK) break;
+                DEBUG_PRINT("res = %d", res);
+                if (res != FR_OK) {
+                    //DEBUG_PRINT("res = %d", res);
+                    break;
+                }
                 path[i] = 0;
             } else {                                       /* It is a file. */
                 printf("%s/%s\n", path, fno.fname);
@@ -42,9 +53,11 @@ int main()
     char buff[256];
 
     res = f_mount(&fs, "", 1);
+    DEBUG_PRINT("res = %d", res);
     if (res == FR_OK) {
         strcpy(buff, "/");
         res = scan_files(buff);
+        DEBUG_PRINT("res = %d", res);
     }
 
     return res;
