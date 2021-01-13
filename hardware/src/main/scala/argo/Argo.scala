@@ -97,7 +97,7 @@ class Argo(nrCores: Int, wrapped: Boolean = false, emulateBB: Boolean = false) e
 
     //Mux spm/noc to master
     when(io.cores(i).M.Cmd =/= OcpCmd.IDLE && !busyReg(i)){
-      selSpmRplyReg(i) := io.cores(i).M.Addr(constSelSPMBitOffset).toBool
+      selSpmRplyReg(i) := io.cores(i).M.Addr(constSelSPMBitOffset).asBool
     } .elsewhen(respSpmReg === OcpResp.DVA || respNoCReg ===OcpResp.DVA){
       selSpmRplyReg(i) := false.B
     }
