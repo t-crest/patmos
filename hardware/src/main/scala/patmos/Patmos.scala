@@ -507,6 +507,5 @@ object PatmosMain extends App {
 	  
   new java.io.File("build/").mkdirs // build dir is created
   Config.loadConfig(configFile)
-  //chiselMain(chiselArgs, () => Module(new Patmos(configFile, binFile, datFile))) //{ f => new PatmosTest(f) }
-  chisel3.Driver.execute(chiselArgs, () => new Patmos(configFile, binFile, datFile)) //TestTrait())//
+  (new chisel3.stage.ChiselStage).emitVerilog(new Patmos(configFile, binFile, datFile), chiselArgs)
 }
