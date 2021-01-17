@@ -57,7 +57,7 @@ DRESULT disk_read(BYTE pdrv, BYTE *buff, LBA_t sector, UINT count)
 
 DRESULT disk_write(BYTE pdrv, const BYTE *buff, LBA_t sector, UINT count)
 {
-    mmc_bwrite(drv, sector, count, buff);
+    mmc_bwrite(drv, sector, count, (void *) buff);
     // TODO: error checking
     return RES_OK;
 }
