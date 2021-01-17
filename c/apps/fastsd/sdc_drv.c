@@ -161,10 +161,11 @@ static int sdcdrv_mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_
             // data should be in buffer
             for (int cur_block = 0; cur_block < data->blocks; cur_block++)
             {
-                for (int cur_data = 0; cur_data < data->blocksize; cur_data += 4)
+                for (int cur_data = 0; cur_data < data->blocksize; cur_data += 1)
                 {
                     uint32_t buffer = sdc_buffer_read(cur_block * data->blocksize + cur_data);
-                    data->dest[cur_block * data->blocksize + cur_data] = buffer;
+                    uint32_t *tmp = (uint32_t*)data->dest;
+                    tmp[cur_block * data->blocksize + cur_data] = buffer;
                 }
             }
 
@@ -189,11 +190,11 @@ static void sdcdrv_mmc_setup_data_xfer(struct sdcdrv *dev, struct mmc_cmd *cmd, 
         // prepare the buffer for writing
         for (int cur_block = 0; cur_block < data->blocks; cur_block++)
         {
-            for (int cur_data = 0; cur_data < data->blocksize; cur_data += 4)
+            for (int cur_data = 0; cur_data < data->blocksize; cur_data += 1)
             {
                 // XXX: Does this work?
                 uint32_t aligned_addr = cur_block * data->blocksize + cur_data;
-                uint32_t buff = data->src[aligned_addr + 0] << 24 | data->src[aligned_addr + 1] << 16 | data->src[aligned_addr + 2] << 8 | data->src[aligned_addr + 3] << 0;
+                uint32_t buff = (data->src[aligned_addr + 0]) << 24 | (data->src[aligned_addr + 1] << 16) | (data->src[aligned_addr + 2] << 8) | (data->src[aligned_addr + 3] << 0);
                 sdc_buffer_write(aligned_addr, buff);
             }
         }
