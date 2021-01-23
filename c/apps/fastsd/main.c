@@ -61,14 +61,32 @@ int main()
     }*/
     FIL f;
     UINT a;
-    res = f_open(&f,"/demo.txt", FA_CREATE_ALWAYS | FA_READ | FA_WRITE);
-    DEBUG_PRINT("f_open: %d", res);
-    res = f_write(&f, "ABCDEFG", 8, &a);
-    DEBUG_PRINT("f_write: %d", res);
-    res = f_close(&f);
-    DEBUG_PRINT("f_close: %d", res);
 
-    res = scan_files(buff);
+    res = f_open(&f,"/Hallo.txt", FA_READ);
+    DEBUG_PRINT("f_open: %d", res);
+    char buffer[1024*4];
+    res = f_read(&f, buffer, 1024*4, &a);
+    DEBUG_PRINT("f_read: %d", res);
+    printf("BUffer: %s \n", buffer);
+    printf("a : %d \n", a);
+    
+
+    
+    /*res = f_open(&f,"/demo.txt", FA_CREATE_ALWAYS | FA_READ | FA_WRITE);
+    DEBUG_PRINT("f_open: %d", res);
+    res = f_write(&f, "ABCDEFG", 7, &a);
+    DEBUG_PRINT("a: %d", a);
+    DEBUG_PRINT("f_write: %d", res);
+    res = f_sync(&f);
+    DEBUG_PRINT("RES f_sync: %d", res);
+    //res = f_close(&f);
+    //DEBUG_PRINT("f_close: %d", res);*/
+
+    //res = scan_files(buff);
+
+    res = f_mount(0, "", 0);
+    DEBUG_PRINT("f_unmount: %d", res);
+
 
     return res;
 
