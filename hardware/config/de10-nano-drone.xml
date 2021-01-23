@@ -1,11 +1,11 @@
 <patmos default="default.xml">
-  <description>Configuration for de10-nano board with on-chip memory</description>
+  <description>Configuration for de10-nano board for drone with external ddr3 memory</description>
 
   <frequency Hz="50000000"/>
   <pipeline dual="false" />
-  <!-- <cores count="4" /> -->
-  <ExtMem size="500k" DevTypeRef="OCRam" />
-  <!-- <ExtMem size="1g" DevTypeRef="DDR3Bridge" /> -->
+  <cores count="4" />
+  <!-- <ExtMem size="500k" DevTypeRef="OCRam" /> -->
+  <ExtMem size="1g" DevTypeRef="DDR3Bridge" />
 
   <IOs>
   <IO DevTypeRef="Uart1" offset="6"/>
@@ -26,7 +26,7 @@
     </Dev>
     <Dev DevType="Uart2" entity="Uart" iface="OcpCore">
       <params>
-        <param name="baudRate" value="9200"/>
+        <param name="baudRate" value="9600"/>
         <param name="fifoDepth" value="16"/>
       </params>
     </Dev>

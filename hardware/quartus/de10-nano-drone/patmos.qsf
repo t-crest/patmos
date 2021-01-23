@@ -50,9 +50,13 @@ set_location_assignment PIN_V16 -to oLedsPins_led[2]
 set_location_assignment PIN_AA24 -to oLedsPins_led[1]
 set_location_assignment PIN_W15 -to oLedsPins_led[0]
 
-# GPIO 0, pins 1 and 2
-set_location_assignment PIN_V12 -to iUartPins_rxd
-set_location_assignment PIN_E8 -to oUartPins_txd
+# GPIO 0, pins 1, 2, 5, 6, 25, 26
+set_location_assignment PIN_V12 -to uart_1_rxd
+set_location_assignment PIN_E8 -to uart_1_txd
+set_location_assignment PIN_D8 -to uart_2_rxd
+set_location_assignment PIN_AH13 -to uart_2_txd
+set_location_assignment PIN_Y19 -to uart_3_rxd
+set_location_assignment PIN_AB23 -to uart_3_txd
 
 # GPI 0, pins 31, 32, 33
 set_location_assignment PIN_AA18 -to oMpuScl
@@ -72,8 +76,6 @@ set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to i2c_sda
 set_location_assignment PIN_AA11 -to i2c_scl
 set_location_assignment PIN_AA13 -to i2c_sda
 set_location_assignment PIN_AA26 -to ad0
-set_location_assignment PIN_AH13 -to oUart2Pins_txd
-set_location_assignment PIN_D8 -to iUart2Pins_rxd
 set_location_assignment PIN_AD5 -to propdrive_out_port[0]
 set_location_assignment PIN_AE23 -to propdrive_out_port[1]
 set_location_assignment PIN_AD23 -to propdrive_out_port[2]

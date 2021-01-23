@@ -21,11 +21,14 @@ entity patmos_top is
         -- LEDs
         oLedsPins_led        : out   std_logic_vector(7 downto 0);
         --UART
-        oUartPins_txd        : out   std_logic;
-        iUartPins_rxd        : in    std_logic;
-        --Second UART (UART2)
-        oUart2Pins_txd       : out   std_logic;
-        iUart2Pins_rxd       : in    std_logic;
+        uart_1_txd           : out   std_logic;
+        uart_1_rxd           : in    std_logic;
+        --UART2
+        uart_2_txd           : out   std_logic;
+        uart_2_rxd           : in    std_logic;
+        --UART3
+        uart_3_txd           : out   std_logic;
+        uart_3_rxd           : in    std_logic;
         -- AAU I2C interface
         oMpuScl              : out   std_logic;
         ioMpuSda             : inout std_logic;
@@ -92,10 +95,12 @@ architecture rtl of patmos_top is
             io_Actuators_MByteEn      : out   std_logic_vector(3 downto 0);
             io_Actuators_SResp        : in    std_logic_vector(1 downto 0);
             io_Actuators_SData        : in    std_logic_vector(31 downto 0);
-            io_Uart_tx                : out   std_logic;
-            io_Uart_rx                : in    std_logic;
-            io_UartCmp_tx             : out   std_logic;
             io_UartCmp_rx             : in    std_logic;
+            io_UartCmp_tx             : out   std_logic;
+            io_Uart_rx                : in    std_logic;
+            io_Uart_tx                : out   std_logic;
+            io_Uart_1_rx              : in    std_logic;
+            io_Uart_1_tx              : out   std_logic;
             io_SPIMaster_miso         : in    std_logic;
             io_SPIMaster_mosi         : out   std_logic;
             io_SPIMaster_nSS          : out   std_logic;
@@ -287,10 +292,12 @@ begin
         io_Actuators_MByteEn => actuatorsPins_MByteEn,
         io_Actuators_SResp   => actuatorsPins_SResp,
         io_Actuators_SData   => actuatorsPins_SData,
-        io_Uart_tx           => oUart2Pins_txd,
-        io_Uart_rx           => iUart2Pins_rxd,
-        io_UartCmp_tx        => oUartPins_txd,
-        io_UartCmp_rx        => iUartPins_rxd,
+        io_UartCmp_rx        => uart_1_rxd,
+        io_UartCmp_tx        => uart_1_txd,
+        io_Uart_rx           => uart_2_rxd,
+        io_Uart_tx           => uart_2_txd,
+        io_Uart_1_rx         => uart_3_rxd,
+        io_Uart_1_tx         => uart_3_txd,
         io_SPIMaster_miso    => miso,
         io_SPIMaster_mosi    => mosi,
         io_SPIMaster_nSS     => ss,
