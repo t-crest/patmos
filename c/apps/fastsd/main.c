@@ -53,12 +53,22 @@ int main()
     char buff[256];
 
     res = f_mount(&fs, "", 1);
-    DEBUG_PRINT("res = %d", res);
+    /*DEBUG_PRINT("res = %d", res);
     if (res == FR_OK) {
         strcpy(buff, "/");
-        res = scan_files(buff);
+        
         DEBUG_PRINT("res = %d", res);
-    }
+    }*/
+    FIL f;
+    UINT a;
+    res = f_open(&f,"/demo.txt", FA_CREATE_ALWAYS | FA_READ | FA_WRITE);
+    DEBUG_PRINT("f_open: %d", res);
+    res = f_write(&f, "ABCDEFG", 8, &a);
+    DEBUG_PRINT("f_write: %d", res);
+    res = f_close(&f);
+    DEBUG_PRINT("f_close: %d", res);
+
+    res = scan_files(buff);
 
     return res;
 

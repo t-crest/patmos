@@ -25,7 +25,8 @@ DSTATUS disk_status(BYTE pdrv)
 DSTATUS disk_initialize(BYTE pdrv)
 {
     drv = sdcdrv_init();
-    if (!drv) {
+    if (!drv)
+    {
         DEBUG_PRINT("sdcdrv_init failed");
         return STA_NOINIT;
     }
@@ -47,8 +48,21 @@ DSTATUS disk_initialize(BYTE pdrv)
     return 0;
 }
 
-DRESULT disk_read (BYTE pdrv, BYTE* buff, LBA_t sector, UINT count) {
+DRESULT disk_read(BYTE pdrv, BYTE *buff, LBA_t sector, UINT count)
+{
     mmc_bread(drv, sector, count, buff);
     // TODO: error checking
+    return RES_OK;
+}
+
+DRESULT disk_write(BYTE pdrv, const BYTE *buff, LBA_t sector, UINT count)
+{
+    mmc_bwrite(drv, sector, count, (void *) buff);
+    // TODO: error checking
+    return RES_OK;
+}
+
+DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff) {
+    // TODO: wait until writing is finished
     return RES_OK;
 }
