@@ -90,33 +90,6 @@ architecture arch of sdc_controller_top is
 		);
 	end component;
 	
-	--component rx_tx_buffer is
-	--	generic(
-	--		ADDR_WIDTH : natural
-	--	);
-	--	port(
-	--		clk       : in  	std_logic;
-	--		rst       : in  	std_logic;
-	--		-- OCP IN (slave) for Patmos
-	--		MCmd      : in  	std_logic_vector(2 downto 0);
-	--		MAddr     : in  	std_logic_vector(ADDR_WIDTH-1 downto 0);
-	--		MData     : in  	std_logic_vector(31 downto 0);
-	--		MByteEn   : in  	std_logic_vector(3 downto 0);
-	--		SResp     : out 	std_logic_vector(1 downto 0);
-	--		SData     : out 	std_logic_vector(31 downto 0);
-	--		-- wishbone slave
-	--		wb_addr_i : in  	std_logic_vector(ADDR_WIDTH-1 downto 0);
-	--		wb_sel_i  : in  	std_logic_vector(3 downto 0);
-	--		wb_we_i   : in  	std_logic;
-	--		wb_data_o : out 	std_logic_vector(31 downto 0);
-	--		wb_data_i : in  	std_logic_vector(31 downto 0);
-	--		wb_cyc_i  : in  	std_logic;
-	--		wb_stb_i  : in  	std_logic;
-	--		wb_ack_o  : out 	std_logic;
-	--		wb_err_o  : out 	std_logic
-	--	);
-	--end component;
-	
 	-- wishbone signals for registers
 	signal next_wb_r_addr_o, wb_r_addr_o : std_logic_vector(7 downto 0);
 	signal next_wb_r_data_o, wb_r_data_o : std_logic_vector(31 downto 0);
@@ -362,31 +335,5 @@ begin
 			data_b_o 	=> bram_data_wb_o(8*(i+1)-1 downto 8*i)
 		);
 	end generate;
-
-	--rx_tx_buffer_comp_0 : rx_tx_buffer
-	--	generic map(
-	--		ADDR_WIDTH => ADDR_WIDTH-3
-	--	)
-	--	port map(
-	--		clk       => clk,
-	--		rst       => rst,
-	--		-- OCP IN (slave) for Patmos
-	--		MCmd      => M_Cmd_b,
-	--		MAddr     => std_logic_vector(resize(unsigned(M_Addr(M_Addr'length-1 downto 2)), ADDR_WIDTH-3)),			--tanslation from byte to word based address
-	--		MData     => M_Data,
-	--		MByteEn   => M_ByteEn,
-	--		SResp     => S_Resp_b,
-	--		SData     => S_Data_b,
-	--		-- wishbone slave
-	--		wb_addr_i => std_logic_vector(resize(unsigned(wb_b_addr_i(wb_b_addr_i'length-1 downto 2)), ADDR_WIDTH-3)),	--tanslation from byte to word based address
-	--		wb_sel_i  => wb_b_sel_i,
-	--		wb_we_i   => wb_b_we_i,
-	--		wb_data_o => wb_b_data_o,
-	--		wb_data_i => wb_b_data_i,
-	--		wb_cyc_i  => wb_b_cyc_i,
-	--		wb_stb_i  => wb_b_stb_i,
-	--		wb_ack_o  => wb_b_ack_o,
-	--		wb_err_o  => open
-	--	);
 
 end architecture;
