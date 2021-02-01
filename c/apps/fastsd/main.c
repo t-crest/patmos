@@ -48,12 +48,12 @@ FRESULT scan_files (
 
 int main()
 {
-    FATFS fs;
-    FRESULT res;
+	FATFS fs;
+	FRESULT res;
 	UINT a;
 	
 	// mount FAT
-    res = f_mount(&fs, "", 1);
+	res = f_mount(&fs, "", 1);
 	
 	// create file
 	FIL fil_write;
@@ -87,14 +87,14 @@ int main()
 	}
 	
 	// read file
-    FIL fil_read;
-    res = f_open(&fil_read,"/demo.txt", FA_READ);
+	FIL fil_read;
+	res = f_open(&fil_read,"/demo.txt", FA_READ);
 	if(res != FR_OK) {
 		printf("Could not open file 'demo.txt'. f_open: %d\n", res);
 		return res;
 	}
-    char buffer_read[4096];
-    res = f_read(&fil_read, buffer_read, sizeof(buffer_read), &a);
+	char buffer_read[4096];
+	res = f_read(&fil_read, buffer_read, sizeof(buffer_read), &a);
 	if(res != FR_OK) {
 		printf("Could not read file 'demo.txt'. f_read: %d\n", res);
 		return res;
@@ -115,12 +115,18 @@ int main()
 
 	// create dirs
 	res = f_mkdir("/demo_dir");
-	if(res != FR_OK) {
+	if(res == FR_EXIST){
+		printf("Dir '/demo_dir' already exists.\n");
+	}
+	else if(res != FR_OK) {
 		printf("Could not create dir '/demo_dir'. f_mkdir: %d\n", res);
 		return res;
 	}
 	res = f_mkdir("/demo_dir/sub_dir");
-	if(res != FR_OK) {
+	if(res == FR_EXIST){
+		printf("Dir '/demo_dir/sub_dir' already exists.\n");
+	}
+	else if(res != FR_OK) {
 		printf("Could not create dir '/demo_dir/sub_dir'. f_mkdir: %d\n", res);
 		return res;
 	}
@@ -151,7 +157,7 @@ int main()
 	
 	// list files in demo_dir
 	printf("Files in '/demo_dir'.\n");
-    res = scan_files("/demo_dir");
+	res = scan_files("/demo_dir");
 	if(res != FR_OK) {
 		printf("Could not list all files in  '/demo_dir'. scan_files: %d\n", res);
 		return res;

@@ -8,6 +8,10 @@ The code is structured in logical blocks.
 - The root folder contains a simple demo application.
 - Possibly a library `newlibfs-adapter` will be implemented to override the stub syscalls provided by newlib to get POSIX compatability. This however will conflict with the already given implementations in [patmos-newlib][2] as it is currently used to handle `STDOUT`.
 
+## Build note
+You may want to make sure that the offset setting of the IO device `SDCController` in `patmos/hardware/config/altde2-115.xml` matches the offset
+`SDCIO_BASE` in `sdc\_io.c`.
+
 ## References
 [1]: http://elm-chan.org/
 [2]: https://github.com/t-crest/patmos-newlib/blob/4c149a53f8cb2478d99aac731b61b5e4ed63543f/libgloss/patmos/write.c#L41
