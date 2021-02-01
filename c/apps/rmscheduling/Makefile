@@ -63,7 +63,7 @@ emu:
 	patemu rm_scheduling_demo.elf
 
 config:
-	cd $(PATMOSHOME) && $(MAKE) config BOARD=altde2-115
+	cd $(PATMOSHOME) && $(MAKE) config BOARD=altde2-all
 
 download:
 	patserdow -v $(SERIAL) rm_scheduling_demo.elf

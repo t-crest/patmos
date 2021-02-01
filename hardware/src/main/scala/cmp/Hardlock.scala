@@ -84,7 +84,7 @@ class HardlockOCPWrapper(hardlockgen: () => AbstractHardlock) extends Module {
   val reqReg = Reg(init = Bits(0,hardlock.CoreCount))
   val reqBools = Wire(Vec(hardlock.CoreCount, Bool()))
 
-  reqBools := reqReg.toBools
+  reqBools := reqReg.asBools
 
   for (i <- 0 until hardlock.CoreCount) {
     hardlock.io.cores(i).op := io.cores(i).M.Data(0);

@@ -1,6 +1,7 @@
 package io
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import axi._
 import ocp._
 
@@ -20,76 +21,94 @@ object AXI4LiteMMBridge extends DeviceObject {
 }
 
 class AXI4LiteMMBridge(addrWidth: Int = 32, dataWidth: Int = 32) extends CoreDevice() {
-  override val io = new CoreDeviceIO() with patmos.HasPins {
+  override val io = IO(new CoreDeviceIO() with patmos.HasPins {
     override val pins = new Bundle() {
-      val araddr = Bits(OUTPUT, addrWidth)
-      val arready = Bool(INPUT)
-      val arvalid = Bool(OUTPUT)
-      val awaddr = Bits(OUTPUT, addrWidth)
-      val awready = Bool(INPUT)
-      val awvalid = Bool(OUTPUT)
-      val bready = Bool(OUTPUT)
-      val bresp = Bits(INPUT, 2)
-      val bvalid = Bool(INPUT)
-      val rdata = Bits(INPUT, dataWidth)
-      val rready = Bool(OUTPUT)
-      val rresp = Bits(INPUT, 2)
-      val rvalid = Bool(INPUT)
-      val wdata = Bits(OUTPUT, dataWidth)
-      val wready = Bool(INPUT)
-      val wstrb = Bits(OUTPUT, dataWidth / 8)
-      val wvalid = Bool(OUTPUT)
+      val araddr = Output(UInt(addrWidth.W))
+      val arready = Input(Bool())
+      val arvalid = Output(Bool())
+      val awaddr = Output(UInt(addrWidth.W))
+      val awready = Input(Bool())
+      val awvalid = Output(Bool())
+      val bready = Output(Bool())
+      val bresp = Input(UInt(2.W))
+      val bvalid = Input(Bool())
+      val rdata = Input(UInt(dataWidth.W))
+      val rready = Output(Bool())
+      val rresp = Input(UInt(2.W))
+      val rvalid = Input(Bool())
+      val wdata = Output(UInt(dataWidth.W))
+      val wready = Input(Bool())
+      val wstrb = Output(UInt((dataWidth / 8).W))
+      val wvalid = Output(Bool())
+      
+    }
+  })
+
+  val mAxiPort = Wire(new AxiLiteMasterPort(addrWidth, dataWidth))
+  mAxiPort.ar.bits.prot := 0.U
+  mAxiPort.aw.bits.prot := 0.U
+
+  val mOcpReg = RegInit(io.ocp.M)
+  val holdBusyReg = RegInit(false.B)
+
+  // For simplicity we register new commands only when the AXI slave has answered fully
+  when(~holdBusyReg) {
+    mOcpReg := io.ocp.M
+  }
+  
+  when(~holdBusyReg) {
+    when(io.ocp.M.Cmd === OcpCmd.RD) {
+      holdBusyReg := ~mAxiPort.ar.ready
+    }.elsewhen(io.ocp.M.Cmd === OcpCmd.WR) {
+      holdBusyReg := ~mAxiPort.aw.ready && ~mAxiPort.w.ready
+    }
+  }.otherwise {
+    when(mOcpReg.Cmd === OcpCmd.RD) {
+      holdBusyReg := ~mAxiPort.ar.ready
+    }.elsewhen(mOcpReg.Cmd === OcpCmd.WR) {
+      holdBusyReg := ~mAxiPort.aw.ready && ~mAxiPort.w.ready
     }
   }
 
-  val mAxiPort = new AxiLiteMasterPort(addrWidth, dataWidth)
-
-  val mOcpReg = Reg(init = io.ocp.M)
-
-  // For simplicity we register new commands only when the AXI slave has answered fully
-  when(mOcpReg.Cmd === OcpCmd.IDLE || mAxiPort.b.valid || mAxiPort.r.valid) {
-    mOcpReg := io.ocp.M
-  }
-
   // Write channel
-  mAxiPort.aw.valid := mOcpReg.Cmd === OcpCmd.WR
+  mAxiPort.aw.valid := mOcpReg.Cmd === OcpCmd.WR && holdBusyReg
   mAxiPort.aw.bits.addr := mOcpReg.Addr
-  mAxiPort.w.valid := mOcpReg.Cmd === OcpCmd.WR
+  mAxiPort.w.valid := mOcpReg.Cmd === OcpCmd.WR && holdBusyReg
   mAxiPort.w.bits.data := mOcpReg.Data
   mAxiPort.w.bits.strb := mOcpReg.ByteEn
 
   // Read channel
   mAxiPort.ar.bits.addr := mOcpReg.Addr
-  mAxiPort.ar.valid := mOcpReg.Cmd === OcpCmd.RD
+  mAxiPort.ar.valid := mOcpReg.Cmd === OcpCmd.RD && holdBusyReg
   mAxiPort.r.ready := true.B // the ocp bus is always ready to accept data
   mAxiPort.b.ready := true.B
 
   // Drive OCP slave
   io.ocp.S.Data := mAxiPort.r.bits.data
-  io.ocp.S.Resp := OcpResp.NULL
+ 
   io.ocp.S.Resp := Mux(mAxiPort.b.valid || mAxiPort.r.valid, OcpResp.DVA, OcpResp.NULL)
 
-  // Xilinx naming convention for nice block diagrams and inferring interfaces
-  // TODO: investigate erroneous generated Verilog
-  
-  // io.aXI4LiteMMBridgePins.araddr.setName("m_axi_araddr")
-  // io.aXI4LiteMMBridgePins.arready.setName("m_axi_arready")
-  // io.aXI4LiteMMBridgePins.arvalid.setName("m_axi_arvalid")
-  // io.aXI4LiteMMBridgePins.awaddr.setName("m_axi_awaddr")
-  // io.aXI4LiteMMBridgePins.awready.setName("m_axi_awready")
-  // io.aXI4LiteMMBridgePins.awvalid.setName("m_axi_awvalid")
-  // io.aXI4LiteMMBridgePins.bready.setName("m_axi_bready")
-  // io.aXI4LiteMMBridgePins.bresp.setName("m_axi_bresp")
-  // io.aXI4LiteMMBridgePins.bvalid.setName("m_axi_bvalid")
-  // io.aXI4LiteMMBridgePins.rready.setName("m_axi_rready")
-  // io.aXI4LiteMMBridgePins.rdata.setName("m_axi_rdata")
-  // io.aXI4LiteMMBridgePins.rvalid.setName("m_axi_rvalid")
-  // io.aXI4LiteMMBridgePins.rresp.setName("m_axi_rresp")
-  // io.aXI4LiteMMBridgePins.wdata.setName("m_axi_wdata")
-  // io.aXI4LiteMMBridgePins.wready.setName("m_axi_wready")
-  // io.aXI4LiteMMBridgePins.wstrb.setName("m_axi_wstrb")
-  // io.aXI4LiteMMBridgePins.wvalid.setName("m_axi_wvalid")
+//  // Xilinx naming convention for nice block diagrams and inferring interfaces
+//  // TODO: investigate erroneous generated Verilog
 
+   io.pins.araddr.suggestName("m_axi_araddr")
+   io.pins.arready.suggestName("m_axi_arready")
+   io.pins.arvalid.suggestName("m_axi_arvalid")
+   io.pins.awaddr.suggestName("m_axi_awaddr")
+   io.pins.awready.suggestName("m_axi_awready")
+   io.pins.awvalid.suggestName("m_axi_awvalid")
+   io.pins.bready.suggestName("m_axi_bready")
+   io.pins.bresp.suggestName("m_axi_bresp")
+   io.pins.bvalid.suggestName("m_axi_bvalid")
+   io.pins.rready.suggestName("m_axi_rready")
+   io.pins.rdata.suggestName("m_axi_rdata")
+   io.pins.rvalid.suggestName("m_axi_rvalid")
+   io.pins.rresp.suggestName("m_axi_rresp")
+   io.pins.wdata.suggestName("m_axi_wdata")
+   io.pins.wready.suggestName("m_axi_wready")
+   io.pins.wstrb.suggestName("m_axi_wstrb")
+   io.pins.wvalid.suggestName("m_axi_wvalid")
+//
   // IO plumbing
   io.pins.araddr := mAxiPort.ar.bits.addr
   mAxiPort.ar.ready := io.pins.arready

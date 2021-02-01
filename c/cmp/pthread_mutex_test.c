@@ -12,13 +12,13 @@
 
 // Uncomment the line below to see the test fail
 // when not using a mutex and cpucnt > 1
-//#define WITHOUT_MUTEX 1
+// #define WITHOUT_MUTEX 1
+#define ITERATIONS 1000
 
 #ifdef WITHOUT_MUTEX
-_UNCACHED int cnt = 0;
-#else
-int cnt = 0;
+_UNCACHED
 #endif
+int cnt = 0;
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -26,16 +26,13 @@ void * work(void * arg) {
   int id = get_cpuid();
   pthread_mutex_lock(&mutex);
   pthread_mutex_unlock(&mutex);
-  for(int i = 0; i < 1000; i++) {
-#ifdef WITHOUT_MUTEX
+  for(int i = 0; i < ITERATIONS; i++) {
     asm volatile ("" : : : "memory");
-#else
+#ifndef WITHOUT_MUTEX
     pthread_mutex_lock(&mutex);
 #endif
     cnt++;
-#ifdef WITHOUT_MUTEX
-    asm volatile ("" : : : "memory");
-#else
+#ifndef WITHOUT_MUTEX
     pthread_mutex_unlock(&mutex);
 #endif
   }
@@ -45,6 +42,7 @@ void * work(void * arg) {
 int main() {
 
   int cpucnt = get_cpucnt();
+  const int exp = cpucnt*ITERATIONS;
   
   printf("Started using %d threads\n",cpucnt);
   
@@ -75,9 +73,12 @@ int main() {
   }
   
   free(threads);
-  
+#ifndef WITHOUT_MUTEX
   // Locking to update the global state (get the newest value of cnt)
   pthread_mutex_lock(&mutex);
-  printf("Expected count=%d, actual count=%d\n",cpucnt*1000,cnt);
+#endif
+  printf("Expected count=%d, actual count=%d\n", exp, cnt);
+#ifndef WITHOUT_MUTEX
   pthread_mutex_unlock(&mutex);
+#endif
 }

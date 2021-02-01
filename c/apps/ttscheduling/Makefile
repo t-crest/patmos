@@ -59,14 +59,17 @@ tt_scheduling_demo_debug_threaded:
 
 # running examples
 
-sim:
+sim_single:
+	pasim -b tt_scheduling_demo.elf
+
+sim_cmp:
 	pasim --cores 4 -b tt_scheduling_demo.elf
 
 emu:
 	patemu tt_scheduling_demo.elf
 
 config:
-	cd $(PATMOSHOME) && $(MAKE) config BOARD=altde2-115
+	cd $(PATMOSHOME) && $(MAKE) config BOARD=altde2-all
 
 download:
 	patserdow -v $(SERIAL) tt_scheduling_demo.elf

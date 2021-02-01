@@ -10,7 +10,7 @@ package patmos
 
 import Chisel._
 import java.io.File
-import chisel3.experimental.{DataMirror, requireIsChiselType}
+import chisel3.experimental._
 import chisel3.dontTouch
 import Constants._
 import util._
@@ -159,7 +159,7 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
   io.perf.wc := dcache.io.wcPerf
   io.perf.mem.read := (io.memPort.M.Cmd === OcpCmd.RD &&
     io.memPort.S.CmdAccept === UInt(1))
-    io.perf.mem.write := (io.memPort.M.Cmd === OcpCmd.WR &&
+  io.perf.mem.write := (io.memPort.M.Cmd === OcpCmd.WR &&
     io.memPort.S.CmdAccept === UInt(1))
 
   // The inputs and outputs
@@ -254,7 +254,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       case "S4noc" => (0xE807, IO_DEVICE_ADDR_WIDTH, Module(new cmp.S4nocOCPWrapper(nrCores, 4, 4)))
       case "CASPM" => (0xE808, IO_DEVICE_ADDR_WIDTH, Module(new cmp.CASPM(nrCores, nrCores * 8)))
       case "AsyncLock" => (0xE809, IO_DEVICE_ADDR_WIDTH, Module(new cmp.AsyncLock(nrCores, nrCores * 2)))
-      case "UartCmp" => (0xF008, IO_DEVICE_ADDR_WIDTH, Module(new cmp.UartCmp(nrCores,CLOCK_FREQ,UART_BAUD,1024)))
+      case "UartCmp" => (0xF008, IO_DEVICE_ADDR_WIDTH, Module(new cmp.UartCmp(nrCores,CLOCK_FREQ,UART_BAUD,16)))
       case "TwoWay" => (0xE80B, IO_DEVICE_ADDR_WIDTH, Module(new cmp.TwoWayOCPWrapper(nrCores, 1024)))
       case "TransactionalMemory" => (0xE80C, IO_DEVICE_ADDR_WIDTH, Module(new cmp.TransactionalMemory(nrCores, 512)))
       case "LedsCmp" => (0xE80D, IO_DEVICE_ADDR_WIDTH, Module(new cmp.LedsCmp(nrCores, 1)))
@@ -335,7 +335,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     val spm = Module(new Spm(DSPM_SIZE))
 
     // Dummy ISPM (create fake response)
-      val ispmio = Wire(new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))
+    val ispmio = Wire(new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))
     ispmio.S.Data := 0.U
     ispmio.S.Resp := RegNext(Mux(ispmio.M.Cmd === OcpCmd.IDLE, OcpResp.NULL, OcpResp.DVA))
 
@@ -435,14 +435,21 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   if (cores.length == 1) {
     ramCtrl.io.ocp.M <> cores(0).io.memPort.M
     cores(0).io.memPort.S <> ramCtrl.io.ocp.S
+    ramCtrl.io.superMode <> cores(0).io.superMode
   } else {
-    val memarbiter = Module(new ocp.TdmArbiterWrapper(nrCores, ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
+    val memarbiter =
+      if(ramCtrl.isInstanceOf[DDR3Bridge]) {
+        Module(new ocp.Arbiter(nrCores, ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
+      } else {
+        Module(new ocp.TdmArbiterWrapper(nrCores, ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
+      }
     for (i <- (0 until cores.length)) {
       memarbiter.io.master(i).M <> cores(i).io.memPort.M
       cores(i).io.memPort.S <> memarbiter.io.master(i).S
     }
     ramCtrl.io.ocp.M <> memarbiter.io.slave.M
     memarbiter.io.slave.S <> ramCtrl.io.ocp.S
+    ramCtrl.io.superMode := false.B
   }
 
   override val io = IO(new PatmosBundle(pins.map{case (pinid, devicepin) => pinid -> DataMirror.internal.chiselTypeClone(devicepin)}.toSeq: _*))
@@ -452,6 +459,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     DataMirror.specifiedDirectionOf(devicepin).toString match {
         case "Input" => devicepin := patmospin
         case "Output" => patmospin := devicepin
+        case "Unspecified" => attach(devicepin.asInstanceOf[Analog], patmospin.asInstanceOf[Analog])
     }
   }
 
@@ -491,16 +499,13 @@ class TestTrait() extends CoreDevice2() {
 }*/
 
 object PatmosMain extends App {
-  override def main(args: Array[String]): Unit = {
 
-    val chiselArgs = args.slice(3, args.length)
-    val configFile = args(0)
-    val binFile = args(1)
-    val datFile = args(2)
+  val chiselArgs = args.slice(3, args.length)
+  val configFile = args(0)
+  val binFile = args(1)
+  val datFile = args(2)
 	  
-    new java.io.File("build/").mkdirs // build dir is created
-    Config.loadConfig(configFile)
-    //chiselMain(chiselArgs, () => Module(new Patmos(configFile, binFile, datFile))) //{ f => new PatmosTest(f) }
-    chisel3.Driver.execute(chiselArgs, () => new Patmos(configFile, binFile, datFile)) //TestTrait())//
-  }
+  new java.io.File("build/").mkdirs // build dir is created
+  Config.loadConfig(configFile)
+  (new chisel3.stage.ChiselStage).emitVerilog(new Patmos(configFile, binFile, datFile), chiselArgs)
 }

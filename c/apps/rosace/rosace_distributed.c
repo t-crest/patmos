@@ -5,8 +5,9 @@
 #include <machine/patmos.h>
 #include <machine/spm.h>
 #include <machine/rtc.h>
+#include "assemblage_includes.h"
+#include "assemblage.h"
 #include "rosace_dist_common.h"
-#include "tteconfig.h"
 
 #ifdef AIRCRAFT_NODE
 #include "rosace_aircraft_schedule.h"
@@ -18,6 +19,16 @@
 
 static unsigned rxMsgCount;
 static unsigned txMsgCount;
+
+char* eth_protocol_names[] = {"UFF", "IP", "ICMP", "UDP", "TCP", "PTP", "ARP", "LLDP", "MDNS", "TTE_PCF", "TTE"};
+unsigned int rx_buff_addr = 0x000;
+unsigned int tx_buff_addr = 0x800;
+unsigned char multicastip[4] = {224, 0, 0, 255};
+unsigned char TTE_MAC[] = {0x02, 0x89, 0x1D, 0x00, 0x04, 0x00};
+unsigned char TTE_CT[] = { 0xAB, 0xAD, 0xBA, 0xBE };
+unsigned char TTE_DYN_VL[] = { 0x0F, 0xA1 };
+unsigned char TTE_FILTER_VL[] = { 0x0F, 0xA2 };
+unsigned char TTE_CTRL_VL[] = { 0x0F, 0xA3 };
 
 #pragma region AIRCRAFT_NODE
 
@@ -34,7 +45,7 @@ int vl_dyn_send_fun(void *args)
     aircraft_dynamics495_h_h_filter_100446_h
   };
   size_t length = 2*sizeof(aircraft_to_filters_data);
-	if(nodeSyncStable)
+	if(isNodeSyncStable())
 	{
 		unsigned char ethType[2];
 		ethType[0]=((4+length)>>8) & 0xFF;
@@ -61,8 +72,8 @@ int vl_dyn_send_fun(void *args)
     {
 		  for(int i=0; i<2; i++)
 			{
-        mem_iowr(tx_buff_addr + 18 + 0, ((unsigned long long) aircraft_to_filters_data[i][j] & 0xFFFFFFFF));
-        mem_iowr(tx_buff_addr + 18 + 4, ((unsigned long long) aircraft_to_filters_data[i][j] >> 32));
+        mem_iowr(tx_buff_addr + 18 + 0, ((schedtime_t) aircraft_to_filters_data[i][j] & 0xFFFFFFFF));
+        mem_iowr(tx_buff_addr + 18 + 4, ((schedtime_t) aircraft_to_filters_data[i][j] >> 32));
 			}
 		}
 		eth_mac_send_nb(tx_buff_addr, 18+4+length);
@@ -85,9 +96,9 @@ int vl_ctrl_recv_fun(void* args)
     Va_control_50474_delta_th_c_engine486_delta_th_c
   };
   size_t length = 2*sizeof(ctrl_to_aircraft_data);
-	if(nodeSyncStable){
+	if(isNodeSyncStable()){
 		unsigned short ethType = UNSUPPORTED;
-		unsigned long long listen_start = get_cpu_usecs();
+		schedtime_t listen_start = get_cpu_usecs();
 		#pragma loopbound min 1 max 1
 		do{
 			if(eth_mac_receive_nb(rx_buff_addr))
@@ -107,7 +118,7 @@ int vl_ctrl_recv_fun(void* args)
       #pragma loopbound min 4 max 4
       for(int i=0; i<4; i++)
       {
-          ctrl_to_aircraft_data[i] = (double)(((unsigned long long)mem_iord(rx_buff_addr + 18 + 4) << 32) || (mem_iord(rx_buff_addr + 18) & 0xFFFFFFFF));
+          ctrl_to_aircraft_data[i] = (double)(((schedtime_t)mem_iord(rx_buff_addr + 18 + 4) << 32) || (mem_iord(rx_buff_addr + 18) & 0xFFFFFFFF));
       }
 			rxMsgCount++;
 			LEDS |= (3U << 4);
@@ -138,9 +149,9 @@ int vl_dyn_recv_fun(void *args)
     aircraft_dynamics495_h_h_filter_100446_h
   };
   size_t length = 2*sizeof(aircraft_to_filters_data);
-  if(nodeSyncStable){
+  if(isNodeSyncStable()){
 		unsigned short ethType = UNSUPPORTED;
-		unsigned long long listen_start = get_cpu_usecs();
+		schedtime_t listen_start = get_cpu_usecs();
 		#pragma loopbound min 1 max 1
 		do{
 			if(eth_mac_receive_nb(rx_buff_addr))
@@ -162,7 +173,7 @@ int vl_dyn_recv_fun(void *args)
       {
         for(int j=0; j<2; j++)
         {
-          aircraft_to_filters_data[i][j] = (double)(((unsigned long long)mem_iord(rx_buff_addr + 18 + 4) << 32) || (mem_iord(rx_buff_addr + 18) & 0xFFFFFFFF));
+          aircraft_to_filters_data[i][j] = (double)(((schedtime_t)mem_iord(rx_buff_addr + 18 + 4) << 32) || (mem_iord(rx_buff_addr + 18) & 0xFFFFFFFF));
         }
       }
 			rxMsgCount++;
@@ -192,7 +203,7 @@ int vl_filter_send_fun(void *args)
     Va_filter_100449_Va_f_Va_control_50474_Va_f
   };
   size_t length = 2*sizeof(filters_to_ctrl_data);
-	if(nodeSyncStable)
+	if(isNodeSyncStable())
 	{
 		unsigned char ethType[2];
 		ethType[0]=((4+length)>>8) & 0xFF;
@@ -219,8 +230,8 @@ int vl_filter_send_fun(void *args)
     {
 		  for(int i=0; i<2; i++)
 			{
-        mem_iowr(tx_buff_addr + 18 + 0, ((unsigned long long) filters_to_ctrl_data[i][j] & 0xFFFFFFFF));
-        mem_iowr(tx_buff_addr + 18 + 4, ((unsigned long long) filters_to_ctrl_data[i][j] >> 32));
+        mem_iowr(tx_buff_addr + 18 + 0, ((schedtime_t) filters_to_ctrl_data[i][j] & 0xFFFFFFFF));
+        mem_iowr(tx_buff_addr + 18 + 4, ((schedtime_t) filters_to_ctrl_data[i][j] >> 32));
 			}
 		}
 		eth_mac_send_nb(tx_buff_addr, 18+4+length);
@@ -250,9 +261,9 @@ int vl_filter_recv_fun(void *args)
     Va_filter_100449_Va_f_Va_control_50474_Va_f
   };
   size_t length = 2*sizeof(filters_to_ctrl_data);
-  if(nodeSyncStable){
+  if(isNodeSyncStable()){
 		unsigned short ethType = UNSUPPORTED;
-		unsigned long long listen_start = get_cpu_usecs();
+		schedtime_t listen_start = get_cpu_usecs();
 		#pragma loopbound min 1 max 1
 		do{
 			if(eth_mac_receive_nb(rx_buff_addr))
@@ -274,7 +285,7 @@ int vl_filter_recv_fun(void *args)
       {
         for(int j=0; j<2; j++)
         {
-          filters_to_ctrl_data[i][j] = (double)(((unsigned long long)mem_iord(rx_buff_addr + 18 + 4) << 32) || (mem_iord(rx_buff_addr + 18) & 0xFFFFFFFF));
+          filters_to_ctrl_data[i][j] = (double)(((schedtime_t)mem_iord(rx_buff_addr + 18 + 4) << 32) || (mem_iord(rx_buff_addr + 18) & 0xFFFFFFFF));
         }
       }
 			rxMsgCount++;
@@ -301,7 +312,7 @@ int vl_ctrl_send_fun(void *args)
     Va_control_50474_delta_th_c_engine486_delta_th_c
   };
   size_t length = 2*sizeof(ctrl_to_aircraft_data);
-	if(nodeSyncStable)
+	if(isNodeSyncStable())
 	{
 		unsigned char ethType[2];
 		ethType[0]=((4+length)>>8) & 0xFF;
@@ -326,8 +337,8 @@ int vl_ctrl_send_fun(void *args)
 		#pragma loopbound min 4 max 4
 		for(int i=0; i<4; i++)
     {
-      mem_iowr(tx_buff_addr + 18 + 0, ((unsigned long long) ctrl_to_aircraft_data[i] & 0xFFFFFFFF));
-      mem_iowr(tx_buff_addr + 18 + 4, ((unsigned long long) ctrl_to_aircraft_data[i] >> 32));
+      mem_iowr(tx_buff_addr + 18 + 0, ((schedtime_t) ctrl_to_aircraft_data[i] & 0xFFFFFFFF));
+      mem_iowr(tx_buff_addr + 18 + 4, ((schedtime_t) ctrl_to_aircraft_data[i] >> 32));
 		}
 		eth_mac_send_nb(tx_buff_addr, 18+4+length);
 		txMsgCount++;
@@ -356,8 +367,9 @@ void rosace_init(MinimalTTTask *schedule)
   get_task_set(&num_of_tasks, &tasks);
   hyper_period = HYPER_PERIOD;
   num_of_tasks = NUM_OF_TASKS;
+  printf("\nInitializing ROSACE Task Set (Hyper Period = %llu)\n", hyper_period);
   #pragma loopbound min 6 max 9
-  for(unsigned i=0; i<NUM_OF_TASKS; i++)
+  for(unsigned i=0; i<num_of_tasks; i++)
   {
     schedule[i].id = LEDS = i;
     schedule[i].period = (schedtime_t) tasks_periods[i];
@@ -367,108 +379,123 @@ void rosace_init(MinimalTTTask *schedule)
     schedule[i].delta_sum = 0;
     schedule[i].exec_count = 0;
     schedule[i].release_inst = 0;
+    printf("-- init_task_%d{T=%llu, RLS=%lu}{", schedule[i].id, schedule[i].period, schedule[i].nr_releases);
+    for(unsigned j=0; j<schedule[i].nr_releases; j++)
+    {
+      printf("%llu, ", schedule[i].release_times[j]); 
+    }
+    puts("}");
   }
+}
+
+uint8_t cyclic_dispatcher(MinimalTTTask *schedule, schedtime_t current_time, schedtime_t start_time)
+{
+  #pragma loopbound min 6 max 9
+  for(unsigned task=0; task < num_of_tasks; task++)
+  {
+    if(current_time >= schedule[task].release_times[schedule[task].release_inst])
+    {
+      switch (schedule[task].id)
+      {
+      case SYNC_ID:
+        sync_fun(start_time, current_time, schedule);
+        break;
+      #ifdef AIRCRAFT_NODE
+      case LOGGING_ID:
+        logging_fun(NULL);
+        break;
+      case ENGINE_ID:
+        CALL(ENGINE);
+        break;
+      case ELEVATOR_ID:
+        CALL(ELEVATOR);
+        break;
+      case AIRCRAFT_DYN_ID:
+        GPIO |= (1U << 3);
+        CALL(AIRCRAFT_DYN);
+        GPIO &= (0U << 3);
+        break;
+      case VL_CTRL_RECV_ID:
+        vl_ctrl_recv_fun(NULL);
+        break;
+      case VL_DYN_SEND_ID:
+        vl_dyn_send_fun(NULL);
+        break;
+      #elif FILTER_NODE
+      case H_FILTER_ID:
+        CALL(H_FILTER);
+        break;
+      case Q_FILTER_ID:
+        CALL(Q_FILTER);
+        break;
+      case VZ_FILTER_ID:
+        CALL(VZ_FILTER);
+        break;
+      case AZ_FILTER_ID:
+        CALL(AZ_FILTER);
+        break;
+      case VA_FILTER_ID:
+        CALL(VA_FILTER);
+        break;
+      case VL_DYN_RECV_ID:
+        vl_dyn_recv_fun(NULL);
+        break;
+      case VL_FILTER_SEND_ID:
+        vl_filter_send_fun(NULL);
+        break;
+      #elif CONTROL_NODE
+      case H_C0_ID:
+        CALL(H_C0);
+        break;
+      case VA_C0_ID:
+        CALL(VA_C0);
+        break;
+      case VZ_CONTROL_ID:
+        CALL(VZ_CONTROL);
+        break;
+      case VA_CONTROL_ID:
+        CALL(VA_CONTROL);
+        break;
+      case ALTI_HOLD_ID:
+        CALL(ALTI_HOLD);
+        break;
+      case VL_FILTER_RECV_ID:
+        vl_filter_recv_fun(NULL);
+        break;
+      case VL_CTRL_SEND_ID:
+        vl_ctrl_send_fun(NULL);
+        break;
+      #endif
+      }
+      schedule[task].release_times[schedule[task].release_inst] += hyper_period;
+      schedule[task].release_inst = (schedule[task].release_inst + 1) % schedule[task].nr_releases;
+      schedule[task].delta_sum += schedule[task].last_time == 0 ? 0 : 
+                                (current_time - get_tte_aligned_time(schedule[task].last_time, schedule[task].period));
+      schedule[task].last_time = current_time;
+      schedule[task].exec_count += 1;
+      return 1;
+    }
+  }
+  return 0;
 }
 
 __attribute__((noinline))
 schedtime_t execute_cyclic_loop(MinimalTTTask *schedule)
 {
   ROSACE_update_altitude_command(10000);
-  puts("\nT,Va,az,q,Vz,h,delta_th_c,delta_e_c");
-  start_time = get_cpu_usecs();
+  schedtime_t start_time = get_ptp_nanos(PATMOS_IO_ETH);
   #pragma loopbound min 1 max 1
   while(step_simu < max_step_simu)
   {
-    register schedtime_t current_time = get_tte_aligned_time(get_cpu_usecs() * USEC_TO_NS - start_time);
-    #pragma loopbound min 6 max 9
-    for(unsigned short task=0; task < NUM_OF_TASKS; task++)
-    {
-      LEDS = task;
-      if(current_time >= schedule[task].release_times[schedule[task].release_inst])
-      {
-        switch (schedule[task].id)
-        {
-        case SYNC_ID:
-          sync_fun(start_time, current_time, schedule);
-          break;
-    #ifdef AIRCRAFT_NODE
-        case LOGGING_ID:
-          logging_fun(NULL);
-          break;
-        case ENGINE_ID:
-          CALL(ENGINE);
-          break;
-        case ELEVATOR_ID:
-          CALL(ELEVATOR);
-          break;
-        case AIRCRAFT_DYN_ID:
-          CALL(AIRCRAFT_DYN);
-          break;
-        case VL_DYN_SEND_ID:
-          vl_dyn_send_fun(NULL);
-          break;
-        case VL_CTRL_RECV_ID:
-          vl_ctrl_recv_fun(NULL);
-          break;
-    #elif FILTER_NODE
-        case H_FILTER_ID:
-          CALL(H_FILTER);
-          break;
-        case Q_FILTER_ID:
-          CALL(Q_FILTER);
-          break;
-        case VZ_FILTER_ID:
-          CALL(VZ_FILTER);
-          break;
-        case AZ_FILTER_ID:
-          CALL(AZ_FILTER);
-          break;
-        case VA_FILTER_ID:
-          CALL(VA_FILTER);
-          break;
-        case VL_DYN_RECV_ID:
-          vl_dyn_recv_fun(NULL);
-          break;
-        case VL_FILTER_SEND_ID:
-          vl_filter_send_fun(NULL);
-          break;
-    #elif CONTROL_NODE
-        case H_C0_ID:
-          CALL(H_C0);
-          break;
-        case VA_C0_ID:
-          CALL(VA_C0);
-          break;
-        case VZ_CONTROL_ID:
-          CALL(VZ_CONTROL);
-          break;
-        case VA_CONTROL_ID:
-          CALL(VA_CONTROL);
-          break;
-        case ALTI_HOLD_ID:
-          CALL(ALTI_HOLD);
-          break;
-        case VL_FILTER_RECV_ID:
-          vl_filter_recv_fun(NULL);
-          break;
-        case VL_CTRL_SEND_ID:
-          vl_ctrl_send_fun(NULL);
-          break;
-    #endif
-        }
-        schedule[task].release_times[schedule[task].release_inst] += hyper_period;
-        schedule[task].release_inst = (schedule[task].release_inst + 1) % schedule[task].nr_releases;
-        schedule[task].delta_sum += schedule[task].last_time == 0 ? 0 : (current_time - schedule[task].last_time);
-        schedule[task].last_time = current_time;
-        schedule[task].exec_count++;
-      }
-    }
-    if(step_simu >= 2500)
-    {
-      ROSACE_update_altitude_command(11000);
-    }
+    register unsigned long long schedule_time = get_ptp_nanos(PATMOS_IO_ETH);
+		schedule_time = (unsigned long long) get_tte_aligned_time(schedule_time - start_time, HYPER_PERIOD);
+    cyclic_dispatcher(schedule, schedule_time, start_time);
+    // if(step_simu >= 2500)
+    // {
+    //   ROSACE_update_altitude_command(11000);
+    // }
 	}
-  return get_cpu_usecs();
+  return get_ptp_nanos(PATMOS_IO_ETH);
 }
 
 #pragma endregion CYCLIC
@@ -477,16 +504,30 @@ int main()
 {
   MinimalTTTask schedule[NUM_OF_TASKS];
   LEDS = 0x1FF;
-  printf("\nWelcome to ROSACE cyclic execution\n");
+  printf("\nWelcome to TTE ROSACE execution\n");
   printSegmentInt(0xABCD0123);
+  
+  //MAC controller settings
+	set_mac_address(0x1D000400, 0x00000289);
+	eth_iowr(MODER, (RECSMALL_BIT | CRCEN_BIT | FULLD_BIT | PRO_BIT | TXEN_BIT | RXEN_BIT));
+	eth_iowr(INT_SOURCE, INT_SOURCE_RXB_BIT);
+  eth_iowr(RX_BD_ADDR_BASE(eth_iord(TX_BD_NUM)), RX_BD_EMPTY_BIT | RX_BD_IRQEN_BIT | RX_BD_WRAP_BIT);
+  eth_iowr(INT_SOURCE, INT_SOURCE_TXB_BIT);
+	eth_iowr(TX_BD_ADDR_BASE, TX_BD_READY_BIT | TX_BD_IRQEN_BIT | TX_BD_PAD_EN_BIT);
+  init_sync();
+  
+  // Rosace Execution
   rosace_init((MinimalTTTask*) schedule);
   LEDS = 0x000;
-  printf("\nRosace started @ %llu us (max_sim_time = %llu us)\n", get_cpu_usecs(), max_step_simu * STEP_TIME_SCALE * 1000);
+  printf("\nRosace started @ %.3f us (max_sim_time = %llu us)\n", get_ptp_nanos(PATMOS_IO_ETH) * NS_TO_USEC, max_step_simu * STEP_TIME_SCALE * 1000);
+  puts("\nT,Va,az,q,Vz,h,delta_th_c,delta_e_c");
   schedtime_t end_time = execute_cyclic_loop((MinimalTTTask*) schedule);
-  printf("Rosace ended @ %llu us (elapsed = %llu us)\n", end_time, end_time-start_time);
+  
+  // Reporting
+  printf("Rosace ended @ %.3f us\n", end_time * NS_TO_USEC);
 	puts("---------------------------------------------------------------------------");
 	puts("Task log:");
-	for(unsigned short task=0; task<NUM_OF_TASKS; task++){
+	for(unsigned short task=0; task<num_of_tasks; task++){
 		float avgDelta = (float) schedule[task].delta_sum/ (float) schedule[task].exec_count;
 		printf("--task[%12s] avg. dt = %5.3f us (avg. jitter = %5.3f us) from a total of %lu executions\n", 
           tasks_names[task], avgDelta, fabs(schedule[task].period - avgDelta), schedule[task].exec_count);

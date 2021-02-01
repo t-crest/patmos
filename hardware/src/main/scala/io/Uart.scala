@@ -27,7 +27,7 @@ object Uart extends DeviceObject {
   }
 
   def create(params: Map[String, String]) : Uart = {
-    Module(new Uart(CLOCK_FREQ, baudRate, fifoDepth))
+    Module(new Uart(CLOCK_FREQ, getPosIntParam(params, "baudRate"), getPosIntParam(params, "fifoDepth")))
   }
 }
 
