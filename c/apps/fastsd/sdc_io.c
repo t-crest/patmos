@@ -3,7 +3,7 @@
 
 #define SDC_BUFFER_MASK (1 << 11)
 
-static volatile _IODEV uint32_t *const SDCIO_BASE = (volatile _IODEV uint32_t *)0xF00D0000;
+static volatile _IODEV uint32_t *const SDCIO_BASE = (volatile _IODEV uint32_t *)0xF00F0000;
 
 void sdc_reg_write(const sdc_reg_t reg, const uint32_t value)
 {

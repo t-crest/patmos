@@ -1,5 +1,5 @@
 # fastsd
-This directory contains the software part for the fast SD controller, developed by Philipp Birkl as well as Martin Schwendinger for the course `Advanced Computer Architecture` at Technical Univerity of Vienna.
+This directory contains the software part for the fast SD controller, developed by Philipp Birkl and Martin Schwendinger for the course `Advanced Computer Architecture` at Technical Univerity of Vienna.
 
 ## Structure
 The code is structured in logical blocks.
@@ -7,6 +7,10 @@ The code is structured in logical blocks.
 - `sdclib/` containes the interface between the driver and the hardware.
 - The root folder contains a simple demo application.
 - Possibly a library `newlibfs-adapter` will be implemented to override the stub syscalls provided by newlib to get POSIX compatability. This however will conflict with the already given implementations in [patmos-newlib][2] as it is currently used to handle `STDOUT`.
+
+## Build note
+You may want to make sure that the offset setting of the IO device `SDCController` in `patmos/hardware/config/altde2-115.xml` matches the offset
+`SDCIO_BASE` in `sdc\_io.c`.
 
 ## References
 [1]: http://elm-chan.org/

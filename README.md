@@ -1,20 +1,3 @@
-EDIT
-============
-Also wie ich mir das vorgestellt hab:
-
-- Du machst mal den Getting Started Spaß von da unten.
-- Dann ersetzt du deinen ~/t-crest/patmos Ordner mit diesem repo hier.
-- In diesem repo sind zusätzlich patmos/hardware/sdc_controller und patmos/hardware/src/main/scala/sdc_controller/*.scala enthalten.
-- in hardware/sdc_controller sind jetzt nur mal kopien von den bekannten cores aus opencores und dem einen mczerski-git.
-- in hardware/src/main/scala/sdc_controller/*.scala da sollten wir dann unseren übersetzten verilog code reintuen.
-- allgemein würde ich mich für das einbinden vom sdc_controller am ethmac orientieren (der ist auch so ein i/o device für den patmos).
-- im patmos buch kapitel 3.7 ist beschrieben wie man da ein neues io device zum patmos hinzufügt.
-- da gibt es so ein OCPio interface. der sdc_controller hat bis jetzt da wishbone. Wenn man schaut haben aber für das ethmac auch schon mal so eine wishbone zu OCPcore/io gemacht.
-- tja die Aufgaben wären aus meiner sicht also 1) übesetzen von dem sdc_controller core in verilog nach chisel und 2) das wishbone zum OCPio richtig anbinden/adaptieren, damit patmos halt damit arbeiten kann.
-
-LG Martin
-
-
 About Patmos
 ============
 

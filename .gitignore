@@ -5,7 +5,6 @@ hardware/project/target
 hardware/target
 hardware/build
 hardware/generated
-hardware/mymsim
 hardware/.idea/
 hardware/modelsim/work/
 hardware/quartus/**/incremental_db
