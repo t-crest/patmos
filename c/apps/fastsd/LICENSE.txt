@@ -39,6 +39,9 @@ LICENSEFILE LICENSE.gpl.txt
 
 ===
 
+Authors of changes and all other files: 
+	Philipp Birkl, Martin Schwendinger {philipp.birkl,martin.schwendinger}@student.tuwien.ac.at
+
 ALL CHANGES AND OTHER FILES ARE LICENSED UNDER THE UNLICENSE:
 
 This is free and unencumbered software released into the public domain.

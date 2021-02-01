@@ -1,3 +1,10 @@
+/*
+ * SD card controller DeviceObject and black box for patmos/hardware/sdc_controller/...
+ *
+ * Authors: Martin Schwendinger, Philipp Birkl ({martin.schwendinger,philipp.birkl}@student.tuwien.ac.at)
+ *
+ */
+
 package io
 
 import chisel3._

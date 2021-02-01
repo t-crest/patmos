@@ -50,44 +50,114 @@ int main()
 {
     FATFS fs;
     FRESULT res;
-    char buff[256];
-
+	UINT a;
+	
+	// mount FAT
     res = f_mount(&fs, "", 1);
-    /*DEBUG_PRINT("res = %d", res);
-    if (res == FR_OK) {
-        strcpy(buff, "/");
-        
-        DEBUG_PRINT("res = %d", res);
-    }*/
-    FIL f;
-    UINT a;
+	
+	// create file
+	FIL fil_write;
+	res = f_open(&fil_write,"/demo.txt", FA_CREATE_ALWAYS | FA_READ | FA_WRITE);
+	if(res != FR_OK) {
+		printf("Could not create file 'demo.txt'. f_open: %d\n", res);
+		return res;
+	}
+	
+	// write to file
+	char buffer_wr[4096];
+	for(int i = 0, ascii = '!'; i < 4096; ++i) {
+		buffer_wr[i] = ascii;
+		ascii++;
+		if (ascii > '~') {
+			ascii = '!';
+		}
+	}
+	res = f_write(&fil_write, buffer_wr, sizeof(buffer_wr), &a);
+	if(res != FR_OK) {
+		printf("Could not write to file 'demo.txt'. f_write: %d\n", res);
+		return res;
+	}
+	printf("%u characters written to 'demo.txt'.\n", a);
+	
+	// close file
+	res = f_close(&fil_write);
+	if(res != FR_OK) {
+		printf("Could not close file 'demo.txt'. f_close: %d\n", res);
+		return res;
+	}
+	
+	// read file
+    FIL fil_read;
+    res = f_open(&fil_read,"/demo.txt", FA_READ);
+	if(res != FR_OK) {
+		printf("Could not open file 'demo.txt'. f_open: %d\n", res);
+		return res;
+	}
+    char buffer_read[4096];
+    res = f_read(&fil_read, buffer_read, sizeof(buffer_read), &a);
+	if(res != FR_OK) {
+		printf("Could not read file 'demo.txt'. f_read: %d\n", res);
+		return res;
+	}
+	if (a > sizeof(buffer_read)) {
+		buffer_read[4095] = '\0';
+	} else {
+		buffer_read[a] = '\0';
+	}
+	printf("First %u characters of file 'demo.txt' are: %s\n", a, buffer_read);
+	
+	// close file
+	res = f_close(&fil_read);
+	if(res != FR_OK) {
+		printf("Could not close file 'demo.txt'. f_close: %d\n", res);
+		return res;
+	}
 
-    res = f_open(&f,"/Hallo.txt", FA_READ);
-    DEBUG_PRINT("f_open: %d", res);
-    char buffer[1024*4];
-    res = f_read(&f, buffer, 1024*4, &a);
-    DEBUG_PRINT("f_read: %d", res);
-    printf("BUffer: %s \n", buffer);
-    printf("a : %d \n", a);
-    
-
-    
-    /*res = f_open(&f,"/demo.txt", FA_CREATE_ALWAYS | FA_READ | FA_WRITE);
-    DEBUG_PRINT("f_open: %d", res);
-    res = f_write(&f, "ABCDEFG", 7, &a);
-    DEBUG_PRINT("a: %d", a);
-    DEBUG_PRINT("f_write: %d", res);
-    res = f_sync(&f);
-    DEBUG_PRINT("RES f_sync: %d", res);
-    //res = f_close(&f);
-    //DEBUG_PRINT("f_close: %d", res);*/
-
-    //res = scan_files(buff);
-
-    res = f_mount(0, "", 0);
-    DEBUG_PRINT("f_unmount: %d", res);
-
+	// create dirs
+	res = f_mkdir("/demo_dir");
+	if(res != FR_OK) {
+		printf("Could not create dir '/demo_dir'. f_mkdir: %d\n", res);
+		return res;
+	}
+	res = f_mkdir("/demo_dir/sub_dir");
+	if(res != FR_OK) {
+		printf("Could not create dir '/demo_dir/sub_dir'. f_mkdir: %d\n", res);
+		return res;
+	}
+	
+	// create files
+	FIL fil_demo_dir_f;
+	res = f_open(&fil_demo_dir_f,"/demo_dir/demo_dir.txt", FA_CREATE_ALWAYS | FA_READ | FA_WRITE);
+	if(res != FR_OK) {
+		printf("Could not create file '/demo_dir/demo_dir.txt'. f_open: %d\n", res);
+		return res;
+	}
+	res = f_close(&fil_demo_dir_f);
+	if(res != FR_OK) {
+		printf("Could not close file '/demo_dir/demo_dir.txt'. f_close: %d\n", res);
+		return res;
+	}
+	FIL fil_demo_sub_dir_f;
+	res = f_open(&fil_demo_sub_dir_f,"/demo_dir/sub_dir/demo_sub_dir.txt", FA_CREATE_ALWAYS | FA_READ | FA_WRITE);
+	if(res != FR_OK) {
+		printf("Could not create file '/demo_dir/sub_dir/demo_sub_dir.txt'. f_open: %d\n", res);
+		return res;
+	}
+	res = f_close(&fil_demo_sub_dir_f);
+	if(res != FR_OK) {
+		printf("Could not close file '/demo_dir/sub_dir/demo_sub_dir.txt'. f_close: %d\n", res);
+		return res;
+	}
+	
+	// list files in demo_dir
+	printf("Files in '/demo_dir'.\n");
+    res = scan_files("/demo_dir");
+	if(res != FR_OK) {
+		printf("Could not list all files in  '/demo_dir'. scan_files: %d\n", res);
+		return res;
+	}
+	
+    // f_mount(0, "", 0); // unmount
 
     return res;
-
 }

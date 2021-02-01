@@ -1,10 +1,18 @@
+--
+-- Authors: Martin Schwendinger, Philipp Birkl ({martin.schwendinger,philipp.birkl}@student.tuwien.ac.at)
+-- License: GNU Lesser General Public License
+--
+-- SD card controller top-level file for the SD card controller by Marek Czerski 
+-- translating OCPcore to wishbone, OCPcore/wishbone to bram and bram providing buffer itself.
+--
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 entity sdc_controller_top is
 	generic(
-		ADDR_WIDTH 		: 		natural 	:= 14				-- determines the size of rx-tx buffer, should be at least 8; MSB is toggle
+		ADDR_WIDTH 		: 		natural 	:= 14	-- determines the size of rx-tx buffer, should be at least 8; MSB is toggle
 	);
 	port(
 		clk           	: in  	std_logic;

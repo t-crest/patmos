@@ -1,5 +1,5 @@
 # fastsd
-This directory contains the software part for the fast SD controller, developed by Philipp Birkl as well as Martin Schwendinger for the course `Advanced Computer Architecture` at Technical Univerity of Vienna.
+This directory contains the software part for the fast SD controller, developed by Philipp Birkl and Martin Schwendinger for the course `Advanced Computer Architecture` at Technical Univerity of Vienna.
 
 ## Structure
 The code is structured in logical blocks.
