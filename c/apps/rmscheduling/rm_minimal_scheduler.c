@@ -139,7 +139,7 @@ void rmschedule_sortedinsert_release(MinimalRMSchedule *schedule, MinimalRMTaskN
     MinimalRMTaskNode ** head_ref = &schedule->head;
     MinimalRMTaskNode* current; 
     /* Special case for the head end */
-    if (*head_ref == NULL || (*head_ref)->task.deadline >= new_node->task.deadline) 
+    if (*head_ref == NULL || (*head_ref)->task.release_time >= new_node->task.release_time) 
     { 
         new_node->next = *head_ref; 
         *head_ref = new_node; 
@@ -238,9 +238,9 @@ schedtime_t calc_hyperperiod(const MinimalRMSchedule *schedule, const uint32_t s
     node_itr = schedule->head;
     while(node_itr != NULL){
       found_lcm = lcm % node_itr->task.period == 0 ? found_lcm+1 : 0;
-      #ifdef DEBUG
-      printf("LCM check %llu %% %llu, count = %lu (%lu)\n", lcm, node_itr->task.period, found_lcm, schedule->task_count);
-      #endif
+      // #ifdef DEBUG
+      // printf("LCM check %llu %% %llu, count = %lu (%lu)\n", lcm, node_itr->task.period, found_lcm, schedule->task_count);
+      // #endif
       node_itr = node_itr->next;
     }
     if(found_lcm == schedule->task_count)
@@ -252,28 +252,6 @@ schedtime_t calc_hyperperiod(const MinimalRMSchedule *schedule, const uint32_t s
   return lcm;
 }
 
-
-#ifdef WCET
-__attribute__((noinline))
-#endif
-void sort_period_rmtasks(MinimalRMTask *tasks, const uint32_t tasks_count)
-{
-  #pragma loopbound min 1 max 1
-  for (int i = 0; i < tasks_count; i++)                     
-	{
-    #pragma loopbound min 1 max 1
-		for (int j = 0; j < tasks_count; j++)             
-		{
-			if (tasks[j].period > tasks[i].period)                    
-			{
-				MinimalRMTask tmp = tasks[i];         
-				tasks[i] = tasks[j];            
-				tasks[j] = tmp;             
-			}
-		}
-	}
-}
-
 // This function prints contents of the schedule
 void print_rmschedule(MinimalRMTaskNode* n) 
 { 
@@ -282,5 +260,5 @@ void print_rmschedule(MinimalRMTaskNode* n)
         printf("t_%d--> ", n->task.id); 
         n = n->next; 
     }
-  printf("|\n");
+  printf("NULL|\n");
 } 

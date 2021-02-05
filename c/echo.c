@@ -9,6 +9,7 @@
 	Copyright: DTU, BSD License
 */
 
+#include <machine/patmos.h>
 #include <machine/spm.h>
 #include <stdio.h>
 

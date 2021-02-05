@@ -1,8 +1,8 @@
 name := "Patmos"
 
-scalaVersion := "2.11.12"
+scalaVersion := "2.12.12"
 
-scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-language:reflectiveCalls")
+scalacOptions ++= Seq("-Xsource:2.11", "-unchecked", "-deprecation", "-feature", "-language:reflectiveCalls")
 
 libraryDependencies += scalaVersion("org.scala-lang" % "scala-compiler" % _).value
 
@@ -11,11 +11,6 @@ resolvers ++= Seq(
   Resolver.sonatypeRepo("releases")
 )
 
-// here switch between Chisel 2 and 3
+// Chisel 3.4
+libraryDependencies += "edu.berkeley.cs" %% "chisel-iotesters" % "1.5.1"
 
-//libraryDependencies += "edu.berkeley.cs" %% "chisel" % "2.2.38"
-
-libraryDependencies += "edu.berkeley.cs" %% "chisel3" % "3.1.7"
-libraryDependencies += "edu.berkeley.cs" %% "chisel-iotesters" % "1.3.0"
-
-libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5"

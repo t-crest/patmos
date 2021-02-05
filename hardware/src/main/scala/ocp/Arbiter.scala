@@ -9,30 +9,34 @@
 
 package ocp
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 
 class Arbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) extends Module {
   // MS: I'm always confused from which direction the name shall be
   // probably the other way round...
   val io = IO(new Bundle {
-    val master = Vec.fill(cnt) { new OcpBurstSlavePort(addrWidth, dataWidth, burstLen) }
+    val master = Vec(cnt, new OcpBurstSlavePort(addrWidth, dataWidth, burstLen))
     val slave = new OcpBurstMasterPort(addrWidth, dataWidth, burstLen)
   })
 
-  val turnReg = Reg(init = UInt(0, log2Up(cnt)))
-  val burstCntReg = Reg(init = UInt(0, log2Up(burstLen)))
+  val turnReg = RegInit(0.U(log2Up(cnt).W))
+  val burstCntReg = RegInit(0.U(log2Up(burstLen).W))
 
-  val sIdle :: sRead :: sWrite :: Nil = Enum(UInt(), 3)
-  val stateReg = Reg(init = sIdle)
+  val sIdle :: sRead :: sWrite :: Nil = Enum(3)
+  val stateReg = RegInit(sIdle)
 
   // buffer signals from master to cut critical paths
-  val masterBuffer = Vec(io.master.map { m =>
-    val port = new OcpBurstSlavePort(addrWidth, dataWidth, burstLen)
+  val masterBuffer = Wire(Vec(cnt, new OcpBurstSlavePort(addrWidth, dataWidth, burstLen)))
+  
+  for (i <- 0 to cnt - 1) {
+    
+    val port = masterBuffer(i)
     val bus = Module(new OcpBurstBus(addrWidth, dataWidth, burstLen))
-    m <> bus.io.slave
+    bus.io.slave.M := io.master(i).M
+    io.master(i).S := bus.io.slave.S
     new OcpBurstBuffer(bus.io.master, port)
-    port
-  })
+  }
 
   val master = masterBuffer(turnReg).M
 
@@ -43,26 +47,26 @@ class Arbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) extend
       }
       when(master.Cmd === OcpCmd.WR) {
         stateReg := sWrite
-        burstCntReg := UInt(0)
+        burstCntReg := 0.U
       }
     }
       .otherwise {
-        turnReg := Mux(turnReg === UInt(cnt - 1), UInt(0), turnReg + UInt(1))
+        turnReg := Mux(turnReg === (cnt - 1).U, 0.U, turnReg + 1.U)
       }
   }
   when(stateReg === sWrite) {
     // Just wait on the DVA after the write
     when(io.slave.S.Resp === OcpResp.DVA) {
-      turnReg := Mux(turnReg === UInt(cnt - 1), UInt(0), turnReg + UInt(1))
+      turnReg := Mux(turnReg === (cnt - 1).U, 0.U, turnReg + 1.U)
       stateReg := sIdle
     }
   }
   when(stateReg === sRead) {
     // For read we have to count the DVAs
     when(io.slave.S.Resp === OcpResp.DVA) {
-      burstCntReg := burstCntReg + UInt(1)
-      when(burstCntReg === UInt(burstLen) - UInt(1)) {
-        turnReg := Mux(turnReg === UInt(cnt - 1), UInt(0), turnReg + UInt(1))
+      burstCntReg := burstCntReg + 1.U
+      when(burstCntReg === burstLen.U - 1.U) {
+        turnReg := Mux(turnReg === (cnt - 1).U, 0.U, turnReg + 1.U)
         stateReg := sIdle
       }
     }
@@ -71,8 +75,8 @@ class Arbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) extend
   io.slave.M := master
 
   for (i <- 0 to cnt - 1) {
-    masterBuffer(i).S.CmdAccept := UInt(0)
-    masterBuffer(i).S.DataAccept := UInt(0)
+    masterBuffer(i).S.CmdAccept := 0.U
+    masterBuffer(i).S.DataAccept := 0.U
     masterBuffer(i).S.Resp := OcpResp.NULL
     // we forward the data to all masters
     masterBuffer(i).S.Data := io.slave.S.Data
@@ -81,18 +85,3 @@ class Arbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) extend
 
   // The response of the SSRAM comes a little bit late
 }
-
-object ArbiterMain {
-  def main(args: Array[String]): Unit = {
-
-    val chiselArgs = args.slice(4, args.length)
-    val cnt = args(0)
-    val addrWidth = args(1)
-    val dataWidth = args(2)
-    val burstLen = args(3)
-
-    chiselMain(chiselArgs, () => Module(new Arbiter(cnt.toInt,addrWidth.toInt,dataWidth.toInt,burstLen.toInt)))
-  }
-}
-
-

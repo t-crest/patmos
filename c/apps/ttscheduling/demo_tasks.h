@@ -11,7 +11,7 @@ void task_1(const void *self)
     //Fake work
     if(get_cpuid() == 0) LED = 0x1;
 #ifdef DEBUG
-    printf("{T1,%lu}", ((MinimalTTTask*) self)->release_inst);
+    printf("EXEC {T1,%lu}", ((MinimalTTTask*) self)->release_inst);
 #else
     DEAD = (unsigned)(250000/CPU_PERIOD) - 10;   //clock cycles
     int val = DEAD;
@@ -26,7 +26,7 @@ void task_2(const void *self)
     //Fake work
     if(get_cpuid() == 0) LED = 0x2;
 #ifdef DEBUG
-    printf("{T2,%lu}", ((MinimalTTTask*) self)->release_inst);
+    printf("EXEC {T2,%lu}", ((MinimalTTTask*) self)->release_inst);
 #else
     DEAD = (unsigned)(500000/CPU_PERIOD) - 10;  //clock cycles
     int val = DEAD;
@@ -40,7 +40,7 @@ void task_3(const void *self)
     //Fake work
     if(get_cpuid() == 0) LED = 0x4;
 #ifdef DEBUG
-    printf("{T3,%lu}", ((MinimalTTTask*) self)->release_inst);
+    printf("EXEC {T3,%lu}", ((MinimalTTTask*) self)->release_inst);
 #else
     DEAD = (unsigned)(200000/CPU_PERIOD) - 10;  //clock cycles
     int val = DEAD;
@@ -54,7 +54,7 @@ void task_4(const void *self)
     //Fake work
     if(get_cpuid() == 0) LED = 0x8;
 #ifdef DEBUG
-    printf("{T4,%lu}\n", ((MinimalTTTask*) self)->release_inst);
+    printf("EXEC {T4,%lu}\n", ((MinimalTTTask*) self)->release_inst);
 #else
     DEAD = (unsigned)(500000/CPU_PERIOD) - 10;  //clock cycles
     int val = DEAD;
@@ -68,7 +68,7 @@ void task_5(const void *self)
     //Fake work
     if(get_cpuid() == 0) LED = 0x10;
 #ifdef DEBUG
-    printf("{T5,%lu}", ((MinimalTTTask*) self)->release_inst);
+    printf("EXEC {T5,%lu}", ((MinimalTTTask*) self)->release_inst);
 #else
     DEAD = (unsigned)(825000/CPU_PERIOD) - 10;   //clock cycles
     int val = DEAD;
@@ -83,7 +83,7 @@ void task_6(const void *self)
     //Fake work
     if(get_cpuid() == 0) LED = 0x20;
 #ifdef DEBUG
-    printf("{T6,%lu}", ((MinimalTTTask*) self)->release_inst);
+    printf("EXEC {T6,%lu}", ((MinimalTTTask*) self)->release_inst);
 #else
     DEAD = (unsigned)(1000000/CPU_PERIOD) - 10;  //clock cycles
     int val = DEAD;
@@ -97,7 +97,7 @@ void task_7(const void *self)
     //Fake work
     if(get_cpuid() == 0) LED = 0x40;
 #ifdef DEBUG
-    printf("{T7,%lu}", ((MinimalTTTask*) self)->release_inst);
+    printf("EXEC {T7,%lu}", ((MinimalTTTask*) self)->release_inst);
 #else
     DEAD = (unsigned)(640000/CPU_PERIOD) - 10;  //clock cycles
     int val = DEAD;
@@ -111,7 +111,7 @@ void task_8(const void *self)
     //Fake work
     if(get_cpuid() == 0) LED = 0x80;
 #ifdef DEBUG
-    printf("{T8,%lu}\n", ((MinimalTTTask*) self)->release_inst);
+    printf("EXEC {T8,%lu}\n", ((MinimalTTTask*) self)->release_inst);
 #else
     DEAD = (unsigned)(1500000/CPU_PERIOD) - 10;  //clock cycles
     int val = DEAD;
