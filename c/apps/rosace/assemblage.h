@@ -26,4 +26,7 @@ void get_precedence_set(int* prec_number, struct multirate_precedence** presc);
 #define ELEVATOR	13
 #define VA_FILTER	14
 
+int engine486_fun(void* args);
+
+
 #endif

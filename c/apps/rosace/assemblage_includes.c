@@ -7,10 +7,11 @@
 #ifdef USE_FLOAT
 // #define MATH_COS cos
 // #define MATH_SIN sin
-// #define MATH_SQRT sqrt2
-#define MATH_COS(angle) (cos1(angle * 32768.0 / 90.0) * Q15)
-#define MATH_SIN(angle) (sin1(angle * 32768.0 / 90.0) * Q15)
-#define MATH_SQRT sqrt
+// #define MATH_COS(angle) (cos1(angle * 32768.0 / 90.0) * Q15)
+// #define MATH_SIN(angle) (sin1(angle * 32768.0 / 90.0) * Q15)
+#define MATH_COS cos_approx
+#define MATH_SIN sin_approx
+#define MATH_SQRT sqrt2
 #else
 #define MATH_COS cos_approx
 #define MATH_SIN sin_approx
