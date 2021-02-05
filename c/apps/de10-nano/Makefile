@@ -1,6 +1,6 @@
-# MAIN?=hello_MPU6050
+MAIN?=baro_test
 #MAIN?=blinking
-MAIN?=acts_props_uart2
+# MAIN?=acts_props_uart2
 SERIAL?=/dev/ttyUSB0
 # This is the trivial Hello World example, distributed over two .c files
 
@@ -10,7 +10,7 @@ LDFLAGS?= \
         -Xgold --defsym -Xgold __heap_end=0x070000
 
 all:
-	patmos-clang -I ../.. -O2 $(LDFLAGS) $(MAIN).c -o de10-nano.elf
+	patmos-clang -I ../.. -O2 $(LDFLAGS) ../i2c-master/i2c_master.c $(MAIN).c -o de10-nano.elf -lm
 
 download:
 	patserdow -v $(SERIAL) de10-nano.elf
