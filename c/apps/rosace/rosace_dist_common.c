@@ -7,8 +7,8 @@ MinimalTTTask *schedule;
 
 // Output variables
 output_t outs;
-uint64_t step_simu;
-uint64_t max_step_simu;
+uint32_t step_simu;
+uint32_t max_step_simu;
 
 // Clock related variables
 PTPv2Time hardTimestamp;
@@ -36,13 +36,15 @@ unsigned char nodeColdStart = 1;		//is used to indicate that a node has just boo
 unsigned char nodeFirstSync = 1;
 unsigned char nodeRecvEnable = 0;
 
-// TTE PID synchronization
-#define TTE_SYNC_Kp 1000LL
-#define TTE_SYNC_Ki 0LL
+uint64_t doubleToBytes(double x){
+	const union {double f; uint64_t b;} val = {.f = x};
+	return val.b;
+}
 
-// TTE directives
-#define TIME_CORRECTION_EN
-#define HW_TIMESTAMPING
+double bytesToDouble(uint64_t x){
+	const union {double f; uint64_t b;} val = {.b = x};
+	return val.f;
+}
 
 void printSegmentInt(unsigned number) 
 {
@@ -80,7 +82,19 @@ int logging_fun(void *args)
   return 1;
 }
 
-void init_sync()
+__attribute__((noinline))
+void config_ethmac()
+{
+	set_mac_address(0x1D000400, 0x00000289);
+	eth_iowr(MODER, (RECSMALL_BIT | CRCEN_BIT | FULLD_BIT | PRO_BIT | TXEN_BIT | RXEN_BIT));
+	eth_iowr(INT_SOURCE, INT_SOURCE_RXB_BIT);
+  eth_iowr(RX_BD_ADDR_BASE(eth_iord(TX_BD_NUM)), RX_BD_EMPTY_BIT | RX_BD_IRQEN_BIT | RX_BD_WRAP_BIT);
+	eth_iowr(INT_SOURCE, INT_SOURCE_TXB_BIT);
+	eth_iowr(TX_BD_ADDR_BASE, TX_BD_READY_BIT | TX_BD_IRQEN_BIT | TX_BD_PAD_EN_BIT);
+}
+
+__attribute__((noinline))
+void reset_sync()
 {
   nodeFirstSync = 1;
   nodeColdStart = 1;
@@ -94,6 +108,8 @@ void init_sync()
   clkDiffSum = 0;
   clkDiff = 0;
   rxPcfCount = 0;
+	RTC_TIME_NS(PATMOS_IO_ETH) = 0x0;
+	RTC_TIME_SEC(PATMOS_IO_ETH) = 0x0;
 }
 
 uint8_t isNodeSyncStable()
@@ -105,11 +121,6 @@ __attribute__((noinline))
 unsigned long long get_tte_aligned_time(unsigned long long current_time, unsigned long long corr_limit)
 {
 	long long clock_corr = (((TTE_SYNC_Kp*clkDiff)>>10) + ((TTE_SYNC_Ki*clkDiffSum)>>10));
-		// if(clock_corr < 0){
-	// 	clock_corr = MAX(-corr_limit, clock_corr);
-	// } else {
-	// 	clock_corr = MIN(corr_limit, clock_corr);
-	// }
 	#ifdef TIME_CORRECTION_EN
 	return (unsigned long long) ((long long) current_time + clock_corr);
 	#else
@@ -198,14 +209,25 @@ void sync_fun(unsigned long long start_time, unsigned long long current_time, Mi
 	if(ethFrameType == TTE_PCF)
 	{
 		tte_pcf_handle(current_time, start_time);
-		nodeIntegrated = !nodeColdStart && ethFrameType > 0 && (stableCycles - unstableCycles) > 0 && abs(clkDiff) < TTE_PRECISION;
-		if((nodeFirstSync && integration_cycle == 0 && nodeIntegrated) || !nodeFirstSync){
-			nodeSyncStable = nodeIntegrated && (stableClusters - unstableClusters) > TTE_ASYNC2SYNC_THRES;	
-			nodeFirstSync = 0;
+		#pragma loopbound min 1 max 5
+		for(int i=0; i<num_of_tasks; i++)
+		{
+			#pragma loopbound min 1 max 4
+			for(int n=0; n<tasks[i].nr_releases; n++)
+				tasks[i].release_times[n] = get_tte_aligned_time(tasks[i].release_times[n], tasks[i].period);
 		}
 		rxPcfCount += 1;
 	} 
 	else if(ethFrameType == TIMEOUT)
+	{
+		unstableCycles++;
+	}
+	nodeIntegrated = !nodeColdStart && ethFrameType > 0 && (stableCycles - unstableCycles) > 0 && abs(clkDiff) < TTE_PRECISION;
+	if((nodeFirstSync && integration_cycle == 0 && nodeIntegrated) || !nodeFirstSync)
+	{
+		nodeSyncStable = nodeIntegrated && (stableClusters - unstableClusters) > TTE_ASYNC2SYNC_THRES;	
+		nodeFirstSync = 0;
+	} else if (nodeIntegrated && !nodeSyncStable)
 	{
 		nodeFirstSync = 1;
 		nodeColdStart = 1;
@@ -219,17 +241,48 @@ void sync_fun(unsigned long long start_time, unsigned long long current_time, Mi
 		clkDiffSum = 0;
 		clkDiff = 0;
 	}
-	// if(nodeIntegrated){
-		#pragma loopbound min 1 max 5
-		for(int i=0; i<num_of_tasks; i++)
-		{
-			#pragma loopbound min 1 max 4
-			for(int n=0; n<tasks[i].nr_releases; n++)
-				tasks[i].release_times[n] = get_tte_aligned_time(tasks[i].release_times[n], tasks[i].period);
-		}
-	// }
 	printSegmentInt(abs(clkDiff));
 	LEDS = (nodeSyncStable << 7) + (nodeIntegrated << 6) + (ethFrameType & 0xF);
 	GPIO &= (0U << SYNCTASK_GPIO_BIT);
-  step_simu += 1;
+}
+
+//This function sends an UDP packet to the dstination IP and destination MAC.
+__attribute__((noinline))
+int udp_send_tte(unsigned int tx_addr, unsigned int rx_addr, unsigned char tte_ct[], unsigned char tte_vl[], unsigned char tte_mac[], unsigned char destination_ip[], unsigned char source_ip[], unsigned short source_port, unsigned short destination_port, unsigned char data[], unsigned short data_length, uint16_t ipv4_id)
+{
+	//Resolve the ip address
+	unsigned short udp_length = data_length + 8;
+	unsigned short ip_length = udp_length + 20;
+	unsigned short frame_length = ip_length + 14;
+	//MAC addrs
+	mem_iowr(tx_addr, (tte_ct[0] << 24) | (tte_ct[1] << 16) | (tte_ct[2] << 8) | tte_ct[3]);
+	mem_iowr(tx_addr + 4, (tte_vl[0] << 24) | (tte_vl[1] << 16) | (tte_mac[0] << 8) | tte_mac[1]);
+	mem_iowr(tx_addr + 8, (tte_mac[2] << 24) | (tte_mac[3] << 16) | (tte_mac[4] << 8) | tte_mac[5]);
+	//MAC type + IP version + IP type
+	mem_iowr(tx_addr + 12, 0x08004500);
+	//Length + Identification
+	mem_iowr(tx_addr + 16, (ip_length << 16) | (ipv4_id));
+	//Flags + TTL + Protocol
+	mem_iowr(tx_addr + 20, 0x40004011);
+	//IP addrs + Ports + UDP Length
+	mem_iowr(tx_addr + 24, (source_ip[0] << 8) | source_ip[1]);
+	mem_iowr(tx_addr + 28, (source_ip[2] << 24) | (source_ip[3] << 16) | (destination_ip[0] << 8) | destination_ip[1]);
+	mem_iowr(tx_addr + 32, (destination_ip[2] << 24) | (destination_ip[3] << 16) | source_port);
+	mem_iowr(tx_addr + 36, (destination_port << 16) | udp_length);
+	mem_iowr(tx_addr + 40, 0x0000);
+	//UDP Data
+	_Pragma("loopbound min 0 max 64")
+	for (int i=0; i<data_length; i++){
+		mem_iowr_byte(tx_addr + 42 + i, data[i]);//Sender myip
+	}
+	//IPv4 checksum
+	unsigned short int checksum = ipv4_compute_checksum(tx_addr);
+	mem_iowr_byte(tx_addr + 24, (checksum >> 8));
+	mem_iowr_byte(tx_addr + 25, (checksum & 0xFF));
+	// UDP checksum
+	checksum = udp_compute_checksum(tx_addr);
+	mem_iowr_byte(tx_addr + 40, (checksum >> 8));
+	mem_iowr_byte(tx_addr + 41, (checksum & 0xFF));
+	eth_mac_send(tx_addr, frame_length);
+	return 1;
 }

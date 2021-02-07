@@ -203,10 +203,9 @@ uint8_t minimal_rm_scheduler(MinimalRMSchedule *schedule)
       // Pop & Execute
       node_itr->task.state = ELECTED;
       node_itr->task.release_time = current_time + node_itr->task.period;
-      node_itr->task.func(&node_itr->task);
-      node_itr->task.delta_sum += node_itr->task.last_release_time == 0 ? node_itr->task.period : 
-                                  (current_time - node_itr->task.last_release_time);
+      node_itr->task.delta_sum += node_itr->task.last_release_time == 0 ? node_itr->task.period : (current_time - node_itr->task.last_release_time);
       node_itr->task.last_release_time = current_time;
+      node_itr->task.func(&node_itr->task);
       node_itr->task.exec_count++;
       node_itr->task.overruns += (schedule->get_time() - schedule->start_time) - current_time > (node_itr->task.exec_count * node_itr->task.period + node_itr->task.deadline) ? 1 : 0;
       node_itr->task.state = READY;

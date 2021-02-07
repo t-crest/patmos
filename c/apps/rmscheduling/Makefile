@@ -26,14 +26,14 @@ wcet_scheduler:
 	platin wcet --disable-ait -i tpip.pml -b rm_scheduling_demo.elf -e init_minimal_rmtask
 	platin wcet --disable-ait -i tpip.pml -b rm_scheduling_demo.elf -e create_rmtasknode
 	platin wcet --disable-ait -i tpip.pml -b rm_scheduling_demo.elf -e rmschedule_enqueue
-	platin wcet --disable-ait -i tpip.pml -b rm_scheduling_demo.elf -e rmschedule_sortedinsert
+	platin wcet --disable-ait -i tpip.pml -b rm_scheduling_demo.elf -e rmschedule_sortedinsert_release
 	platin wcet --disable-ait -i tpip.pml -b rm_scheduling_demo.elf -e rmschedule_dequeue
 	platin wcet --disable-ait -i tpip.pml -b rm_scheduling_demo.elf -e minimal_rm_scheduler
 	platin wcet --disable-ait -i tpip.pml -b rm_scheduling_demo.elf -e print_rmschedule
 
-
 wcet_demo_tasks:
 	patmos-clang $(CFLAGS) -mserialize=tpip.pml -D WCET rm_scheduling_demo.c rm_minimal_scheduler.c -o rm_scheduling_demo.elf
+	platin wcet --disable-ait -i tpip.pml -b rm_scheduling_demo.elf -e demo_task
 	
 # compiling examples
 force:
