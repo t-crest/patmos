@@ -138,10 +138,56 @@ int patmosplug_close(int file)
 
 int patmosplug_read(int file, char *buf, int len)
 {
+	INIT_GUARD;
+	UINT br;
+
+	if (file < FD_OFFSET)
+	{
+		return -EBADF;
+	}
+
+	file_desc_t fd = file_desc_buffer[file - FD_OFFSET];
+
+	if (fd.is_open == 0)
+	{
+		return -EBADF;
+	}
+
+	FRESULT res = f_read(&(fd.file), buf, len, &br);
+
+	if (res != FR_OK)
+	{
+		return fatfs_err_to_errno(res);
+	}
+
+	return (ssize_t)br;
 }
 
 int patmosplug_write(int file, char *buf, int nbytes)
 {
+	INIT_GUARD;
+	UINT bw;
+
+	if (file < FD_OFFSET)
+	{
+		return -EBADF;
+	}
+
+	file_desc_t fd = file_desc_buffer[file - FD_OFFSET];
+
+	if (fd.is_open == 0)
+	{
+		return -EBADF;
+	}
+
+	FRESULT res = f_write(&(fd.file), buf, nbytes, &bw);
+
+	if (res != FR_OK)
+	{
+		return fatfs_err_to_errno(res);
+	}
+
+	return (ssize_t)bw;
 }
 
 static error_t patmosplug_init()
