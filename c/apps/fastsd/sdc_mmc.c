@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "sdc_debug.h"
 #include "sdc_mmc.h"
 
 void udelay(int t)
@@ -276,8 +277,7 @@ static int mmc_send_status(struct mmc *mmc, int timeout)
                 break;
             else if (cmd.response[0] & MMC_STATUS_MASK)
             {
-                printf("Status Error: 0x%08X\n\r",
-                       cmd.response[0]);
+                DEBUG_PRINT("Status Error: 0x%08X", cmd.response[0]);
                 return COMM_ERR;
             }
         }
@@ -290,7 +290,7 @@ static int mmc_send_status(struct mmc *mmc, int timeout)
 
     if (timeout <= 0)
     {
-        printf("Timeout waiting card ready\n\r");
+        DEBUG_PRINT("Timeout waiting card ready");
         return TIMEOUT;
     }
 
@@ -405,8 +405,7 @@ retry_scr:
     mmc->scr[0] = scr[0];
     mmc->scr[1] = scr[1];
 
-    printf("SCR: %08x\n\r", mmc->scr[0]);
-    printf("     %08x\n\r", mmc->scr[1]);
+    DEBUG_PRINT("SCR: %08x - %08x", mmc->scr[0], mmc->scr[1]);
 
     switch ((mmc->scr[0] >> 24) & 0xf)
     {
@@ -440,9 +439,9 @@ retry_scr:
         if (err)
             return err;
 
-        printf("switch status 7 %08x\n\r", switch_status[7]);
-        printf("switch status 3 %08x\n\r", switch_status[3]);
-        printf("switch status 4 %08x\n\r", switch_status[4]);
+        DEBUG_PRINT("switch status 7 %08x", switch_status[7]);
+        DEBUG_PRINT("switch status 3 %08x", switch_status[3]);
+        DEBUG_PRINT("switch status 4 %08x", switch_status[4]);
         /* The high-speed function is busy.  Try again */
         if (!(switch_status[7] & SD_HIGHSPEED_BUSY))
             break;
@@ -811,7 +810,7 @@ static int mmc_read_blocks(struct mmc *mmc, void *dst, size_t start, size_t blkc
         cmd.resp_type = MMC_RSP_R1b;
         if (mmc_send_cmd(mmc, &cmd, NULL))
         {
-            printf("mmc fail to send stop cmd\n");
+            DEBUG_PRINT("mmc fail to send stop cmd");
             return 0;
         }
     }
@@ -845,7 +844,7 @@ static size_t mmc_write_blocks(struct mmc *mmc, size_t start, size_t blkcnt, con
 
     if (mmc_send_cmd(mmc, &cmd, &data))
     {
-        printf("mmc write failed\n");
+        DEBUG_PRINT("mmc write failed");
         return 0;
     }
 
@@ -856,7 +855,7 @@ static size_t mmc_write_blocks(struct mmc *mmc, size_t start, size_t blkcnt, con
         cmd.resp_type = MMC_RSP_R1b;
         if (mmc_send_cmd(mmc, &cmd, NULL))
         {
-            printf("mmc fail to send stop cmd\n");
+            DEBUG_PRINT("mmc fail to send stop cmd");
             return 0;
         }
     }
@@ -901,7 +900,7 @@ int mmc_init(struct mmc *mmc)
 
         if (err)
         {
-            printf("Card did not respond to voltage select!\n\r");
+            DEBUG_PRINT("Card did not respond to voltage select!");
             return UNUSABLE_ERR;
         }
     }
@@ -923,8 +922,8 @@ size_t mmc_bread(struct mmc *mmc, size_t start, size_t blkcnt, void *dst)
 
     if ((start + blkcnt) > mmc->capacity / mmc->read_bl_len)
     {
-        printf("MMC: block number 0x%lx exceeds max(0x%llx)\n",
-               start + blkcnt, mmc->capacity / mmc->read_bl_len);
+        DEBUG_PRINT("MMC: block number 0x%lx exceeds max(0x%llx)",
+                    start + blkcnt, mmc->capacity / mmc->read_bl_len);
         return 0;
     }
 

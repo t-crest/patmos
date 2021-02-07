@@ -139,7 +139,7 @@ static void sdcdrv_set_clock(struct sdcdrv *dev, uint clock)
 {
     int clk_div = dev->clk_freq / (2.0 * clock) - 1;
 
-    DEBUG_PRINT("sdcdrv_set_clock %d, div %d\n\r", clock, clk_div);
+    DEBUG_PRINT("sdcdrv_set_clock %d, div %d", clock, clk_div);
     //software reset
     sdc_reg_write(R_RESET, 1);
     //set clock devider
@@ -193,7 +193,7 @@ static int sdcdrv_mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_
         sdcdrv_mmc_setup_data_xfer(dev, cmd, data);
     }
 
-    DEBUG_PRINT("sdcdrv_mmc_send_cmd %04x\n\r", command);
+    DEBUG_PRINT("sdcdrv_mmc_send_cmd %04x", command);
 
     sdc_reg_write(R_COMMAND, command);
     sdc_reg_write(R_ARGUMENT, cmd->cmdarg);
@@ -253,12 +253,12 @@ static int sdcdrv_mmc_finish(struct sdcdrv *dev, struct mmc_cmd *cmd)
     while (1)
     {
         int r2 = sdc_reg_read(R_CMD_EV_STATUS);
-        DEBUG_PRINT("sdcdrv_mmc_finish: cmd %d, status %x\n", cmd->cmdidx, r2);
+        DEBUG_PRINT("sdcdrv_mmc_finish: cmd %d, status %x", cmd->cmdidx, r2);
         if (r2 & SDC_CMD_INT_STATUS_EI)
         {
             //clear interrupts
             sdc_reg_write(R_CMD_EV_STATUS, 0);
-            DEBUG_PRINT("sdcdrv_mmc_finish: cmd %d, status %x\n\r", cmd->cmdidx, r2);
+            DEBUG_PRINT("sdcdrv_mmc_finish: cmd %d, status %x", cmd->cmdidx, r2);
             retval = -1;
             break;
         }
@@ -276,7 +276,7 @@ static int sdcdrv_mmc_finish(struct sdcdrv *dev, struct mmc_cmd *cmd)
                 cmd->response[3] = sdc_reg_read(R_RESP4);
                 DEBUG_PRINT("%x %x %x", cmd->response[1], cmd->response[2], cmd->response[3]);
             }
-            DEBUG_PRINT("sdcdrv_mmc_finish:  %d ok\n\r", cmd->cmdidx);
+            DEBUG_PRINT("sdcdrv_mmc_finish:  %d ok", cmd->cmdidx);
             retval = 0;
 
             break;
@@ -298,12 +298,12 @@ static int sdcdrv_mmc_data_finish(struct sdcdrv *dev)
 
     if (status & SDC_DAT_INT_STATUS_TRS)
     {
-        DEBUG_PRINT("sdcdrv_mmc_data_finish: ok\n\r");
+        DEBUG_PRINT("sdcdrv_mmc_data_finish: ok");
         return 0;
     }
     else
     {
-        DEBUG_PRINT("sdcdrv_mmc_data_finish: status %x\n\r", status);
+        DEBUG_PRINT("sdcdrv_mmc_data_finish: status %x", status);
         return -1;
     }
 }
