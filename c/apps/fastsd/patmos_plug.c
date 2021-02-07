@@ -157,7 +157,7 @@ int patmosplug_read(int file, char *buf, int len)
 
 	if (res != FR_OK)
 	{
-		return fatfs_err_to_errno(res);
+		return fatfs_result_to_posix(res);
 	}
 
 	return (ssize_t)br;
@@ -184,7 +184,7 @@ int patmosplug_write(int file, char *buf, int nbytes)
 
 	if (res != FR_OK)
 	{
-		return fatfs_err_to_errno(res);
+		return fatfs_result_to_posix(res);
 	}
 
 	return (ssize_t)bw;
