@@ -41,7 +41,6 @@ static error_t fatfs_result_to_posix(FRESULT result);
 int patmosplug_open(const char *name, int flags, int mode)
 {
 	BYTE fatfs_flags = 0;
-	FIL fd;
 	FRESULT open_result;
 	INIT_GUARD;
 
@@ -85,12 +84,11 @@ int patmosplug_open(const char *name, int flags, int mode)
 	{
 		if (!file_desc_buffer[i].is_open)
 		{
-			open_result = f_open(&fd, name, fatfs_flags);
+			open_result = f_open(&file_desc_buffer[i].file, name, fatfs_flags);
 			if (open_result == FR_OK)
 			{
 				DEBUG_PRINT("Opening file '%s' with flags = '%x', mode = '%x' succeded", name, flags, mode);
 				file_desc_buffer[i].is_open = 1;
-				file_desc_buffer[i].file = fd;
 				strncpy(file_desc_buffer[i].fname, name, FF_LFN_BUF);
 
 				return i + FD_OFFSET;
@@ -117,21 +115,21 @@ int patmosplug_close(int file)
 		return -EBADF;
 	}
 
-	file_desc_t fd = file_desc_buffer[file - FD_OFFSET];
-	if (fd.is_open == 0)
+	file_desc_t *fd = &file_desc_buffer[file - FD_OFFSET];
+	if (fd->is_open == 0)
 	{
 		return -EBADF;
 	}
 
-	FRESULT res = f_close(&(fd.file));
+	FRESULT res = f_close(&fd->file);
 	if (res == FR_OK)
 	{
 		DEBUG_PRINT("Closing file '%s' succeded");
-		file_desc_buffer[file - FD_OFFSET].is_open = 0;
+		fd->is_open = 0;
 	}
 	else
 	{
-		DEBUG_PRINT("Closing file '%s' failed, error %d", fd.fname, res);
+		DEBUG_PRINT("Closing file '%s' failed, error %d", fd->fname, res);
 	}
 	return fatfs_result_to_posix(res);
 }
@@ -146,14 +144,14 @@ int patmosplug_read(int file, char *buf, int len)
 		return -EBADF;
 	}
 
-	file_desc_t fd = file_desc_buffer[file - FD_OFFSET];
+	file_desc_t *fd = &file_desc_buffer[file - FD_OFFSET];
 
-	if (fd.is_open == 0)
+	if (fd->is_open == 0)
 	{
 		return -EBADF;
 	}
 
-	FRESULT res = f_read(&(fd.file), buf, len, &br);
+	FRESULT res = f_read(&fd->file, buf, len, &br);
 
 	if (res != FR_OK)
 	{
@@ -173,14 +171,14 @@ int patmosplug_write(int file, char *buf, int nbytes)
 		return -EBADF;
 	}
 
-	file_desc_t fd = file_desc_buffer[file - FD_OFFSET];
+	file_desc_t *fd = &file_desc_buffer[file - FD_OFFSET];
 
-	if (fd.is_open == 0)
+	if (fd->is_open == 0)
 	{
 		return -EBADF;
 	}
 
-	FRESULT res = f_write(&(fd.file), buf, nbytes, &bw);
+	FRESULT res = f_write(&fd->file, buf, nbytes, &bw);
 
 	if (res != FR_OK)
 	{
