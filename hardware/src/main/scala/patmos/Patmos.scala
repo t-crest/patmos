@@ -204,8 +204,8 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   Config.loadConfig(configFile)
   Config.minPcWidth = util.log2Up((new File(binFile)).length.toInt / 4)
   Config.datFile = datFile
-
-  val nrCores = Config.getConfig.coreCount
+  val config = Config.getConfig
+  val nrCores = config.coreCount
 
   println("Config core count: " + nrCores)
 
@@ -241,8 +241,8 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
   val IO_DEVICE_ADDR_WIDTH = 16
 
-  val cmpdevios = Config.getConfig.cmpDevices.map(e => {
-    println(e)
+  val cmpdevios = config.cmpDevices.map(e => {
+    println(s"device: $e")
     val (off, width, dev) = e match {
       case "Argo" =>  (0x1C, 5, Module(new argo.Argo(nrCores, wrapped=false, emulateBB=false)))
       case "Hardlock" => (0xE801, IO_DEVICE_ADDR_WIDTH, Module(new cmp.HardlockOCPWrapper(() => new cmp.Hardlock(nrCores, 1))))
@@ -273,22 +273,22 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
   for (i <- (0 until nrCores)) {
 
+    println(s"Config core $i:")
     // Default values for interrupt pins
       cores(i).io.interrupts := Vec.fill(INTR_COUNT) {false.B}
 
     // Creation of IO devices
-    val conf = Config.getConfig
-
     val cpuinfo = Module(new CpuInfo(Config.datFile, nrCores))
     cpuinfo.io.nr := i.U
     cpuinfo.io.cnt := nrCores.U
 
     val singledevios = 
-      (Config.getConfig.Devs
+      (config.Devs
       .map(e => (e,Config.createDevice(e).asInstanceOf[CoreDevice]))
-      .filter(e => i == 0 || !e._2.io.isInstanceOf[HasPins])
+      .filter(e => e._1.core.contains(i) || (e._1.core == None && (i == 0 || !e._2.io.isInstanceOf[HasPins])))
       .map{case (conf,dev) => 
       {
+          println(s"device: ${conf.ref}")
           if(dev.io.isInstanceOf[HasSuperMode]) {
             dev.io.asInstanceOf[HasSuperMode].superMode <> cores(i).io.superMode
           }
@@ -307,7 +307,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
           new {
             val off = conf.offset
             val io = dev.io.asInstanceOf[Bundle]
-            val name = conf.name
+            val name = conf.ref
           }
       }} ++ List(new {
         val off = CPUINFO_OFFSET
@@ -425,7 +425,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   }
 
   // Connect memory controller
-  val ramConf = Config.getConfig.ExtMem.ram
+  val ramConf = config.ExtMem.ram
   val ramCtrl = Config.createDevice(ramConf).asInstanceOf[BurstDevice]
 
   registerPins(ramConf.name, ramCtrl.io)

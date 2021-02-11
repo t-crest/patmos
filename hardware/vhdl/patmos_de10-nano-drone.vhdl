@@ -97,10 +97,10 @@ architecture rtl of patmos_top is
             io_Actuators_SData        : in    std_logic_vector(31 downto 0);
             io_UartCmp_rx             : in    std_logic;
             io_UartCmp_tx             : out   std_logic;
-            io_Uart_rx                : in    std_logic;
-            io_Uart_tx                : out   std_logic;
-            io_Uart_1_rx              : in    std_logic;
-            io_Uart_1_tx              : out   std_logic;
+            io_Uart1_rx               : in    std_logic;
+            io_Uart1_tx               : out   std_logic;
+            io_Uart2_rx               : in    std_logic;
+            io_Uart2_tx               : out   std_logic;
             io_SPIMaster_miso         : in    std_logic;
             io_SPIMaster_mosi         : out   std_logic;
             io_SPIMaster_nSS          : out   std_logic;
@@ -294,10 +294,10 @@ begin
         io_Actuators_SData   => actuatorsPins_SData,
         io_UartCmp_rx        => uart_1_rxd,
         io_UartCmp_tx        => uart_1_txd,
-        io_Uart_rx           => uart_2_rxd,
-        io_Uart_tx           => uart_2_txd,
-        io_Uart_1_rx         => uart_3_rxd,
-        io_Uart_1_tx         => uart_3_txd,
+        io_Uart1_rx          => uart_2_rxd,
+        io_Uart1_tx          => uart_2_txd,
+        io_Uart2_rx          => uart_3_rxd,
+        io_Uart2_tx          => uart_3_txd,
         io_SPIMaster_miso    => miso,
         io_SPIMaster_mosi    => mosi,
         io_SPIMaster_nSS     => ss,
