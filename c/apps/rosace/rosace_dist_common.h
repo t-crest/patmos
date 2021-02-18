@@ -26,27 +26,31 @@
 #define DEADLINE *((volatile _SPM unsigned int *) (PATMOS_IO_DEADLINE))
 #define CALL(val)   tasks[(val)].ne_t_body(NULL)
 
-#define MAX_STEP_SIM 30000
 #define STEP_TIME_SCALE 20  //ms
+#define MAX_STEP_SIM (600000 / STEP_TIME_SCALE)
+#define ALT_COMMAND_STEPSIM (50000 / STEP_TIME_SCALE)
 
 #define schedtime_t uint64_t
 
 #define SYNCTASK_GPIO_BIT	0
 #define SENDTASK_GPIO_BIT	1
 #define RECVTASK_GPIO_BIT	2
+#define SCOPE_GPIO_BIT	3
 
 // TTE Configuration
 #define TTETIME_TO_NS         65536
 #define TTE_MAX_TRANS_DELAY	  135600			//ns from net_config (eclipse project)
 #define TTE_PRECISION         100000			//ns from network_description (eclipse project)
 
-#define TTE_SYNC_WINDOW_HALF	10000		//ns
-#define TTE_ASYNC2SYNC_THRES	5			//clusters
-#define TTE_RECV_WINDOW_HALF	10000		//ns
+#define TTE_SYNC_WINDOW_HALF	40000000		//ns
+#define TTE_RECV_WINDOW_HALF	25000		//ns
+
+#define TTE_ASYNC2SYNC_THRES_CLUSTERS	5			//clusters
+#define TTE_ASYNC2SYNC_THRES_CYCLES		0		//cycles
 
 // TTE PID synchronization
-#define TTE_SYNC_Kp 1000LL
-#define TTE_SYNC_Ki 0LL
+#define TTE_SYNC_Kp 700LL
+#define TTE_SYNC_Ki 300LL
 
 // TTE directives
 #define TIME_CORRECTION_EN
@@ -85,8 +89,11 @@ extern uint32_t step_simu;
 extern uint32_t max_step_simu;
 
 extern char* eth_protocol_names[];
-extern unsigned int rx_buff_addr;
 extern unsigned int tx_buff_addr;
+extern unsigned int rx_buff_addr;
+extern unsigned int rx_bd_addr;
+extern unsigned int rx_buff2_addr;
+extern unsigned int rx_bd2_addr;
 extern unsigned char multicastip[4];
 extern unsigned char TTE_MAC[];
 extern unsigned char TTE_CT[];
@@ -115,8 +122,10 @@ extern unsigned char nodeIntegrated;	//is used to indicate when the node has ach
 extern unsigned char nodeSyncStable;	//is used to enable task execution when the node is in a stable sync
 extern unsigned char nodeColdStart;		//is used to indicate that a node has just booted and has not received a single PCF
 extern unsigned char nodeFirstSync;
-extern unsigned char nodeRecvEnable;
+extern uint8_t enable_communication;
+extern uint8_t enable_control;
 
+// Rosace variables
 extern double aircraft_dynamics495_Va_Va_filter_100449_Va[2];
 extern double Vz_control_50483_delta_e_c_elevator489_delta_e_c;
 extern double Va_filter_100449_Va_f_Va_control_50474_Va_f[2];
@@ -138,6 +147,7 @@ extern double altitude_hold_50464_Vz_c_Vz_control_50483_Vz_c;
 extern double q_filter_100455_q_f_Vz_control_50483_q_f[2];
 extern double az_filter_100458_az_f_Vz_control_50483_az_f[2];
 extern double Vz_control_50483_delta_e_c_delta_e_c;
+
 
 // Messages Format
 typedef struct {
@@ -171,11 +181,13 @@ typedef struct{
 uint64_t doubleToBytes(double x);
 double bytesToDouble(uint64_t x);
 void printSegmentInt(unsigned number);
-void copy_output_vars(output_t* v, uint64_t step);
-int logging_fun(void *args);
+unsigned getSegmentInt() ;
 void config_ethmac();
 void reset_sync();
-uint8_t isNodeSyncStable();
+void swap_eth_rx_buffers();
+int eth_mac_poll_for_frames();
+void copy_output_vars(output_t* v, uint64_t step);
+int logging_fun(void *args);
 unsigned long long get_tte_aligned_time(unsigned long long current_time, unsigned long long corr_limit);
 void sync_fun(unsigned long long start_time, unsigned long long current_time, MinimalTTTask* tasks);
-int udp_send_tte(unsigned int tx_addr, unsigned int rx_addr, unsigned char tte_ct[], unsigned char tte_vl[], unsigned char tte_mac[], unsigned char destination_ip[], unsigned char source_ip[], unsigned short source_port, unsigned short destination_port, unsigned char data[], unsigned short data_length, uint16_t ipv4_id);
+int udp_send_tte(unsigned int tx_addr, unsigned char tte_ct[], unsigned char tte_vl[], unsigned char tte_mac[], unsigned char destination_ip[], unsigned char source_ip[], unsigned short source_port, unsigned short destination_port, unsigned char data[], unsigned short data_length, uint16_t ipv4_id);

@@ -52,15 +52,15 @@ void eth_mac_send(unsigned int tx_addr, unsigned int frame_length){
     //Wait until buffer is free 
     _Pragma("loopbound min 0 max 1")
 	while (free==1){
-         free = (eth_iord(0x400) & 0x8000);
+         free = (eth_iord(TX_BD_ADDR_BASE) & 0x8000);
     };
-    eth_iowr(INT_SOURCE, 0x00000001);
-	eth_iowr(0x404, tx_addr);
-	eth_iowr(0x400, ((frame_length<<16)|(0xF000)));
+    eth_iowr(INT_SOURCE_ADDR, 0x00000001);
+	eth_iowr(TX_BD_ADDR_BASE+4, tx_addr);
+	eth_iowr(TX_BD_ADDR_BASE, ((frame_length<<16)|(0xF000)));
     //Wait until is is done
     _Pragma("loopbound min 0 max 1")
     while (done==0){
-        done = (eth_iord(0x04) & 0x1);
+        done = (eth_iord(INT_SOURCE_ADDR) & 0x1);
     }; 
 return;
 }
@@ -72,7 +72,7 @@ unsigned eth_mac_send_nb(unsigned int tx_addr, unsigned int frame_length){
     } else {
 	    eth_iowr((TX_BD_ADDR_BASE+4), tx_addr);
 	    eth_iowr(TX_BD_ADDR_BASE, ((frame_length<<16)|(0xF000)));
-	    eth_iowr(INT_SOURCE, INT_SOURCE_TXB_BIT);
+	    eth_iowr(INT_SOURCE_ADDR, INT_SOURCE_TXB_BIT);
 	    eth_iowr(TX_BD_ADDR_BASE, TX_BD_READY_BIT | TX_BD_IRQEN_BIT | TX_BD_WRAP_BIT | TX_BD_PAD_EN_BIT);
     }
     return 1;
@@ -80,36 +80,69 @@ unsigned eth_mac_send_nb(unsigned int tx_addr, unsigned int frame_length){
 
 //This function receive an ethernet frame and put it in rx_addr.
 unsigned eth_mac_receive(unsigned int rx_addr, unsigned long long int timeout){
-    eth_iowr(RX_BD_ADDR_BASE(eth_iord(TX_BD_NUM))+4, rx_addr);
+    eth_iowr(RX_BD_ADDR_BASE(eth_iord(TX_BD_NUM_ADDR))+4, rx_addr);
 	if (timeout == 0){
         _Pragma("loopbound min 1 max 1")   //1us - 10ms
-		while ((eth_iord(INT_SOURCE) & INT_SOURCE_RXB_BIT)==0){;};
+		while ((eth_iord(INT_SOURCE_ADDR) & INT_SOURCE_RXB_BIT)==0){;};
 		
 	}else{
 		unsigned long long int start_time = get_cpu_usecs();
         _Pragma("loopbound min 1 max 1")   //1us
-		while (((eth_iord(INT_SOURCE) & INT_SOURCE_RXB_BIT)==0)){
+		while (((eth_iord(INT_SOURCE_ADDR) & INT_SOURCE_RXB_BIT)==0)){
             if((get_cpu_usecs()-start_time >= timeout))
                 return 0;
         }
 	}
-    eth_iowr(INT_SOURCE, INT_SOURCE_RXB_BIT);
-    eth_iowr(RX_BD_ADDR_BASE(eth_iord(TX_BD_NUM)), RX_BD_EMPTY_BIT | RX_BD_IRQEN_BIT | RX_BD_WRAP_BIT);
+    eth_iowr(INT_SOURCE_ADDR, INT_SOURCE_RXB_BIT);
+    eth_iowr(RX_BD_ADDR_BASE(eth_iord(TX_BD_NUM_ADDR)), RX_BD_EMPTY_BIT | RX_BD_IRQEN_BIT | RX_BD_WRAP_BIT);
     return 1;
 }
 
 //This function receive an ethernet frame and put it in rx_addr (NON-BLOCKING call).
 unsigned eth_mac_receive_nb(unsigned int rx_addr){
     unsigned ans = 0;
-    eth_iowr(RX_BD_ADDR_BASE(eth_iord(TX_BD_NUM))+4, rx_addr);
-    if ((eth_iord(INT_SOURCE) & INT_SOURCE_RXB_BIT)==0){
+    eth_iowr(RX_BD_ADDR_BASE(eth_iord(TX_BD_NUM_ADDR))+4, rx_addr);
+    if ((eth_iord(INT_SOURCE_ADDR) & INT_SOURCE_RXB_BIT)==0){
         ans = 0;
     }else{
         ans = 1;
     }
-    eth_iowr(INT_SOURCE, INT_SOURCE_RXB_BIT);
-    eth_iowr(RX_BD_ADDR_BASE(eth_iord(TX_BD_NUM)), RX_BD_EMPTY_BIT | RX_BD_IRQEN_BIT | RX_BD_WRAP_BIT);
+    eth_iowr(INT_SOURCE_ADDR, INT_SOURCE_RXB_BIT);
+    eth_iowr(RX_BD_ADDR_BASE(eth_iord(TX_BD_NUM_ADDR)), RX_BD_EMPTY_BIT | RX_BD_IRQEN_BIT | RX_BD_WRAP_BIT);
     return ans;
+}
+
+//This functions checks if the buffer at the address has a frame without clearing it
+unsigned eth_mac_has_frame(unsigned int rx_addr)
+{
+    unsigned ans = 0;
+    if ((eth_iord(INT_SOURCE_ADDR) & INT_SOURCE_RXB_BIT)==0){
+        ans = 0;
+    }else{
+        ans = 1;
+    }
+    return ans;
+}
+
+//This functions checks if ethmac buffer descriptor is ready with frame
+int eth_mac_isready_rx_buffer(unsigned int rx_buff, unsigned int rx_bd)
+{
+    unsigned ans = 0;
+    if ((eth_iord(rx_bd) & RX_BD_EMPTY_BIT)==0){
+        ans = 0;
+    }else{
+        ans = 1;
+    }
+    return ans;
+}
+
+//This function clears the buffer descriptor from the frame
+void eth_mac_clear_rx_buffer(unsigned int rx_buff, unsigned int rx_bd)
+{
+    unsigned temp_config = eth_iord(INT_SOURCE_ADDR);
+    eth_iowr(INT_SOURCE_ADDR, temp_config | INT_SOURCE_RXB_BIT);
+    temp_config = eth_iord(rx_bd);
+    eth_iowr(rx_bd, temp_config | (RX_BD_EMPTY_BIT));
 }
 
 //This function initilize the ethernet controller (only for the demo).
