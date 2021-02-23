@@ -60,6 +60,9 @@
 #define MIICOMMAND_ADDR   0x2C  //MII command
 #define MIIADDRESS_ADDR   0x30  //MII address register containts the phy address 
                                 //and the register with the phy address
+#define MIITX_DATA_ADDR   0x34  // 16-bit transmit data to selected phy register
+#define MIIRX_DATA_ADDR   0x38  // 16-bit received data from selected phy register
+#define MIISTATUS         0x3C  // MII Status
 
 #define RECSMALL_BIT 0x10000
 #define PAD_BIT      0x08000
@@ -77,6 +80,13 @@
 #define NOPRE_BIT    0x00004
 #define TXEN_BIT     0x00002
 #define RXEN_BIT     0x00001
+
+#define WCTRLDATA_BIT   0x4
+#define RSTAT_BIT       0x2
+#define SCANSTAT_BIT    0x1
+#define NVALID_BIT      0x4
+#define BUSY_BIT        0x2
+#define LINKFAIL_BIT    0x1
 
 #define TX_BD_ADDR_BASE             0x400
 #define TX_BD_ADDR_END(TX_BD_NUM)   TX_BD_ADDR_BASE + TX_BD_NUM * 8
@@ -201,6 +211,7 @@ void set_rx_db_irq();
 
 unsigned get_rx_db_irq();
 
+int send_phy_command(unsigned short cmd, unsigned char reg_addr, unsigned char phy_addr);
 
 /////////////////////
 // Help functions

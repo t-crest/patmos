@@ -292,6 +292,17 @@ unsigned get_rx_db_irq() {
     return (cur_data>>14) & 1;
 }
 
+int send_phy_command(unsigned short cmd, unsigned char reg_addr, unsigned char phy_addr)
+{
+    if((eth_iord(MIISTATUS) & BUSY_BIT) != BUSY_BIT){
+        eth_iowr(MIITX_DATA_ADDR, cmd);
+        eth_iowr(MIIADDRESS_ADDR, ((reg_addr & 0xF) << 8) | (phy_addr & 0xF));
+        eth_iowr(MIICOMMAND_ADDR, WCTRLDATA_BIT);
+        return 1;
+    }
+    return 0;
+}
+
 /////////////////////
 // Help functions
 /////////////////////
