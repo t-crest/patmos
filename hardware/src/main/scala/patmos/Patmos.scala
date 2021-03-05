@@ -284,7 +284,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
     val singledevios = 
      (config.Devs
-      .filter(e => e.core.contains(i) || (e.core == None && i == 0))
+      .filter(e => e.allcores || e.core == i)
       .map(e => (e,Config.createDevice(e).asInstanceOf[CoreDevice]))
       .map{case (conf,dev) => 
       {
