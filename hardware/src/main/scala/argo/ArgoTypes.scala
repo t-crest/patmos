@@ -7,17 +7,18 @@
 
 package argo
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 
 class MemIFMaster(val HEADER_FIELD_WIDTH: Int, val HEADER_CTRL_WIDTH: Int) extends Bundle() {
-  val Addr = UInt(width = HEADER_FIELD_WIDTH - HEADER_CTRL_WIDTH)
-  val En = Bits(width = 2)
+  val Addr = UInt((HEADER_FIELD_WIDTH - HEADER_CTRL_WIDTH).W)
+  val En = UInt(2.W)
   val Wr = Bool()
-  val Data = Bits(width = 64)
+  val Data = UInt(64.W)
 }
 
 class MemIFSlave extends Bundle {
-  val Data = Bits(width = 64)
+  val Data = UInt(64.W)
   val Error = Bool()
 }
 
@@ -33,7 +34,7 @@ class SPMSlavePort(headerFieldWdith: Int, headerCtrlWidth: Int) extends Bundle {
 
 class ChannelForward(val argoConf : ArgoConfig) extends Bundle {
   val req = Bool()
-  val data = Bits(width = argoConf.LINK_WIDTH)
+  val data = UInt(argoConf.LINK_WIDTH.W)
 }
 
 class ChannelBackward(val argoConf: ArgoConfig) extends Bundle {
@@ -51,12 +52,12 @@ class OutputPort(argoConf: ArgoConfig) extends Bundle {
 }
 
 class NodeInterconnection(val argoConf: ArgoConfig) extends Bundle {
-  val north_wire_in = Wire(init = UInt(0, width = argoConf.LINK_WIDTH))
-  val east_wire_in = Wire(init = UInt(0, width = argoConf.LINK_WIDTH))
-  val south_wire_in = Wire(init = UInt(0, width = argoConf.LINK_WIDTH))
-  val west_wire_in = Wire(init = UInt(0, width = argoConf.LINK_WIDTH))
-  val north_wire_out = Wire(init = UInt(0, width = argoConf.LINK_WIDTH))
-  val east_wire_out = Wire(init = UInt(0, width = argoConf.LINK_WIDTH))
-  val south_wire_out = Wire(init = UInt(0, width = argoConf.LINK_WIDTH))
-  val west_wire_out = Wire(init = UInt(0, width = argoConf.LINK_WIDTH))
+  val north_wire_in = UInt(argoConf.LINK_WIDTH.W)
+  val east_wire_in = UInt(argoConf.LINK_WIDTH.W)
+  val south_wire_in = UInt(argoConf.LINK_WIDTH.W)
+  val west_wire_in = UInt(argoConf.LINK_WIDTH.W)
+  val north_wire_out = UInt(argoConf.LINK_WIDTH.W)
+  val east_wire_out = UInt(argoConf.LINK_WIDTH.W)
+  val south_wire_out = UInt(argoConf.LINK_WIDTH.W)
+  val west_wire_out = UInt(argoConf.LINK_WIDTH.W)
 }

@@ -1,5 +1,5 @@
 ----------------------------
---DO NOT MODIFY! This is an auto-generated file by argo.ArgoConfig$$anon$1
+--DO NOT MODIFY! This is an auto-generated file by argo.ArgoConfig$$anon$2
 ----------------------------
 library ieee;
 use ieee.std_logic_1164.all;
@@ -11,10 +11,10 @@ package config is
 	constant TARGET_ARCHITECTURE : ARCHITECTURES := FPGA;
 	constant TARGET_IMPLEMENTATION : IMPLEMENTATIONS := SYNC;
 	constant GATING_ENABLED : integer := 1;
-	constant N : integer := 2; -- Horizontal width
-	constant M : integer := 2; -- Vertical Height
-	constant NODES : integer := 4;
-	constant PRD_LENGTH : integer := 8; -- The number of timeslots in one TDM period
+	constant N : integer := 3; -- Horizontal width
+	constant M : integer := 3; -- Vertical Height
+	constant NODES : integer := 9;
+	constant PRD_LENGTH : integer := 18; -- The number of timeslots in one TDM period
 
 	constant PDELAY : time := 500 ps;
 	constant NA_HPERIOD : time := 5 ns;

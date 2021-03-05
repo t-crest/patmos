@@ -49,56 +49,56 @@ entity noc_node_wrapper is
 		MASTER : Integer := 0
 	);
 	port (
-		clk			: in std_logic;
-		reset		: in std_logic;
-		io_irq			: out std_logic_vector(1 downto 0);
-		io_run 		: in std_logic;
-		io_supervisor	: in std_logic;
-		io_masterRun	: out std_logic;
+		clk					: in std_logic;
+		reset				: in std_logic;
+		irq					: out std_logic_vector(1 downto 0);
+		run 				: in std_logic;
+		supervisor			: in std_logic;
+		masterRun			: out std_logic;
 
-		io_proc_M_Cmd        : in std_logic_vector(OCP_CMD_WIDTH-1 downto 0);
-		io_proc_M_Addr       : in std_logic_vector(OCP_ADDR_WIDTH-1 downto 0);
-		io_proc_M_Data       : in std_logic_vector(OCP_DATA_WIDTH-1 downto 0);
-		io_proc_M_ByteEn     : in std_logic_vector(OCP_BYTE_WIDTH-1 downto 0);
-		io_proc_M_RespAccept : in std_logic;
-		io_proc_S_Resp       : out std_logic_vector(OCP_RESP_WIDTH-1 downto 0);
-		io_proc_S_Data       : out std_logic_vector(OCP_DATA_WIDTH-1 downto 0);
-		io_proc_S_CmdAccept  : out std_logic;
+		proc_M_Cmd        	: in std_logic_vector(OCP_CMD_WIDTH-1 downto 0);
+		proc_M_Addr       	: in std_logic_vector(OCP_ADDR_WIDTH-1 downto 0);
+		proc_M_Data       	: in std_logic_vector(OCP_DATA_WIDTH-1 downto 0);
+		proc_M_ByteEn     	: in std_logic_vector(OCP_BYTE_WIDTH-1 downto 0);
+		proc_M_RespAccept 	: in std_logic;
+		proc_S_Resp       	: out std_logic_vector(OCP_RESP_WIDTH-1 downto 0);
+		proc_S_Data       	: out std_logic_vector(OCP_DATA_WIDTH-1 downto 0);
+		proc_S_CmdAccept  	: out std_logic;
 
-		io_spm_M_Addr		: out unsigned(HEADER_FIELD_WIDTH-HEADER_CTRL_WIDTH-1 downto 0);
-		io_spm_M_En			: out std_logic_vector(1 downto 0);
-		io_spm_M_Wr			: out std_logic;
-		io_spm_M_Data		: out std_logic_vector((2*WORD_WIDTH)-1 downto 0);
-		io_spm_S_Data		: in std_logic_vector((2*WORD_WIDTH)-1 downto 0);
-		io_spm_S_Error		: in std_logic;
+		spm_M_Addr			: out unsigned(HEADER_FIELD_WIDTH-HEADER_CTRL_WIDTH-1 downto 0);
+		spm_M_En			: out std_logic_vector(1 downto 0);
+		spm_M_Wr			: out std_logic;
+		spm_M_Data			: out std_logic_vector((2*WORD_WIDTH)-1 downto 0);
+		spm_S_Data			: in std_logic_vector((2*WORD_WIDTH)-1 downto 0);
+		spm_S_Error			: in std_logic;
 		
 		-- router ports
-		io_north_in_f_req		: in std_logic;
-		io_north_in_f_data		: in std_logic_vector(LINK_WIDTH-1 downto 0);
-		io_north_in_b_ack		: out std_logic;
-		io_east_in_f_req     : in std_logic;
-		io_east_in_f_data		: in std_logic_vector(LINK_WIDTH-1 downto 0);
-		io_east_in_b_ack			: out std_logic;
-		io_south_in_f_req		: in std_logic;
-		io_south_in_f_data		: in std_logic_vector(LINK_WIDTH-1 downto 0);
-		io_south_in_b_ack		: out std_logic;
-		io_west_in_f_req			: in std_logic;
-		io_west_in_f_data		: in std_logic_vector(LINK_WIDTH-1 downto 0);
-		io_west_in_b_ack			: out std_logic;
+		north_in_f_req		: in std_logic;
+		north_in_f_data		: in std_logic_vector(LINK_WIDTH-1 downto 0);
+		north_in_b_ack		: out std_logic;
+		east_in_f_req     	: in std_logic;
+		east_in_f_data		: in std_logic_vector(LINK_WIDTH-1 downto 0);
+		east_in_b_ack		: out std_logic;
+		south_in_f_req		: in std_logic;
+		south_in_f_data		: in std_logic_vector(LINK_WIDTH-1 downto 0);
+		south_in_b_ack		: out std_logic;
+		west_in_f_req		: in std_logic;
+		west_in_f_data		: in std_logic_vector(LINK_WIDTH-1 downto 0);
+		west_in_b_ack		: out std_logic;
 
 		-- Output ports
-		io_north_out_f_req		: out std_logic;
-		io_north_out_f_data	: out std_logic_vector(LINK_WIDTH-1 downto 0);
-		io_north_out_b_ack		: in std_logic;
-		io_east_out_f_req		: out std_logic;
-		io_east_out_f_data		: out std_logic_vector(LINK_WIDTH-1 downto 0);
-		io_east_out_b_ack		: in std_logic;
-		io_south_out_f_req		: out std_logic;
-		io_south_out_f_data  : out std_logic_vector(LINK_WIDTH-1 downto 0);
-		io_south_out_b_ack		: in std_logic;
-		io_west_out_f_req		: out std_logic;
-		io_west_out_f_data   : out std_logic_vector(LINK_WIDTH-1 downto 0);
-		io_west_out_b_ack    : in std_logic
+		north_out_f_req		: out std_logic;
+		north_out_f_data	: out std_logic_vector(LINK_WIDTH-1 downto 0);
+		north_out_b_ack		: in std_logic;
+		east_out_f_req		: out std_logic;
+		east_out_f_data		: out std_logic_vector(LINK_WIDTH-1 downto 0);
+		east_out_b_ack		: in std_logic;
+		south_out_f_req		: out std_logic;
+		south_out_f_data  	: out std_logic_vector(LINK_WIDTH-1 downto 0);
+		south_out_b_ack		: in std_logic;
+		west_out_f_req		: out std_logic;
+		west_out_f_data   	: out std_logic_vector(LINK_WIDTH-1 downto 0);
+		west_out_b_ack    	: in std_logic
   );
 end noc_node_wrapper;
 
@@ -148,8 +148,8 @@ architecture struct of noc_node_wrapper is
 	
 begin
 
-	spm_s_rdata <= unsigned(io_spm_S_Data);
-	io_spm_M_Data <= std_logic_vector(spm_m_wdata);
+	spm_s_rdata <= unsigned(spm_S_Data);
+	spm_M_Data <= std_logic_vector(spm_m_wdata);
 
 gen_master: if(MASTER=1) generate
 	noc_node_inst: noc_node
@@ -157,56 +157,56 @@ gen_master: if(MASTER=1) generate
 		MASTER => true
 	)
 	port map(
-		clk	=> clk,
-		reset	=> reset,
-		supervisor => io_supervisor,
-		run => io_run,
-		master_run => io_masterRun,
-		irq => io_irq,
+		clk			=> clk,
+		reset		=> reset,
+		supervisor 	=> supervisor,
+		run 		=> run,
+		master_run 	=> masterRun,
+		irq 		=> irq,
 
-		proc_m.MCMd => io_proc_M_Cmd,
-		proc_m.MAddr => io_proc_M_Addr,
-		proc_m.MData => io_proc_M_Data,
-		proc_m.MByteEn => io_proc_M_ByteEn,
-		proc_m.MRespAccept => io_proc_M_RespAccept,
-		proc_s.SResp => io_proc_S_Resp,
-		proc_s.SData => io_proc_S_Data,
-		proc_s.SCmdAccept => io_proc_S_CmdAccept,
+		proc_m.MCMd 		=> proc_M_Cmd,
+		proc_m.MAddr 		=> proc_M_Addr,
+		proc_m.MData 		=> proc_M_Data,
+		proc_m.MByteEn 		=> proc_M_ByteEn,
+		proc_m.MRespAccept 	=> proc_M_RespAccept,
+		proc_s.SResp 		=> proc_S_Resp,
+		proc_s.SData 		=> proc_S_Data,
+		proc_s.SCmdAccept 	=> proc_S_CmdAccept,
 
-		spm_m.addr => io_spm_M_Addr,
-		spm_m.en => io_spm_M_En,
-		spm_m.wr => io_spm_M_Wr,
+		spm_m.addr 	=> spm_M_Addr,
+		spm_m.en 	=> spm_M_En,
+		spm_m.wr 	=> spm_M_Wr,
 		spm_m.wdata => spm_m_wdata,
 		spm_s.rdata => spm_s_rdata,
-		spm_s.error => io_spm_S_Error,
+		spm_s.error => spm_S_Error,
 		
 	  -- router ports
-	  	north_in_f.req => io_north_in_f_req,
-		north_in_f.data => io_north_in_f_data,
-		north_in_b.ack => io_north_in_b_ack,
-		east_in_f.req => io_east_in_f_req,
-		east_in_f.data => io_east_in_f_data,
-		east_in_b.ack => io_east_in_b_ack,
-		south_in_f.req => io_south_in_f_req,
-		south_in_f.data => io_south_in_f_data,
-		south_in_b.ack => io_south_in_b_ack,
-		west_in_f.req => io_west_in_f_req,
-		west_in_f.data => io_west_in_f_data,
-		west_in_b.ack => io_west_in_b_ack,
+	  	north_in_f.req 	=> north_in_f_req,
+		north_in_f.data => north_in_f_data,
+		north_in_b.ack 	=> north_in_b_ack,
+		east_in_f.req 	=> east_in_f_req,
+		east_in_f.data 	=> east_in_f_data,
+		east_in_b.ack 	=> east_in_b_ack,
+		south_in_f.req 	=> south_in_f_req,
+		south_in_f.data => south_in_f_data,
+		south_in_b.ack 	=> south_in_b_ack,
+		west_in_f.req 	=> west_in_f_req,
+		west_in_f.data 	=> west_in_f_data,
+		west_in_b.ack 	=> west_in_b_ack,
 
 		-- Output ports
-		north_out_f.req => io_north_out_f_req,
-		north_out_f.data => io_north_out_f_data,
-		north_out_b.ack => io_north_out_b_ack,
-		east_out_f.req => io_east_out_f_req,
-		east_out_f.data => io_east_out_f_data,
-		east_out_b.ack => io_east_out_b_ack,
-		south_out_f.req	=> io_south_out_f_req,
-		south_out_f.data => io_south_out_f_data,
-		south_out_b.ack	=> io_south_out_b_ack,
-		west_out_f.req => io_west_out_f_req,
-		west_out_f.data => io_west_out_f_data,
-		west_out_b.ack => io_west_out_b_ack
+		north_out_f.req  => north_out_f_req,
+		north_out_f.data => north_out_f_data,
+		north_out_b.ack  => north_out_b_ack,
+		east_out_f.req 	 => east_out_f_req,
+		east_out_f.data  => east_out_f_data,
+		east_out_b.ack 	 => east_out_b_ack,
+		south_out_f.req	 => south_out_f_req,
+		south_out_f.data => south_out_f_data,
+		south_out_b.ack	 => south_out_b_ack,
+		west_out_f.req 	 => west_out_f_req,
+		west_out_f.data  => west_out_f_data,
+		west_out_b.ack 	 => west_out_b_ack
 	);
 end generate;
 
@@ -216,56 +216,56 @@ gen_slave: if(MASTER=0) generate
 		MASTER => false
 	)
 	port map(
-		clk	=> clk,
-		reset	=> reset,
-		supervisor => io_supervisor,
-		run => io_run,
-		master_run => io_masterRun,
-		irq => io_irq,
+		clk			=> clk,
+		reset		=> reset,
+		supervisor 	=> supervisor,
+		run 		=> run,
+		master_run 	=> masterRun,
+		irq 		=> irq,
 
-		proc_m.MCMd => io_proc_M_Cmd,
-		proc_m.MAddr => io_proc_M_Addr,
-		proc_m.MData => io_proc_M_Data,
-		proc_m.MByteEn => io_proc_M_ByteEn,
-		proc_m.MRespAccept => io_proc_M_RespAccept,
-		proc_s.SResp => io_proc_S_Resp,
-		proc_s.SData => io_proc_S_Data,
-		proc_s.SCmdAccept => io_proc_S_CmdAccept,
+		proc_m.MCMd 		=> proc_M_Cmd,
+		proc_m.MAddr 		=> proc_M_Addr,
+		proc_m.MData 		=> proc_M_Data,
+		proc_m.MByteEn 		=> proc_M_ByteEn,
+		proc_m.MRespAccept  => proc_M_RespAccept,
+		proc_s.SResp 		=> proc_S_Resp,
+		proc_s.SData 		=> proc_S_Data,
+		proc_s.SCmdAccept 	=> proc_S_CmdAccept,
 
-		spm_m.addr => io_spm_M_Addr,
-		spm_m.en => io_spm_M_En,
-		spm_m.wr => io_spm_M_Wr,
+		spm_m.addr 	=> spm_M_Addr,
+		spm_m.en 	=> spm_M_En,
+		spm_m.wr 	=> spm_M_Wr,
 		spm_m.wdata => spm_m_wdata,
         spm_s.rdata => spm_s_rdata,
-		spm_s.error => io_spm_S_Error,
+		spm_s.error => spm_S_Error,
 		
 	  -- router ports
-	  	north_in_f.req => io_north_in_f_req,
-		north_in_f.data => io_north_in_f_data,
-		north_in_b.ack => io_north_in_b_ack,
-		east_in_f.req => io_east_in_f_req,
-		east_in_f.data => io_east_in_f_data,
-		east_in_b.ack => io_east_in_b_ack,
-		south_in_f.req => io_south_in_f_req,
-		south_in_f.data => io_south_in_f_data,
-		south_in_b.ack => io_south_in_b_ack,
-		west_in_f.req => io_west_in_f_req,
-		west_in_f.data => io_west_in_f_data,
-		west_in_b.ack => io_west_in_b_ack,
+	  	north_in_f.req 	=> north_in_f_req,
+		north_in_f.data => north_in_f_data,
+		north_in_b.ack 	=> north_in_b_ack,
+		east_in_f.req 	=> east_in_f_req,
+		east_in_f.data 	=> east_in_f_data,
+		east_in_b.ack 	=> east_in_b_ack,
+		south_in_f.req 	=> south_in_f_req,
+		south_in_f.data => south_in_f_data,
+		south_in_b.ack 	=> south_in_b_ack,
+		west_in_f.req 	=> west_in_f_req,
+		west_in_f.data 	=> west_in_f_data,
+		west_in_b.ack 	=> west_in_b_ack,
 
 		-- Output ports
-		north_out_f.req => io_north_out_f_req,
-		north_out_f.data => io_north_out_f_data,
-		north_out_b.ack => io_north_out_b_ack,
-		east_out_f.req => io_east_out_f_req,
-		east_out_f.data => io_east_out_f_data,
-		east_out_b.ack => io_east_out_b_ack,
-		south_out_f.req	=> io_south_out_f_req,
-		south_out_f.data => io_south_out_f_data,
-		south_out_b.ack	=> io_south_out_b_ack,
-		west_out_f.req => io_west_out_f_req,
-		west_out_f.data => io_west_out_f_data,
-		west_out_b.ack => io_west_out_b_ack
+		north_out_f.req 	=> north_out_f_req,
+		north_out_f.data 	=> north_out_f_data,
+		north_out_b.ack 	=> north_out_b_ack,
+		east_out_f.req 		=> east_out_f_req,
+		east_out_f.data 	=> east_out_f_data,
+		east_out_b.ack 		=> east_out_b_ack,
+		south_out_f.req		=> south_out_f_req,
+		south_out_f.data 	=> south_out_f_data,
+		south_out_b.ack		=> south_out_b_ack,
+		west_out_f.req 		=> west_out_f_req,
+		west_out_f.data 	=> west_out_f_data,
+		west_out_b.ack 		=> west_out_b_ack
 	);
 end generate;
 

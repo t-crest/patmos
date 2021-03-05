@@ -8,7 +8,8 @@
 
 package argo
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import ocp._
 import patmos.Constants._
 
@@ -18,14 +19,14 @@ import patmos.Constants._
   * It emulates a single-port SPM for testing Patmos access
   * @param argoConf
   */
-class ComSpmDummy(argoConf: ArgoConfig) extends Module {
+class ComSpmDummy(val argoConf: ArgoConfig) extends Module {
   val io = new Bundle(){
     val ocp = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
     val spm = new SPMSlavePort(argoConf.HEADER_FIELD_WIDTH, argoConf.HEADER_CTRL_WIDTH)
   }
-  val cmdReg = Reg(next = io.ocp.M.Cmd)
-  val dataOut = Reg(UInt(width = DATA_WIDTH))
-  val memOCP = Mem(UInt(width = DATA_WIDTH), argoConf.SPM_BYTES)
+  val cmdReg = RegNext(io.ocp.M.Cmd)
+  val dataOut = Reg(UInt(DATA_WIDTH.W))
+  val memOCP = Mem(argoConf.SPM_BYTES, UInt(DATA_WIDTH.W))
   when (io.ocp.M.Cmd===OcpCmd.WR) { 
     memOCP.write(io.ocp.M.Addr, io.ocp.M.Data)
   }
@@ -40,16 +41,15 @@ class ComSpmDummy(argoConf: ArgoConfig) extends Module {
   * Wrapper for ~/t-crest/argo/src/mem/com_spm_wrapper.vhd
   * @param argoConf
   */
-class ComSpmWrapper(argoConf: ArgoConfig) extends BlackBox {
- // throw new Error("BlackBox wrapper for ComSpm needs update for Chisel 3")
-  // should be commented out in order to compile for Chisel3
-  /*setModuleName("com_spm_wrapper")
-  addClock(Driver.implicitClock)
-  renameClock("clk", "clk")
-  renameReset("reset")*/
+class ComSpmWrapper(val argoConf: ArgoConfig) extends BlackBox(Map("SPM_IDX_SIZE" -> argoConf.SPM_IDX_SIZE)) {
   val io = IO(new Bundle(){
     val ocp = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
     val spm = new SPMSlavePort(argoConf.HEADER_FIELD_WIDTH, argoConf.HEADER_CTRL_WIDTH)
+    val clk = Input(Clock())
+    val reset = Input(Reset())
   })
-  //setVerilogParameters("#(.SPM_IDX_SIZE(" + argoConf.SPM_IDX_SIZE + "))")  //Commented out to compile with Chisel3
+  // rename signals
+  override def desiredName: String = "com_spm_wrapper"
+  io.clk.suggestName("clk")
+  io.reset.suggestName("reset")
 }

@@ -7,26 +7,28 @@
  
 package argo
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import ocp.OcpIOSlavePort
 import patmos.Constants.{ADDR_WIDTH, DATA_WIDTH}
 
-class ArgoNoC(argoConf: ArgoConfig, wrapped: Boolean = false, emulateBB: Boolean = false) extends Module {
+class ArgoNoC(val argoConf: ArgoConfig, wrapped: Boolean = false, emulateBB: Boolean = false) extends Module {
   val io = IO(new Bundle {
-    val irq = Bits(OUTPUT, width = argoConf.CORES*2)
-    val supervisor = Bits(INPUT, width = argoConf.CORES)
+    val irq = Output(UInt((argoConf.CORES*2).W))
+    val supervisor = Input(UInt(argoConf.CORES.W))
     val ocpPorts = Vec(argoConf.CORES, new OcpIOSlavePort(ADDR_WIDTH, DATA_WIDTH))
     val spmPorts = Vec(argoConf.CORES, new SPMMasterPort(argoConf.HEADER_FIELD_WIDTH, argoConf.HEADER_CTRL_WIDTH))
   })
 
   io.irq := 0.U
+  val irqSets = Wire(Vec(argoConf.CORES, UInt(2.W)))
   //Interconnect
   if(!wrapped) {
-    val masterRunWire = Wire(Bits(width=1))
+    val masterRunWire = Wire(UInt(1.W))
     val argoNodes = (0 until argoConf.M).map(j =>
       (0 until argoConf.N).map(i =>
-        if (emulateBB) Module(new NoCNodeDummy(argoConf, i == 0 && j == 0)).io else Module(new NoCNodeWrapper(argoConf, i == 0 && j == 0)).io))
-    val argoMesh = Vec(argoConf.M, Vec(argoConf.N, new NodeInterconnection(argoConf)))
+        if (emulateBB) Module(new NoCNodeDummy(argoConf, i == 0 && j == 0)) else Module(new NoCNodeWrapper(argoConf, i == 0 && j == 0))))
+    val argoMesh = Wire(Vec(argoConf.M, Vec(argoConf.N, new NodeInterconnection(argoConf))))
     /*
     * Nodes Port Interconnect
     *
@@ -41,31 +43,58 @@ class ArgoNoC(argoConf: ArgoConfig, wrapped: Boolean = false, emulateBB: Boolean
     *                     S
     */
     println("o--Instantiating Nodes")
-    masterRunWire := argoNodes(0)(0).masterRun
+    if (emulateBB){
+      masterRunWire := argoNodes(0)(0).asInstanceOf[NoCNodeDummy].io.masterRun
+    }else{
+      masterRunWire := argoNodes(0)(0).asInstanceOf[NoCNodeWrapper].io.masterRun
+    }
     for (i <- 0 until argoConf.M) {
       for (j <- 0 until argoConf.N) {
         //Linear index for mapping
         val index = (i * argoConf.N) + j
         println("|---Node #" + index + " @ (" + i + "," + j + ")")
         //Control Ports
-        argoNodes(i)(j).supervisor := io.supervisor(index)
-        argoNodes(i)(j).proc.M := io.ocpPorts(index).M
-        io.ocpPorts(index).S := argoNodes(i)(j).proc.S
-        io.spmPorts(index).M := argoNodes(i)(j).spm.M
-        argoNodes(i)(j).spm.S := io.spmPorts(index).S
-        argoNodes(i)(j).run := masterRunWire
-        io.irq(2 + index * 2 - 1, index * 2) := argoNodes(i)(j).irq
-        argoNodes(i)(j).north_in.f.data := argoMesh(i)(j).north_wire_in
-        argoNodes(i)(j).south_in.f.data := argoMesh(i)(j).south_wire_in
-        argoNodes(i)(j).east_in.f.data := argoMesh(i)(j).east_wire_in
-        argoNodes(i)(j).west_in.f.data := argoMesh(i)(j).west_wire_in
-        argoMesh(i)(j).north_wire_out := argoNodes(i)(j).north_out.f.data
-        argoMesh(i)(j).south_wire_out := argoNodes(i)(j).south_out.f.data
-        argoMesh(i)(j).east_wire_out := argoNodes(i)(j).east_out.f.data
-        argoMesh(i)(j).west_wire_out := argoNodes(i)(j).west_out.f.data
-
+        if (emulateBB) {
+          argoNodes(i)(j).asInstanceOf[NoCNodeDummy].io.supervisor := io.supervisor(index)
+          argoNodes(i)(j).asInstanceOf[NoCNodeDummy].io.proc.M := io.ocpPorts(index).M
+          io.ocpPorts(index).S := argoNodes(i)(j).asInstanceOf[NoCNodeDummy].io.proc.S
+          io.spmPorts(index).M := argoNodes(i)(j).asInstanceOf[NoCNodeDummy].io.spm.M
+          argoNodes(i)(j).asInstanceOf[NoCNodeDummy].io.spm.S := io.spmPorts(index).S
+          argoNodes(i)(j).asInstanceOf[NoCNodeDummy].io.run := masterRunWire
+          //io.irq(2 + index * 2 - 1, index * 2) := argoNodes(i)(j).asInstanceOf[NoCNodeDummy].io.irq //No subfield assignment in Chisel3
+          irqSets(index) := argoNodes(i)(j).asInstanceOf[NoCNodeDummy].io.irq
+          argoNodes(i)(j).asInstanceOf[NoCNodeDummy].io.north_in.f.data := argoMesh(i)(j).north_wire_in
+          argoNodes(i)(j).asInstanceOf[NoCNodeDummy].io.south_in.f.data := argoMesh(i)(j).south_wire_in
+          argoNodes(i)(j).asInstanceOf[NoCNodeDummy].io.east_in.f.data := argoMesh(i)(j).east_wire_in
+          argoNodes(i)(j).asInstanceOf[NoCNodeDummy].io.west_in.f.data := argoMesh(i)(j).west_wire_in
+          argoMesh(i)(j).north_wire_out := argoNodes(i)(j).asInstanceOf[NoCNodeDummy].io.north_out.f.data
+          argoMesh(i)(j).south_wire_out := argoNodes(i)(j).asInstanceOf[NoCNodeDummy].io.south_out.f.data
+          argoMesh(i)(j).east_wire_out := argoNodes(i)(j).asInstanceOf[NoCNodeDummy].io.east_out.f.data
+          argoMesh(i)(j).west_wire_out := argoNodes(i)(j).asInstanceOf[NoCNodeDummy].io.west_out.f.data
+        } else {
+          argoNodes(i)(j).asInstanceOf[NoCNodeWrapper].io.supervisor := io.supervisor(index)
+          argoNodes(i)(j).asInstanceOf[NoCNodeWrapper].io.proc.M := io.ocpPorts(index).M
+          io.ocpPorts(index).S := argoNodes(i)(j).asInstanceOf[NoCNodeWrapper].io.proc.S
+          io.spmPorts(index).M := argoNodes(i)(j).asInstanceOf[NoCNodeWrapper].io.spm.M
+          argoNodes(i)(j).asInstanceOf[NoCNodeWrapper].io.spm.S := io.spmPorts(index).S
+          argoNodes(i)(j).asInstanceOf[NoCNodeWrapper].io.run := masterRunWire
+          //io.irq(2 + index * 2 - 1, index * 2) := argoNodes(i)(j).asInstanceOf[NoCNodeWrapper].io.irq //No subfield assignment in Chisel3
+          irqSets(index) := argoNodes(i)(j).asInstanceOf[NoCNodeWrapper].io.irq
+          argoNodes(i)(j).asInstanceOf[NoCNodeWrapper].io.north_in.f.data := argoMesh(i)(j).north_wire_in
+          argoNodes(i)(j).asInstanceOf[NoCNodeWrapper].io.south_in.f.data := argoMesh(i)(j).south_wire_in
+          argoNodes(i)(j).asInstanceOf[NoCNodeWrapper].io.east_in.f.data := argoMesh(i)(j).east_wire_in
+          argoNodes(i)(j).asInstanceOf[NoCNodeWrapper].io.west_in.f.data := argoMesh(i)(j).west_wire_in
+          argoMesh(i)(j).north_wire_out := argoNodes(i)(j).asInstanceOf[NoCNodeWrapper].io.north_out.f.data
+          argoMesh(i)(j).south_wire_out := argoNodes(i)(j).asInstanceOf[NoCNodeWrapper].io.south_out.f.data
+          argoMesh(i)(j).east_wire_out := argoNodes(i)(j).asInstanceOf[NoCNodeWrapper].io.east_out.f.data
+          argoMesh(i)(j).west_wire_out := argoNodes(i)(j).asInstanceOf[NoCNodeWrapper].io.west_out.f.data
+          argoNodes(i)(j).asInstanceOf[NoCNodeWrapper].io.clk := clock
+          argoNodes(i)(j).asInstanceOf[NoCNodeWrapper].io.reset := reset
+        }
       }
     }
+    io.irq := irqSets.asUInt
+    
     println("o--Building Interconnect")
     for (i <- 0 until argoConf.M) {
       for (j <- 0 until argoConf.N) {
@@ -99,5 +128,4 @@ class ArgoNoC(argoConf: ArgoConfig, wrapped: Boolean = false, emulateBB: Boolean
     io.ocpPorts <> nocBB.io.ocpPorts
     io.spmPorts <> nocBB.io.spmPorts
   }
-
 }
