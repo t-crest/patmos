@@ -283,9 +283,9 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     cpuinfo.io.cnt := nrCores.U
 
     val singledevios = 
-      (config.Devs
+     (config.Devs
+      .filter(e => e.core.contains(i) || (e.core == None && i == 0))
       .map(e => (e,Config.createDevice(e).asInstanceOf[CoreDevice]))
-      .filter(e => e._1.core.contains(i) || (e._1.core == None && (i == 0 || !e._2.io.isInstanceOf[HasPins])))
       .map{case (conf,dev) => 
       {
           println(s"device: ${conf.ref}")
@@ -403,8 +403,9 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       // e.g., all IO devices should be possible to have interrupts
       if(ocp.isInstanceOf[OcpArgoSlavePort]){
         val argoslaveport = ocp.asInstanceOf[OcpArgoSlavePort]
-        argoslaveport.superMode := UInt(0)
-        argoslaveport.superMode(i) := cores(i).io.superMode
+        when(cores(i).io.superMode === true.B) {
+          argoslaveport.superMode := (1.U(nrCores.W) << i)
+        }
 
         // Hard-wire the sideband flags from the NI to interrupt pins
         cores(i).io.interrupts(NI_MSG_INTR) := argoslaveport.flags(2*i)
