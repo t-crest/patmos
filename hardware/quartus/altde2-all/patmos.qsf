@@ -491,11 +491,3 @@ set_global_assignment -name ALLOW_ANY_ROM_SIZE_FOR_RECOGNITION ON
 set_global_assignment -name ALLOW_ANY_SHIFT_REGISTER_SIZE_FOR_RECOGNITION ON
 set_global_assignment -name SYNTH_GATED_CLOCK_CONVERSION ON
 set_global_assignment -name FORCE_SYNCH_CLEAR ON
-
-set_global_assignment -name OPTIMIZATION_MODE "AGGRESSIVE PERFORMANCE"
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:patmos_inst|PatmosCore:PatmosCore|InOut:iocomp|EthMac:EthMac|eth_controller_top:eth|eth_top:eth_top_comp_0|eth_txethmac:txethmac1|MTxD[0][3..0]~reg"
-set_global_assignment -name ALLOW_ANY_RAM_SIZE_FOR_RECOGNITION ON
-set_global_assignment -name ALLOW_ANY_ROM_SIZE_FOR_RECOGNITION ON
-set_global_assignment -name ALLOW_ANY_SHIFT_REGISTER_SIZE_FOR_RECOGNITION ON
-set_global_assignment -name SYNTH_GATED_CLOCK_CONVERSION ON
-set_global_assignment -name FORCE_SYNCH_CLEAR ON

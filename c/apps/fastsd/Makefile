@@ -1,4 +1,4 @@
-CC			= patmos-clang
+CC		= patmos-clang
 TARGET		= fastsd
 
 SOURCES		= $(wildcard *.c)
