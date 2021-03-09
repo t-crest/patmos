@@ -28,12 +28,11 @@ entity patmos_top is
     oSRAM_WE_N : out std_logic;
     oSRAM_LB_N : out std_logic;
     oSRAM_UB_N : out std_logic;
-	 -- sdcard
+	-- sdcard
 	 sdc_clk : out std_logic;
 	 sd_cmd : inout std_logic;
 	 sd_data : inout std_logic_vector(3 downto 0);
-	 sd_write_protect : in std_logic;
-	rleds : out std_logic_vector(14 downto 0)
+	 sd_write_protect : in std_logic
   );
 end entity patmos_top;
 
@@ -63,8 +62,7 @@ architecture rtl of patmos_top is
 			io_SDCController_sd_cmd_dat : in std_logic;
 			io_SDCController_sd_cmd_out : out std_logic;
 			io_SDCController_sd_cmd_oe  : out std_logic;
-			io_SDCController_sd_clk_o_pad : out std_logic;
-			io_SDCController_rleds : out std_logic_vector(14 downto 0)
+			io_SDCController_sd_clk_o_pad : out std_logic
     );
   end component;
 
@@ -124,7 +122,7 @@ begin
   end process;
 
 
-	-- tristate output to ssram
+-- tristate output to ssram
     process(sram_out_dout_ena, sram_out_dout)
     begin
       if sram_out_dout_ena='1' then
@@ -139,29 +137,28 @@ begin
 	sd_data <= sd_dat_out when sd_dat_oe = '1' else (others => 'Z');
 
     comp : Patmos port map(
-	    clock => clk_int, 
-		reset => int_res,
+	clock => clk_int, 
+	reset => int_res,
         io_Leds_led => oLedsPins_led,
         io_Keys_key => iKeysPins_key,
         io_UartCmp_tx => oUartPins_txd, 
-		io_UartCmp_rx => iUartPins_rxd,
+	io_UartCmp_rx => iUartPins_rxd,
         io_SRamCtrl_ramOut_addr => oSRAM_A, 
-		io_SRamCtrl_ramOut_doutEna => sram_out_dout_ena, 
-		io_SRamCtrl_ramIn_din => SRAM_DQ, 
-		io_SRamCtrl_ramOut_dout => sram_out_dout, 
-		io_SRamCtrl_ramOut_nce => oSRAM_CE_N, 
-		io_SRamCtrl_ramOut_noe => oSRAM_OE_N, 
-		io_SRamCtrl_ramOut_nwe => oSRAM_WE_N, 
-		io_SRamCtrl_ramOut_nlb => oSRAM_LB_N, 
-		io_SRamCtrl_ramOut_nub => oSRAM_UB_N,
-		io_SDCController_sd_dat_dat => sd_data,
-		io_SDCController_sd_dat_out => sd_dat_out,
-		io_SDCController_sd_dat_oe => sd_dat_oe,
-		io_SDCController_sd_cmd_dat => sd_cmd,
-		io_SDCController_sd_cmd_out => sd_cmd_out,
-		io_SDCController_sd_cmd_oe  => sd_cmd_oe,
-		io_SDCController_sd_clk_o_pad => sdc_clk,
-		io_SDCController_rleds => rleds
+	io_SRamCtrl_ramOut_doutEna => sram_out_dout_ena, 
+	io_SRamCtrl_ramIn_din => SRAM_DQ, 
+	io_SRamCtrl_ramOut_dout => sram_out_dout, 
+	io_SRamCtrl_ramOut_nce => oSRAM_CE_N, 
+	io_SRamCtrl_ramOut_noe => oSRAM_OE_N, 
+	io_SRamCtrl_ramOut_nwe => oSRAM_WE_N, 
+	io_SRamCtrl_ramOut_nlb => oSRAM_LB_N, 
+	io_SRamCtrl_ramOut_nub => oSRAM_UB_N,
+	io_SDCController_sd_dat_dat => sd_data,
+	io_SDCController_sd_dat_out => sd_dat_out,
+	io_SDCController_sd_dat_oe => sd_dat_oe,
+	io_SDCController_sd_cmd_dat => sd_cmd,
+	io_SDCController_sd_cmd_out => sd_cmd_out,
+	io_SDCController_sd_cmd_oe  => sd_cmd_oe,
+	io_SDCController_sd_clk_o_pad => sdc_clk
 	);
 
 end architecture rtl;

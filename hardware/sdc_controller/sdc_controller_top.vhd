@@ -16,7 +16,7 @@ entity sdc_controller_top is
 		M_ByteEn       	: in  	std_logic_vector(3 downto 0);
 		S_Resp         	: out 	std_logic_vector(1 downto 0);
 		S_Data         	: out 	std_logic_vector(31 downto 0);
-		-- sdcard port
+		-- SD port
 		sd_dat_dat 		: in 	std_logic_vector(3 downto 0); 	-- data in from sd card
 		sd_dat_out 		: out 	std_logic_vector(3 downto 0);	-- data out from sd card
 		sd_dat_oe  		: out 	std_logic; 						-- sdcard tristate data output enable
@@ -26,8 +26,7 @@ entity sdc_controller_top is
 		sd_clk_o_pad 	: out 	std_logic; 						-- clk for sdcard
 		-- interrupts
 		int_cmd 		: out 	std_logic;
-		int_data 		: out 	std_logic;
-		rleds			: out std_logic_vector(14 downto 0)
+		int_data 		: out 	std_logic
 	);
 end entity;
 
@@ -72,33 +71,51 @@ architecture arch of sdc_controller_top is
 			int_data		: out 	std_logic
 		);
 	end component;
-	
-	component rx_tx_buffer is
+
+	component tdp_sc_bram is
 		generic(
+			DATA_WIDTH : natural;
 			ADDR_WIDTH : natural
 		);
 		port(
-			clk       : in  	std_logic;
-			rst       : in  	std_logic;
-			-- OCP IN (slave) for Patmos
-			MCmd      : in  	std_logic_vector(2 downto 0);
-			MAddr     : in  	std_logic_vector(ADDR_WIDTH-1 downto 0);
-			MData     : in  	std_logic_vector(31 downto 0);
-			MByteEn   : in  	std_logic_vector(3 downto 0);
-			SResp     : out 	std_logic_vector(1 downto 0);
-			SData     : out 	std_logic_vector(31 downto 0);
-			-- wishbone slave
-			wb_addr_i : in  	std_logic_vector(ADDR_WIDTH-1 downto 0);
-			wb_sel_i  : in  	std_logic_vector(3 downto 0);
-			wb_we_i   : in  	std_logic;
-			wb_data_o : out 	std_logic_vector(31 downto 0);
-			wb_data_i : in  	std_logic_vector(31 downto 0);
-			wb_cyc_i  : in  	std_logic;
-			wb_stb_i  : in  	std_logic;
-			wb_ack_o  : out 	std_logic;
-			wb_err_o  : out 	std_logic
+			clk      : in  std_logic;
+			addr_a   : in  std_logic_vector((ADDR_WIDTH - 1) downto 0);
+			addr_b   : in  std_logic_vector((ADDR_WIDTH - 1) downto 0);
+			data_a_i : in  std_logic_vector((DATA_WIDTH - 1) downto 0);
+			data_b_i : in  std_logic_vector((DATA_WIDTH - 1) downto 0);
+			we_a     : in  std_logic;
+			we_b     : in  std_logic;
+			data_a_o : out std_logic_vector((DATA_WIDTH - 1) downto 0);
+			data_b_o : out std_logic_vector((DATA_WIDTH - 1) downto 0)
 		);
 	end component;
+	
+	--component rx_tx_buffer is
+	--	generic(
+	--		ADDR_WIDTH : natural
+	--	);
+	--	port(
+	--		clk       : in  	std_logic;
+	--		rst       : in  	std_logic;
+	--		-- OCP IN (slave) for Patmos
+	--		MCmd      : in  	std_logic_vector(2 downto 0);
+	--		MAddr     : in  	std_logic_vector(ADDR_WIDTH-1 downto 0);
+	--		MData     : in  	std_logic_vector(31 downto 0);
+	--		MByteEn   : in  	std_logic_vector(3 downto 0);
+	--		SResp     : out 	std_logic_vector(1 downto 0);
+	--		SData     : out 	std_logic_vector(31 downto 0);
+	--		-- wishbone slave
+	--		wb_addr_i : in  	std_logic_vector(ADDR_WIDTH-1 downto 0);
+	--		wb_sel_i  : in  	std_logic_vector(3 downto 0);
+	--		wb_we_i   : in  	std_logic;
+	--		wb_data_o : out 	std_logic_vector(31 downto 0);
+	--		wb_data_i : in  	std_logic_vector(31 downto 0);
+	--		wb_cyc_i  : in  	std_logic;
+	--		wb_stb_i  : in  	std_logic;
+	--		wb_ack_o  : out 	std_logic;
+	--		wb_err_o  : out 	std_logic
+	--	);
+	--end component;
 	
 	-- wishbone signals for registers
 	signal next_wb_r_addr_o, wb_r_addr_o : std_logic_vector(7 downto 0);
@@ -131,47 +148,53 @@ architecture arch of sdc_controller_top is
 	signal wb_b_ack_o  : std_logic;
 	signal wb_b_err_o  : std_logic;
 
+	-- ocp to bram
+	signal bram_addr_ocp 	: std_logic_vector(ADDR_WIDTH-4 downto 0);
+	signal bram_data_ocp_i 	: std_logic_vector(31 downto 0);
+	signal bram_data_ocp_o 	: std_logic_vector(31 downto 0);
+	signal bram_we_ocp 		: std_logic_vector(3 downto 0);
+	signal next_S_Resp_b 	: std_logic_vector(1 downto 0);
+
+	-- wishbone to bram
+	signal bram_addr_wb 		: std_logic_vector(ADDR_WIDTH-4 downto 0);
+	signal bram_data_wb_i 		: std_logic_vector(31 downto 0);
+	signal bram_data_wb_o 		: std_logic_vector(31 downto 0);
+	signal bram_we_wb 			: std_logic_vector(3 downto 0);
+	type wb_bram_state_type 	is (IDLE, WRITE, READ, ACK);
+	signal wb_bram_state 		: wb_bram_state_type;
+	signal next_wb_bram_state 	: wb_bram_state_type;
+
 begin
 
-	process(rst, clk)
-	begin
-		if rst = '1' then
-			rleds <= (others => '0');
-		elsif rising_edge(clk) then
-			if wb_r_we_o = '1' then
-				rleds <= std_logic_vector(resize(unsigned(wb_r_addr_o), rleds'length));
-			end if;
-		end if;
-	end process;
-
+	-- differ between sdc registers and buffer
 	M_Cmd_r <= M_Cmd when M_Addr(M_Addr'length-1) = '0' else (others => '0');	--control registers, 	if MSB is 0
 	M_Cmd_b <= M_Cmd when M_Addr(M_Addr'length-1) = '1' else (others => '0');	--control buffer, 		if MSB is 1
 	S_Resp  <= S_Resp_r when (mux_sel = '1') else S_Resp_b;
 	S_Data  <= S_Data_r when (mux_sel = '1') else S_Data_b;
 	
-	--Control mux
-	process(wb_r_ack_i, M_Cmd_r, M_Addr, M_Data, wb_r_data_o, wb_r_we_o, wb_r_stb_o, wb_r_cyc_o, wb_r_addr_o, wb_r_data_i, wb_r_sel_o)
+	-- control mux
+	process(wb_r_ack_i, M_Cmd_r, M_Addr, M_Data, M_ByteEn, wb_r_data_o, wb_r_we_o, wb_r_stb_o, wb_r_cyc_o, wb_r_addr_o, wb_r_data_i, wb_r_sel_o)
 	begin
 		if (wb_r_ack_i = '0') then
 			next_S_Resp_r <= "00";
 			next_S_Data_r <= (others  => '0');
 			next_mux_sel <= '0';
 			case M_Cmd_r is
-				when "001" =>           -- write
+				when "001" =>           		-- write
 					next_wb_r_we_o              <= '1';
 					next_wb_r_stb_o             <= '1';
 					next_wb_r_cyc_o             <= '1';
-					next_wb_r_addr_o	    <= M_Addr(9 downto 2);
-					next_wb_r_sel_o		    <= M_ByteEn;
+					next_wb_r_addr_o	        <= M_Addr(9 downto 2);
+					next_wb_r_sel_o		        <= M_ByteEn;
 					next_wb_r_data_o            <= M_Data;
-				when "010" =>           -- read
+				when "010" =>           		-- read
 					next_wb_r_we_o              <= '0';
 					next_wb_r_stb_o             <= '1';
 					next_wb_r_cyc_o             <= '1';
 					next_wb_r_addr_o 			<= M_Addr(9 downto 2);
 					next_wb_r_sel_o				<= M_ByteEn;
 					next_wb_r_data_o            <= wb_r_data_o;
-				when others =>          -- idle
+				when others =>          		-- idle
 					next_wb_r_we_o              <= wb_r_we_o;
 					next_wb_r_stb_o             <= wb_r_stb_o;
 					next_wb_r_cyc_o             <= wb_r_cyc_o;
@@ -192,7 +215,7 @@ begin
 		end if;
 	end process;
 
-	--Register
+	-- register
 	process(clk, rst)
 	begin
 		if rst = '1' then
@@ -218,6 +241,7 @@ begin
 		end if;
 	end process;
 
+	-- sdc controller instantiation
 	sdc_controller_comp_0 : sdc_controller
 		port map(
 			-- wishbone common
@@ -256,31 +280,113 @@ begin
 			int_cmd 		=> int_cmd,
 			int_data		=> int_data
 		);
-	
-	rx_tx_buffer_comp_0 : rx_tx_buffer
-		generic map(
+
+	-- OCP to bram
+	bram_addr_ocp <= std_logic_vector(resize(unsigned(M_Addr(M_Addr'length-1 downto 2)), ADDR_WIDTH-3)); -- tanslation from byte to word based address
+	bram_data_ocp_i <= M_Data;
+	S_Data_b <= bram_data_ocp_o;
+	process(M_Cmd_b, M_ByteEn)
+	begin 
+		case M_Cmd_b is
+			when "001" =>       -- write
+				bram_we_ocp     <= M_ByteEn;
+				next_S_Resp_b 	<= "01";
+			when "010" =>       -- read
+				bram_we_ocp     <= (others => '0');
+				next_S_Resp_b 	<= "01";
+			when others =>      -- idle
+				bram_we_ocp     <= (others => '0');
+				next_S_Resp_b 	<= "00";
+		end case;
+	end process;
+
+	-- wishbone to bram
+	bram_addr_wb   <= std_logic_vector(resize(unsigned(wb_b_addr_i(wb_b_addr_i'length-1 downto 2)), ADDR_WIDTH-3));	--tanslation from byte to word based address
+	bram_data_wb_i <= wb_b_data_i;
+	wb_b_data_o  <= bram_data_wb_o;
+	process(wb_bram_state, wb_b_stb_i, wb_b_cyc_i, wb_b_we_i)
+	begin
+		bram_we_wb     <= (others => '0');
+		wb_b_ack_o     <= '0';
+		next_wb_bram_state <= wb_bram_state;
+		case wb_bram_state is
+			when IDLE =>
+				if (wb_b_stb_i = '1') and (wb_b_cyc_i = '1') then
+					if wb_b_we_i = '0' then
+						next_wb_bram_state <= READ;
+					else
+						next_wb_bram_state <= WRITE;
+					end if;
+				else
+					next_wb_bram_state <= IDLE;
+				end if;
+			when WRITE =>
+				bram_we_wb     <= (others => '1');
+				next_wb_bram_state <= ACK;
+			when READ =>
+				next_wb_bram_state <= ACK;
+			when ACK =>
+				wb_b_ack_o   <= '1';
+				next_wb_bram_state <= IDLE;
+		end case;
+	end process;
+
+	-- register OCP/wishbone to bram
+	process(clk, rst)
+	begin
+		if rst = '1' then
+			S_Resp_b <= (others => '0');
+			wb_bram_state <= IDLE;
+		elsif rising_edge(clk) then
+			S_Resp_b <= next_S_Resp_b;
+			wb_bram_state <= next_wb_bram_state;
+		end if;
+	end process;
+
+	-- 4x bram
+	gen_tdp_sc_bram :
+	for i in 0 to 3 generate tdp_sc_bram_comp_X : tdp_sc_bram 
+		generic map (
+			DATA_WIDTH => 8,
 			ADDR_WIDTH => ADDR_WIDTH-3
 		)
-		port map(
-			clk       => clk,
-			rst       => rst,
-			-- OCP IN (slave) for Patmos
-			MCmd      => M_Cmd_b,
-			MAddr     => std_logic_vector(resize(unsigned(M_Addr(M_Addr'length-1 downto 2)), ADDR_WIDTH-3)),			--tanslation from byte to word based address
-			MData     => M_Data,
-			MByteEn   => M_ByteEn,
-			SResp     => S_Resp_b,
-			SData     => S_Data_b,
-			-- wishbone slave
-			wb_addr_i => std_logic_vector(resize(unsigned(wb_b_addr_i(wb_b_addr_i'length-1 downto 2)), ADDR_WIDTH-3)),	--tanslation from byte to word based address
-			wb_sel_i  => wb_b_sel_i,
-			wb_we_i   => wb_b_we_i,
-			wb_data_o => wb_b_data_o,
-			wb_data_i => wb_b_data_i,
-			wb_cyc_i  => wb_b_cyc_i,
-			wb_stb_i  => wb_b_stb_i,
-			wb_ack_o  => wb_b_ack_o,
-			wb_err_o  => open
+		port map (
+			clk 		=> clk,
+			addr_a 		=> bram_addr_ocp,
+			addr_b 		=> bram_addr_wb,
+			data_a_i 	=> bram_data_ocp_i(8*(i+1)-1 downto 8*i),
+			data_b_i 	=> bram_data_wb_i(8*(i+1)-1 downto 8*i),
+			we_a 		=> bram_we_ocp(i),
+			we_b 		=> bram_we_wb(i),
+			data_a_o 	=> bram_data_ocp_o(8*(i+1)-1 downto 8*i),
+			data_b_o 	=> bram_data_wb_o(8*(i+1)-1 downto 8*i)
 		);
+	end generate;
+
+	--rx_tx_buffer_comp_0 : rx_tx_buffer
+	--	generic map(
+	--		ADDR_WIDTH => ADDR_WIDTH-3
+	--	)
+	--	port map(
+	--		clk       => clk,
+	--		rst       => rst,
+	--		-- OCP IN (slave) for Patmos
+	--		MCmd      => M_Cmd_b,
+	--		MAddr     => std_logic_vector(resize(unsigned(M_Addr(M_Addr'length-1 downto 2)), ADDR_WIDTH-3)),			--tanslation from byte to word based address
+	--		MData     => M_Data,
+	--		MByteEn   => M_ByteEn,
+	--		SResp     => S_Resp_b,
+	--		SData     => S_Data_b,
+	--		-- wishbone slave
+	--		wb_addr_i => std_logic_vector(resize(unsigned(wb_b_addr_i(wb_b_addr_i'length-1 downto 2)), ADDR_WIDTH-3)),	--tanslation from byte to word based address
+	--		wb_sel_i  => wb_b_sel_i,
+	--		wb_we_i   => wb_b_we_i,
+	--		wb_data_o => wb_b_data_o,
+	--		wb_data_i => wb_b_data_i,
+	--		wb_cyc_i  => wb_b_cyc_i,
+	--		wb_stb_i  => wb_b_stb_i,
+	--		wb_ack_o  => wb_b_ack_o,
+	--		wb_err_o  => open
+	--	);
 
 end architecture;
