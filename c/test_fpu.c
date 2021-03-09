@@ -7,32 +7,31 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <machine/spm.h>
-#include <machine/exceptions.h>
+#include <machine/patmos.h>
 #include <machine/rtc.h>
 
 #define FPU_BASE          0xf0040000
-#define OPERAND_A_LO_REG  *((volatile _SPM unsigned int *) (FPU_BASE + 0x0))
-#define OPERAND_A_HI_REG  *((volatile _SPM unsigned int *) (FPU_BASE + 0x4))
-#define OPERAND_B_LO_REG  *((volatile _SPM unsigned int *) (FPU_BASE + 0x8))
-#define OPERAND_B_HI_REG  *((volatile _SPM unsigned int *) (FPU_BASE + 0xC))
-#define ENABLE_REG        *((volatile _SPM unsigned int *) (FPU_BASE + 0x10))
-#define SEL_OPERATION_REG *((volatile _SPM unsigned int *) (FPU_BASE + 0x14))
-#define ROUND_MODE_REG    *((volatile _SPM unsigned int *) (FPU_BASE + 0x18))
-#define STATUS_REG        *((volatile _SPM unsigned int *) (FPU_BASE + 0x1C))
-#define RESULT_LO_REG     *((volatile _SPM unsigned int *) (FPU_BASE + 0x20))
-#define RESULT_HI_REG     *((volatile _SPM unsigned int *) (FPU_BASE + 0x24))
+#define OPERAND_A_LO_REG  *((volatile _IODEV unsigned int *) (FPU_BASE + 0x0))
+#define OPERAND_A_HI_REG  *((volatile _IODEV unsigned int *) (FPU_BASE + 0x4))
+#define OPERAND_B_LO_REG  *((volatile _IODEV unsigned int *) (FPU_BASE + 0x8))
+#define OPERAND_B_HI_REG  *((volatile _IODEV unsigned int *) (FPU_BASE + 0xC))
+#define ENABLE_REG        *((volatile _IODEV unsigned int *) (FPU_BASE + 0x10))
+#define SEL_OPERATION_REG *((volatile _IODEV unsigned int *) (FPU_BASE + 0x14))
+#define ROUND_MODE_REG    *((volatile _IODEV unsigned int *) (FPU_BASE + 0x18))
+#define STATUS_REG        *((volatile _IODEV unsigned int *) (FPU_BASE + 0x1C))
+#define RESULT_LO_REG     *((volatile _IODEV unsigned int *) (FPU_BASE + 0x20))
+#define RESULT_HI_REG     *((volatile _IODEV unsigned int *) (FPU_BASE + 0x24))
 
-#if defined(USE_HWFPU)
-  int USE_PATMOS_FLOAT = USE_HWFPU;
-#else
-  int USE_PATMOS_FLOAT = 0;
+// This must be declared outisde of the main function to actually control the FPU
+#if defined(ENABLE_HWFPU)
+unsigned __USE_HWFPU__ = ENABLE_HWFPU;
 #endif
-
-#ifndef BOOTROM
 
 int main()
 {
+  #if defined(ENABLE_HWFPU)
+  unsigned __USE_HWFPU__ = ENABLE_HWFPU;
+  #endif
   union { unsigned long long b; double f; } x;
   union { unsigned long long b; double f; } y;
   volatile unsigned long long startTime;
@@ -97,77 +96,8 @@ int main()
       printf(
         "           |  %u|  %u|  %u|  %u|  %u|\n", exception, underflow, overflow, inexact, invalid);
     }
-    puts("*********************************************************");
+    puts("***************************************************************");
   }
 
   return 0;
 }
-
-#else
-
-#include "include/bootable.h"
-
-
-
-int main()
-{
-
-  union { unsigned long long b; double f; } x;
-  union { unsigned long long b; double f; } y;
-
-  LEDS = 0x100;
-
-  x.f = 10.75;
-  y.f = 1.6;
-
-  for(unsigned char operation=0; operation<4; operation++)
-  {
-    union { unsigned long long b; double f; } hard_res;
-    union { unsigned long long b; double f; } soft_res;
-    union { unsigned long long b; double f; } correct;
-
-    LEDS = 0x100;
-
-    switch (operation)
-    {
-    case 0:
-      soft_res.f = x.f+y.f;
-      correct.f = 12.35;
-      break;
-    case 1:
-      soft_res.f = x.f-y.f;
-      correct.f = 9.15;
-      break;
-    case 2:
-      soft_res.f = x.f*y.f;
-      correct.f = 17.2;
-      break;
-    case 3:
-      soft_res.f = x.f/y.f;
-      correct.f = 6.71875;
-      break;
-    }
-
-    LEDS = 0x10F;
-
-    OPERAND_A_LO_REG = (x.b & 0xFFFFFFFF);
-    OPERAND_A_HI_REG = (x.b >> 32);
-    OPERAND_B_LO_REG = (y.b & 0xFFFFFFFF);
-    OPERAND_B_HI_REG = (y.b >> 32);
-    SEL_OPERATION_REG = operation;
-    ENABLE_REG = 0x1;
-    while((STATUS_REG & 0x1) != 0x1) {continue;}
-    hard_res.b = ((unsigned long long) RESULT_HI_REG << 32) + (unsigned long long) RESULT_LO_REG;
-
-    LEDS = 0x1FF;
-
-    if((soft_res.f - hard_res.f) == 0)
-    {
-      LEDS = 1;
-    } else {
-      LEDS = 0;
-    }
-  }
-}
-
-#endif

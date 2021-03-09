@@ -29,19 +29,21 @@ static uint16_t rxMsgCount;
 static uint16_t txMsgCount;
 
 char* eth_protocol_names[] = {"UFF", "IP", "ICMP", "UDP", "TCP", "PTP", "ARP", "LLDP", "MDNS", "TTE_PCF", "TTE"};
-unsigned int rx_buff_addr = 0x000;
-unsigned int tx_buff_addr = 0x800;
 unsigned char multicastip[4] = {224, 0, 0, 255};
-// unsigned char TTE_MAC[] = {0x02, 0x89, 0x1D, 0x00, 0x04, 0x00};
 unsigned char TTE_CT[] = { 0xAB, 0xAD, 0xBA, 0xBE };
 unsigned char TTE_DYN_VL[] = { 0x0F, 0xA1 };
 unsigned char TTE_FILTER_VL[] = { 0x0F, 0xA2 };
 unsigned char TTE_CTRL_VL[] = { 0x0F, 0xA3 };
 
+uint8_t enable_communication = 0;
+uint8_t enable_control = 0;
+
+unsigned __USE_HWFPU__ = 0;
+
 #pragma region AIRCRAFT_NODE
 
 __attribute__((noinline))
-int vl_dyn_send_fun(void *args)
+int vl_dyn_send_filter_fun(void *args)
 {
   GPIO |= (1U << SENDTASK_GPIO_BIT);
   int ans = 0;
@@ -55,7 +57,7 @@ int vl_dyn_send_fun(void *args)
       aircraft_dynamics495_q_q_filter_100455_q[step_simu % 2],
       aircraft_dynamics495_h_h_filter_100446_h[step_simu % 2]
     };
-    udp_send_tte(tx_buff_addr, rx_buff_addr, TTE_CT, TTE_DYN_VL, TTE_MAC, (unsigned char[4]){192, 168, 1, 11}, node_ip, ROSACE_PORT, ROSACE_PORT, (unsigned char*) &dynamics_msg, sizeof(dynamics_msg), txMsgCount);
+    udp_send_tte(tx_buff_addr, TTE_CT, TTE_DYN_VL, TTE_MAC, (unsigned char[4]){192, 168, 1, 11}, node_ip, ROSACE_PORT, ROSACE_PORT, (unsigned char*) &dynamics_msg, sizeof(dynamics_msg), txMsgCount);
     txMsgCount++;
     step_simu += 1;
     ans = 1;
@@ -65,25 +67,14 @@ int vl_dyn_send_fun(void *args)
 }
 
 __attribute__((noinline))
-int vl_ctrl_recv_fun(void* args)
+int vl_dyn_recv_ctrl_fun(void* args)
 {
   GPIO |= (1U << RECVTASK_GPIO_BIT);
   LEDS &= 0xF0;
   int ans = 0;
-  if(1){
-    unsigned short ethType = UNSUPPORTED;
-    schedtime_t listen_start = get_cpu_usecs();
-    #pragma loopbound min 1 max 1
-    do{
-      if(eth_mac_receive_nb(rx_buff_addr))
-      {
-        ethType = (unsigned short) ((mem_iord_byte(rx_buff_addr + 12) << 8) + (mem_iord_byte(rx_buff_addr + 13)));
-        if(ethType == 0x891D)
-        {
-          return ans;
-        }
-      }
-    }while(get_cpu_usecs() - listen_start < 2*TTE_RECV_WINDOW_HALF*NS_TO_USEC);
+  int ethType = eth_mac_poll_for_frames();
+  if(ethType != TIMEOUT)
+  {
     if(ethType == 0x0800)
     {
       control_state_message control_msg;
@@ -93,12 +84,14 @@ int vl_ctrl_recv_fun(void* args)
       Va_control_50474_delta_th_c_engine486_delta_th_c = control_msg.va_control_engine_delta_th_c;
       Va_control_50474_delta_th_c_delta_th_c = control_msg.va_control_delta_th_c;
       rxMsgCount++;
+      ans = 1;
       LEDS |= (1U << 4) + (ethType & 0xF);
     } 
     else 
     {
       LEDS |= (1U << 5) + (ethType & 0xF);
     }
+    swap_eth_rx_buffers();  
   }
   GPIO &= (0U << RECVTASK_GPIO_BIT);
   return ans;
@@ -108,50 +101,8 @@ int vl_ctrl_recv_fun(void* args)
 
 #pragma region FILTER_NODE
 
- __attribute__((noinline))
-int vl_dyn_recv_fun(void *args)
-{
-  GPIO |= (1U << RECVTASK_GPIO_BIT);
-  LEDS &= 0xF0;
-  int ans = 0;
-  if(1){
-    unsigned short ethType = UNSUPPORTED;
-    schedtime_t listen_start = get_cpu_usecs();
-    #pragma loopbound min 1 max 1
-    do{
-      if(eth_mac_receive_nb(rx_buff_addr))
-      {
-        ethType = (unsigned short) ((mem_iord_byte(rx_buff_addr + 12) << 8) + (mem_iord_byte(rx_buff_addr + 13)));
-        if(ethType == 0x891D)
-        {
-          return ans;
-        }
-      }
-    }while(get_cpu_usecs() - listen_start <= 2*TTE_RECV_WINDOW_HALF*NS_TO_USEC);
-    if(ethType == 0x0800)
-    {
-      //Data
-      aircraft_state_message dynamics_msg;
-      udp_get_data(rx_buff_addr, (unsigned char*) &dynamics_msg, udp_get_data_length(rx_buff_addr));
-      aircraft_dynamics495_Va_Va_filter_100449_Va[step_simu % 2] = dynamics_msg.dynamics_va_filter_va;
-      aircraft_dynamics495_az_az_filter_100458_az[step_simu % 2] = dynamics_msg.dynamics_az_filter_az;
-      aircraft_dynamics495_Vz_Vz_filter_100452_Vz[step_simu % 2] = dynamics_msg.dynamics_vz_filter_vz;
-      aircraft_dynamics495_q_q_filter_100455_q[step_simu % 2] = dynamics_msg.dynamics_q_filter_q;
-      aircraft_dynamics495_h_h_filter_100446_h[step_simu % 2] = dynamics_msg.dynamics_h_filter_h;
-      rxMsgCount++;
-      LEDS |= (1U << 4) + (ethType & 0xF);
-    } 
-    else 
-    {
-      LEDS |= (1U << 5) + (ethType & 0xF);
-    }
-  }
-  GPIO &= (0U << RECVTASK_GPIO_BIT);
-  return ans;
-}
-
 __attribute__((noinline))
-int vl_filter_send_fun(void *args)
+int vl_filter_send_ctrl_fun(void *args)
 {
   GPIO |= (1U << SENDTASK_GPIO_BIT);
   int ans = 0;
@@ -167,11 +118,45 @@ int vl_filter_send_fun(void *args)
       Va_filter_100449_Va_f_Va_control_50474_Va_f[step_simu % 2],
       Vz_filter_100452_Vz_f_Vz_control_50483_Vz_f[step_simu % 2]
     };
-    udp_send_tte(tx_buff_addr, rx_buff_addr, TTE_CT, TTE_FILTER_VL, TTE_MAC, (unsigned char[4]){192, 168, 1, 12}, node_ip, ROSACE_PORT, ROSACE_PORT, (unsigned char*) &filter_msg, sizeof(filter_msg), txMsgCount);
+    udp_send_tte(tx_buff_addr, TTE_CT, TTE_FILTER_VL, TTE_MAC, (unsigned char[4]){192, 168, 1, 12}, node_ip, ROSACE_PORT, ROSACE_PORT, (unsigned char*) &filter_msg, sizeof(filter_msg), txMsgCount);
     txMsgCount++;
     ans = 1;
   }
   GPIO &= (0U << SENDTASK_GPIO_BIT);
+  return ans;
+}
+
+ __attribute__((noinline))
+int vl_filter_recv_dyn_fun(void *args)
+{
+  GPIO |= (1U << RECVTASK_GPIO_BIT);
+  LEDS &= 0xF0;
+  int ans = 0;
+  int ethType = eth_mac_poll_for_frames();
+  if(ethType != TIMEOUT)
+  {
+    if(ethType == 0x0800)
+    {
+      //Data
+      aircraft_state_message dynamics_msg;
+      udp_get_data(rx_buff_addr, (unsigned char*) &dynamics_msg, udp_get_data_length(rx_buff_addr));
+      step_simu = dynamics_msg.step;
+      aircraft_dynamics495_Va_Va_filter_100449_Va[step_simu % 2] = dynamics_msg.dynamics_va_filter_va;
+      aircraft_dynamics495_az_az_filter_100458_az[step_simu % 2] = dynamics_msg.dynamics_az_filter_az;
+      aircraft_dynamics495_Vz_Vz_filter_100452_Vz[step_simu % 2] = dynamics_msg.dynamics_vz_filter_vz;
+      aircraft_dynamics495_q_q_filter_100455_q[step_simu % 2] = dynamics_msg.dynamics_q_filter_q;
+      aircraft_dynamics495_h_h_filter_100446_h[step_simu % 2] = dynamics_msg.dynamics_h_filter_h;
+      enable_control = step_simu > 0;
+      rxMsgCount++;
+      LEDS |= (1U << 4) + (ethType & 0xF);
+    } 
+    else 
+    {
+      LEDS |= (1U << 5) + (ethType & 0xF);
+    }
+    swap_eth_rx_buffers();
+  }
+  GPIO &= (0U << RECVTASK_GPIO_BIT);
   return ans;
 }
 
@@ -180,51 +165,7 @@ int vl_filter_send_fun(void *args)
 #pragma region CONTROL_NODE
 
 __attribute__((noinline))
-int vl_filter_recv_fun(void *args)
-{
-  GPIO |= (1U << RECVTASK_GPIO_BIT);
-  LEDS &= 0xF0;
-  int ans = 0;
-  if(1){
-    unsigned short ethType = UNSUPPORTED;
-    schedtime_t listen_start = get_cpu_usecs();
-    #pragma loopbound min 1 max 1
-    do{
-      if(eth_mac_receive_nb(rx_buff_addr))
-      {
-        ethType = (unsigned short) ((mem_iord_byte(rx_buff_addr + 12) << 8) + (mem_iord_byte(rx_buff_addr + 13)));
-        if(ethType == 0x891D)
-        {
-          return ans;
-        }
-      }
-    }while(get_cpu_usecs() - listen_start < 2*TTE_RECV_WINDOW_HALF*NS_TO_USEC);
-    if(ethType == 0x0800)
-    {
-      //Data
-      filter_state_message filter_msg;
-      udp_get_data(rx_buff_addr, (unsigned char*) &filter_msg, udp_get_data_length(rx_buff_addr));
-      h_filter_100446_h_f_altitude_hold_50464_h_f[step_simu % 2] = filter_msg.h_filter_alt_hold_h_f;
-      q_filter_100455_q_f_Va_control_50474_q_f[step_simu % 2] = filter_msg.q_filter_va_control_q_f;
-      q_filter_100455_q_f_Vz_control_50483_q_f[step_simu % 2] = filter_msg.q_filter_vz_control_q_f;
-      az_filter_100458_az_f_Vz_control_50483_az_f[step_simu % 2] = filter_msg.az_filter_vz_control_az_f;
-      Vz_filter_100452_Vz_f_Va_control_50474_Vz_f[step_simu % 2] = filter_msg.vz_filter_va_control_vz_f;
-      Vz_filter_100452_Vz_f_Vz_control_50483_Vz_f[step_simu % 2] = filter_msg.vz_filter_vz_control_vz_f;
-      Va_filter_100449_Va_f_Va_control_50474_Va_f[step_simu % 2] = filter_msg.va_filter_va_control_va_f;
-      rxMsgCount++;
-      LEDS |= (1U << 4) + (ethType & 0xF);
-    } 
-    else 
-    {
-      LEDS |= (1U << 5) + (ethType & 0xF);
-    }
-  }
-  GPIO &= (0U << RECVTASK_GPIO_BIT);
-  return ans;
-}
-
-__attribute__((noinline))
-int vl_ctrl_send_fun(void *args)
+int vl_ctrl_send_dyn_fun(void *args)
 {
   GPIO |= (1U << SENDTASK_GPIO_BIT);
   int ans = 0;
@@ -237,11 +178,47 @@ int vl_ctrl_send_fun(void *args)
       Va_control_50474_delta_th_c_engine486_delta_th_c,
       Va_control_50474_delta_th_c_delta_th_c
     };
-    udp_send_tte(tx_buff_addr, rx_buff_addr, TTE_CT, TTE_CTRL_VL, TTE_MAC, (unsigned char[4]){192, 168, 1, 10}, node_ip, ROSACE_PORT, ROSACE_PORT, (unsigned char*) &control_msg, sizeof(control_msg), txMsgCount);
+    udp_send_tte(tx_buff_addr, TTE_CT, TTE_CTRL_VL, TTE_MAC, (unsigned char[4]){192, 168, 1, 10}, node_ip, ROSACE_PORT, ROSACE_PORT, (unsigned char*) &control_msg, sizeof(control_msg), txMsgCount);
     txMsgCount++;
     ans = 1;
   }
   GPIO &= (0U << SENDTASK_GPIO_BIT);
+  return ans;
+}
+
+__attribute__((noinline))
+int vl_ctrl_recv_filter_fun(void *args)
+{
+  GPIO |= (1U << RECVTASK_GPIO_BIT);
+  LEDS &= 0xF0;
+  int ans = 0;
+  int ethType = eth_mac_poll_for_frames();
+  if(ethType != TIMEOUT)
+  {
+    if(ethType == 0x0800)
+    {
+      //Data
+      filter_state_message filter_msg;
+      udp_get_data(rx_buff_addr, (unsigned char*) &filter_msg, udp_get_data_length(rx_buff_addr));
+      step_simu = filter_msg.step;
+      h_filter_100446_h_f_altitude_hold_50464_h_f[step_simu % 2] = filter_msg.h_filter_alt_hold_h_f;
+      q_filter_100455_q_f_Va_control_50474_q_f[step_simu % 2] = filter_msg.q_filter_va_control_q_f;
+      q_filter_100455_q_f_Vz_control_50483_q_f[step_simu % 2] = filter_msg.q_filter_vz_control_q_f;
+      az_filter_100458_az_f_Vz_control_50483_az_f[step_simu % 2] = filter_msg.az_filter_vz_control_az_f;
+      Vz_filter_100452_Vz_f_Va_control_50474_Vz_f[step_simu % 2] = filter_msg.vz_filter_va_control_vz_f;
+      Vz_filter_100452_Vz_f_Vz_control_50483_Vz_f[step_simu % 2] = filter_msg.vz_filter_vz_control_vz_f;
+      Va_filter_100449_Va_f_Va_control_50474_Va_f[step_simu % 2] = filter_msg.va_filter_va_control_va_f;
+      enable_control = step_simu > 0;
+      rxMsgCount++;
+      LEDS |= (1U << 4) + (ethType & 0xF);
+    } 
+    else 
+    {
+      LEDS |= (1U << 5) + (ethType & 0xF);
+    }
+    swap_eth_rx_buffers();
+  }
+  GPIO &= (0U << RECVTASK_GPIO_BIT);
   return ans;
 }
 
@@ -258,6 +235,8 @@ void rosace_init(MinimalTTTask *schedule)
   outs.sig_outputs.q  = 0;
   outs.sig_outputs.az = 0;
   outs.sig_outputs.h  = 0;
+  outs.sig_delta_e_c = 0;
+  outs.sig_delta_th_c = 0;
   outs.t_simu         = 0;
   step_simu           = 0;
   max_step_simu       = MAX_STEP_SIM;
@@ -300,68 +279,68 @@ uint8_t cyclic_dispatcher(MinimalTTTask *schedule, schedtime_t current_time, sch
         break;
       #ifdef AIRCRAFT_NODE
       case LOGGING_ID:
-        GPIO |= (1U << 3);
-        if (nodeSyncStable) logging_fun(NULL);
-        GPIO &= (0U << 3);
+        if (nodeSyncStable && enable_communication) logging_fun(NULL);
         break;
       case ENGINE_ID:
-        if (nodeSyncStable) CALL(ENGINE);
+        if (nodeSyncStable && enable_communication) CALL(ENGINE);
         break;
       case ELEVATOR_ID:
-        if (nodeSyncStable) CALL(ELEVATOR);
+        if (nodeSyncStable && enable_communication) CALL(ELEVATOR);
         break;
       case AIRCRAFT_DYN_ID:
-        if (nodeSyncStable) CALL(AIRCRAFT_DYN);
+        GPIO |= (1U << SCOPE_GPIO_BIT);
+        if (nodeSyncStable && enable_communication) CALL(AIRCRAFT_DYN);
+        GPIO &= (0U << SCOPE_GPIO_BIT);
         break;
       case VL_CTRL_RECV_ID:
-        if (nodeSyncStable) vl_ctrl_recv_fun(NULL);
+        vl_dyn_recv_ctrl_fun(NULL);
         break;
       case VL_DYN_SEND_ID:
-        if (nodeSyncStable) vl_dyn_send_fun(NULL);
+        if (nodeSyncStable && enable_communication) vl_dyn_send_filter_fun(NULL);
         break;
       #elif FILTER_NODE
       case H_FILTER_ID:
-        CALL(H_FILTER);
+        if (nodeSyncStable && enable_control) CALL(H_FILTER);
         break;
       case Q_FILTER_ID:
-        CALL(Q_FILTER);
+        if (nodeSyncStable && enable_control) CALL(Q_FILTER);
         break;
       case VZ_FILTER_ID:
-        CALL(VZ_FILTER);
+        if (nodeSyncStable && enable_control) CALL(VZ_FILTER);
         break;
       case AZ_FILTER_ID:
-        CALL(AZ_FILTER);
+        if (nodeSyncStable && enable_control) CALL(AZ_FILTER);
         break;
       case VA_FILTER_ID:
-        CALL(VA_FILTER);
+        if (nodeSyncStable && enable_control) CALL(VA_FILTER);
         break;
       case VL_DYN_RECV_ID:
-        vl_dyn_recv_fun(NULL);
+        vl_filter_recv_dyn_fun(NULL);
         break;
       case VL_FILTER_SEND_ID:
-        vl_filter_send_fun(NULL);
+        if (nodeSyncStable && enable_communication) vl_filter_send_ctrl_fun(NULL);
         break;
       #elif CONTROL_NODE
       case H_C0_ID:
-        CALL(H_C0);
+        if (nodeSyncStable && enable_control) CALL(H_C0);
         break;
       case VA_C0_ID:
-        CALL(VA_C0);
+        if (nodeSyncStable && enable_control) CALL(VA_C0);
         break;
       case VZ_CONTROL_ID:
-        CALL(VZ_CONTROL);
+        if (nodeSyncStable && enable_control) CALL(VZ_CONTROL);
         break;
       case VA_CONTROL_ID:
-        CALL(VA_CONTROL);
+        if (nodeSyncStable && enable_control) CALL(VA_CONTROL);
         break;
       case ALTI_HOLD_ID:
-        CALL(ALTI_HOLD);
+        if (nodeSyncStable && enable_control) CALL(ALTI_HOLD);
         break;
       case VL_FILTER_RECV_ID:
-        vl_filter_recv_fun(NULL);
+        vl_ctrl_recv_filter_fun(NULL);
         break;
       case VL_CTRL_SEND_ID:
-        vl_ctrl_send_fun(NULL);
+        if (nodeSyncStable && enable_communication) vl_ctrl_send_dyn_fun(NULL);
         break;
       #endif
       }
@@ -382,16 +361,24 @@ schedtime_t execute_cyclic_loop(MinimalTTTask *schedule)
 {
   ROSACE_update_altitude_command(10000);
   schedtime_t start_time = get_ptp_nanos(PATMOS_IO_ETH);
+  eth_mac_clear_rx_buffer(rx_buff_addr, rx_bd_addr);
+  eth_mac_clear_rx_buffer(rx_buff2_addr, rx_bd2_addr);
   #pragma loopbound min 1 max 1
   while(step_simu < max_step_simu)
   {
     register unsigned long long schedule_time = get_ptp_nanos(PATMOS_IO_ETH);
     schedule_time = (unsigned long long) get_tte_aligned_time(schedule_time - start_time, HYPER_PERIOD);
     cyclic_dispatcher(schedule, schedule_time, start_time);
-    if(step_simu >= 2500)
+#ifdef CONTROL_NODE
+    if(step_simu >= ALT_COMMAND_STEPSIM)  //50 seconds
     {
       ROSACE_update_altitude_command(11000);
     }
+#endif
+    if(KEYS == 0xE)
+      enable_communication = 0x1;
+    else if (KEYS == 0xD)
+      enable_communication = 0x0; 
   }
   return get_ptp_nanos(PATMOS_IO_ETH);
 }

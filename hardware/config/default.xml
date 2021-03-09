@@ -25,8 +25,8 @@
   <ExtMem size="2M" />
 
   <IOs>
-    <IO DevTypeRef="Timer" offset="2" intrs="0,1"/>
-    <IO DevTypeRef="Deadline" offset="3"/>
+    <IO DevTypeRef="Timer" offset="2" intrs="0,1" allcores="true" />
+    <IO DevTypeRef="Deadline" offset="3" allcores="true" />
   </IOs>
 
   <Devs>

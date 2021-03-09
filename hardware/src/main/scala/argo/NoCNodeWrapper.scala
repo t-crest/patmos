@@ -8,7 +8,8 @@
 
 package argo
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import ocp._
 import patmos.Constants._
 
@@ -19,12 +20,12 @@ import patmos.Constants._
   * @param argoConf
   * @param master
   */
-class NoCNodeDummy(argoConf: ArgoConfig, master: Boolean) extends Module {
+class NoCNodeDummy(val argoConf: ArgoConfig, master: Boolean) extends Module {
   val io = IO(new Bundle(){
-    val irq = Output(Bits(width = 2))
-    val run = Bool(INPUT)
-    val supervisor = Bool(INPUT)
-    val masterRun = Bool(OUTPUT)
+    val irq = Output(UInt(2.W))
+    val run = Input(Bool())
+    val supervisor = Input(Bool())
+    val masterRun = Output(Bool())
     val proc = new OcpIOSlavePort(ADDR_WIDTH, DATA_WIDTH)
     val spm = new SPMMasterPort(argoConf.HEADER_FIELD_WIDTH, argoConf.HEADER_CTRL_WIDTH)
     val north_in = new RouterPort(argoConf)
@@ -37,22 +38,22 @@ class NoCNodeDummy(argoConf: ArgoConfig, master: Boolean) extends Module {
     val west_out = new OutputPort(argoConf)
   })
 
-  val dmaReg = Reg(init = UInt(Integer.parseInt("0000", 16), width = DATA_WIDTH))
-  val schReg = Reg(init = UInt(Integer.parseInt("2000", 16), width = DATA_WIDTH))
-  val tdmReg = Reg(init = UInt(Integer.parseInt("4000", 16), width = DATA_WIDTH))
-  val respReg = Reg(init = OcpResp.NULL)
-  val acceptReg = Reg(init = false.B)
+  val dmaReg = RegInit(Integer.parseInt("0000", 16).U(DATA_WIDTH.W))
+  val schReg = RegInit(Integer.parseInt("2000", 16).U(DATA_WIDTH.W))
+  val tdmReg = RegInit(Integer.parseInt("4000", 16).U(DATA_WIDTH.W))
+  val respReg = RegInit(OcpResp.NULL)
+  val acceptReg = RegInit(false.B)
 
   acceptReg := (io.proc.M.Cmd === OcpCmd.WR) && ~acceptReg
 
   when (io.proc.M.Cmd===OcpCmd.WR && acceptReg) {
-    when(io.proc.M.Addr(15, 12) === Bits("h0")){
+    when(io.proc.M.Addr(15, 12) === 0.U){
       dmaReg := io.proc.M.Data
       respReg := OcpResp.DVA
-    }.elsewhen (io.proc.M.Addr(15, 12) === Bits("h2")) {
+    }.elsewhen (io.proc.M.Addr(15, 12) === 2.U) {
       schReg := io.proc.M.Data
       respReg := OcpResp.DVA
-    } .elsewhen(io.proc.M.Addr(15, 12) === Bits("h4")){
+    } .elsewhen(io.proc.M.Addr(15, 12) === 4.U){
       tdmReg := io.proc.M.Data
       respReg := OcpResp.DVA
     } .otherwise{
@@ -62,14 +63,14 @@ class NoCNodeDummy(argoConf: ArgoConfig, master: Boolean) extends Module {
     respReg := OcpResp.NULL
   }
 
-  when(io.proc.M.Addr(15, 12) === Bits("h0")){
+  when(io.proc.M.Addr(15, 12) === 0.U){
     io.proc.S.Data := dmaReg 
-  }.elsewhen (io.proc.M.Addr(15, 12) === Bits("h2")) {
+  }.elsewhen (io.proc.M.Addr(15, 12) === 2.U) {
     io.proc.S.Data := schReg
-  } .elsewhen(io.proc.M.Addr(15, 12) === Bits("h4")){
+  } .elsewhen(io.proc.M.Addr(15, 12) === 4.U){
     io.proc.S.Data := tdmReg 
   } .otherwise{
-    io.proc.S.Data := Bits("h0")
+    io.proc.S.Data := 0.U
   }
 
   io.proc.S.CmdAccept := Mux(io.proc.M.Cmd===OcpCmd.WR, acceptReg, io.proc.M.Cmd===OcpCmd.RD)
@@ -84,12 +85,12 @@ class NoCNodeDummy(argoConf: ArgoConfig, master: Boolean) extends Module {
   * @param argoConf
   * @param master
   */
-class NoCNodeWrapper(argoConf: ArgoConfig, master: Boolean) extends BlackBox {
+class NoCNodeWrapper(val argoConf: ArgoConfig, master: Boolean) extends  BlackBox(Map("MASTER" -> (if (master) 1 else 0))) {
   val io = IO(new Bundle(){
-    val irq = Output(Bits(width = 2))
-    val run = Bool(INPUT)
-    val supervisor = Bool(INPUT)
-    val masterRun = Bool(OUTPUT)
+    val irq = Output(UInt(2.W))
+    val run = Input(Bool())
+    val supervisor = Input(Bool())
+    val masterRun = Output(Bool())
     val proc = new OcpIOSlavePort(ADDR_WIDTH, DATA_WIDTH)
     val spm = new SPMMasterPort(argoConf.HEADER_FIELD_WIDTH, argoConf.HEADER_CTRL_WIDTH)
     val north_in = new RouterPort(argoConf)
@@ -99,17 +100,12 @@ class NoCNodeWrapper(argoConf: ArgoConfig, master: Boolean) extends BlackBox {
     val north_out = new OutputPort(argoConf)
     val east_out = new OutputPort(argoConf)
     val south_out = new OutputPort(argoConf)
-    val west_out = new OutputPort(argoConf)
+    val west_out = new OutputPort(argoConf)    
+    val clk = Input(Clock())
+    val reset = Input(Reset())
   })
-  //throw new Error("BlackBox wrapper for NoCNode needs update for Chisel 3")
-  //should be Commented out to compile with Chisel3
-  /*setModuleName("noc_node_wrapper")
-  addClock(Driver.implicitClock)
-  renameClock("clk", "clk")
-  renameReset("reset")
-  if(master) {
-    setVerilogParameters("#(.MASTER(" + 1 + "))")
-  } else {
-    setVerilogParameters("#(.MASTER(" + 0 + "))")
-  }*/
+  // rename signals
+  override def desiredName: String = "noc_node_wrapper"
+  io.clk.suggestName("clk")
+  io.reset.suggestName("reset")
 }

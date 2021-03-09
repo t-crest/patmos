@@ -44,20 +44,20 @@
 
 #include <machine/patmos.h>
 
-#define MODER        0x00  //Mode
-#define INT_SOURCE   0x04  //Interrupt source
-#define INT_MASK     0x08  //Interrupt mask
-#define IPGT         0x0C  //Back to back inter packet gap
-#define IPGR1        0x10  //Non back to back inter packet gap
-#define IPGR2        0x14  //Non back to back inter packet gap
-#define PACKETLEN    0x18  //Packet length (minimum and maximum)
-#define COLLCONF     0x1C  //Collision and retry configuration
-#define TX_BD_NUM    0x20  //Transmit buffer descriptor number
-#define CTRLMODER    0x24  //Control module mode
-#define MIIMODER     0x28  //MII mode register
-#define MIICOMMAND   0x2C  //MII command
-#define MIIADDRESS   0x30  //MII address register containts the phy address 
-                           //and the register with the phy address
+#define MODER_ADDR        0x00  //Mode
+#define INT_SOURCE_ADDR   0x04  //Interrupt source
+#define INT_MASK_ADDR     0x08  //Interrupt mask
+#define IPGT_ADDR         0x0C  //Back to back inter packet gap
+#define IPGR1_ADDR        0x10  //Non back to back inter packet gap
+#define IPGR2_ADDR        0x14  //Non back to back inter packet gap
+#define PACKETLEN_ADDR    0x18  //Packet length (minimum and maximum)
+#define COLLCONF_ADDR     0x1C  //Collision and retry configuration
+#define TX_BD_NUM_ADDR    0x20  //Transmit buffer descriptor number
+#define CTRLMODER_ADDR    0x24  //Control module mode
+#define MIIMODER_ADDR     0x28  //MII mode register
+#define MIICOMMAND_ADDR   0x2C  //MII command
+#define MIIADDRESS_ADDR   0x30  //MII address register containts the phy address 
+                                //and the register with the phy address
 
 #define TX_BD_ADDR_BASE             0x400
 #define TX_BD_ADDR_END(TX_BD_NUM)   TX_BD_ADDR_BASE + TX_BD_NUM * 8

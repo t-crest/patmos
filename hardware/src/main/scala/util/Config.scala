@@ -76,7 +76,7 @@ abstract class Config {
   case class ExtMemConfig(size: Long, ram: DeviceConfig)
   val ExtMem: ExtMemConfig
 
-  case class DeviceConfig(name : String, params : Map[String, String], offset : Int, intrs : List[Int])
+  case class DeviceConfig(ref : String, name : String, params : Map[String, String], offset : Int, intrs : List[Int], core : Int = 0, allcores : Boolean = false)
   val Devs: List[Config#DeviceConfig]
 
   override def toString =
@@ -237,7 +237,7 @@ object Config {
       val DevList = ((node \ "Devs") \ "Dev")
 
       val ExtMemNode = find(node, "ExtMem")
-      var ExtMemDev = new DeviceConfig("", Map(), -1, List[Int]())
+      var ExtMemDev = new DeviceConfig("","", Map(), -1, List[Int]())
       var ExtMemAddrWidth = "" 
       if (!(ExtMemNode \ "@DevTypeRef").isEmpty){
                 ExtMemDev = devFromXML(ExtMemNode,DevList,false)
@@ -314,10 +314,17 @@ object Config {
         } else {
           intrsList.split(",").toList.map(_.trim.toInt)
         }
+        val coreNode = (node \ "@core")
+        val core = if(coreNode.isEmpty) 0 else coreNode.text.toInt
+        
+        val allcoresNode = (node \ "@allcores")
+        val allcores = if(allcoresNode.isEmpty) false else allcoresNode.text.toBoolean
+
         println("IO device "+key+": entity "+name+
                          ", offset "+offset+", params "+params+
-                         (if (!intrs.isEmpty) ", interrupts: "+intrs else ""))
-        new DeviceConfig(name, params, offset, intrs)
+                         (if(!intrs.isEmpty) ", interrupts: "+intrs else "")+
+                         ", " + (if(allcores) "all cores" else "core "+core))
+        new DeviceConfig(key, name, params, offset, intrs, core, allcores)
       }
     }
   }
@@ -341,7 +348,7 @@ object Config {
     val SCache = new SCacheConfig(0)
     val ISPM = new SPMConfig(0)
     val DSPM = new SPMConfig(0)
-    val ExtMem = new ExtMemConfig(0,new DeviceConfig("", Map(), -1, List[Int]()))
+    val ExtMem = new ExtMemConfig(0,new DeviceConfig("","", Map(), -1, List[Int]()))
     val Devs = List[DeviceConfig]()
   }
 

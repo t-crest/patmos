@@ -46,20 +46,23 @@
 #include <machine/rtc.h>
 #include "eth_patmos_io.h"
 
-#define MODER        0x00  //Mode
-#define INT_SOURCE   0x04  //Interrupt source
-#define INT_MASK     0x08  //Interrupt mask
-#define IPGT         0x0C  //Back to back inter packet gap
-#define IPGR1        0x10  //Non back to back inter packet gap
-#define IPGR2        0x14  //Non back to back inter packet gap
-#define PACKETLEN    0x18  //Packet length (minimum and maximum)
-#define COLLCONF     0x1C  //Collision and retry configuration
-#define TX_BD_NUM    0x20  //Transmit buffer descriptor number
-#define CTRLMODER    0x24  //Control module mode
-#define MIIMODER     0x28  //MII mode register
-#define MIICOMMAND   0x2C  //MII command
-#define MIIADDRESS   0x30  //MII address register containts the phy address 
-                           //and the register with the phy address
+#define MODER_ADDR        0x00  //Mode
+#define INT_SOURCE_ADDR   0x04  //Interrupt source
+#define INT_MASK_ADDR     0x08  //Interrupt mask
+#define IPGT_ADDR         0x0C  //Back to back inter packet gap
+#define IPGR1_ADDR        0x10  //Non back to back inter packet gap
+#define IPGR2_ADDR        0x14  //Non back to back inter packet gap
+#define PACKETLEN_ADDR    0x18  //Packet length (minimum and maximum)
+#define COLLCONF_ADDR     0x1C  //Collision and retry configuration
+#define TX_BD_NUM_ADDR    0x20  //Transmit buffer descriptor number
+#define CTRLMODER_ADDR    0x24  //Control module mode
+#define MIIMODER_ADDR     0x28  //MII mode register
+#define MIICOMMAND_ADDR   0x2C  //MII command
+#define MIIADDRESS_ADDR   0x30  //MII address register containts the phy address 
+                                //and the register with the phy address
+#define MIITX_DATA_ADDR   0x34  // 16-bit transmit data to selected phy register
+#define MIIRX_DATA_ADDR   0x38  // 16-bit received data from selected phy register
+#define MIISTATUS         0x3C  // MII Status
 
 #define RECSMALL_BIT 0x10000
 #define PAD_BIT      0x08000
@@ -77,6 +80,13 @@
 #define NOPRE_BIT    0x00004
 #define TXEN_BIT     0x00002
 #define RXEN_BIT     0x00001
+
+#define WCTRLDATA_BIT   0x4
+#define RSTAT_BIT       0x2
+#define SCANSTAT_BIT    0x1
+#define NVALID_BIT      0x4
+#define BUSY_BIT        0x2
+#define LINKFAIL_BIT    0x1
 
 #define TX_BD_ADDR_BASE             0x400
 #define TX_BD_ADDR_END(TX_BD_NUM)   TX_BD_ADDR_BASE + TX_BD_NUM * 8
@@ -135,11 +145,20 @@ void eth_mac_send(unsigned int tx_addr, unsigned int frame_length);
 //This function sends an ethernet frame located at tx_addr and of length frame_length (NON-BLOCKING call).
 unsigned eth_mac_send_nb(unsigned int tx_addr, unsigned int frame_length);
 
-//This function receive an ethernet frame and put it in rx_addr.
+//This function receive an ethernet frame and put it in rx_addr by clear the buffer.
 unsigned eth_mac_receive(unsigned int rx_addr, unsigned long long int timeout);
 
-//This function receive an ethernet frame and put it in rx_addr (Non-blocking call).
+//This function receive an ethernet frame and put it in rx_addr (Non-blocking call) by clear the buffer.
 unsigned eth_mac_receive_nb(unsigned int rx_addr);
+
+//This functions checks if ethmac buffer at the address has a frame without clearing it
+unsigned eth_mac_has_frame(unsigned int rx_addr);
+
+//This functions checks if ethmac buffer descriptor is ready with frame
+int eth_mac_isready_rx_buffer(unsigned int rx_buff, unsigned int rx_bd);
+
+//This function clears the buffer descriptor from the frame
+void eth_mac_clear_rx_buffer(unsigned int rx_buff, unsigned int rx_bd);
 
 //This function initilize the ethernet controller (only for the demo).
 void eth_mac_initialize();
@@ -192,6 +211,7 @@ void set_rx_db_irq();
 
 unsigned get_rx_db_irq();
 
+int send_phy_command(unsigned short cmd, unsigned char reg_addr, unsigned char phy_addr);
 
 /////////////////////
 // Help functions

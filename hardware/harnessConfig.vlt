@@ -1,20 +1,20 @@
 `verilator_config
-public_flat_rw -module "MCacheReplFifo" -var "hitNext" @(negedge clock)
-public_flat_rw -module "MCacheReplFifo" -var "selCacheNext" @(negedge clock)
-public_flat_rw -module "MCacheReplFifo" -var "selSpmNext" @(negedge clock)
-public_flat_rw -module "MCacheReplFifo" -var "callRetBaseNext" @(negedge clock)
-public_flat_rw -module "MCacheCtrl" -var "callRetBaseNext" @(negedge clock)
-public_flat_rw -module "ICacheReplDm" -var "selCacheNext" @(negedge clock)
-public_flat_rw -module "ICacheReplDm" -var "selSpmNext" @(negedge clock)
-public_flat_rw -module "ICacheReplDm" -var "callRetBaseNext" @(negedge clock)
-public_flat_rw -module "Fetch" -var "pcNext" @(negedge clock)
-public_flat_rw -module "Fetch" -var "relBaseNext" @(negedge clock)
-public_flat_rw -module "Fetch" -var "relocNext" @(negedge clock)
-public_flat_rw -module "Fetch" -var "selCacheNext" @(negedge clock)
-public_flat_rw -module "Fetch" -var "selSpmNext" @(negedge clock)
-public_flat_rw -module "MemBlock" -var "mem" @(negedge clock)
-public_flat_rw -module "Uart" -var "txQueue_io_enq_bits" @(negedge clock)
-public_flat_rw -module "Uart" -var "uartOcpEmu_Cmd" @(negedge clock)
-public_flat_rw -module "Uart" -var "uartOcpEmu_Addr" @(negedge clock)
-public_flat_rw -module "Uart" -var "uartOcpEmu_Data" @(negedge clock)
+public_flat_rw -module "MCacheReplFifo" -var "hitNext"
+public_flat_rw -module "MCacheReplFifo" -var "selCacheNext"
+public_flat_rw -module "MCacheReplFifo" -var "selSpmNext"
+public_flat_rw -module "MCacheReplFifo" -var "callRetBaseNext"
+public_flat_rw -module "MCacheCtrl" -var "callRetBaseNext"
+public_flat_rw -module "ICacheReplDm" -var "selCacheNext"
+public_flat_rw -module "ICacheReplDm" -var "selSpmNext"
+public_flat_rw -module "ICacheReplDm" -var "callRetBaseNext"
+public_flat_rw -module "Fetch" -var "pcNext"
+public_flat_rw -module "Fetch" -var "relBaseNext"
+public_flat_rw -module "Fetch" -var "relocNext"
+public_flat_rw -module "Fetch" -var "selCacheNext"
+public_flat_rw -module "Fetch" -var "selSpmNext"
+public_flat_rw -module "MemBlock" -var "mem"
+public_flat_rw -module "Uart" -var "txQueue_io_enq_bits"
+public_flat_rw -module "Uart" -var "uartOcpEmu_Cmd"
+public_flat_rw -module "Uart" -var "uartOcpEmu_Addr"
+public_flat_rw -module "Uart" -var "uartOcpEmu_Data"
 

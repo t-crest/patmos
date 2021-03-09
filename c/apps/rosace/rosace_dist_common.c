@@ -36,6 +36,14 @@ unsigned char nodeColdStart = 1;		//is used to indicate that a node has just boo
 unsigned char nodeFirstSync = 1;
 unsigned char nodeRecvEnable = 0;
 
+unsigned int tx_buff_addr = 0x800;
+
+unsigned int rx_buff_addr = 0x000;
+unsigned int rx_buff2_addr = 0x400;
+
+unsigned int rx_bd_addr = 0x600;
+unsigned int rx_bd2_addr = 0x608;
+
 uint64_t doubleToBytes(double x){
 	const union {double f; uint64_t b;} val = {.f = x};
 	return val.b;
@@ -57,6 +65,33 @@ void printSegmentInt(unsigned number)
     *(&SEGDISP+6) = (number >> 24) & 0xF;
     *(&SEGDISP+7) = (number >> 28) & 0xF;
 }
+
+unsigned getSegmentInt() 
+{
+	return (*(&SEGDISP+7) << 28) + (*(&SEGDISP+6) << 24) + (*(&SEGDISP+5) << 20) 
+			 + (*(&SEGDISP+4) << 16) + (*(&SEGDISP+3) << 12) + (*(&SEGDISP+2) << 8)
+			 + (*(&SEGDISP+1) << 4) + (*(&SEGDISP+0) & 0xF);
+}
+
+__attribute__((noinline))
+void reset_sync()
+{
+  nodeFirstSync = 1;
+  nodeColdStart = 1;
+  nodeIntegrated = 0;
+  nodeSyncStable = 0;
+  stableCycles = 0;
+  unstableCycles = 0;
+  stableClusters = 0;
+  unstableClusters = 0;
+  clkDiffLast = 0;
+  clkDiffSum = 0;
+  clkDiff = 0;
+  rxPcfCount = 0;
+	RTC_TIME_NS(PATMOS_IO_ETH) = 0x0;
+	RTC_TIME_SEC(PATMOS_IO_ETH) = 0x0;
+}
+
 
 __attribute__((noinline))
 void copy_output_vars(output_t* v, uint64_t step)
@@ -86,35 +121,44 @@ __attribute__((noinline))
 void config_ethmac()
 {
 	set_mac_address(0x1D000400, 0x00000289);
-	eth_iowr(MODER, (RECSMALL_BIT | CRCEN_BIT | FULLD_BIT | PRO_BIT | TXEN_BIT | RXEN_BIT));
-	eth_iowr(INT_SOURCE, INT_SOURCE_RXB_BIT);
-  eth_iowr(RX_BD_ADDR_BASE(eth_iord(TX_BD_NUM)), RX_BD_EMPTY_BIT | RX_BD_IRQEN_BIT | RX_BD_WRAP_BIT);
-	eth_iowr(INT_SOURCE, INT_SOURCE_TXB_BIT);
-	eth_iowr(TX_BD_ADDR_BASE, TX_BD_READY_BIT | TX_BD_IRQEN_BIT | TX_BD_PAD_EN_BIT);
+	eth_iowr(MODER_ADDR, (RECSMALL_BIT | CRCEN_BIT | FULLD_BIT | PRO_BIT | TXEN_BIT | RXEN_BIT));
+	eth_iowr(INT_SOURCE_ADDR, INT_SOURCE_RXB_BIT);
+	
+	eth_iowr(TX_BD_ADDR_BASE, 0x0 | TX_BD_IRQEN_BIT | TX_BD_PAD_EN_BIT | TX_BD_WRAP_BIT);
+	eth_iowr(TX_BD_ADDR_BASE+4, tx_buff_addr);
+
+	rx_bd_addr = RX_BD_ADDR_BASE(eth_iord(TX_BD_NUM_ADDR));
+  eth_iowr(rx_bd_addr, RX_BD_EMPTY_BIT | RX_BD_IRQEN_BIT | 0x0);
+	eth_iowr(rx_bd_addr+4, rx_buff_addr);
+	
+	rx_bd2_addr = RX_BD_ADDR_BASE(eth_iord(TX_BD_NUM_ADDR)) + 8;
+	eth_iowr(rx_bd2_addr, RX_BD_EMPTY_BIT | RX_BD_IRQEN_BIT | RX_BD_WRAP_BIT);
+	eth_iowr(rx_bd2_addr+4, rx_buff2_addr);
 }
 
-__attribute__((noinline))
-void reset_sync()
+void swap_eth_rx_buffers()
 {
-  nodeFirstSync = 1;
-  nodeColdStart = 1;
-  nodeIntegrated = 0;
-  nodeSyncStable = 0;
-  stableCycles = 0;
-  unstableCycles = 0;
-  stableClusters = 0;
-  unstableClusters = 0;
-  clkDiffLast = 0;
-  clkDiffSum = 0;
-  clkDiff = 0;
-  rxPcfCount = 0;
-	RTC_TIME_NS(PATMOS_IO_ETH) = 0x0;
-	RTC_TIME_SEC(PATMOS_IO_ETH) = 0x0;
+	unsigned int temp = rx_buff_addr;
+	rx_buff_addr = rx_buff2_addr;
+	rx_buff2_addr = temp;
+	temp = rx_bd_addr;
+	rx_bd_addr = rx_bd2_addr;
+	rx_bd2_addr = temp;
 }
 
-uint8_t isNodeSyncStable()
+int eth_mac_poll_for_frames()
 {
-	return nodeSyncStable;
+  int ethType = TIMEOUT;
+  schedtime_t listen_start = get_cpu_usecs();
+	 do{
+    if(eth_mac_has_frame(rx_buff_addr))
+    {
+      eth_mac_clear_rx_buffer(rx_buff2_addr, rx_bd2_addr);
+      ethType = (unsigned short) ((mem_iord_byte(rx_buff_addr + 12) << 8) + (mem_iord_byte(rx_buff_addr + 13)));
+      break;
+    }
+  }while(get_cpu_usecs() - listen_start <= (2*TTE_RECV_WINDOW_HALF*NS_TO_USEC));
+	return ethType;
 }
 
 __attribute__((noinline))
@@ -184,12 +228,11 @@ void sync_fun(unsigned long long start_time, unsigned long long current_time, Mi
 {
 	GPIO |= (1U << SYNCTASK_GPIO_BIT);
 	int ethFrameType = TIMEOUT;
-	PTP_RXCHAN_STATUS(PATMOS_IO_ETH) = 0x1; //Clear timestampAvail flag
 	unsigned long long listen_start = get_cpu_usecs(); //keep track when we started listening
 	#pragma loopbound min 1 max 1
 	do
 	{
-		if(eth_mac_receive_nb(rx_buff_addr))
+		if(eth_mac_has_frame(rx_buff_addr))
 		{
 			if((unsigned short) ((mem_iord_byte(rx_buff_addr + 12) << 8) + (mem_iord_byte(rx_buff_addr + 13))) == 0x891D)
 			{
@@ -201,33 +244,46 @@ void sync_fun(unsigned long long start_time, unsigned long long current_time, Mi
 				softTimestamp.seconds = (unsigned) RTC_TIME_SEC(PATMOS_IO_ETH);
 				#endif
 				ethFrameType = TTE_PCF;
+				PTP_RXCHAN_STATUS(PATMOS_IO_ETH) = 0x1; //Clear PTP timestampAvail flag
+			} else {
+				ethFrameType = UNSUPPORTED;
 			}
-			PTP_RXCHAN_STATUS(PATMOS_IO_ETH) = 0x1; //Clear PTP timestampAvail flag
+			eth_mac_clear_rx_buffer(rx_buff2_addr, rx_bd2_addr);
+			break;
 		}
-	} while(ethFrameType != TTE_PCF && get_cpu_usecs() - listen_start < 2*TTE_SYNC_WINDOW_HALF*NS_TO_USEC);
+	} while(get_cpu_usecs() - listen_start <= (2*TTE_SYNC_WINDOW_HALF*NS_TO_USEC));
 	//work
-	if(ethFrameType == TTE_PCF)
+	if(ethFrameType != TIMEOUT)
 	{
-		tte_pcf_handle(current_time, start_time);
-		#pragma loopbound min 1 max 5
-		for(int i=0; i<num_of_tasks; i++)
+		if(ethFrameType == TTE_PCF)
 		{
-			#pragma loopbound min 1 max 4
-			for(int n=0; n<tasks[i].nr_releases; n++)
-				tasks[i].release_times[n] = get_tte_aligned_time(tasks[i].release_times[n], tasks[i].period);
+			tte_pcf_handle(current_time, start_time);
+			#pragma loopbound min 1 max 5
+			for(int i=0; i<num_of_tasks; i++)
+			{
+				#pragma loopbound min 1 max 4
+				for(int n=0; n<tasks[i].nr_releases; n++)
+					tasks[i].release_times[n] = get_tte_aligned_time(tasks[i].release_times[n], tasks[i].period);
+			}
+			rxPcfCount += 1;
+		} else {
+			unstableCycles++;
 		}
-		rxPcfCount += 1;
-	} 
-	else if(ethFrameType == TIMEOUT)
-	{
-		unstableCycles++;
+		//Either way swap buffers and update sync state
+		swap_eth_rx_buffers();
+		int syncedCyclesWeight = (int) (stableCycles - unstableCycles);
+		nodeIntegrated = !nodeColdStart && syncedCyclesWeight > TTE_ASYNC2SYNC_THRES_CYCLES  && abs(clkDiff) <= TTE_PRECISION;
+	} else {
+			unstableCycles++;
+			nodeIntegrated = 0;
 	}
-	nodeIntegrated = !nodeColdStart && ethFrameType > 0 && (stableCycles - unstableCycles) > 0 && abs(clkDiff) < TTE_PRECISION;
+	int stableClustersWeight = (int) (stableClusters - unstableClusters);
 	if((nodeFirstSync && integration_cycle == 0 && nodeIntegrated) || !nodeFirstSync)
 	{
-		nodeSyncStable = nodeIntegrated && (stableClusters - unstableClusters) > TTE_ASYNC2SYNC_THRES;	
+		nodeSyncStable = nodeIntegrated &&  stableClustersWeight > TTE_ASYNC2SYNC_THRES_CLUSTERS;	
 		nodeFirstSync = 0;
-	} else if (nodeIntegrated && !nodeSyncStable)
+	} 
+	else if (!nodeIntegrated || !nodeSyncStable)
 	{
 		nodeFirstSync = 1;
 		nodeColdStart = 1;
@@ -241,14 +297,14 @@ void sync_fun(unsigned long long start_time, unsigned long long current_time, Mi
 		clkDiffSum = 0;
 		clkDiff = 0;
 	}
-	printSegmentInt(abs(clkDiff));
+	printSegmentInt(stableClustersWeight << 16 | (abs(clkDiff) & 0xFFFF));
 	LEDS = (nodeSyncStable << 7) + (nodeIntegrated << 6) + (ethFrameType & 0xF);
 	GPIO &= (0U << SYNCTASK_GPIO_BIT);
 }
 
 //This function sends an UDP packet to the dstination IP and destination MAC.
 __attribute__((noinline))
-int udp_send_tte(unsigned int tx_addr, unsigned int rx_addr, unsigned char tte_ct[], unsigned char tte_vl[], unsigned char tte_mac[], unsigned char destination_ip[], unsigned char source_ip[], unsigned short source_port, unsigned short destination_port, unsigned char data[], unsigned short data_length, uint16_t ipv4_id)
+int udp_send_tte(unsigned int tx_addr, unsigned char tte_ct[], unsigned char tte_vl[], unsigned char tte_mac[], unsigned char destination_ip[], unsigned char source_ip[], unsigned short source_port, unsigned short destination_port, unsigned char data[], unsigned short data_length, uint16_t ipv4_id)
 {
 	//Resolve the ip address
 	unsigned short udp_length = data_length + 8;
@@ -283,6 +339,10 @@ int udp_send_tte(unsigned int tx_addr, unsigned int rx_addr, unsigned char tte_c
 	checksum = udp_compute_checksum(tx_addr);
 	mem_iowr_byte(tx_addr + 40, (checksum >> 8));
 	mem_iowr_byte(tx_addr + 41, (checksum & 0xFF));
-	eth_mac_send(tx_addr, frame_length);
+	//Actually send
+	unsigned temp_config = eth_iord(INT_SOURCE_ADDR);
+	temp_config = eth_iord(TX_BD_ADDR_BASE);
+	eth_iowr(TX_BD_ADDR_BASE, temp_config | TX_BD_READY_BIT | ((frame_length<<16)|(0xF000)));
+	eth_iowr(INT_SOURCE_ADDR, temp_config | INT_SOURCE_TXB_BIT | TXEN_BIT);
 	return 1;
 }

@@ -12,7 +12,6 @@ LIBAUDIO=$(BUILDDIR)/libaudio.a
 LIBELF=$(BUILDDIR)/libelf.a
 LIBSD=$(BUILDDIR)/libsd.a
 
-USE_HWFPU?=0
 NOCINIT?=cmp/nocinit.c
 
 SHELL=/bin/bash
@@ -40,7 +39,7 @@ LDFLAGS-BOOTABLE?= \
 CFLAGS?=-target patmos-unknown-unknown-elf -O2 \
 	-I$(CURDIR) -I $(CURDIR)/libelf/ \
 	-mpatmos-disable-vliw \
-	-DUSE_HWFPU=$(USE_HWFPU) $(DEFINES)
+	$(DEFINES)
 LDFLAGS?= \
 	-mpatmos-method-cache-size=0x1000 \
 	-mpatmos-stack-base=0x200000 -mpatmos-shadow-stack-base=0x1f8000 \
