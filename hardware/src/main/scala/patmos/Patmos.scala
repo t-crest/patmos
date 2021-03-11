@@ -439,7 +439,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     ramCtrl.io.superMode <> cores(0).io.superMode
   } else {
     val memarbiter =
-      if(ramCtrl.isInstanceOf[DDR3Bridge]) {
+      if(ramCtrl.isInstanceOf[DDR3Bridge] || ramCtrl.isInstanceOf[OCRamCtrl]) {
         Module(new ocp.Arbiter(nrCores, ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
       } else {
         Module(new ocp.TdmArbiterWrapper(nrCores, ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))

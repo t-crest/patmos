@@ -122,7 +122,7 @@ int main(void)
 
   // call the application's _start()
   int retval = -1;
-;
+
   if (boot_info->master.entrypoint != NULL) {
 
     // enable global mode
