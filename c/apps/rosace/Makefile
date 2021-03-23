@@ -5,7 +5,7 @@ LIBMP=$(PATMOSHOME)/c/libmp
 LIBETH=$(PATMOSHOME)/c/ethlib
 NOCINIT?=$(PATMOSHOME)/c/cmp/nocinit.c
 SERIAL?=/dev/ttyUSB0
-
+BOARD?=altde2-all
 NODE?=AIRCRAFT_NODE
 
 # Flags for compiling normal applications
@@ -16,7 +16,13 @@ CFLAGS?=-target patmos-unknown-unknown-elf -O3 \
 	-I $(LIBNOC) \
 	-I $(LIBMP) \
 	-I $(LIBETH) \
+	-mpatmos-disable-vliw \
 	$(DEFINES)
+LDFLAGS?= \
+	-mpatmos-method-cache-size=0x1000 \
+	-mpatmos-stack-base=0x200000 -mpatmos-shadow-stack-base=0x1f8000 \
+	-Xgold --defsym -Xgold __heap_end=0x1f0000 \
+	-Xgold -T -Xgold $(BUILDDIR)/../hardware/spm_ram.t
 
 # WCET analysis
 
@@ -25,7 +31,7 @@ force:
 	touch rosace_patmos_cmp.c
 
 wcet_rosace_cyclic:
-	patmos-clang -D USE_FLOAT $(CFLAGS) $(NOCINIT) -mserialize=tpip.pml rosace_patmos_cyclic.c rosace_dist_common.c io.c sincos_lut.c assemblage_includes.c assemblage.c -o rosace_wcet.elf -L$(BUILDDIR) -lm
+	patmos-clang -D USE_FLOAT $(CFLAGS) $(LDFLAGS) $(NOCINIT) -mserialize=tpip.pml rosace_patmos_cyclic.c rosace_dist_common.c onera/*.c -o rosace_wcet.elf -L$(BUILDDIR) -lm
 	platin wcet --disable-ait -i tpip.pml -b rosace_wcet.elf -e h_c0_fun
 	platin wcet --disable-ait -i tpip.pml -b rosace_wcet.elf -e delta_e_c0_fun
 	platin wcet --disable-ait -i tpip.pml -b rosace_wcet.elf -e Vz_control_50483_fun
@@ -43,13 +49,13 @@ wcet_rosace_cyclic:
 	platin wcet --disable-ait -i tpip.pml -b rosace_wcet.elf -e Va_filter_100449_fun
 
 wcet_rosace_cyclic_common:
-	patmos-clang -D USE_FLOAT $(CFLAGS) $(NOCINIT) -mserialize=tpip.pml rosace_patmos_cyclic.c rosace_dist_common.c io.c sincos_lut.c assemblage_includes.c assemblage.c -o rosace_wcet.elf -L$(BUILDDIR) -lm
+	patmos-clang -D USE_FLOAT $(CFLAGS) $(LDFLAGS) $(NOCINIT) -mserialize=tpip.pml rosace_patmos_cyclic.c onera/*.c -o rosace_wcet.elf -L$(BUILDDIR) -lm
 	platin wcet --disable-ait -i tpip.pml -b rosace_wcet.elf -e rosace_init
 	platin wcet --disable-ait -i tpip.pml -b rosace_wcet.elf -e copy_output_vars
 	platin wcet --disable-ait -i tpip.pml -b rosace_wcet.elf -e execute_cyclic_loop
 
 wcet_rosace_dist_common:
-	patmos-clang -D USE_FLOAT -D AIRCRAFT_NODE $(CFLAGS) $(NOCINIT) -mserialize=tpip.pml $(LIBETH)/*.c printf.c rosace_distributed.c rosace_dist_common.c io.c sincos_lut.c assemblage_includes.c assemblage.c -o rosace_wcet.elf -L$(BUILDDIR) -lm
+	patmos-clang -D USE_FLOAT -D AIRCRAFT_NODE $(CFLAGS) $(LDFLAGS) $(NOCINIT) -mserialize=tpip.pml $(LIBETH)/*.c helpers/*.c rosace_distributed.c rosace_dist_common.c onera/*.c -o rosace_wcet.elf -L$(BUILDDIR) -lm
 	platin wcet --disable-ait -i tpip.pml -b rosace_wcet.elf -e reset_sync
 	platin wcet --disable-ait -i tpip.pml -b rosace_wcet.elf -e rosace_init
 	platin wcet --disable-ait -i tpip.pml -b rosace_wcet.elf -e logging_fun
@@ -58,7 +64,7 @@ wcet_rosace_dist_common:
 	
 
 wcet_aircraft_node:
-	patmos-clang -D USE_FLOAT -D AIRCRAFT_NODE $(CFLAGS) $(NOCINIT) -mserialize=tpip.pml $(LIBETH)/*.c printf.c rosace_distributed.c rosace_dist_common.c io.c sincos_lut.c assemblage_includes.c assemblage.c -o rosace_wcet.elf -L$(BUILDDIR) -lm
+	patmos-clang -D USE_FLOAT -D AIRCRAFT_NODE $(CFLAGS) $(LDFLAGS) $(NOCINIT) -mserialize=tpip.pml $(LIBETH)/*.c helpers/*.c rosace_distributed.c rosace_dist_common.c onera/*.c -o rosace_wcet.elf -L$(BUILDDIR) -lm
 	platin wcet --disable-ait -i tpip.pml -b rosace_wcet.elf -e sync_fun
 	platin wcet --disable-ait -i tpip.pml -b rosace_wcet.elf -e vl_ctrl_recv_fun
 	platin wcet --disable-ait -i tpip.pml -b rosace_wcet.elf -e vl_dyn_send_fun
@@ -68,25 +74,28 @@ wcet_aircraft_node:
 	platin wcet --disable-ait -i tpip.pml -b rosace_wcet.elf -e logging_fun
 
 wcet_filter_node:
-	patmos-clang -D USE_FLOAT -D FILTER_NODE $(CFLAGS) $(NOCINIT) -mserialize=tpip.pml $(LIBETH)/*.c printf.c rosace_distributed.c rosace_dist_common.c io.c sincos_lut.c assemblage_includes.c assemblage.c -o rosace_wcet.elf -L$(BUILDDIR) -lm
+	patmos-clang -D USE_FLOAT -D FILTER_NODE $(CFLAGS) $(LDFLAGS) $(NOCINIT) -mserialize=tpip.pml $(LIBETH)/*.c helpers/*.c rosace_distributed.c rosace_dist_common.c onera/*.c -o rosace_wcet.elf -L$(BUILDDIR) -lm
 	platin wcet --disable-ait -i tpip.pml -b rosace_wcet.elf -e sync_fun
 	platin wcet --disable-ait -i tpip.pml -b rosace_wcet.elf -e vl_dyn_recv_fun
 	platin wcet --disable-ait -i tpip.pml -b rosace_wcet.elf -e vl_filter_send_fun
 
 wcet_control_node:
-	patmos-clang -D USE_FLOAT -D CONTROL_NODE $(CFLAGS) $(NOCINIT) -mserialize=tpip.pml $(LIBETH)/*.c printf.c rosace_distributed.c rosace_dist_common.c io.c sincos_lut.c assemblage_includes.c assemblage.c -o rosace_wcet.elf -L$(BUILDDIR) -lm
+	patmos-clang -D USE_FLOAT -D CONTROL_NODE $(CFLAGS) $(LDFLAGS) $(NOCINIT) -mserialize=tpip.pml $(LIBETH)/*.c helpers/*.c rosace_distributed.c rosace_dist_common.c onera/*.c -o rosace_wcet.elf -L$(BUILDDIR) -lm
 	platin wcet --disable-ait -i tpip.pml -b rosace_wcet.elf -e sync_fun
 	platin wcet --disable-ait -i tpip.pml -b rosace_wcet.elf -e vl_filter_recv_fun
 	platin wcet --disable-ait -i tpip.pml -b rosace_wcet.elf -e vl_ctrl_send_fun
 
 rosace_patmos_cmp:
-	patmos-clang -D USE_FLOAT $(CFLAGS) $(NOCINIT) printf.c rosace_patmos_cmp.c io.c sincos_lut.c assemblage_includes.c assemblage.c pthread_barrier.c -o rosace_patmos.elf -L$(BUILDDIR) -lm
+	patmos-clang -D USE_FLOAT $(CFLAGS) $(LDFLAGS) $(NOCINIT) helpers/*.c rosace_patmos_cmp.c onera/*.c -o rosace_patmos.elf -L$(BUILDDIR) -lm
 
 rosace_patmos_cyclic:
-	patmos-clang -D USE_FLOAT $(CFLAGS) $(NOCINIT) printf.c rosace_patmos_cyclic.c rosace_dist_common.c io.c sincos_lut.c assemblage_includes.c assemblage.c -o rosace_patmos.elf -L$(BUILDDIR) -lm
+	patmos-clang -D USE_FLOAT  $(CFLAGS) $(LDFLAGS) $(NOCINIT) $(LIBETH)/*.c helpers/*.c rosace_patmos_cyclic.c onera/*.c -o rosace_patmos.elf -L$(BUILDDIR) -lm
 
 rosace_distributed_node:
-	patmos-clang -D USE_FLOAT -D $(NODE) $(CFLAGS) $(NOCINIT) $(LIBETH)/*.c printf.c rosace_distributed.c rosace_dist_common.c io.c sincos_lut.c assemblage_includes.c assemblage.c -o rosace_patmos.elf -L$(BUILDDIR) -lm
+	patmos-clang -D USE_FLOAT -D $(NODE) $(CFLAGS) $(LDFLAGS) $(NOCINIT) $(LIBETH)/*.c helpers/*.c rosace_distributed.c rosace_dist_common.c conera/*.c -o rosace_patmos.elf -L$(BUILDDIR) -lm
+	
+rosace_patmos_argo:
+	patmos-clang -D USE_FLOAT  $(CFLAGS) $(LDFLAGS) $(NOCINIT) $(LIBMP)/*.c $(LIBNOC)/*.c $(LIBETH)/*.c helpers/*.c rosace_patmos_argo.c onera/*.c -o rosace_patmos.elf -L$(BUILDDIR) -lm
 
 # running examples
 sim:
@@ -96,7 +105,7 @@ emu:
 	patemu rosace_patmos.elf
 
 config:
-	cd $(PATMOSHOME) && $(MAKE) config BOARD=altde2-all
+	cd $(PATMOSHOME) && $(MAKE) config BOARD=$(BOARD)
 
 download:
 	patserdow -v $(SERIAL) rosace_patmos.elf

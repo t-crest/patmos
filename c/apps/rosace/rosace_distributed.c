@@ -4,7 +4,6 @@
 #include <machine/patmos.h>
 #include <machine/spm.h>
 #include <machine/rtc.h>
-#include "printf.h"
 #include "assemblage_includes.h"
 #include "assemblage.h"
 #include "rosace_dist_common.h"

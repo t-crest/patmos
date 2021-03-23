@@ -2,7 +2,7 @@
 #include <machine/patmos.h>
 #include <machine/spm.h>
 #include <machine/rtc.h>
-#include "threads.h"
+#include "onera/threads.h"
 
 /* The only purpose of this file is to do 
  * some configuration if required before

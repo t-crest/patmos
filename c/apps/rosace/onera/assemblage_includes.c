@@ -1,5 +1,4 @@
 #include <math.h>
-#include "sincos_lut.h"
 #include "assemblage_includes.h"
 
 #define Q15 (1.0/(REAL_TYPE)((1<<15)-1))
@@ -38,9 +37,9 @@
 // const REAL_TYPE dt       = 1.0f/200.0;
 // const REAL_TYPE dt_de    = 1.0/200.0;
 // const REAL_TYPE dt_dx    = 1.0/200.0;
-const REAL_TYPE dt       = 1.0f/50.0;
-const REAL_TYPE dt_de    = 1.0/50.0;
-const REAL_TYPE dt_dx    = 1.0/50.0;
+const REAL_TYPE dt       = 1.0f/12.5;
+const REAL_TYPE dt_de    = 1.0f/12.5;
+const REAL_TYPE dt_dx    = 1.0f/12.5;
 
 /* Controller parameters */
 /* Altitude hold */
@@ -108,11 +107,6 @@ const REAL_TYPE Cm_0        = 0.04;
 const REAL_TYPE Cm_alpha   = -0.83;
 const REAL_TYPE Cm_deltae  = -1.5;
 const REAL_TYPE Cm_q       = -30;
-
-/* in-memory buffer for traces */
-//REAL_TYPE sample[SPL_SIZE][NBMAX_SAMPLE];
-//static unsigned long instant = 0;
-//static unsigned long sample_instant=0;
 
 #define FMTFLOAT "%5.15f"
 
@@ -822,7 +816,6 @@ h_filter_25(REAL_TYPE h){
 	return y;
 } /* end of h filter 25 Hz */
 
-
 /* Altitude hold controller 50 Hz */
 
 REAL_TYPE
@@ -904,7 +897,7 @@ altitude_hold_25(REAL_TYPE h_f, REAL_TYPE h_c){
 /* Altitude hold controller 12.5 Hz */
 
 REAL_TYPE
-altitude_hold_12(REAL_TYPE h_f, REAL_TYPE h_c){
+altitude_hold_12(REAL_TYPE h_f, REAL_TYPE h_c, REAL_TYPE Vz_c){
 	static REAL_TYPE y = 0.0;
 	static REAL_TYPE Ts_h = 1.0/12.5;
 	static REAL_TYPE integrator = 532.2730285;
@@ -928,11 +921,35 @@ altitude_hold_12(REAL_TYPE h_f, REAL_TYPE h_c){
 }
 
 /* Altitude hold controller 10 Hz */
-
 REAL_TYPE
 altitude_hold_10(REAL_TYPE h_f, REAL_TYPE h_c){
 	static REAL_TYPE y = 0.0;
 	static REAL_TYPE Ts_h = 1.0/10.0;
+	static REAL_TYPE integrator = 532.2730285;
+
+	if ((h_f - h_c) < -50) {
+		// Output
+		y = Vz_c;
+	}
+	else if ((h_f - h_c) > 50) {
+		// Output
+		y = -Vz_c;
+	}
+	else {
+		// Output
+		y = Kp_h * (h_f - h_c) + Ki_h * integrator;
+		// State
+		integrator += Ts_h * (h_f - h_c);
+	}
+
+	return y;
+}
+
+/* Altitude hold controller 3 Hz */
+REAL_TYPE
+altitude_hold_3(REAL_TYPE h_f, REAL_TYPE h_c, REAL_TYPE Vz_c){
+	static REAL_TYPE y = 0.0;
+	static REAL_TYPE Ts_h = 1.0/3.125;
 	static REAL_TYPE integrator = 532.2730285;
 
 	if ((h_f - h_c) < -50) {
@@ -1028,6 +1045,21 @@ Va_control_10(REAL_TYPE Va_f, REAL_TYPE Vz_f, REAL_TYPE q_f, REAL_TYPE Va_c){
 	return y;
 }
 
+/* Va Speed controller 3 Hz */
+REAL_TYPE
+Va_control_3(REAL_TYPE Va_f, REAL_TYPE Vz_f, REAL_TYPE q_f, REAL_TYPE Va_c){
+	static REAL_TYPE y = 0.0;
+	static REAL_TYPE Ts_K1 = 1.0/3.125;
+	static REAL_TYPE integrator = 0.0;
+
+	// Output
+	y = K1_intVa * integrator + K1_Va * (Va_f - Va_eq) + K1_Vz * Vz_f + K1_q * q_f + delta_th_eq;
+	// State
+	integrator += Ts_K1 * (Va_c - Va_f + Va_eq);
+
+	return y;
+}
+
 /* Vz Speed controller 50 Hz */
 REAL_TYPE
 Vz_control_50(REAL_TYPE Vz_f, REAL_TYPE Vz_c, REAL_TYPE q_f, REAL_TYPE az_f){
@@ -1093,6 +1125,21 @@ REAL_TYPE
 Vz_control_10(REAL_TYPE Vz_f, REAL_TYPE Vz_c, REAL_TYPE q_f, REAL_TYPE az_f){
 	static REAL_TYPE y = 0.0;
 	static REAL_TYPE Ts_K2 = 1.0/10.0;
+	static REAL_TYPE integrator = 0.0;
+
+	// Output
+	y = K2_intVz * integrator + K2_Vz * Vz_f + K2_q * q_f + K2_az * az_f + delta_e_eq;
+	// State
+	integrator += Ts_K2 * (Vz_c - Vz_f);
+
+	return y;
+}
+
+/* Vz Speed controller 3.125 Hz */
+REAL_TYPE
+Vz_control_3(REAL_TYPE Vz_f, REAL_TYPE Vz_c, REAL_TYPE q_f, REAL_TYPE az_f){
+	static REAL_TYPE y = 0.0;
+	static REAL_TYPE Ts_K2 = 1.0/3.125;
 	static REAL_TYPE integrator = 0.0;
 
 	// Output
@@ -1220,6 +1267,50 @@ void aircraft_dynamics (REAL_TYPE delta_e, REAL_TYPE T,  struct aircraft_dynamic
 
 	// instant++;
 	Time = Time + dt;
+}
+
+/* Flight dynamics */
+void aircraft_dynamics_prive (_SPM int *debut, _SPM struct aircraft_dynamics_prive_vars_t* spm, _SPM REAL_TYPE *delta_e, _SPM REAL_TYPE *T,  _SPM struct aircraft_dynamics_outs_t *outputs)
+{
+
+	if (*debut) {
+		*debut = 0;
+		spm->u     = Va_eq * MATH_COS(theta_eq);
+		spm->w     = Va_eq * MATH_SIN(theta_eq);
+		spm->q     = 0.0;
+		spm->theta = theta_eq;
+		spm->h     = h_eq;
+	}
+
+	spm->rho   = rho0 * pow(1.0 + T0_h / T0_0 * spm->h,- g0 / (Rs * T0_h) - 1.0);
+	spm->alpha = atan(spm->w/spm->u);
+	spm->V     = MATH_SQRT(spm->u * spm->u + spm->w * spm->w);
+	spm->qbar  = 0.5 * spm->rho * spm->V * spm->V;
+	spm->CL    = CL_deltae * *(delta_e) + CL_alpha * (spm->alpha - alpha_0);
+	spm->CD    = CD_0 + CD_deltae * *(delta_e) + CD_alpha * (spm->alpha - alpha_0) * (spm->alpha - alpha_0);
+	spm->Cm    = Cm_0 + Cm_deltae * *(delta_e) + Cm_alpha * spm->alpha + 0.5 * Cm_q * spm->q * cbar / spm->V;
+	spm->Xa    = - spm->qbar * S * (spm->CD * MATH_COS(spm->alpha) - spm->CL * MATH_SIN(spm->alpha));
+	spm->Za    = - spm->qbar * S * (spm->CD * MATH_SIN(spm->alpha) + spm->CL * MATH_COS(spm->alpha));
+	spm->Ma    = spm->qbar * cbar * S * spm->Cm;
+
+	// Output
+	outputs -> Va = spm->V;
+	outputs -> Vz = spm->w * MATH_COS(spm->theta) - spm->u * MATH_SIN(spm->theta);
+	outputs -> q  = spm->q;
+	outputs -> az = g0 * MATH_COS(spm->theta) + spm->Za / masse;
+	outputs -> h  = spm->h;
+	// State Equation
+	spm->u_dot     = - g0 * MATH_SIN (spm->theta) - spm->q * spm->w + (spm->Xa + *T) / masse;
+	spm->w_dot     = g0 * MATH_COS (spm->theta) + spm->q * spm->u + spm->Za / masse;
+	spm->q_dot     = spm->Ma / I_y;
+	spm->theta_dot = spm->q;
+	spm->h_dot     = spm->u * MATH_SIN(spm->theta) - spm->w * MATH_COS(spm->theta);
+	// Update State
+	spm->u     += dt * spm->u_dot;
+	spm->w     += dt * spm->w_dot;
+	spm->q     += dt * spm->q_dot;
+	spm->theta += dt * spm->theta_dot;
+	spm->h     += dt * spm->h_dot;
 }
 
 /*

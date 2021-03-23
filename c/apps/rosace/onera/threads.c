@@ -1,18 +1,16 @@
 #include "assemblage.h"
 #include "assemblage_includes.h"
-#include "barrier_counter.h"
-#include "pthread_barrier.h"
+#include "threads.h"
 #include "types.h"
 #include <machine/patmos.h>
 #include <machine/rtc.h>
 #include <machine/spm.h>
 #include <pthread.h>
-#include <stdio.h>
 #include <unistd.h> // For sleep()
 
 // This should be set to 1 to run in "real-time" in the sense
 // that the simulation time is close to the real world time
-#define RUN_WITH_REAL_TIME 1
+#define RUN_WITH_REAL_TIME 0
 #define DEADLINE *((volatile _SPM unsigned int*)(PATMOS_IO_DEADLINE))
 
 // Task set

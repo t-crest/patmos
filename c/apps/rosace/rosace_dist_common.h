@@ -6,8 +6,8 @@
 #include <machine/patmos.h>
 #include <machine/spm.h>
 #include <machine/rtc.h>
-#include "printf.h"
-#include "io.h"
+#include "helpers/printf.h"
+#include "onera/io.h"
 #include "ethlib/eth_mac_driver.h"
 #include "ethlib/icmp.h"
 #include "ethlib/arp.h"

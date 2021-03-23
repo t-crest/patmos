@@ -1,7 +1,7 @@
-#include <stdio.h>
 #include <machine/patmos.h>
 #include <machine/spm.h>
 #include <machine/rtc.h>
+#include "../helpers/printf.h"
 #include "types.h"
 #include "io.h"
 
@@ -17,7 +17,7 @@ void ROSACE_update_altitude_command(REAL_TYPE h_cons){
 void ROSACE_write_outputs(output_t* v){
   static int first=1;
   if (first) {
-    printf("# %7s, %12s, %12s, %12s, %12s, %12s, %5s, %5s\n",
+    printf("%s, %7s, %12s, %12s, %12s, %5s, %5s\n",
            "T","Va","az","q","Vz","h","delta_th_c","delta_e_c");
     first = 0;
   }

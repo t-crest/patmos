@@ -3,6 +3,33 @@
 #include "types.h"
 #include "io.h"
 
+struct aircraft_dynamics_prive_vars_t{
+
+	REAL_TYPE u;
+	REAL_TYPE w;
+	REAL_TYPE q;
+	REAL_TYPE theta;
+	REAL_TYPE h;
+	REAL_TYPE u_dot;
+	REAL_TYPE w_dot;
+	REAL_TYPE q_dot;
+	REAL_TYPE theta_dot;
+	REAL_TYPE h_dot;
+
+	REAL_TYPE CD;
+	REAL_TYPE CL;
+	REAL_TYPE Cm;
+
+	REAL_TYPE Xa;
+	REAL_TYPE Za;
+	REAL_TYPE Ma;
+
+	REAL_TYPE alpha;
+	REAL_TYPE qbar;
+	REAL_TYPE V;
+	REAL_TYPE rho;
+};
+
 
 /* ***************************************************************************
  * Shared constants
@@ -133,10 +160,13 @@ REAL_TYPE
 altitude_hold_25 (REAL_TYPE h_f, REAL_TYPE h_c);
 
 REAL_TYPE
-altitude_hold_12 (REAL_TYPE h_f, REAL_TYPE h_c);
+altitude_hold_12 (REAL_TYPE h_f, REAL_TYPE h_c, REAL_TYPE Vz_c);
 
 REAL_TYPE
 altitude_hold_10 (REAL_TYPE h_f, REAL_TYPE h_c);
+
+REAL_TYPE
+altitude_hold_3(REAL_TYPE h_f, REAL_TYPE h_c, REAL_TYPE Vz_c);
 
 /**
  * Vz Speed controller (rate 50/33/25/10 Hz sampling period 0.02/0.03/0.04/0.1)
@@ -162,6 +192,9 @@ Vz_control_12 (REAL_TYPE Vz_f, REAL_TYPE Vz_c, REAL_TYPE q_f, REAL_TYPE az_f);
 REAL_TYPE
 Vz_control_10 (REAL_TYPE Vz_f, REAL_TYPE Vz_c, REAL_TYPE q_f, REAL_TYPE az_f);
 
+REAL_TYPE
+Vz_control_3 (REAL_TYPE Vz_f, REAL_TYPE Vz_c, REAL_TYPE q_f, REAL_TYPE az_f);
+
 /**
  * Va Speed controller (rate 50/33/25/10 Hz sampling period 0.02/0.03/0.04/0.1)
  * @param[in] Va_f, filtered airspeed (m/s)
@@ -184,6 +217,9 @@ Va_control_12 (REAL_TYPE Va_f, REAL_TYPE Vz_f, REAL_TYPE q_f, REAL_TYPE Va_c);
 
 REAL_TYPE
 Va_control_10 (REAL_TYPE Va_f, REAL_TYPE Vz_f, REAL_TYPE q_f, REAL_TYPE Va_c);
+
+REAL_TYPE
+Va_control_3 (REAL_TYPE Va_f, REAL_TYPE Vz_f, REAL_TYPE q_f, REAL_TYPE Va_c);
 
 /**
  * Engine (200 Hz --> 5ms period)
@@ -216,6 +252,8 @@ elevator(REAL_TYPE delta_e_c);
  */
 void
 aircraft_dynamics (REAL_TYPE delta_e, REAL_TYPE T,  struct aircraft_dynamics_outs_t *outputs);
+void 
+aircraft_dynamics_prive (_SPM int *debut, _SPM struct aircraft_dynamics_prive_vars_t* spm, _SPM REAL_TYPE *delta_e, _SPM REAL_TYPE *T,  _SPM struct aircraft_dynamics_outs_t *outputs);
 
 /* ***************************************************************************
  * The prelude sensor node prototypes

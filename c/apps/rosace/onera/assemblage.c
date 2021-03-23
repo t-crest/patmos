@@ -99,7 +99,7 @@ int altitude_hold_50464_fun(void* args)
   static int instance=0;
   
   Vz_c=altitude_hold_12(h_filter_100446_h_f_altitude_hold_50464_h_f[h_f_rcell],
-  h_c_altitude_hold_50464_h_c);
+  h_c_altitude_hold_50464_h_c, altitude_hold_50464_Vz_c_Vz_control_50483_Vz_c);
   h_f_rcell=(h_f_rcell+1)%2;
   altitude_hold_50464_Vz_c_Vz_control_50483_Vz_c=Vz_c;
   instance++;
