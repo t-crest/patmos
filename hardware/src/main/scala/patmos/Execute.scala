@@ -377,10 +377,15 @@ class Execute() extends Module {
       when(exReg.copOp.isCop) {
         io.cop_out(exReg.copOp.copId).ena_in := io.ena_in
         io.cop_out(exReg.copOp.copId).trigger := io.ena_in && !copStarted
+        io.cop_out(exReg.copOp.copId).isCustom := exReg.copOp.isCustom
         io.cop_out(exReg.copOp.copId).read := exReg.wrRd(0)
         io.cop_out(exReg.copOp.copId).funcId := exReg.copOp.funcId
+        io.cop_out(exReg.copOp.copId).opAddr(0) := exReg.rsAddr(0)
+        io.cop_out(exReg.copOp.copId).opAddr(1) := exReg.rsAddr(1)
         io.cop_out(exReg.copOp.copId).opData(0) := op(0)
         io.cop_out(exReg.copOp.copId).opData(1) := op(1)
+        io.cop_out(exReg.copOp.copId).opAddrCop(0) := exReg.copOp.rsAddrCop(0)
+        io.cop_out(exReg.copOp.copId).opAddrCop(1) := exReg.copOp.rsAddrCop(1)
     
         enable_cop := io.cop_in(exReg.copOp.copId).ena_out
         io.exmem.rd(0).data := io.cop_in(exReg.copOp.copId).result

@@ -350,6 +350,7 @@ class Decode() extends Module {
       //custom
       when(instr(0) === COP_CUSTOM_BIT)
       {
+        io.decex.copOp.isCustom := Bool(true)
         io.decex.copOp.copId := copId
         io.decex.copOp.funcId := Cat("b00".U , instr(3, 1))
         io.decex.wrRd(0) := Bool(true)
@@ -359,6 +360,7 @@ class Decode() extends Module {
         when(instr(1) === COP_READ_BIT)
         {
           //read
+          io.decex.copOp.rsAddrCop(0) := instr(3)
           io.decex.copOp.copId := copId
           io.decex.copOp.funcId := instr(11, 7)
           io.decex.wrRd(0) := Bool(true)
@@ -366,6 +368,8 @@ class Decode() extends Module {
         }.otherwise
         {
           //write
+          io.decex.copOp.rsAddrCop(0) := instr(3)
+          io.decex.copOp.rsAddrCop(1) := instr(2)
           io.decex.copOp.copId := copId
           io.decex.copOp.funcId := instr(21, 17)
           io.decex.wrRd(0) := Bool(false)

@@ -99,11 +99,15 @@ class MemOp() extends Bundle() {
 
 class CopOp() extends Bundle() {
   val isCop = Bool()
+  val isCustom = Bool()
+  val rsAddrCop = Vec(2, Bool())
   val copId = UInt(width = COP_ID_WIDTH)
   val funcId = UInt(width = COP_FUNCID_WIDTH)
 
   def defaults() = {
     isCop := Bool(false)
+    isCustom := Bool(false)
+    rsAddrCop := Vec.fill(2) { Bool(false) }
     copId := UInt(0)
     funcId := UInt(0)
   }
@@ -384,16 +388,22 @@ class PatmosToCoprocessor() extends Bundle()
 {
   val ena_in  = Bool()
   val trigger = Bool()
-  val read    = Bool()
-  val funcId  = UInt(width = COP_FUNCID_WIDTH)
-  val opData  = Vec(2, UInt(width = DATA_WIDTH) )
+  val isCustom = Bool()
+  val read = Bool()
+  val funcId = UInt(width = COP_FUNCID_WIDTH)
+  val opAddr = Vec(2, UInt(width = REG_BITS))
+  val opData = Vec(2, UInt(width = DATA_WIDTH))
+  val opAddrCop = Vec(2, Bool())
   
   def defaults() = {
     ena_in := Bool(false)
     trigger := Bool(false)
+    isCustom := Bool(false)
     read := Bool(false)
     funcId := UInt(0)
+    opAddr := Vec.fill(2) { UInt(0) }
     opData := Vec.fill(2) { UInt(0) }
+    opAddrCop := Vec.fill(2) { Bool(false) }
   }
 }
 
