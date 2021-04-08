@@ -14,8 +14,9 @@
   <!-- <ExtMem size="128k" DevTypeRef="OCRam" /> -->
 
   <IOs>
-  <IO DevTypeRef="Leds" offset="9"/>
-  <IO DevTypeRef="Keys" offset="10" intrs="2,3,4,5"/>
+    <IO DevTypeRef="Leds" offset="9"/>
+    <IO DevTypeRef="Keys" offset="10" intrs="2,3,4,5"/>
+    <IO DevTypeRef="Sha256" offset="11"/>
   </IOs>
 
   <Devs>
@@ -29,27 +30,24 @@
         <param name="keyCount" value="4"/>
       </params>
     </Dev>
-  <Dev DevType="Sram16" entity="SRamCtrl" iface="OcpBurst">
-    <params>
-      <param name="ocpAddrWidth" value="21" />
-      <param name="sramAddrWidth" value="20" />
-      <param name="sramDataWidth" value="16" />
-    </params>
-  </Dev>
-  <Dev DevType="OCRam" entity="OCRamCtrl" iface="OcpBurst">
-    <params>
-       <param name="sramDataWidth" value="19" />
-    </params>
-  </Dev>
+    <Dev DevType="Sha256" entity="Sha256" iface="OcpCore"/>
+    <Dev DevType="Sram16" entity="SRamCtrl" iface="OcpBurst">
+      <params>
+        <param name="ocpAddrWidth" value="21" />
+        <param name="sramAddrWidth" value="20" />
+        <param name="sramDataWidth" value="16" />
+      </params>
+    </Dev>
+    <Dev DevType="OCRam" entity="OCRamCtrl" iface="OcpBurst">
+      <params>
+         <param name="sramDataWidth" value="19" />
+      </params>
+    </Dev>
   </Devs>
 
   <Coprocessors>
-    <Coprocessor Name="Adder" CoprocessorID="0" requiresMemoryAccess="True">
-        <params>
-			<param name="param1" value="1" />
-		</params>
-    </Coprocessor>
-    <Coprocessor Name="Fibonacci" CoprocessorID="1"/>
+    <Coprocessor Name="Adder" CoprocessorID="0" requiresMemoryAccess="True" />
+    <Coprocessor Name="Fibonacci" CoprocessorID="1" />
   </Coprocessors>
   
 </patmos>

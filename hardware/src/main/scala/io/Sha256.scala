@@ -9,6 +9,10 @@ package io
 
 import Chisel._
 
+import patmos.Constants._
+
+import chisel3.dontTouch
+
 import ocp._
 
 object Sha256 extends DeviceObject {
@@ -21,7 +25,7 @@ object Sha256 extends DeviceObject {
 
 class Sha256() extends CoreDevice() {
 
-  override val io = new CoreDeviceIO()
+  override val io = IO(new CoreDeviceIO())
   
   // Register for requests from OCP master
   val masterReg = Reg(next = io.ocp.M)
@@ -98,7 +102,7 @@ class Sha256() extends CoreDevice() {
   val msgRdData = msg(idxReg(log2Up(MSG_WORD_COUNT)-1, 0))
 
   // Helper signal for byte enables
-  val comb = Vec.fill(masterReg.ByteEn.getWidth) { UInt(width = 8) }
+  val comb = Wire(Vec(masterReg.ByteEn.getWidth, UInt(width = 8)))
   for (i <- 0 until masterReg.ByteEn.getWidth) {
     comb(i) := UInt(0)
   }
@@ -138,7 +142,7 @@ class Sha256() extends CoreDevice() {
 
   // On-the-fly expansion of working memory
   // See Chavez et al., "Improving SHA-2 Hardware Implementations", CHES 2006
-  val w0 = UInt(DATA_WIDTH.W)
+  val w0 = Wire(UInt(DATA_WIDTH.W))
   val wt = Reg(Vec(13, UInt(DATA_WIDTH.W)))
   val wx = Reg(UInt(DATA_WIDTH.W))
   val wy = Reg(UInt(DATA_WIDTH.W))
