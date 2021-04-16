@@ -1,5 +1,5 @@
 <patmos default="default.xml">
-  <description>configuration for DE2-115 board with Coprocessors</description>
+  <description>configuration for DE2-115 board with coprocessors</description>
 
   <frequency Hz="80000000"/>  
 
@@ -46,8 +46,7 @@
   </Devs>
 
   <Coprocessors>
-    <Coprocessor Name="Adder" CoprocessorID="0" requiresMemoryAccess="True" />
-    <Coprocessor Name="Fibonacci" CoprocessorID="1" />
+    <Coprocessor Name="Sha256" CoprocessorID="0" requiresMemoryAccess="True" />
   </Coprocessors>
   
 </patmos>
