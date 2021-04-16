@@ -4,22 +4,22 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#define INLINE_PREFIX static inline       // usable for inlining of benchmark-related leaf-functions
-#define CORRECT_BUSY_START                // correct minor inaccuracies if detailed timing is enabled
-#define TIME_IDLE                         // enable timing of idle-periods (i.e. busy-waiting)
+#define INLINE_PREFIX static inline                   // for inlining of benchmark-related leaf-functions
+#define DATA_ALIGNMENT __attribute__((aligned(16)))   // for burst-length alignment of msg- and hash-buffers
+#define TIME_IDLE                                     // enable timing of idle-periods (i.e. busy-waiting)
 
 /*----------------------------------------DEFINITIONS FOR SHA-256 IO-DEVICE------------------------------------------*/
 #define HASH_WORDS (8)                                        // 8 words per hash
 #define BLOCK_WORDS (16)                                      // 16 words per data block
 #define TERMINATION_WORDS (2)                                 // 2 words required for length termination
 
-#define HASH_BYTES (HASH_WORDS * sizeof(int32_t))
-#define BLOCK_BYTES (BLOCK_WORDS * sizeof(int32_t))
+#define HASH_BYTES (HASH_WORDS * sizeof(uint32_t))
+#define BLOCK_BYTES (BLOCK_WORDS * sizeof(uint32_t))
 #define PADDING_BYTES (1)                                     // at least 1 byte required for padding (0x80)
-#define TERMINATION_BYTES (TERMINATION_WORDS * sizeof(int32_t))
+#define TERMINATION_BYTES (TERMINATION_WORDS * sizeof(uint32_t))
 
 #define MAX_MSG_WORDS (8 * BLOCK_WORDS)
-#define MAX_MSG_BYTES (MAX_MSG_WORDS * sizeof(int32_t))
+#define MAX_MSG_BYTES (MAX_MSG_WORDS * sizeof(uint32_t))
 
 // define SHA-256 IO-device pointer
 _iodev_ptr_t sha_ptr = (_iodev_ptr_t)0xf00b0000;
@@ -27,7 +27,7 @@ _iodev_ptr_t sha_ptr_write = (_iodev_ptr_t)0xf00b0080;
 _iodev_ptr_t sha_ptr_read = (_iodev_ptr_t)0xf00b0040;
 
 // SHA-256 message state
-char msg_buf[MAX_MSG_BYTES] = { 0x00 };
+char msg_buf[MAX_MSG_BYTES] DATA_ALIGNMENT = { 0x00 };
 uint32_t *msg_buf_word = (uint32_t *)msg_buf;
 uint32_t msg_blocks = 0;
 uint32_t msg_block_cursor = 0;
@@ -148,46 +148,42 @@ void benchmark_hash(uint32_t *hash, uint32_t *busy_time_s, uint32_t *busy_time_r
   uint32_t busy_start;
   uint32_t idle_start;
   
-  busy_start = get_time32();
-  // send blocks
-  while(!send_next_block())
+  bool done = false;
+  
+  while(!done)
   {
-    #ifdef TIME_IDLE
-      idle_start = get_time32();
-      busy_acc_s += (idle_start - busy_start);
-    #endif
+    busy_start = get_time32();
     
+    asm volatile ("" ::: "memory");
+    done = send_next_block();
+    asm volatile ("" ::: "memory");
+    
+    idle_start = get_time32();
+    asm volatile ("" ::: "memory");
+    busy_acc_s += (idle_start - busy_start);
+    
+    asm volatile ("" ::: "memory");
     busy_wait();
+    asm volatile ("" ::: "memory");
     
     #ifdef TIME_IDLE
       busy_start = get_time32();
       idle_acc += (busy_start - idle_start);
-      #ifdef CORRECT_BUSY_START
-        busy_start = get_time32();  // correction to account for previous line
-      #endif
     #endif
   }
-  idle_start = get_time32();
-  busy_acc_s += (idle_start - busy_start);
   
-  busy_wait();
-  
-  #ifdef TIME_IDLE
+  #ifndef TIME_IDLE
     busy_start = get_time32();
-    idle_acc += (busy_start - idle_start);
-    #ifdef CORRECT_BUSY_START
-      busy_start = get_time32();  // correction to account for previous line
-    #endif
-  #else
-    busy_start = idle_start;
   #endif
   
-  // hash array
+  asm volatile ("" ::: "memory");
   retrieve_hash(hash);
+  asm volatile ("" ::: "memory");
   
   idle_start = get_time32();
   busy_acc_r += (idle_start - busy_start);
   
+  asm volatile ("" ::: "memory");
   *busy_time_s = busy_acc_s;
   *busy_time_r = busy_acc_r;
   *idle_time = idle_acc;
@@ -216,7 +212,7 @@ const char *benchmark_strings[] = { "",
 uint32_t benchmark_string_count = sizeof(benchmark_strings) / sizeof(benchmark_strings[0]);
 
 int main(int argc, char **argv) {
-  uint32_t hash[HASH_WORDS];
+  uint32_t hash[HASH_WORDS] DATA_ALIGNMENT;
   uint32_t busy_time_s;
   uint32_t busy_time_r;
   uint32_t idle_time;
