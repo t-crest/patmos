@@ -371,9 +371,9 @@ class Execute() extends Module {
 
   // coprocessor handling
   if (COP_COUNT > 0) {
+    val copStarted = RegInit(Bool(false))
+    io.cop_out.map(_.defaults())
     when(!io.flush && doExecute(0)) {
-      val copStarted = RegInit(Bool(false))
-      io.cop_out.map(_.defaults())
       when(exReg.copOp.isCop) {
         io.cop_out(exReg.copOp.copId).ena_in := io.ena_in
         io.cop_out(exReg.copOp.copId).trigger := io.ena_in && !copStarted

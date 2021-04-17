@@ -32,6 +32,9 @@ uint32_t *msg_buf_word = (uint32_t *)msg_buf;
 uint32_t msg_blocks = 0;
 uint32_t msg_block_cursor = 0;
 
+// SHA-256 hash
+uint32_t hash[HASH_WORDS] DATA_ALIGNMENT;
+
 // Copy message into message state and pad
 // Returns number of blocks on success and 0 on failure
 uint32_t pad_message(const char *str, int32_t len)
@@ -141,6 +144,7 @@ void benchmark_hash(uint32_t *hash, uint32_t *busy_time_s, uint32_t *busy_time_r
 {  
   // perform SHA-256 device reset
   reset();
+  asm volatile ("" ::: "memory");
   
   uint32_t busy_acc_s = 0;
   uint32_t busy_acc_r = 0;
@@ -212,7 +216,6 @@ const char *benchmark_strings[] = { "",
 uint32_t benchmark_string_count = sizeof(benchmark_strings) / sizeof(benchmark_strings[0]);
 
 int main(int argc, char **argv) {
-  uint32_t hash[HASH_WORDS] DATA_ALIGNMENT;
   uint32_t busy_time_s;
   uint32_t busy_time_r;
   uint32_t idle_time;
