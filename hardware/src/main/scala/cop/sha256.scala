@@ -243,7 +243,6 @@ class Sha256() extends Coprocessor_MemoryAccess() {
   io.copOut.result := 0.U
   io.copOut.ena_out := Bool(false)
   
-  
   // start operation
   when(io.copIn.trigger & io.copIn.ena_in) {
     when(io.copIn.isCustom) {
@@ -317,13 +316,16 @@ class Sha256() extends Coprocessor_MemoryAccess() {
         when(word_count(BURST_OFFSET - 1, 0) < UInt(BURST_LENGTH - 1)) {
           word_count := word_count + 1.U
         }.otherwise {
+          block_addr := block_addr + UInt(BURST_ADDR_OFFSET)
           when(word_count(MSG_WORD_COUNT_WIDTH - 1, BURST_OFFSET) < UInt(BURSTS_PER_MSG - 1)) {
             word_count := word_count + 1.U
-            block_addr := block_addr + UInt(BURST_ADDR_OFFSET)
             mem_state := mem_read_req_m
           }.otherwise {
             word_count := 0.U
+            block_count := block_count - 1.U
             mem_state := mem_idle
+            idxReg := 0.U
+            stateReg := start
           }
         }
       }
@@ -341,15 +343,13 @@ class Sha256() extends Coprocessor_MemoryAccess() {
         when(word_count(BURST_OFFSET - 1, 0) < UInt(BURST_LENGTH - 1)) {
           word_count := word_count + 1.U
         }.otherwise {
-          when(word_count(HASH_WORD_COUNT_WIDTH - 1, BURST_OFFSET) < UInt(BURSTS_PER_MSG - 1)) {
-          word_count := word_count + 1.U
-            hash_addr := hash_addr + UInt(BURST_ADDR_OFFSET)
+          hash_addr := hash_addr + UInt(BURST_ADDR_OFFSET)
+          when(word_count(HASH_WORD_COUNT_WIDTH - 1, BURST_OFFSET) < UInt(BURSTS_PER_HASH - 1)) {
+            word_count := word_count + 1.U
             mem_state := mem_read_req_h
           }.otherwise {
             word_count := 0.U
             mem_state := mem_idle
-            stateReg := start
-            block_count := block_count - 1.U
           }
         }
       }
@@ -371,9 +371,9 @@ class Sha256() extends Coprocessor_MemoryAccess() {
         when(word_count(BURST_OFFSET - 1, 0) < UInt(BURST_LENGTH - 1)) {
           word_count := word_count + 1.U
         }.otherwise {
-          when(word_count(HASH_WORD_COUNT_WIDTH - 1, BURST_OFFSET) < UInt(BURSTS_PER_MSG - 1)) {
+          hash_addr := hash_addr + UInt(BURST_ADDR_OFFSET)
+          when(word_count(HASH_WORD_COUNT_WIDTH - 1, BURST_OFFSET) < UInt(BURSTS_PER_HASH - 1)) {
             word_count := word_count + 1.U
-            hash_addr := hash_addr + UInt(BURST_ADDR_OFFSET)
             mem_state := mem_write_req_h
           }.otherwise {
             word_count := 0.U
