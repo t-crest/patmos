@@ -13,9 +13,11 @@ Change switches for FPGA configuration to:
 
 Probably add USB blaster permissions for: Bus 001 Device 005: ID 09fb:6810 Altera and 09fb:6010
 
-A TTL UART is connected to GPIO pins 1 and 2 of GPIO 0. The MPU sensor is connected to GND and 3.3 V and pins 31, 32, and 33 for the AAU I2C interface or to GND, 3.3 V, and pins 38, 39, and 40 for the DTU I2C controller. Pins 6 and 5 are for the second UART and pins 20 - 13 are for the actuators and propdrives. See below.
+A TTL UART is connected to GPIO pins 1 and 2 of GPIO 0. The pins 38, 39, and 40 for the DTU I2C controller. Pins 6 and 5 are for the second UART and pins 24 - 13 are for the actuators and propdrives. Additionally, the UART3 and ADC Modules were added for the PREDICT Project. See below.
 
 ```
+GPIO 0
+____________________________
 SCL 40 * * 39 SDA
 AD0 38 * *
        * *
@@ -24,9 +26,9 @@ AD0 38 * *
 SDA 32 * * 31 SCL
 GND 30 * * 29 3.3V
        * *
-       * *
-       * *
-       * *
+txd 26 * * 25 rxd UART3
+AC3 24 * *
+AC3 22 * *
 AC3 20 * * 19 PROP3
 AC2 18 * * 17 PROP2
 AC1 16 * * 15 PROP1
@@ -37,6 +39,18 @@ GND 12 * * 11
 txd  6 * *  5 rxd UART2
      4 * *  3
 txd  2 * *  1 rxd UART
+____________________________
+
+ADC Module
+____________________________
+         9 * *  10 GND
+         7 * *
+         6 * *  5  GND
+         4 * *  3
+battery  2 * *  1  VCC5 
+feedback
+____________________________
+
 ```
 
 rxd and txd are from the Patmos view, therefore TTL UART rxd needs to
