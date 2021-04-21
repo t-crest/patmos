@@ -84,6 +84,8 @@ set_location_assignment PIN_AG14 -to pwm_measurment_input[0]
 set_location_assignment PIN_AE6 -to pwm_measurment_input[1]
 set_location_assignment PIN_AE24 -to pwm_measurment_input[2]
 set_location_assignment PIN_AD20 -to pwm_measurment_input[3]
+set_location_assignment PIN_AD17 -to pwm_measurment_input[4]
+set_location_assignment PIN_AC22 -to pwm_measurment_input[5]
 set_location_assignment PIN_U9 -to SPIMaster_nSS
 set_location_assignment PIN_V10 -to SPIMaster_sclk
 set_location_assignment PIN_AC4 -to SPIMaster_mosi

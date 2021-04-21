@@ -4,30 +4,28 @@
   <frequency Hz="50000000"/>
   <pipeline dual="false" />
   <cores count="4" />
-  <!-- <ExtMem size="500k" DevTypeRef="OCRam" /> -->
   <ExtMem size="1g" DevTypeRef="DDR3Bridge" />
 
   <IOs>
-  <IO DevTypeRef="Uart1" offset="6"/>
-  <IO DevTypeRef="Uart2" offset="7"/>
-  <IO DevTypeRef="Leds" offset="9"/>
-  <IO DevTypeRef="I2CMaster" offset="11"/>
-  <IO DevTypeRef="Actuators" offset="12"/>
-  <!-- <IO DevTypeRef="AauMpu" offset="15"/> -->
-  <IO DevTypeRef="SPIMaster" offset="14"/>
+  <IO DevTypeRef="Uart1" offset="6" core="3"/>
+  <IO DevTypeRef="Uart2" offset="7" core="3"/>
+  <IO DevTypeRef="Leds" offset="9" core="0"/>
+  <IO DevTypeRef="I2CMaster" offset="11" core="1"/>
+  <IO DevTypeRef="Actuators" offset="12" core="2"/>
+  <IO DevTypeRef="SPIMaster" offset="14" core="0"/>
   </IOs>
 
   <Devs>
     <Dev DevType="Uart1" entity="Uart" iface="OcpCore">
       <params>
         <param name="baudRate" value="115200"/>
-        <param name="fifoDepth" value="16"/>
+        <param name="fifoDepth" value="128"/>
       </params>
     </Dev>
     <Dev DevType="Uart2" entity="Uart" iface="OcpCore">
       <params>
-        <param name="baudRate" value="9600"/>
-        <param name="fifoDepth" value="16"/>
+        <param name="baudRate" value="115200"/>
+        <param name="fifoDepth" value="128"/>
       </params>
     </Dev>
     <Dev DevType="Leds" entity="Leds" iface="OcpCore">
@@ -46,7 +44,6 @@
           <param name="dataWidth" value="32" />
       </params>
     </Dev>
-    <!-- <Dev DevType="AauMpu" entity="AauMpu" iface="OcpCore" /> -->
 
     <Dev DevType="SPIMaster" entity="SPIMaster" iface="OcpCore">
       <params>
