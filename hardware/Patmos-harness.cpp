@@ -224,9 +224,11 @@ public:
   }
 
   void emu_keys(void){
+#ifdef IO_KEYS
     if ((rand() % 0x10000) == 0) {
       c->io_Keys_key = rand();
     }
+#endif
   }
 
   void UART_to_file(string path)
