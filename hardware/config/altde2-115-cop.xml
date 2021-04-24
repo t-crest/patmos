@@ -10,6 +10,8 @@
   <CmpDev name="Argo" />
   </CmpDevs> -->
 
+  <bus roundRobinArbiter="true" />
+  
   <ExtMem size="2M" DevTypeRef="Sram16" />
   <!-- <ExtMem size="128k" DevTypeRef="OCRam" /> -->
 

@@ -440,7 +440,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
     // Instantiate coprocessors
     for (k <- (0 until COP_COUNT)) {
-      val copConf = Config.getConfig.Coprocessors(k)
+      val copConf = config.Coprocessors(k)
       val id = copConf.CoprocessorID;
 
       if(copConf.requiresMemoryAccess)
@@ -489,7 +489,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     } 
 
     val memarbiter =
-      if(ramCtrl.isInstanceOf[DDR3Bridge] || ramCtrl.isInstanceOf[OCRamCtrl]) {
+      if(ramCtrl.isInstanceOf[DDR3Bridge] || ramCtrl.isInstanceOf[OCRamCtrl] || config.roundRobinArbiter) {
         Module(new ocp.Arbiter(memarbiterCount, ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
       } else {
         Module(new ocp.TdmArbiterWrapper(memarbiterCount, ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
@@ -497,14 +497,13 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       
     var arbiterEntry = 0
     for (i <- (0 until cores.length)) {
-      
       memarbiter.io.master(arbiterEntry).M <> cores(i).io.memPort.M
       cores(i).io.memPort.S <> memarbiter.io.master(arbiterEntry).S
 
       arbiterEntry = arbiterEntry +1
       
       for(j <- (0 until COP_COUNT)) {
-        val copConf = Config.getConfig.Coprocessors(j)
+        val copConf = config.Coprocessors(j)
         val id = copConf.CoprocessorID;
 
         if(copConf.requiresMemoryAccess)

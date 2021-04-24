@@ -62,6 +62,7 @@ abstract class Config {
   val burstLength: Int
   val writeCombine: Boolean
   val mmu: Boolean
+  val roundRobinArbiter: Boolean
 
   case class ICacheConfig(typ: String, size: Int, assoc: Int, repl: String)
   val ICache: ICacheConfig
@@ -207,6 +208,8 @@ object Config {
                                         hasParent, defaultConf.writeCombine)
       val mmu = getBooleanAttr(node, "bus", "@mmu",
                                hasParent, defaultConf.mmu)
+      val roundRobinArbiter = getBooleanAttr(node, "bus", "@roundRobinArbiter",
+                               hasParent, defaultConf.roundRobinArbiter)
 
       val ICache =
         new ICacheConfig(getTextAttr(node, "ICache", "@type",
@@ -393,6 +396,7 @@ object Config {
     val cmpDevices = Set[String]()
     val burstLength = 0
     val writeCombine = false
+    val roundRobinArbiter = false
     val mmu = false
     val minPcWidth = 0
     val datFile = ""

@@ -243,8 +243,12 @@ class Sha256() extends Coprocessor_MemoryAccess() {
   io.copOut.result := 0.U
   io.copOut.ena_out := Bool(false)
   
+  // register for retrying operation
+  val retry = RegInit(Bool(false))
+  retry := ((io.copIn.trigger && io.copIn.ena_in) || retry) && !io.copOut.ena_out
+  
   // start operation
-  when(io.copIn.trigger & io.copIn.ena_in) {
+  when((io.copIn.trigger || retry) && io.copIn.ena_in) {
     when(io.copIn.isCustom) {
       // no custom operations
     }.elsewhen(io.copIn.read) {
