@@ -87,7 +87,12 @@ class Sha256() extends Coprocessor_MemoryAccess() {
   val WORD_COUNT_WIDTH = MSG_WORD_COUNT_WIDTH.max(HASH_WORD_COUNT_WIDTH)
   val BURST_ADDR_OFFSET = BURST_LENGTH * DATA_WIDTH / BYTE_WIDTH
   val BURST_OFFSET = log2Ceil(BURST_LENGTH)
-    
+  
+  /*------------------------------------------------shared variables-------------------------------------------------*/
+  val is_idle = Wire(Bool())
+  val mem_buffer = RegInit(0.U(1))
+  val sha_buffer = RegInit(0.U(1))
+  
   /*---------------------------------------------sha256 state variables----------------------------------------------*/
   // the hash value
   val hash = Reg(Vec(HASH_WORD_COUNT, UInt(DATA_WIDTH.W)))
@@ -105,14 +110,14 @@ class Sha256() extends Coprocessor_MemoryAccess() {
   // index
   val idxReg = Reg(init = UInt(0, width = log2Ceil(ROUND_COUNT)+1))
 
-  // message memory
-  val msg = Mem(UInt(width = DATA_WIDTH), MSG_WORD_COUNT)
+  // message memory (Note: has been extended to enable double-buffering)
+  val msg = Mem(UInt(width = DATA_WIDTH), MSG_WORD_COUNT * 2)
 
   // read data from message memory
-  val msgRdData = msg(idxReg(log2Ceil(MSG_WORD_COUNT)-1, 0))
+  val msgRdData = msg(Cat(sha_buffer, idxReg(log2Ceil(MSG_WORD_COUNT)-1, 0)))
 
   // states
-  val idle :: restart :: start :: compress :: update :: Nil = Enum(UInt(), 5)
+  val idle :: restart :: start :: compress :: update :: waiting :: Nil = Enum(UInt(), 6)
   val stateReg = Reg(init = restart)
 
   /*------------------------------------------coprocessor state variables--------------------------------------------*/
@@ -122,13 +127,12 @@ class Sha256() extends Coprocessor_MemoryAccess() {
     mem_read_req_h :: mem_read_h ::     // reading hash (seed) from memory
     mem_write_req_h :: mem_write_h ::   // writing hash to memory
     Nil = Enum(7)*/
-  val mem_idle :: mem_read_req_m :: mem_read_m :: mem_read_req_h :: mem_read_h :: mem_write_req_h :: mem_write_h :: Nil = Enum(7)
+  val mem_idle :: mem_read_req_m :: mem_read_m :: mem_read_req_h :: mem_read_h :: mem_write_req_h :: mem_write_h :: mem_wait :: Nil = Enum(8)
   val mem_state = RegInit(mem_idle)
   val block_addr = Reg(UInt(width = DATA_WIDTH))
   val hash_addr = Reg(UInt(width = DATA_WIDTH))
   val word_count = RegInit(0.U(WORD_COUNT_WIDTH.W))
   val block_count = Reg(UInt(width = DATA_WIDTH))
-  val is_idle = Wire(Bool())
 
   /*----------------------------------------------sha256 state machine-----------------------------------------------*/  
   // transformation functions
@@ -227,11 +231,23 @@ class Sha256() extends Coprocessor_MemoryAccess() {
     hash(6) := hash(6) + g
     hash(7) := hash(7) + h
     
-    stateReg := idle
+    sha_buffer := !sha_buffer
     
-    // modification to handle multi-block transfers
-    when(block_count > 0.U) {
+    // handle interleaved multi-block transfers
+    when(mem_state === mem_wait) {
+      // move on to the next block and restart memory state machine
+      idxReg := 0.U
+      stateReg := start
       mem_state := mem_read_req_m
+    }.elsewhen(mem_state === mem_idle) {
+      when(sha_buffer === mem_buffer) {
+        idxReg := 0.U
+        stateReg := start // last pass
+      }.otherwise {
+        stateReg := idle  // we are done
+      }
+    }.otherwise {
+      stateReg := waiting    // we have to wait
     }
   }
   
@@ -315,7 +331,7 @@ class Sha256() extends Coprocessor_MemoryAccess() {
       }
     }
     is(mem_read_m) {
-      msg(word_count(MSG_WORD_COUNT_WIDTH - 1, 0)) := io.memPort.S.Data
+      msg(Cat(mem_buffer, word_count(MSG_WORD_COUNT_WIDTH - 1, 0))) := io.memPort.S.Data
       when(io.memPort.S.Resp === OcpResp.DVA) {
         when(word_count(BURST_OFFSET - 1, 0) < UInt(BURST_LENGTH - 1)) {
           word_count := word_count + 1.U
@@ -325,11 +341,22 @@ class Sha256() extends Coprocessor_MemoryAccess() {
             word_count := word_count + 1.U
             mem_state := mem_read_req_m
           }.otherwise {
+            mem_buffer := !mem_buffer
             word_count := 0.U
             block_count := block_count - 1.U
-            mem_state := mem_idle
-            idxReg := 0.U
-            stateReg := start
+            
+            when(stateReg === idle || stateReg === update || stateReg === waiting)
+            {
+              mem_state := mem_read_req_m
+              idxReg := 0.U
+              stateReg := start
+            }.otherwise {
+              mem_state := mem_wait
+            }
+            
+            when(block_count === 1.U) {
+              mem_state := mem_idle
+            }
           }
         }
       }
@@ -374,17 +401,19 @@ class Sha256() extends Coprocessor_MemoryAccess() {
       when(io.memPort.S.DataAccept === UInt(1)) {
         when(word_count(BURST_OFFSET - 1, 0) < UInt(BURST_LENGTH - 1)) {
           word_count := word_count + 1.U
-        }.otherwise {
-          hash_addr := hash_addr + UInt(BURST_ADDR_OFFSET)
-          when(word_count(HASH_WORD_COUNT_WIDTH - 1, BURST_OFFSET) < UInt(BURSTS_PER_HASH - 1)) {
-            word_count := word_count + 1.U
-            mem_state := mem_write_req_h
-          }.otherwise {
-            word_count := 0.U
-            mem_state := idle
-          }
         }
       }
+      when(io.memPort.S.Resp === OcpResp.DVA) {
+        hash_addr := hash_addr + UInt(BURST_ADDR_OFFSET)
+        when(word_count(HASH_WORD_COUNT_WIDTH - 1, BURST_OFFSET) < UInt(BURSTS_PER_HASH - 1)) {
+          word_count := word_count + 1.U
+          mem_state := mem_write_req_h
+        }.otherwise {
+          word_count := 0.U
+          mem_state := idle
+        }
+      }
+      // TODO: handle restart in case of failure
     }
   }
 }
