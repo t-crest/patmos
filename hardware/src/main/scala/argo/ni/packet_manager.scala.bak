@@ -1,0 +1,160 @@
+package ni
+
+import chisel3._
+import chisel3.util._
+import ocp._
+import argo._
+import java.lang.management.MemoryNotificationInfo
+import chisel3.experimental.BundleLiterals._
+import chisel3.experimental.ChiselEnum
+
+// Rx_unit FSM states
+object Packet_manager {
+  object State extends ChiselEnum {
+    val sIdle, sSend1, sSend2, sMode_change1, sMode_change2 = Value
+  }
+}
+
+// Rx_unit module
+class Packet_manager(argoConf: ArgoConfig) extends Module {
+  import Packet_manager.State
+  import Packet_manager.State._
+
+  val io = IO(new Bundle {
+    // Memory bus
+    val spm = Output(new MemIFMaster(argoConf.HEADER_FIELD_WIDTH, argoConf.HEADER_CTRL_WIDTH))
+    val spm_slv = Input(new MemIFSlave())
+    // Config bus (internal MEM) - NB: MemIfMaster is identical to ConfIfMaster
+    val config = Output(new MemIFMaster(argoConf.HEADER_FIELD_WIDTH, argoConf.HEADER_CTRL_WIDTH))
+    val config_slv = Input(new MemIFSlave())
+
+    val sel = Input(Bool())
+
+    // DMA table width hardwired to 6
+    val dma_num = Input(UInt(6.W))
+    val dma_en = Input(Bool())
+
+    val route = Input(UInt(argoConf.HEADER_ROUTE_WIDTH.W))
+    val mc = Input(Bool())
+    val mc_idx = Input(UInt(2.W)) // Width hardwired to 2
+    val mc_p = Input(UInt(2.W))
+
+    val pkt_len = Input(UInt(4.W)) // Width hardwired to 4
+    val pkt_out = Output(UInt(argoConf.LINK_WIDTH.W))
+  })
+
+  def HEADER_FIELD_WIDTH = argoConf.HEADER_FIELD_WIDTH
+
+  def DMATBL_COUNT_WIDTH: Int = 14
+  def DMATBL_READ_PTR_WIDTH: Int = 14
+  def DMATBL_IDX_WIDTH: Int = 6
+  def STBL_PKT_LEN_WIDTH: Int = 4
+
+  def MCTBL_IDX_WIDTH: Int = 4
+
+  // Active Bit + DMA Table Count Width + DMA Table Read Pointer Width + Header Field Width
+  def DMATBL_DATA_WIDTH: Int = argoConf.ACTIVE_BIT + DMATBL_COUNT_WIDTH
+                                  + DMATBL_READ_PTR_WIDTH  + argoConf.HEADER_FIELD_WIDTH
+
+  val VALID_SOP = "b110".U 
+  val VALID     = "b100".U
+  val VALID_EOP = "b101".U
+
+  val CPKT_BANK_WIDTH = 3
+  val CPKT_ADDR_WIDTH = argoConf.HEADER_FIELD_WIDTH - argoConf.HEADER_CTRL_WIDTH - CPKT_BANK_WIDTH
+  val MC_BANK   = 3.U(CPKT_BANK_WIDTH.W)     
+
+
+  val dmatbl_data = Wire(UInt(DMATBL_DATA_WIDTH.W))
+  val count_reg, count_next = Wire(UInt(DMATBL_COUNT_WIDTH.W))
+  val pkt_type = Wire(UInt(2.W))
+  val dma_en_reg = Wire(Bool())
+
+  val read_ptr_reg, read_ptr_next = Wire(UInt(DMATBL_READ_PTR_WIDTH.W))
+
+  val hi_lo_next, hi_lo_reg = Wire(Bool())
+
+  val port_a_wr_hi = Wire(Bool())
+  val port_a_wr_lo = Wire(Bool())
+  val port_a_addr = Wire(UInt(DMATBL_IDX_WIDTH.W))
+  val port_a_din = Wire(UInt(DMATBL_DATA_WIDTH.W))
+  val port_a_dout = Wire(UInt(DMATBL_DATA_WIDTH.W))
+
+  val port_b_wr = Wire(Bool())
+  val port_b_addr = Wire(UInt(DMATBL_IDX_WIDTH.W))
+  val port_b_din = Wire(UInt(DMATBL_DATA_WIDTH.W))
+  val port_b_dout = Wire(UInt(DMATBL_DATA_WIDTH.W))
+
+  val config_slv_error_next = Wire(Bool())
+
+  val dma_num_reg = Wire(UInt(DMATBL_IDX_WIDTH.W))
+  val dma_update_en = Wire(Bool())
+  val dma_update_addr = Wire(UInt(DMATBL_IDX_WIDTH.W))
+  val dma_update_data = Wire(UInt(DMATBL_DATA_WIDTH.W))
+
+  val pkt_len_reg, pkt_len_next = Wire(UInt(STBL_PKT_LEN_WIDTH.W))
+
+  //signal route_reg : route_t;
+
+  val payload_data, payload_data_next = Wire(UInt(32.W))
+
+
+
+  // FSM register
+  val state = RegInit(sIdle)
+
+// sIdle, sSend1, sSend2, sMode_change1, sMode_change2                      
+
+  // We need default assignments
+  // FSM combinatorial
+  switch (state) {
+    is (sIdle) {
+      when (dma_en_reg === 1.U) {
+        when (io.mc === 1.U) {
+          state <= sMode_change1
+          when (pkt_len_reg >= 1.U) {
+            pkt_type := "b01".U
+          }
+
+          io.pkt_out := Cat(VALID_SOP, Cat(pkt_type, Cat(MC_BANK, Cat(0.U(CPKT_ADDR_WIDTH), route_reg))))
+          payload_data_next(17, 16) := io.mc_p
+	  payload_data_next(MCTBL_IDX_WIDTH-1, 0) := io.mc_idx
+        } .elsewhen (dmatbl_data(DMATBL_DATA_WIDTH-1) === 1.U) {
+          state := sSend1
+          io.spm.En := "b11".U
+          io.spm.Addr := dmatbl_data(DMATBL_DATA_WIDTH-argoConf.ACTIVE_BIT-DMATBL_COUNT_WIDTH-1, argoConf.HEADER_FIELD_WIDTH)
+          read_ptr_next := dmatbl_data(DMATBL_DATA_WIDTH-argoConf.ACTIVE_BIT-DMATBL_COUNT_WIDTH-1, argoConf.HEADER_FIELD_WIDTH)
+          dma_update_en := 1.U
+          count_next := dmatbl_data(DMATBL_DATA_WIDTH-argoConf.ACTIVE_BIT-1, DMATBL_READ_PTR_WIDTH+argoConf.HEADER_FIELD_WIDTH) - 1.U
+          when (dmatbl_data(DMATBL_DATA_WIDTH-argoConf.ACTIVE_BIT-1, DMATBL_READ_PTR_WIDTH+argoConf.HEADER_FIELD_WIDTH) > pkt_len_reg) {
+            when (header(argoConf.HEADER_FIELD_WIDTH-1, argoConf.HEADER_FIELD_WIDTH-2) === "b10".U) {
+              pkt_type := 0.U
+            }
+            dma_update_data(argoConf.DMATBL_DATA_WIDTH-1) := 1.U
+          }
+          dma_update_data(HEADER_FIELD_WIDTH-3,0) :=
+                                    dmatbl_data(HEADER_FIELD_WIDTH-3, 0) + pkt_len_reg
+          update_read_ptr := read_ptr + pkt_len_reg
+          update_count := count - pkt_len_reg
+          when (dma_pkt_type === "b01".U) {
+            //Make sure that the Bank ID is not incremented if we sent a configuration packet.
+            dma_update_data(HEADER_FIELD_WIDTH-3, HEADER_FIELD_WIDTH-6) :=
+                                    dmatbl_data(HEADER_FIELD_WIDTH-3, HEADER_FIELD_WIDTH-6)
+          }
+            pkt_len_next := pkt_len_reg - 1
+            io.pkt_out := Cat(VALID_SOP, Cat(pkt_type, Cat(dmatbl_data(HEADER_FIELD_WIDTH-3,0), route_reg)))
+          }
+        }
+      }
+    is (sSend1) {
+    }
+    is (sSend2) {
+    }
+    is (sMode_change1) {
+    }
+    is (sMode_change2) {
+    } 
+  }
+
+
+}

@@ -3,8 +3,7 @@ package argo
 import java.io.{File, PrintWriter}
 
 import sys.process._
-import chisel3._
-import chisel3.util._
+import Chisel._
 import patmos.Constants._
 import scala.language.postfixOps
 
