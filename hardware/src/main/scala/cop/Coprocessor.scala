@@ -1,3 +1,11 @@
+/*
+ * Patmos Accelerator Interface base classes.
+ *
+ * Authors: Christoph Lehr (christoph.lehr@gmx.at)
+ *          Alexander Baranyai (alexyai@gmx.at)
+ *          Clemens Pircher (clemens.lukas@gmx.at)
+ *
+ */
 
 package cop
 
@@ -25,7 +33,7 @@ abstract class BaseCoprocessor() extends Coprocessor(){
     })
 }
 
-abstract class Coprocessor_MemoryAccess() extends Coprocessor(){
+abstract class CoprocessorMemoryAccess() extends Coprocessor(){
     override val io = IO(new Bundle() {
         val copIn = new PatmosToCoprocessor().asInput
         val copOut = new CoprocessorToPatmos().asOutput

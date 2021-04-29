@@ -174,8 +174,8 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
 
   // connect coprocessor to execute state 
   for (i <- (0 until COP_COUNT)) {
-    io.copInOut(i).patmosCop <> execute.io.cop_out(i)
-    execute.io.cop_in(i) <> io.copInOut(i).copPatmos
+    io.copInOut(i).patmosCop <> execute.io.copOut(i)
+    execute.io.copIn(i) <> io.copInOut(i).copPatmos
   }
 }
 
@@ -445,7 +445,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
       if(copConf.requiresMemoryAccess)
       {
-        val copMem = Config.createCoprocessor(copConf).asInstanceOf[Coprocessor_MemoryAccess]
+        val copMem = Config.createCoprocessor(copConf).asInstanceOf[CoprocessorMemoryAccess]
         copMem.io.copIn <> cores(i).io.copInOut(k).patmosCop
         cores(i).io.copInOut(k).copPatmos <> copMem.io.copOut
         memAccessCount = memAccessCount+1;
@@ -509,7 +509,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
         if(copConf.requiresMemoryAccess)
         {
           // as memory access is required object is actually of CoprocessorMemory
-          val copMem = cops(i)(id).asInstanceOf[Coprocessor_MemoryAccess]
+          val copMem = cops(i)(id).asInstanceOf[CoprocessorMemoryAccess]
           memarbiter.io.master(arbiterEntry).M <> copMem.io.memPort.M
           copMem.io.memPort.S <> memarbiter.io.master(arbiterEntry).S
           arbiterEntry = arbiterEntry +1

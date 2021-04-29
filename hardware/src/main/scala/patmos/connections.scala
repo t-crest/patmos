@@ -347,8 +347,8 @@ class ExecuteIO() extends Bundle() {
   val exsc = new ExSc().asOutput
   val scex = new ScEx().asInput
   // coprocessor
-  val cop_out = Vec(COP_COUNT, new PatmosToCoprocessor().asOutput)
-  val cop_in = Vec(COP_COUNT, new CoprocessorToPatmos().asInput)
+  val copOut = Vec(COP_COUNT, new PatmosToCoprocessor().asOutput)
+  val copIn = Vec(COP_COUNT, new CoprocessorToPatmos().asInput)
 }
 
 class BootMemIO() extends Bundle() {
@@ -388,8 +388,9 @@ class PatmosToCoprocessor() extends Bundle()
 {
   val ena_in  = Bool()
   val trigger = Bool()
-  val isCustom = Bool()
-  val read = Bool()
+  val isCustom = Bool() // custom-instruction
+  val read = Bool()     // read
+                        // write if neither custom-instruction nor read
   val funcId = UInt(width = COP_FUNCID_WIDTH)
   val opAddr = Vec(2, UInt(width = REG_BITS))
   val opData = Vec(2, UInt(width = DATA_WIDTH))
