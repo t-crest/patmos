@@ -38,6 +38,7 @@ import Chisel._
 import patmos._
 import io.CoreDevice
 import io.Device
+import cop.Coprocessor
 
 import scala.tools.nsc.interpreter.IMain
 import scala.tools.nsc.Settings
@@ -61,6 +62,7 @@ abstract class Config {
   val burstLength: Int
   val writeCombine: Boolean
   val mmu: Boolean
+  val roundRobinArbiter: Boolean
 
   case class ICacheConfig(typ: String, size: Int, assoc: Int, repl: String)
   val ICache: ICacheConfig
@@ -78,6 +80,10 @@ abstract class Config {
 
   case class DeviceConfig(ref : String, name : String, params : Map[String, String], offset : Int, intrs : List[Int], core : Int = 0, allcores : Boolean = false)
   val Devs: List[Config#DeviceConfig]
+
+  case class CoprocessorConfig(name : String, params : Map[String, String], CoprocessorID : Int, requiresMemoryAccess : Boolean, isBlackBox : Boolean, externalPath : String)
+  val Coprocessors: List[Config#CoprocessorConfig]
+  val coprocessorCount: Int
 
   override def toString =
     description + " at " + (frequency/1000000).toString() + " MHz"
@@ -202,6 +208,8 @@ object Config {
                                         hasParent, defaultConf.writeCombine)
       val mmu = getBooleanAttr(node, "bus", "@mmu",
                                hasParent, defaultConf.mmu)
+      val roundRobinArbiter = getBooleanAttr(node, "bus", "@roundRobinArbiter",
+                               hasParent, defaultConf.roundRobinArbiter)
 
       val ICache =
         new ICacheConfig(getTextAttr(node, "ICache", "@type",
@@ -286,7 +294,11 @@ object Config {
       emuConfig.write("#define FREQ "+ frequency +"\n")
       emuConfig.close();
       
-
+      
+      val CopList = ((node \ "Coprocessors") \ "Coprocessor")
+      val Coprocessors : List[Config#CoprocessorConfig] =  CopList.map(copFromXML(_, CopList)).toList ++ defaultConf.Coprocessors
+      val coprocessorCount = Coprocessors.size
+      
       private def devFromXML(node: scala.xml.Node, devs: scala.xml.NodeSeq,
                              needOffset: Boolean = true): DeviceConfig = {
         val key = find(node, "@DevTypeRef").text
@@ -326,6 +338,50 @@ object Config {
                          ", " + (if(allcores) "all cores" else "core "+core))
         new DeviceConfig(key, name, params, offset, intrs, core, allcores)
       }
+
+      private def copFromXML(node: scala.xml.Node, copList: scala.xml.NodeSeq): CoprocessorConfig = {
+        
+        val key = find(node, "@CoprocessorID").text
+        val devListFiltered = (copList.filter(d => (d \ "@CoprocessorID").text == key))
+        if (devListFiltered.isEmpty) {
+          sys.error("No CoprocessorID specification found for "+node)
+        }
+
+        val cop = devListFiltered(0)
+        val name = find(cop, "@Name").text
+        val id = find(cop, "@CoprocessorID").text.toInt
+        
+        val memAccessStr = (node \ "@requiresMemoryAccess").text
+        val memAccess = if (memAccessStr.isEmpty) {
+          false
+        } else {
+          memAccessStr.toBoolean
+        }
+
+        val externalPathAttr = (node \ "@externalPath").text
+        val externalPath = if (externalPathAttr.isEmpty) {
+          ""
+        } else {
+          externalPathAttr
+        }
+
+        val isBlackBox = if (externalPath.isEmpty) {
+          false
+        } else {
+          true
+        }
+
+        val paramsNode = (cop \ "params")
+        val params = if (paramsNode.isEmpty) {
+          Map[String,String]()
+        } else {
+          Map((paramsNode \ "param").map(p => find(p, "@name").text ->
+            find(p, "@value").text) : _*)
+        }
+        
+        println("Coprocessor:" +name +",ID:"+id+", requires Memory Access:"+memAccess + (if (isBlackBox) ", Coprocessor is BlackBox, External Path "+externalPath else ""))
+        new CoprocessorConfig(name, params, id, memAccess, isBlackBox, externalPath)
+      }
     }
   }
 
@@ -340,6 +396,7 @@ object Config {
     val cmpDevices = Set[String]()
     val burstLength = 0
     val writeCombine = false
+    val roundRobinArbiter = false
     val mmu = false
     val minPcWidth = 0
     val datFile = ""
@@ -350,6 +407,8 @@ object Config {
     val DSPM = new SPMConfig(0)
     val ExtMem = new ExtMemConfig(0,new DeviceConfig("","", Map(), -1, List[Int]()))
     val Devs = List[DeviceConfig]()
+    val Coprocessors = List[CoprocessorConfig]()
+    val coprocessorCount =0
   }
 
   private var conf: Config = nullConfig
@@ -383,5 +442,22 @@ object Config {
     val meth = clazz.getMethods.find(_.getName == "create").get
     val rawDev = meth.invoke(null, dev.params)
     rawDev.asInstanceOf[Device]
+  }
+
+  def initCoprocessor(cop : Config#CoprocessorConfig) = {
+    // get class for coprocessor
+    val clazz = Class.forName("cop."+cop.name)
+    // create device instance
+    val meth = clazz.getMethods.find(_.getName == "init").get
+    meth.invoke(null, cop.params)
+  }
+
+  def createCoprocessor(cop : Config#CoprocessorConfig) : Coprocessor = {
+    // get class for device
+    val clazz = Class.forName("cop."+cop.name)
+    // create device instance
+    val meth = clazz.getMethods.find(_.getName == "create").get
+    val rawCop = meth.invoke(null, cop.params)
+    rawCop.asInstanceOf[Coprocessor]
   }
 }

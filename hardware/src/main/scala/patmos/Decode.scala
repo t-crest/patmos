@@ -340,6 +340,45 @@ class Decode() extends Module {
     decoded(0) := Bool(true)
   }
 
+  if(COP_COUNT > 0)
+  {
+    when(opcode === OPCODE_COP)
+    {
+      val copId = instr(6, 4)
+      io.decex.copOp.isCop := Bool(true)
+
+      //custom
+      when(instr(0) === COP_CUSTOM_BIT)
+      {
+        io.decex.copOp.isCustom := Bool(true)
+        io.decex.copOp.copId := copId
+        io.decex.copOp.funcId := Cat("b00".U , instr(3, 1))
+        io.decex.wrRd(0) := Bool(true)
+        decoded(0) := Bool(true)
+      }.otherwise
+      {
+        when(instr(1) === COP_READ_BIT)
+        {
+          //read
+          io.decex.copOp.rsAddrCop(0) := instr(3)
+          io.decex.copOp.copId := copId
+          io.decex.copOp.funcId := instr(11, 7)
+          io.decex.wrRd(0) := Bool(true)
+          decoded(0) := Bool(true)
+        }.otherwise
+        {
+          //write
+          io.decex.copOp.rsAddrCop(0) := instr(3)
+          io.decex.copOp.rsAddrCop(1) := instr(2)
+          io.decex.copOp.copId := copId
+          io.decex.copOp.funcId := instr(21, 17)
+          io.decex.wrRd(0) := Bool(false)
+          decoded(0) := Bool(true)
+        }
+      }
+    }
+  }
+
   // Offset for loads/stores
   val addrImm = Wire(UInt())
   addrImm := Cat(UInt(0), instr(6, 0))
