@@ -22,14 +22,14 @@
 #define MAX_MSG_BYTES (MAX_MSG_WORDS * sizeof(uint32_t))
 
 // SHA-256 message state
-volatile _UNCACHED char msg_buf[MAX_MSG_BYTES] DATA_ALIGNMENT = { 0x00 };
-volatile _UNCACHED uint32_t *msg_buf_word = (volatile _UNCACHED uint32_t *)msg_buf;
+char msg_buf[MAX_MSG_BYTES] DATA_ALIGNMENT = { 0x00 };
+uint32_t *msg_buf_word = (uint32_t *)msg_buf;
 uint32_t msg_blocks = 0;
 
 // SHA-256 hash
 volatile _UNCACHED uint32_t hash_buf[HASH_WORDS] DATA_ALIGNMENT;
 
-void uncached_memcpy(volatile _UNCACHED char *dst, const char *src, size_t n)
+void uncached_memcpy(char *dst, const char *src, size_t n)
 {
   for(size_t i = 0; i < n; ++i)
   {
@@ -37,7 +37,7 @@ void uncached_memcpy(volatile _UNCACHED char *dst, const char *src, size_t n)
   }
 }
 
-void uncached_memset(volatile _UNCACHED char *dst, int c, size_t n)
+void uncached_memset(char *dst, int c, size_t n)
 {
   for(size_t i = 0; i < n; ++i)
   {
@@ -92,7 +92,7 @@ void reset()
 // must only be called when the computation is completed
 INLINE_PREFIX void send_blocks()
 {
-  register volatile _UNCACHED uint32_t *msg_buf_word_reg __asm__ ("19") = msg_buf_word;
+  register uint32_t *msg_buf_word_reg __asm__ ("19") = msg_buf_word;
   register uint32_t msg_blocks_reg __asm__ ("20") = msg_blocks;
   asm (".word 0x34B3A01"      // unpredicated COP_WRITE to COP0 with FUNC = 00101, RA = 10011, RB = 10100
         :
@@ -206,7 +206,7 @@ void print_hash()
 }
 
 /*---------------------------------------------------MAIN PROGRAM----------------------------------------------------*/
-#define REPETITIONS (3)
+#define REPETITIONS (5)
 
 const char *benchmark_strings[] = { "",
                                     "abc",
@@ -242,7 +242,7 @@ int main(int argc, char **argv) {
              "    busy_recv_time: %lu\n"
              "    idle_time:      %lu\n", busy_time_s, busy_time_r, idle_time);
     }
-    fputs("\thash: ", stdout);
+    fputs("  hash: ", stdout);
     print_hash();
     puts("\n");
   }
