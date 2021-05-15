@@ -17,9 +17,8 @@ void io_reset(void)
 // send next block and start computation
 // returns true when last block has been sent
 // must only be called when prior computation is completed
-INLINE_PREFIX bool io_send_next_block(void)
+INLINE_PREFIX bool io_send_next_block(const uint32_t *buf)
 {
-  uint32_t *buf = msg_buf_word + (msg_block_cursor * BLOCK_WORDS);
   for(int32_t i = 0; i < BLOCK_WORDS; ++i)
   {
     *(sha_ptr_write + i) = buf[i];
@@ -68,13 +67,17 @@ void benchmark(uint32_t *busy_time_s, uint32_t *busy_time_r, uint32_t *idle_time
   uint32_t idle_start;
   
   bool done = false;
+  uint32_t *buf = msg_buf_word;
+  
+  asm volatile ("" ::: "memory");
   
   while(!done)
   {
     busy_start = get_time32();
     
     asm volatile ("" ::: "memory");
-    done = io_send_next_block();
+    done = io_send_next_block(buf);
+    buf += BLOCK_WORDS;
     asm volatile ("" ::: "memory");
     
     idle_start = get_time32();

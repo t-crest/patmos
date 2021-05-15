@@ -92,7 +92,7 @@ void benchmark(uint32_t *busy_time)
   asm volatile ("" ::: "memory");
   sw_compute_hash();  
   asm volatile ("" ::: "memory");
-    
+  
   idle_start = get_time32();
   busy_acc += (idle_start - busy_start);
   

@@ -53,6 +53,8 @@ void benchmark(uint32_t *busy_time_s, uint32_t *busy_time_r, uint32_t *idle_time
   uint32_t busy_start;
   uint32_t idle_start;
   
+  asm volatile ("" ::: "memory");
+  
   busy_start = get_time32();
   
   asm volatile ("" ::: "memory");
