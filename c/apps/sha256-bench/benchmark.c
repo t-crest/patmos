@@ -63,7 +63,12 @@ static const char * const benchmark_strings[] =
     "This is a message which barely fits into one data block",
     "This is a message which already requires two data blocks",
     "We need three data blocks as soon as the message is at least 120 characters long but also not longer than 183"
-    " characters"
+    " characters",
+    "Random data to reach 184 characters: 7G)#SsLW`G+VAl?vUzyw1q&RY2MZJY$D-M8GFy*|\"y?TfbD,y g4\\Uc9W.BDkbyTHlNT.q"
+    "3VnK@W'pMO%[GOENwgdB<d%> L/BV&W8YK PA_`dRTb$!?@ou.'*,QC@:uU|UP`up]bSMZ*k5*I8K",
+    "More random data to reach 248 characters: bcHM=-W2-O9GN&8k'_atlZNsKZ~T~#}:B1InX-t(pP'd'DiJx_Sz\"wy~'_6K7@Y@2<"
+    "H`Z(ycwqq2fOM#4SalQ=U/EV5*U{V4fSDN7Z y&|1UZQh,xKN3,T !Kr`[1YDz!lV6=_xZms&)@$In]q/zVsnZR6ZoNW)^oWyp.NDgIxO1ccr"
+    "J\"!\\YTl){c22=K|m/f..@E.gP9meOiy"
   };
 
 static const uint32_t benchmark_string_count = sizeof(benchmark_strings) / sizeof(benchmark_strings[0]);
