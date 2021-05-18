@@ -49,30 +49,4 @@ io.stdout: io_benchmark.elf
 
 cop.stdout: cop_benchmark.elf
 	patemu cop_benchmark.elf > cop.stdout
-	
-# old standalone targets
-.PHONY: standalone_compile
-standalone_compile: standalone_sw_benchmark.elf standalone_io_benchmark.elf standalone_cop_benchmark.elf
-
-.PHONY: standalone_benchmark
-standalone_benchmark:
-	make standalone_sw.stdout & make standalone_io.stdout & make standalone_cop.stdout
-
-standalone_sw_benchmark.elf: standalone_sw_benchmark.c
-	patmos-clang -O2 standalone_sw_benchmark.c -o standalone_sw_benchmark.elf
-	
-standalone_io_benchmark.elf: standalone_io_benchmark.c
-	patmos-clang -O2 standalone_io_benchmark.c -o standalone_io_benchmark.elf
-
-standalone_cop_benchmark.elf: standalone_cop_benchmark.c
-	patmos-clang -O2 standalone_cop_benchmark.c -o standalone_cop_benchmark.elf
-
-standalone_sw.stdout: standalone_sw_benchmark.elf
-	patemu standalone_sw_benchmark.elf > standalone_sw.stdout
-
-standalone_io.stdout: standalone_io_benchmark.elf
-	patemu standalone_io_benchmark.elf > standalone_io.stdout
-
-standalone_cop.stdout: standalone_cop_benchmark.elf
-	patemu standalone_cop_benchmark.elf > standalone_cop.stdout
 

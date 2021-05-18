@@ -55,6 +55,7 @@ INLINE_PREFIX void io_busy_wait(void)
   while(*sha_ptr);
 }
 
+__attribute__((noinline))
 void benchmark(uint32_t *busy_time_s, uint32_t *busy_time_r, uint32_t *idle_time)
 {
   io_reset();

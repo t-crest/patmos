@@ -42,6 +42,7 @@ INLINE_PREFIX void cop_busy_wait()
 
 }
 
+__attribute__((noinline))
 void benchmark(uint32_t *busy_time_s, uint32_t *busy_time_r, uint32_t *idle_time)
 {
   cop_reset();

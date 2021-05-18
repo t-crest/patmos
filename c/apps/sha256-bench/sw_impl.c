@@ -78,6 +78,7 @@ INLINE_PREFIX void sw_compute_hash()
   }
 }
 
+__attribute__((noinline))
 void benchmark(uint32_t *busy_time)
 {
   sw_reset();
