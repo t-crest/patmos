@@ -1,6 +1,6 @@
 # DE10 Nano Configuration for Patmos
 
-Set the board variable `BOARD=de10-nano` (best done in a local config.mk)
+Set the board variable `BOARD=de10-nano-drone` (best done in a local patmos/config.mk)
 
 Change switches for FPGA configuration to:
 
@@ -58,34 +58,15 @@ be connected to txd and the other way around.
 
 FPGA configuration has to be done via Quartus (instead of make config).
 
-The on-chip memory is 512 KB (instead of typical 2 MB on the DE2-115).
-Therefore, the stack start needs to be set accordingly with following
-linker options:
-
-```
-        -mpatmos-stack-base=0x080000 -mpatmos-shadow-stack-base=0x078000 \
-        -Xgold --defsym -Xgold __heap_end=0x070000
-```
-
-Best see in the example in c/apps/de10-nano. 
-
-Alternatively, it is possible to use the external 1 GB DDR3 memory. In
-de10-nano-drone.xml comment the line
-```
-<ExtMem size="500k" DevTypeRef="OCRam" />
-```
-and uncomment the line
-```
-<ExtMem size="1g" DevTypeRef="DDR3Bridge" />
-```
-Additionally, download the "DE10-Nano_v.1.3.8_HWrevC_SystemCD.zip" demo cd from 
+The de10-nano-drone.xml is configured to use the external 1 GB DDR3 memory.
+This requires an SD card containing instructions for the ARM processor to enable FPGA access to the memory.
+If your SD card is not already setup, download the "DE10-Nano_v.1.3.8_HWrevC_SystemCD.zip" demo cd from 
 ```
 http://download.terasic.com/downloads/cd-rom/de10-nano/
 ```
 and write the SD card image from Demonstrations/FPGA/SdcardImage
-to an SD card which is inserted into the SD card slot of the de10 Nano.
-Power on the board, and after a few seconds, program the FPGA,
-allowing the FPGA to access the DDR3 memory controller.
+to the SD card. Insert it into the SD card slot of the de10 Nano.
+Power on the board and wait a few seconds before programming the FPGA.
 
 Compile and download that example with:
 
