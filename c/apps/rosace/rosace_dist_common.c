@@ -44,13 +44,13 @@ unsigned int rx_buff2_addr = 0x400;
 unsigned int rx_bd_addr = 0x600;
 unsigned int rx_bd2_addr = 0x608;
 
-uint64_t doubleToBytes(double x){
-	const union {double f; uint64_t b;} val = {.f = x};
+uint64_t REAL_TYPEToBytes(REAL_TYPE x){
+	const union {REAL_TYPE f; uint64_t b;} val = {.f = x};
 	return val.b;
 }
 
-double bytesToDouble(uint64_t x){
-	const union {double f; uint64_t b;} val = {.b = x};
+REAL_TYPE bytesToDouble(uint64_t x){
+	const union {REAL_TYPE f; uint64_t b;} val = {.b = x};
 	return val.f;
 }
 
@@ -90,31 +90,6 @@ void reset_sync()
   rxPcfCount = 0;
 	RTC_TIME_NS(PATMOS_IO_ETH) = 0x0;
 	RTC_TIME_SEC(PATMOS_IO_ETH) = 0x0;
-}
-
-
-__attribute__((noinline))
-void copy_output_vars(output_t* v, uint64_t step)
-{
-  v->t_simu           = step * STEP_TIME_SCALE;
-	v->sig_outputs.Va 	= aircraft_dynamics495_Va_Va_filter_100449_Va[step%2];
-	v->sig_outputs.Vz 	= aircraft_dynamics495_Vz_Vz_filter_100452_Vz[step%2];
-	v->sig_outputs.q  	= aircraft_dynamics495_q_q_filter_100455_q[step%2];
-	v->sig_outputs.az 	= aircraft_dynamics495_az_az_filter_100458_az[step%2];
-	v->sig_outputs.h  	= aircraft_dynamics495_h_h_filter_100446_h[step%2];
-	v->sig_delta_th_c   = Va_control_50474_delta_th_c_delta_th_c;
-	v->sig_delta_e_c	  = Vz_control_50483_delta_e_c_delta_e_c;
-}
-
-__attribute__((noinline))
-int logging_fun(void *args)
-{
-  copy_output_vars(&outs, step_simu);
-  printf("%3.2f,%5.3f,%5.3f,%5.4f,%5.3f,%5.3f,%5.4f,%5.4f\n", 
-  outs.t_simu/1000.0f, outs.sig_outputs.Va, outs.sig_outputs.az, 
-  outs.sig_outputs.q, outs.sig_outputs.Vz, outs.sig_outputs.h,
-  outs.sig_delta_th_c,outs.sig_delta_e_c);
-  return 1;
 }
 
 __attribute__((noinline))
