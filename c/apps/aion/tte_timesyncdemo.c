@@ -22,8 +22,8 @@
 // TTE Configuration
 #define TTETIME_TO_NS		65536
 #define TTE_MAX_TRANS_DELAY	135600			//ns from net_config (eclipse project)
-#define TTE_INT_PERIOD		10000000		//ns
-#define TTE_CYC_PERIOD		1000000000		//ns
+#define TTE_INT_PERIOD		20000000		//ns
+#define TTE_CYC_PERIOD		4000000000		//ns
 #define TTE_PRECISION		10000			//ns from network_description (eclipse project)
 
 // TTE PID synchronization
@@ -39,7 +39,7 @@
 #define NO_RX_PACKETS 		2000		//packets
 #define CPU_PERIOD			12.5		//ns	
 #define SYNC_WINDOW_HALF	10000		//ns
-#define SYNC_PERIOD			10000000	//ns
+#define SYNC_PERIOD			20000000	//ns
 #define ASYNC2SYNC_THRES	10			//clusters
 #define PULSE_PERIOD 		50000000	//ns
 #define PULSE_WIDTH			1000000		//ns
@@ -47,8 +47,8 @@
 #define SYNCTASK_GPIO_BIT	0
 #define PULSETASK_GPIO_BIT	1
 
-#define SYNC_START_TIME		321200
-#define PULSE_START_TIME	17924225
+#define SYNC_START_TIME		0
+#define PULSE_START_TIME	10000000
 
 //Constants
 const char* eth_protocol_names[] = {"UFF", "IP", "ICMP", "UDP", "TCP", "PTP", "ARP", "LLDP", "MDNS", "TTE_PCF", "TTE"};
