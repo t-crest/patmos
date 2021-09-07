@@ -4335,19 +4335,6 @@ JDK 8.
 The following we describe how to setup an Ubuntu installation with the needed tools. 
 This should work for the latest Ubuntu distribution. 
 
-First, because Patmos uses Chisel as its hardware language,
-which is built on top of Scala, we need to ensure we can install SBT. 
-Therefore, we start by enabling the distribution to download sbt:
-
-\begin{verbatim}
-echo "deb https://dl.bintray.com/sbt/debian /" | sudo tee -a \
-  /etc/apt/sources.list.d/sbt.list
-sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 \
-  --recv 2EE0EA64E40A89B84B2DF73499E82A75642AC823
-sudo apt-get update
-sudo apt-get install sbt
-\end{verbatim}
-
 We can now install all the needed tools:
 
 \begin{verbatim}
@@ -4361,6 +4348,11 @@ Make sure to use Java 8 and remove any later Java version with
 \begin{verbatim}
 sudo apt autoremove
 \end{verbatim}
+
+As Patmos uses Chisel as its hardware language,
+which is built on top of Scala, we need install abt
+according to the instructions from \url{https://www.scala-sbt.org/download.html}
+
 
 For the Quartus setup it is best to change the default shell to \code{/bin/bash}:
 
