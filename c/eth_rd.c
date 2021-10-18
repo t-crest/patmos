@@ -31,6 +31,7 @@
  */
 
 /*
+ * ! Attention ! : This program uses EMAC io device and not EthMac.
  * Reads ethernet frames and prints them to the console 
  * (including binary data).
  * 
