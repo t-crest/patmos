@@ -31,9 +31,9 @@
  */
 
 /*
- * Reads ethernet frames and prints them to the console 
+ * Reads ethernet frames using EMAC io devices and prints them to the console 
  * (including binary data).
- * 
+ * ! Attention ! : This does not use EthMac io device 
  * Author: Torur Biskopsto Strom (torur.strom@gmail.com)
  *
  */
