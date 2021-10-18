@@ -142,7 +142,7 @@ void eth_mac_clear_rx_buffer(unsigned int rx_buff, unsigned int rx_bd)
     unsigned temp_config = eth_iord(INT_SOURCE_ADDR);
     eth_iowr(INT_SOURCE_ADDR, temp_config | INT_SOURCE_RXB_BIT);
     temp_config = eth_iord(rx_bd);
-    eth_iowr(rx_bd, temp_config | (RX_BD_EMPTY_BIT));
+    eth_iowr(rx_bd, temp_config | (RX_BD_EMPTY_BIT | RX_BD_IRQEN_BIT | RX_BD_WRAP_BIT));
 }
 
 //This function initilize the ethernet controller (only for the demo).
@@ -151,6 +151,8 @@ void eth_mac_initialize(){
 	eth_iowr(0x44, 0x000000FF);
 	//MODEREG: PAD|HUGEN|CRCEN|DLYCRCEN|-|FULLD|EXDFREN|NOBCKOF|LOOPBCK|IFG|PRO|IAM|BRO|NOPRE|TXEN|RXEN
 	eth_iowr(0x00, 0x0000A423);
+    // Initialize default RX Buffer Descriptor
+    eth_iowr(RX_BD_ADDR_BASE(eth_iord(TX_BD_NUM_ADDR)), RX_BD_EMPTY_BIT | RX_BD_IRQEN_BIT | RX_BD_WRAP_BIT);
 	return;
 }
 
