@@ -31,6 +31,7 @@
  */
 
 /*
+ * ! Attention ! : This program uses EMAC io device and not EthMac.
  * Sends a UDP broadcast message containing some text and ASCII art
  * every 5 seconds. 
  * Destination 255.255.255.255:5000 (MAC:ff:ff:ff:ff:ff:ff)
