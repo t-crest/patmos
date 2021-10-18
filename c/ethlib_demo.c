@@ -154,6 +154,9 @@ void demo_mode(){
 				printf(" [OK]\n");
 			}else{
 				printf(" [WRONG]\n");
+				printf("\n- Notes:\n");
+				printf("  - Wrong IP checksum, no actions performed.\n");
+				continue;
 			}
 			printf("\n- Level 4 protocol: UDP\n");
 			printf("  - Source port: %d\n", udp_get_source_port(rx_addr));
@@ -167,7 +170,7 @@ void demo_mode(){
 			printf("  - Data length %d B\n", udp_get_data_length(rx_addr));
 			if (udp_verify_checksum(rx_addr) == 0 || ipv4_verify_checksum(rx_addr) == 0){
 				printf("\n- Notes:\n");
-				printf("  - Wrong IP and/or UDP checksum, no actions performed.\n");
+				printf("  - Wrong UDP checksum, no actions performed.\n");
 			}else if (destination_ip[3] == 255){
 				printf("\n- Notes:\n");
 				printf("  - Broadcast UDP packet, no actions performed.\n");
