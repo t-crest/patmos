@@ -75,11 +75,10 @@ int checkForPacket(unsigned int expectedPacketType, const unsigned int timeout){
 	}
 }
 
-void ptp_master_loop(unsigned long long userPeriod){
+void ptp_master_loop(){
 	unsigned long long startTime, elapsedTime;
 	unsigned short int seqId = 0;
-	int syncInterval = (int) log2((int)userPeriod*USEC_TO_SEC);
-	printf("T_sync=%d\n", syncInterval);
+	printf("T_sync=%d\n", thisPtpPortInfo.syncInterval);
 	startTime = get_ptp_usecs(thisPtpPortInfo.eth_base);
 	while(1){
 		// elapsedTime = get_ptp_usecs(thisPtpPortInfo.eth_base) - startTime;
@@ -88,17 +87,17 @@ void ptp_master_loop(unsigned long long userPeriod){
 			RTC_ADJUST_OFFSET(thisPtpPortInfo.eth_base) = 0;
 			RTC_TIME_SEC(thisPtpPortInfo.eth_base) = 0;
 			RTC_TIME_NS(thisPtpPortInfo.eth_base) = 0;
-		} else if (get_ptp_usecs(thisPtpPortInfo.eth_base) - startTime >= userPeriod){
+		} else if (get_ptp_usecs(thisPtpPortInfo.eth_base) - startTime >= thisPtpPortInfo.syncInterval){
 			printf("Seq# %u\n", seqId);
-			ptpv2_issue_msg(thisPtpPortInfo, tx_addr, rx_addr, PTP_BROADCAST_MAC, PTP_MULTICAST_IP, seqId, PTP_SYNC_MSGTYPE, syncInterval);
+			ptpv2_issue_msg(thisPtpPortInfo, tx_addr, rx_addr, PTP_BROADCAST_MAC, PTP_MULTICAST_IP, seqId, PTP_SYNC_MSGTYPE);
 			*led_ptr = 0x1;
-			ptpv2_issue_msg(thisPtpPortInfo, tx_addr, rx_addr, PTP_BROADCAST_MAC, PTP_MULTICAST_IP, seqId, PTP_FOLLOW_MSGTYPE, syncInterval);
+			ptpv2_issue_msg(thisPtpPortInfo, tx_addr, rx_addr, PTP_BROADCAST_MAC, PTP_MULTICAST_IP, seqId, PTP_FOLLOW_MSGTYPE);
 			*led_ptr = 0x2;
 			if(checkForPacket(2, PTP_REQ_TIMEOUT) == PTP){
 				*led_ptr = 0x2 | 0x4;
 				if(ptpv2_handle_msg(thisPtpPortInfo, tx_addr, rx_addr, PTP_BROADCAST_MAC) == PTP_DLYREQ_MSGTYPE){
 					*led_ptr = 0x4;
-					ptpv2_issue_msg(thisPtpPortInfo, tx_addr, rx_addr, PTP_BROADCAST_MAC, lastSlaveInfo.ip, rxPTPMsg.head.sequenceId, PTP_DLYRPLY_MSGTYPE, syncInterval);
+					ptpv2_issue_msg(thisPtpPortInfo, tx_addr, rx_addr, PTP_BROADCAST_MAC, lastSlaveInfo.ip, rxPTPMsg.head.sequenceId, PTP_DLYRPLY_MSGTYPE);
 					*led_ptr = 0x8;
 					seqId++;
 				}
@@ -111,7 +110,7 @@ void ptp_master_loop(unsigned long long userPeriod){
 	}
 }
 
-void ptp_slave_loop(unsigned period){
+void ptp_slave_loop(){
 	unsigned short int seqId = 0;
 	while(1){
 		if (0xD == *key_ptr){
@@ -124,13 +123,13 @@ void ptp_slave_loop(unsigned period){
 			case PTP_SYNC_MSGTYPE:
 				if((rxPTPMsg.head.flagField & FLAG_PTP_TWO_STEP_MASK) != FLAG_PTP_TWO_STEP_MASK){
 					*led_ptr = 0x1;
-					ptpv2_issue_msg(thisPtpPortInfo, tx_addr, rx_addr, PTP_BROADCAST_MAC, lastMasterInfo.ip, rxPTPMsg.head.sequenceId, PTP_DLYREQ_MSGTYPE, ptpTimeRecord.syncInterval);
+					ptpv2_issue_msg(thisPtpPortInfo, tx_addr, rx_addr, PTP_BROADCAST_MAC, lastMasterInfo.ip, rxPTPMsg.head.sequenceId, PTP_DLYREQ_MSGTYPE);
 					*led_ptr = 0x4;
 				}
 				break;
 			case PTP_FOLLOW_MSGTYPE:
 				*led_ptr = 0x2;
-				ptpv2_issue_msg(thisPtpPortInfo, tx_addr, rx_addr, PTP_BROADCAST_MAC, lastMasterInfo.ip, rxPTPMsg.head.sequenceId, PTP_DLYREQ_MSGTYPE, ptpTimeRecord.syncInterval);
+				ptpv2_issue_msg(thisPtpPortInfo, tx_addr, rx_addr, PTP_BROADCAST_MAC, lastMasterInfo.ip, rxPTPMsg.head.sequenceId, PTP_DLYREQ_MSGTYPE);
 				*led_ptr = 0x4;
 				break;
 			case PTP_DLYRPLY_MSGTYPE:
@@ -152,9 +151,11 @@ void ptp_slave_loop(unsigned period){
 
 int main(int argc, char **argv){
 	unsigned int runAsPTPMode = PTP_SLAVE;
+	unsigned long long userPeriod = PTP_SYNC_PERIOD;
+
 	*led_ptr = 0x1FF;
 	puts("\nHello, PTPlib Demo Started");
-	puts("Select PTP mode (PTP_MASTER=1, PTP_SLAVE=0):");
+	puts("Select PTP mode (PTP_MASTER=0, PTP_SLAVE=1):");
 	scanf("%u", &runAsPTPMode);
 
 	//MAC controller settings
@@ -171,6 +172,11 @@ int main(int argc, char **argv){
 	RTC_TIME_NS(PATMOS_IO_ETH) = initNanoseconds;
 	RTC_TIME_SEC(PATMOS_IO_ETH) = initSeconds;
 
+	// read sync period from stdin
+	puts("Enter a sync interval period in us (should be a power of two). Negative numbers terminate the program.");
+	scanf("%llu", &userPeriod);
+	int syncInterval = (int) log2((int)userPeriod*USEC_TO_SEC);
+	
 	//Demo
 	*led_ptr = 0x0;
 	if(runAsPTPMode == PTP_MASTER){
@@ -178,13 +184,10 @@ int main(int argc, char **argv){
 		ipv4_set_my_ip((unsigned char[4]){192, 168, 2, 253});
 		arp_table_init();
 		print_general_info();
-		thisPtpPortInfo = ptpv2_intialize_local_port(PATMOS_IO_ETH, my_mac, (unsigned char[4]){192, 168, 2, 50}, 1);
+		thisPtpPortInfo = ptpv2_intialize_local_port(PATMOS_IO_ETH, PTP_MASTER, my_mac, (unsigned char[4]){192, 168, 2, 50}, 1, syncInterval);
 		int loop = 1;
-		unsigned long long userPeriod = PTP_SYNC_PERIOD;
-		puts("Enter a sync interval period in us (should be a power of two). Negative numbers terminate the program.");
-		scanf("%llu", &userPeriod);
 		if(userPeriod > 0){
-			ptp_master_loop(userPeriod);
+			ptp_master_loop();
 		} else {
 			loop = 0;
 		}
@@ -195,8 +198,8 @@ int main(int argc, char **argv){
 		ipv4_set_my_ip((unsigned char[4]){192, 168, 2, rand_addr});
 		arp_table_init();
 		print_general_info();
-		thisPtpPortInfo = ptpv2_intialize_local_port(PATMOS_IO_ETH, my_mac, (unsigned char[4]){192, 168, 2, rand_addr}, rand_addr);
-		ptp_slave_loop(0);
+		thisPtpPortInfo = ptpv2_intialize_local_port(PATMOS_IO_ETH, PTP_SLAVE, my_mac, (unsigned char[4]){192, 168, 2, rand_addr}, rand_addr, syncInterval);
+		ptp_slave_loop();
 	}
 
 	puts("\n");
