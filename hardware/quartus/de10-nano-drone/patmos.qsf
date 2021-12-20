@@ -97,6 +97,7 @@ set_global_assignment -name VHDL_FILE ../../vhdl/other/Actuators.vhd
 set_global_assignment -name VHDL_FILE "../../vhdl/patmos_de10-nano-drone.vhdl"
 set_global_assignment -name VERILOG_FILE ../../ext/aau/imu_mpu.v
 set_global_assignment -name VERILOG_FILE ../../build/Patmos.v
+set_global_assignment -name VERILOG_FILE ../../build/BlackBoxRom.v
 
 
 

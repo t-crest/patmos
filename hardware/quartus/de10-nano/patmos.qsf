@@ -88,6 +88,7 @@ set_global_assignment -name VHDL_FILE ../../vhdl/other/I2Ccontroller.vhd
 set_global_assignment -name VHDL_FILE "../../vhdl/patmos_de10-nano.vhdl"
 set_global_assignment -name VERILOG_FILE ../../ext/aau/imu_mpu.v
 set_global_assignment -name VERILOG_FILE ../../build/Patmos.v
+set_global_assignment -name VERILOG_FILE ../../build/BlackBoxRom.v
 set_global_assignment -name SIGNALTAP_FILE stp1.stp
 set_location_assignment PIN_AG14 -to pwm_measurment_input[0]
 set_location_assignment PIN_AE6 -to pwm_measurment_input[1]

@@ -339,6 +339,7 @@ set_global_assignment -name VHDL_FILE ../../vhdl/fpu_double/fpu_round.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/fpu_double/fpu_exceptions.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/fpu_double/fpu_double.vhd
 set_global_assignment -name VERILOG_FILE ../../build/Patmos.v
+set_global_assignment -name VERILOG_FILE ../../build/BlackBoxRom.v
 set_global_assignment -name VHDL_FILE "../../vhdl/patmos_de2-all.vhdl"
 
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[0]
