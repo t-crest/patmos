@@ -91,6 +91,8 @@ set_global_assignment -name VHDL_FILE ../../../../sdram/vhdl/sdr_dram.vhd
 set_global_assignment -name VHDL_FILE ../../../../sdram/vhdl/sc_sdram_top_de2_115.vhd
 set_global_assignment -name VHDL_FILE "../../vhdl/patmos_de2-115-sdram.vhdl"
 set_global_assignment -name VERILOG_FILE ../../build/Patmos.v
+set_global_assignment -name VERILOG_FILE ../../build/BlackBoxRom.v
+
 set_location_assignment PIN_U2 -to dram0_LDQM
 set_location_assignment PIN_W4 -to dram0_UDQM
 set_location_assignment PIN_K8 -to dram1_LDQM

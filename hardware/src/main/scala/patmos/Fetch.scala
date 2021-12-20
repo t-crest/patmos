@@ -2,6 +2,7 @@
  * Fetch stage of Patmos.
  *
  * Author: Martin Schoeberl (martin@jopdesign.com)
+ * Edited: Bosse Bandowski (bosse.bandowski@outlook.com)
  *
  */
 
@@ -14,6 +15,7 @@ import chisel3.dontTouch
 import Constants._
 
 import util.Utility
+import util.BlackBoxRom
 
 class Fetch(fileName : String) extends Module {
   val io = IO(new FetchIO())
@@ -25,13 +27,12 @@ class Fetch(fileName : String) extends Module {
   val addrEvenReg = Reg(init = UInt(2, PC_SIZE), next = addrEven)
   val addrOddReg = Reg(init = UInt(1, PC_SIZE), next = addrOdd)
 
-  val rom = Utility.readBin(fileName, INSTR_WIDTH)
-  val romAddrUInt = log2Up(rom.length / 2)
-  // Split the ROM into two blocks for dual fetch
-  val romGroups = rom.iterator.grouped(2).withPadding(UInt(0)).toSeq
-  val romEven = Vec(romGroups.map(_(0)).padTo(1 << romAddrUInt, UInt(0)))
-  val romOdd  = Vec(romGroups.map(_(1)).padTo(1 << romAddrUInt, UInt(0)))
+  // Instantiate dual issue ROM
+  val romContents = Utility.binToDualRom(fileName, INSTR_WIDTH)
+  val romAddrUInt = log2Up(romContents._1.length)
+  val rom = Module(new BlackBoxRom(romContents, romAddrUInt))
 
+  
   val instr_a_ispm = Wire(UInt())
   val instr_b_ispm = Wire(UInt())
   instr_a_ispm := UInt(0)
@@ -97,8 +98,14 @@ class Fetch(fileName : String) extends Module {
   //select even/odd from rom
   // For some weird reason, Quartus infers the ROM as memory block
   // only if the output is registered
-  val data_even = RegNext(romEven(addrEven(romAddrUInt, 1)))
-  val data_odd = RegNext(romOdd(addrOdd(romAddrUInt, 1)))
+  // val data_even = RegNext(romEven(addrEven(romAddrUInt, 1)))
+  // val data_odd = RegNext(romOdd(addrOdd(romAddrUInt, 1)))
+
+  rom.io.addressEven := addrEven(romAddrUInt, 1)
+  rom.io.addressOdd := addrOdd(romAddrUInt, 1)
+  val data_even = RegNext(rom.io.instructionEven)
+  val data_odd = RegNext(rom.io.instructionOdd)
+  
   val instr_a_rom = Mux(pcReg(0) === UInt(0), data_even, data_odd)
   val instr_b_rom = Mux(pcReg(0) === UInt(0), data_odd, data_even)
 

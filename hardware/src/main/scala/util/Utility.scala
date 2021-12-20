@@ -2,6 +2,7 @@
  * Utility functions for Patmos.
  *
  * Author: Martin Schoeberl (martin@jopdesign.com)
+ * Edited: Bosse Bandowski (bosse.bandowski@outlook.com)
  *
  */
 
@@ -23,9 +24,57 @@ object log2Up
 
 object Utility {
 
+  /*
+    Replacing Utility.readBin in Chisel3. Instead of reading the BOOTAPP binary into a vector,
+    it is read into two Array[BigInt] objects containing the ROM instructions that are parsed to Verilog code in utils.BlackBoxRom
+    and used in Fetch.scala. The two arrays represent the even and odd sections of the dual issue RAM.
+  */
+  def binToDualRom(fileName: String, width: Int): (Array[BigInt], Array[BigInt]) = {
+    val bytesPerWord = (width+7) / 8
+
+    println("Reading " + fileName)
+    val byteArray = Files.readAllBytes(Paths.get(fileName))
+
+    // compute ROM length (length of binary rounded up to power of two, then divided by half to match dual issue ROM)
+    val numInstructions = math.max(1, byteArray.length / bytesPerWord)
+    val romLen = math.pow(2, log2Up(numInstructions) - 1).toInt
+
+    // init even and odd ROM
+    val romEven = new Array[BigInt](romLen)
+    val romOdd = new Array[BigInt](romLen)
+
+
+    // if no BOOTAPP, then init ROM with 0
+    if (byteArray.length == 0) {
+      romEven(0) = BigInt(0)
+      romOdd(0) = BigInt(0)
+    }
+
+    // split instructions into even and odd rom. Pad unused PC entries with 0s
+    for (i <- 0 until romLen * 2) {
+      var word = BigInt(0)
+
+      if (i < numInstructions) {
+        for (j <- 0 until bytesPerWord) {
+          word <<= 8
+          word += byteArray(i * bytesPerWord + j).toInt & 0xff
+        }
+      }
+
+      if (i % 2 == 0) {
+        romEven(i / 2) = word
+      }
+      else {
+        romOdd(i / 2) = word
+      }
+    }
+
+    return (romEven, romOdd)
+  }
+
   /**
    * Read a binary file into the ROM vector
-   */
+  */
   def readBin(fileName: String, width: Int): Vec[Bits] = {
 
     val bytesPerWord = (width+7) / 8
@@ -48,6 +97,8 @@ object Utility {
       }
       // printf("%08x\n", Bits(word))
       arr(i) = Bits(word, width = width)
+
+
     }
 
     // use vector to represent ROM
