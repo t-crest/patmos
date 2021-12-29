@@ -555,6 +555,57 @@ void emu_extmem() {}
         c->__PVT__Patmos__DOT__cores_7->icache__DOT__repl__DOT__hitReg = 0;
         c->__PVT__Patmos__DOT__cores_7->icache__DOT__repl__DOT__hitNext = 0;
 #endif
+#if CORE_COUNT > 8
+        c->__PVT__Patmos__DOT__cores_8->fetch__DOT__pcReg = -1;
+        c->__PVT__Patmos__DOT__cores_8->fetch__DOT__pcNext = -1;
+        c->__PVT__Patmos__DOT__cores_8->icache__DOT__repl__DOT__hitReg = 0;
+        c->__PVT__Patmos__DOT__cores_8->icache__DOT__repl__DOT__hitNext = 0;
+#endif
+#if CORE_COUNT > 9
+        c->__PVT__Patmos__DOT__cores_9->fetch__DOT__pcReg = -1;
+        c->__PVT__Patmos__DOT__cores_9->fetch__DOT__pcNext = -1;
+        c->__PVT__Patmos__DOT__cores_9->icache__DOT__repl__DOT__hitReg = 0;
+        c->__PVT__Patmos__DOT__cores_9->icache__DOT__repl__DOT__hitNext = 0;
+#endif
+#if CORE_COUNT > 10
+        c->__PVT__Patmos__DOT__cores_10->fetch__DOT__pcReg = -1;
+        c->__PVT__Patmos__DOT__cores_10->fetch__DOT__pcNext = -1;
+        c->__PVT__Patmos__DOT__cores_10->icache__DOT__repl__DOT__hitReg = 0;
+        c->__PVT__Patmos__DOT__cores_10->icache__DOT__repl__DOT__hitNext = 0;
+#endif
+#if CORE_COUNT > 11
+        c->__PVT__Patmos__DOT__cores_11->fetch__DOT__pcReg = -1;
+        c->__PVT__Patmos__DOT__cores_11->fetch__DOT__pcNext = -1;
+        c->__PVT__Patmos__DOT__cores_11->icache__DOT__repl__DOT__hitReg = 0;
+        c->__PVT__Patmos__DOT__cores_11->icache__DOT__repl__DOT__hitNext = 0;
+#endif
+#if CORE_COUNT > 12
+        c->__PVT__Patmos__DOT__cores_12->fetch__DOT__pcReg = -1;
+        c->__PVT__Patmos__DOT__cores_12->fetch__DOT__pcNext = -1;
+        c->__PVT__Patmos__DOT__cores_12->icache__DOT__repl__DOT__hitReg = 0;
+        c->__PVT__Patmos__DOT__cores_12->icache__DOT__repl__DOT__hitNext = 0;
+#endif
+#if CORE_COUNT > 13
+        c->__PVT__Patmos__DOT__cores_13->fetch__DOT__pcReg = -1;
+        c->__PVT__Patmos__DOT__cores_13->fetch__DOT__pcNext = -1;
+        c->__PVT__Patmos__DOT__cores_13->icache__DOT__repl__DOT__hitReg = 0;
+        c->__PVT__Patmos__DOT__cores_13->icache__DOT__repl__DOT__hitNext = 0;
+#endif
+#if CORE_COUNT > 14
+        c->__PVT__Patmos__DOT__cores_14->fetch__DOT__pcReg = -1;
+        c->__PVT__Patmos__DOT__cores_14->fetch__DOT__pcNext = -1;
+        c->__PVT__Patmos__DOT__cores_14->icache__DOT__repl__DOT__hitReg = 0;
+        c->__PVT__Patmos__DOT__cores_14->icache__DOT__repl__DOT__hitNext = 0;
+#endif
+#if CORE_COUNT > 15
+        c->__PVT__Patmos__DOT__cores_15->fetch__DOT__pcReg = -1;
+        c->__PVT__Patmos__DOT__cores_15->fetch__DOT__pcNext = -1;
+        c->__PVT__Patmos__DOT__cores_15->icache__DOT__repl__DOT__hitReg = 0;
+        c->__PVT__Patmos__DOT__cores_15->icache__DOT__repl__DOT__hitNext = 0;
+#endif
+#if CORE_COUNT > 16
+#warning "Core count is currently limited to 16 in Patmos-harness.cpp"
+#endif
 #endif /* ICACHE_METHOD */
 #ifdef ICACHE_LINE
         //init for icache
@@ -618,6 +669,54 @@ void emu_extmem() {}
         c->__PVT__Patmos__DOT__cores_7->fetch__DOT__selCache = 1;
         c->__PVT__Patmos__DOT__cores_7->icache__DOT__repl__DOT__selCacheReg = 1;
 #endif
+#if CORE_COUNT > 8
+        c->__PVT__Patmos__DOT__cores_8->fetch__DOT__relBaseReg = 0;
+        c->__PVT__Patmos__DOT__cores_8->fetch__DOT__relocReg = (entry >> 2) - 1;
+        c->__PVT__Patmos__DOT__cores_8->fetch__DOT__selCache = 1;
+        c->__PVT__Patmos__DOT__cores_8->icache__DOT__repl__DOT__selCacheReg = 1;
+#endif
+#if CORE_COUNT > 9
+        c->__PVT__Patmos__DOT__cores_9->fetch__DOT__relBaseReg = 0;
+        c->__PVT__Patmos__DOT__cores_9->fetch__DOT__relocReg = (entry >> 2) - 1;
+        c->__PVT__Patmos__DOT__cores_9->fetch__DOT__selCache = 1;
+        c->__PVT__Patmos__DOT__cores_9->icache__DOT__repl__DOT__selCacheReg = 1;
+#endif
+#if CORE_COUNT > 10
+        c->__PVT__Patmos__DOT__cores_10->fetch__DOT__relBaseReg = 0;
+        c->__PVT__Patmos__DOT__cores_10->fetch__DOT__relocReg = (entry >> 2) - 1;
+        c->__PVT__Patmos__DOT__cores_10->fetch__DOT__selCache = 1;
+        c->__PVT__Patmos__DOT__cores_10->icache__DOT__repl__DOT__selCacheReg = 1;
+#endif
+#if CORE_COUNT > 11
+        c->__PVT__Patmos__DOT__cores_11->fetch__DOT__relBaseReg = 0;
+        c->__PVT__Patmos__DOT__cores_11->fetch__DOT__relocReg = (entry >> 2) - 1;
+        c->__PVT__Patmos__DOT__cores_11->fetch__DOT__selCache = 1;
+        c->__PVT__Patmos__DOT__cores_11->icache__DOT__repl__DOT__selCacheReg = 1;
+#endif
+#if CORE_COUNT > 12
+        c->__PVT__Patmos__DOT__cores_12->fetch__DOT__relBaseReg = 0;
+        c->__PVT__Patmos__DOT__cores_12->fetch__DOT__relocReg = (entry >> 2) - 1;
+        c->__PVT__Patmos__DOT__cores_12->fetch__DOT__selCache = 1;
+        c->__PVT__Patmos__DOT__cores_12->icache__DOT__repl__DOT__selCacheReg = 1;
+#endif
+#if CORE_COUNT > 13
+        c->__PVT__Patmos__DOT__cores_13->fetch__DOT__relBaseReg = 0;
+        c->__PVT__Patmos__DOT__cores_13->fetch__DOT__relocReg = (entry >> 2) - 1;
+        c->__PVT__Patmos__DOT__cores_13->fetch__DOT__selCache = 1;
+        c->__PVT__Patmos__DOT__cores_13->icache__DOT__repl__DOT__selCacheReg = 1;
+#endif
+#if CORE_COUNT > 14
+        c->__PVT__Patmos__DOT__cores_14->fetch__DOT__relBaseReg = 0;
+        c->__PVT__Patmos__DOT__cores_14->fetch__DOT__relocReg = (entry >> 2) - 1;
+        c->__PVT__Patmos__DOT__cores_14->fetch__DOT__selCache = 1;
+        c->__PVT__Patmos__DOT__cores_14->icache__DOT__repl__DOT__selCacheReg = 1;
+#endif
+#if CORE_COUNT > 15
+        c->__PVT__Patmos__DOT__cores_15->fetch__DOT__relBaseReg = 0;
+        c->__PVT__Patmos__DOT__cores_15->fetch__DOT__relocReg = (entry >> 2) - 1;
+        c->__PVT__Patmos__DOT__cores_15->fetch__DOT__selCache = 1;
+        c->__PVT__Patmos__DOT__cores_15->icache__DOT__repl__DOT__selCacheReg = 1;
+#endif
       }
       else
       {
@@ -663,6 +762,30 @@ void emu_extmem() {}
 #if CORE_COUNT > 7
       c->__PVT__Patmos__DOT__cores_7->icache__DOT__repl__DOT__callRetBaseNext = (entry >> 2);
 #endif
+#if CORE_COUNT > 8
+      c->__PVT__Patmos__DOT__cores_8->icache__DOT__repl__DOT__callRetBaseNext = (entry >> 2);
+#endif
+#if CORE_COUNT > 9
+      c->__PVT__Patmos__DOT__cores_9->icache__DOT__repl__DOT__callRetBaseNext = (entry >> 2);
+#endif
+#if CORE_COUNT > 10
+      c->__PVT__Patmos__DOT__cores_10->icache__DOT__repl__DOT__callRetBaseNext = (entry >> 2);
+#endif
+#if CORE_COUNT > 11
+      c->__PVT__Patmos__DOT__cores_11->icache__DOT__repl__DOT__callRetBaseNext = (entry >> 2);
+#endif
+#if CORE_COUNT > 12
+      c->__PVT__Patmos__DOT__cores_12->icache__DOT__repl__DOT__callRetBaseNext = (entry >> 2);
+#endif
+#if CORE_COUNT > 13
+      c->__PVT__Patmos__DOT__cores_13->icache__DOT__repl__DOT__callRetBaseNext = (entry >> 2);
+#endif
+#if CORE_COUNT > 14
+      c->__PVT__Patmos__DOT__cores_14->icache__DOT__repl__DOT__callRetBaseNext = (entry >> 2);
+#endif
+#if CORE_COUNT > 15
+      c->__PVT__Patmos__DOT__cores_15->icache__DOT__repl__DOT__callRetBaseNext = (entry >> 2);
+#endif
 
 #ifdef ICACHE_METHOD
 #if CORE_COUNT == 1
@@ -690,6 +813,30 @@ void emu_extmem() {}
 #endif
 #if CORE_COUNT > 7
       c->__PVT__Patmos__DOT__cores_7->icache__DOT__ctrl__DOT__callRetBaseNext = (entry >> 2);
+#endif
+#if CORE_COUNT > 8
+      c->__PVT__Patmos__DOT__cores_8->icache__DOT__ctrl__DOT__callRetBaseNext = (entry >> 2);
+#endif
+#if CORE_COUNT > 9
+      c->__PVT__Patmos__DOT__cores_9->icache__DOT__ctrl__DOT__callRetBaseNext = (entry >> 2);
+#endif
+#if CORE_COUNT > 10
+      c->__PVT__Patmos__DOT__cores_10->icache__DOT__ctrl__DOT__callRetBaseNext = (entry >> 2);
+#endif
+#if CORE_COUNT > 11
+      c->__PVT__Patmos__DOT__cores_11->icache__DOT__ctrl__DOT__callRetBaseNext = (entry >> 2);
+#endif
+#if CORE_COUNT > 12
+      c->__PVT__Patmos__DOT__cores_12->icache__DOT__ctrl__DOT__callRetBaseNext = (entry >> 2);
+#endif
+#if CORE_COUNT > 13
+      c->__PVT__Patmos__DOT__cores_13->icache__DOT__ctrl__DOT__callRetBaseNext = (entry >> 2);
+#endif
+#if CORE_COUNT > 14
+      c->__PVT__Patmos__DOT__cores_14->icache__DOT__ctrl__DOT__callRetBaseNext = (entry >> 2);
+#endif
+#if CORE_COUNT > 15
+      c->__PVT__Patmos__DOT__cores_15->icache__DOT__ctrl__DOT__callRetBaseNext = (entry >> 2);
 #endif
 #endif /* ICACHE_METHOD */
 #ifdef ICACHE_LINE
