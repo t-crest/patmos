@@ -50,7 +50,7 @@
     </Dev>
     <Dev DevType="EthMac" entity="EthMac" iface="OcpCore">
       <params>
-        <param name="extAddrWidth" value="14" />
+        <param name="extAddrWidth" value="16" />
         <param name="dataWidth" value="32" />
         <param name="withPTP" value="true" />
         <param name="secondsWidth" value="32"/>
@@ -60,7 +60,7 @@
     </Dev>
     <Dev DevType="EthMac2" entity="EthMac" iface="OcpCore">
       <params>
-        <param name="extAddrWidth" value="14" />
+        <param name="extAddrWidth" value="16" />
         <param name="dataWidth" value="32" />
         <param name="withPTP" value="false" />
       </params>
