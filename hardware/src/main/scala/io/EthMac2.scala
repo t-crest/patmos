@@ -38,7 +38,7 @@ object EthMac2 extends DeviceObject {
 
   def create(params: Map[String, String]) : EthMac2 = {
     if(withPTP)
-      Module(new EthMac2(extAddrWidth-1, dataWidth, withPTP, secondsWidth, nanoWidth, initialTime, ppsDuration))
+      Module(new EthMac2(extAddrWidth, dataWidth, withPTP, secondsWidth, nanoWidth, initialTime, ppsDuration))
     else
       Module(new EthMac2(extAddrWidth, dataWidth))
   }
