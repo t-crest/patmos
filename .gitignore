@@ -9,6 +9,10 @@ hardware/.idea/
 hardware/modelsim/work/
 hardware/quartus/**/incremental_db
 hardware/quartus/**/db/
+hardware/vivado/**/*.cache
+hardware/vivado/**/*.hw
+hardware/vivado/**/*.runs
+hardware/vivado/**/*.sim
 tools/c/build
 tools/java/build
 tools/scripts/build
