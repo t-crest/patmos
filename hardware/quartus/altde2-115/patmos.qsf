@@ -123,6 +123,7 @@ set_global_assignment -name VHDL_FILE "../../vhdl/patmos_de2-115.vhdl"
 set_global_assignment -name VHDL_FILE ../../vhdl/altera/cyc2_pll.vhd
 set_global_assignment -name VERILOG_FILE ../../build/Patmos.v
 set_global_assignment -name VERILOG_FILE ../../build/BlackBoxRom.v
+set_global_assignment -name VERILOG_FILE ../../build/sky130_sram_1kbyte_1rw1r_8x1024_8.v
 
 set_global_assignment -name VHDL_FILE "../../../../argo/src/ocp/ocp_config.vhd"
 set_global_assignment -name VHDL_FILE "../../../../argo/src/ocp/ocp.vhd"
