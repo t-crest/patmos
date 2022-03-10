@@ -88,6 +88,13 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
+      <File Path="$PPRDIR/../../build/sky130_sram_1kbyte_1rw1r_8x1024_8.v">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
       <File Path="$PPRDIR/../../vhdl/patmos_ocmem.vhdl">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>

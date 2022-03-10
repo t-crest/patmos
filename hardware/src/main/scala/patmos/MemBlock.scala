@@ -9,6 +9,8 @@
 package patmos
 
 import Chisel._
+import chisel3.SyncReadMem
+import util.SRAM
 
 object MemBlock {
   def apply(size : Int, width : Int, bypass : Boolean = true) = {
@@ -48,21 +50,37 @@ class MemBlockIO(size : Int, width : Int) extends Bundle {
 
 class MemBlock(size : Int, width : Int, bypass : Boolean = true) extends Module {
   val io = new MemBlockIO(size, width)
-  val mem = Mem(UInt(width = width), size)
 
-  // write
-  when(io.wrEna === UInt(1)) {
-    mem(io.wrAddr) := io.wrData
+  // switch between chisel SyncReadMem and SRAM using a verilog model
+  val useSimSRAM = false
+
+  if(useSimSRAM) {
+
+    val mem = Module(new SRAM(size, width))
+
+    mem.io.rdAddr := io.rdAddr
+    mem.io.wrAddr := io.wrAddr
+    mem.io.wrData := io.wrData
+    mem.io.wrEna := io.wrEna.asBool()
+    io.rdData := mem.io.rdData
+
+  } else {
+
+    val mem = SyncReadMem(size, UInt(width = width))
+    // write
+    when(io.wrEna === UInt(1)) {
+      mem.write(io.wrAddr, io.wrData)
+    }
+    // read
+    io.rdData := mem.read(io.rdAddr)
+
   }
 
-  // read
-  val rdAddrReg = Reg(next = io.rdAddr)
-  io.rdData := mem(rdAddrReg)
 
   if (bypass) {
     // force read during write behavior
     when (Reg(next = io.wrEna) === UInt(1) &&
-          Reg(next = io.wrAddr) === rdAddrReg) {
+          Reg(next = io.wrAddr ===  io.rdAddr)) {
             io.rdData := Reg(next = io.wrData)
           }
   }
