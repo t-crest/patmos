@@ -4340,17 +4340,13 @@ We can now install all the needed tools:
 \begin{verbatim}
 sudo apt install git openjdk-8-jdk gitk cmake make g++ texinfo flex bison \
   subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby-full \
-  liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala autoconf libfl2 expect verilator
+  liblpsolve55-dev zlib1g-dev gtkwave gtkterm scala autoconf libfl2 expect verilator
 \end{verbatim}
 
-Make sure to use Java 8 and remove any later Java version with
-
-\begin{verbatim}
-sudo apt autoremove
-\end{verbatim}
+Make sure to use Java 8 or later version.
 
 As Patmos uses Chisel as its hardware language,
-which is built on top of Scala, we need install abt
+which is built on top of Scala, we need install \code{sbt}
 according to the instructions from \url{https://www.scala-sbt.org/download.html}
 
 
