@@ -336,39 +336,7 @@ public:
                ((val_t)elfbuf[phdr.p_offset + k + 2] << 8) | 
                ((val_t)elfbuf[phdr.p_offset + k + 3] << 0));
             val_t addr = ((phdr.p_paddr + k) - (0x1 << OCMEM_ADDR_BITS)) >> 3;
-            #if CORE_COUNT == 1
-            unsigned size = (sizeof(c->Patmos__DOT__cores_0__DOT__fetch__DOT__MemBlock__DOT__mem) / //ANTHON THIS MIGHT BE WRONG - SHOULD BE OKAY
-                             sizeof(c->Patmos__DOT__cores_0__DOT__fetch__DOT__MemBlock__DOT__mem[0]));
-            #endif
-            #if CORE_COUNT > 1
-            unsigned size = (sizeof(c->__PVT__Patmos__DOT__cores_0->__PVT__fetch__DOT__MemBlock__DOT__mem) / //ANTHON THIS MIGHT BE WRONG - SHOULD BE OKAY
-                             sizeof(c->__PVT__Patmos__DOT__cores_0->__PVT__fetch__DOT__MemBlock__DOT__mem[0]));
-            #endif
-            assert(addr < size && "Instructions mapped to ISPM exceed size");
   
-            // Write to even or odd block
-            #if CORE_COUNT == 1
-            if (((phdr.p_paddr + k) & 0x4) == 0)
-            {
-              
-              c->Patmos__DOT__cores_0__DOT__fetch__DOT__MemBlock__DOT__mem[addr] = word;
-            }
-            else
-            {
-              c->Patmos__DOT__cores_0__DOT__fetch__DOT__MemBlock_1__DOT__mem[addr] = word;
-            }
-            #endif
-            #if CORE_COUNT > 1
-            if (((phdr.p_paddr + k) & 0x4) == 0)
-            {
-
-              c->__PVT__Patmos__DOT__cores_0->__PVT__fetch__DOT__MemBlock__DOT__mem[addr] = word;
-            }
-            else
-            {
-              c->__PVT__Patmos__DOT__cores_0->__PVT__fetch__DOT__MemBlock_1__DOT__mem[addr] = word;
-            }
-            #endif
 
           }
 
