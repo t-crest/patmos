@@ -312,7 +312,6 @@ class FetchIO extends Bundle() {
   val wrEna := Bool(INPUT)
   val wrAddr := UInt(width = ADDR_WIDTH).asInput
   val wrData := UInt(width = ADDR_WIDTH).asInput
-
 }
 
 class ExcDec() extends Bundle() {
