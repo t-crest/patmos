@@ -308,6 +308,11 @@ class FetchIO extends Bundle() {
   // connections to instruction cache
   val feicache = new FeICache().asOutput
   val icachefe = new ICacheFe().asInput
+  // connections for writeable boot
+  val wrEna := Bool(INPUT)
+  val wrAddr := UInt(width = ADDR_WIDTH).asInput
+  val wrData := UInt(width = ADDR_WIDTH).asInput
+
 }
 
 class ExcDec() extends Bundle() {
