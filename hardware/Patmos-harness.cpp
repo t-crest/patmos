@@ -321,56 +321,9 @@ public:
         //assert(phdr.p_vaddr == phdr.p_paddr);
         assert(phdr.p_filesz <= phdr.p_memsz);
 
-        // copy from the buffer into the on-chip memories
+        // copy from the buffer into memory
         for (size_t k = 0; k < phdr.p_memsz; k++)
         {
-          if ((phdr.p_flags & PF_X) != 0 &&
-              ((phdr.p_paddr + k) >> OCMEM_ADDR_BITS) == 0x1 &&
-              ((phdr.p_paddr + k) & 0x3) == 0)
-          {
-            // Address maps to ISPM and is at a word boundary
-
-            val_t word = k >= phdr.p_filesz ? 0 : 
-              (((val_t)elfbuf[phdr.p_offset + k + 0] << 24) |
-               ((val_t)elfbuf[phdr.p_offset + k + 1] << 16) |
-               ((val_t)elfbuf[phdr.p_offset + k + 2] << 8) | 
-               ((val_t)elfbuf[phdr.p_offset + k + 3] << 0));
-            val_t addr = ((phdr.p_paddr + k) - (0x1 << OCMEM_ADDR_BITS)) >> 3;
-            #if CORE_COUNT == 1
-            unsigned size = (sizeof(c->Patmos__DOT__cores_0__DOT__fetch__DOT__MemBlock__DOT__mem) / //ANTHON THIS MIGHT BE WRONG - SHOULD BE OKAY
-                             sizeof(c->Patmos__DOT__cores_0__DOT__fetch__DOT__MemBlock__DOT__mem[0]));
-            #endif
-            #if CORE_COUNT > 1
-            unsigned size = (sizeof(c->__PVT__Patmos__DOT__cores_0->__PVT__fetch__DOT__MemBlock__DOT__mem) / //ANTHON THIS MIGHT BE WRONG - SHOULD BE OKAY
-                             sizeof(c->__PVT__Patmos__DOT__cores_0->__PVT__fetch__DOT__MemBlock__DOT__mem[0]));
-            #endif
-            assert(addr < size && "Instructions mapped to ISPM exceed size");
-  
-            // Write to even or odd block
-            #if CORE_COUNT == 1
-            if (((phdr.p_paddr + k) & 0x4) == 0)
-            {
-              
-              c->Patmos__DOT__cores_0__DOT__fetch__DOT__MemBlock__DOT__mem[addr] = word;
-            }
-            else
-            {
-              c->Patmos__DOT__cores_0__DOT__fetch__DOT__MemBlock_1__DOT__mem[addr] = word;
-            }
-            #endif
-            #if CORE_COUNT > 1
-            if (((phdr.p_paddr + k) & 0x4) == 0)
-            {
-
-              c->__PVT__Patmos__DOT__cores_0->__PVT__fetch__DOT__MemBlock__DOT__mem[addr] = word;
-            }
-            else
-            {
-              c->__PVT__Patmos__DOT__cores_0->__PVT__fetch__DOT__MemBlock_1__DOT__mem[addr] = word;
-            }
-            #endif
-
-          }
 
           if (((phdr.p_paddr + k) & 0x3) == 0)
           {
@@ -392,14 +345,14 @@ public:
     return entry;
   }
 
-#ifdef EXTMEM_SSRAM32CTRL //TODO test this
+#ifdef EXTMEM_SSRAM32CTRL // TODO: test this
   void write_extmem(val_t address, val_t word)
   {
     ram_buf[address] = word; // This gives segmentation fault dumb on second run!
   }
 
   void init_extmem() {
-    //only needed for random init
+    // only needed for random init
     for (int i = 0; i < (1 << EXTMEM_ADDR_BITS); i++) {
       write_extmem(i, rand());
     }
@@ -458,7 +411,7 @@ static void emu_extmem() {
   }
 
   void init_extmem() {
-    //only needed for random init
+    // only needed for random init
     for (int i = 0; i < (1 << EXTMEM_ADDR_BITS)/2; i++) {
       write_extmem(i, rand());
     }
@@ -498,7 +451,7 @@ void emu_extmem() {}
       if (entry >= 0x20000)
       {
 #ifdef ICACHE_METHOD
-        //init for method cache
+        // init for method cache
 #if CORE_COUNT == 1
         c->Patmos__DOT__cores_0__DOT__fetch__DOT__pcReg = -1;
         c->Patmos__DOT__cores_0__DOT__fetch__DOT__pcNext = -1;
@@ -608,7 +561,7 @@ void emu_extmem() {}
 #endif
 #endif /* ICACHE_METHOD */
 #ifdef ICACHE_LINE
-        //init for icache
+        // init for icache
         #if CORE_COUNT == 1
         c->Patmos__DOT__cores_0__DOT__fetch__DOT__pcNext = (entry >> 2) - 1;
         #endif
@@ -717,24 +670,6 @@ void emu_extmem() {}
         c->__PVT__Patmos__DOT__cores_15->fetch__DOT__selCache = 1;
         c->__PVT__Patmos__DOT__cores_15->icache__DOT__repl__DOT__selCacheReg = 1;
 #endif
-      }
-      else
-      {
-        // pcReg for ispm starts at entry point - ispm base
-#if CORE_COUNT == 1
-        c->Patmos__DOT__cores_0__DOT__fetch__DOT__pcNext = ((entry - 0x10000) >> 2) - 1;
-        c->Patmos__DOT__cores_0__DOT__fetch__DOT__relBaseNext = (entry - 0x10000) >> 2;
-        c->Patmos__DOT__cores_0__DOT__fetch__DOT__relocNext = 0x10000 >> 2;
-        c->Patmos__DOT__cores_0__DOT__fetch__DOT__selSpmNext = 1;
-        c->Patmos__DOT__cores_0__DOT__icache__DOT__repl__DOT__selSpmNext = 1;
-#endif
-#if CORE_COUNT > 1
-        c->__PVT__Patmos__DOT__cores_0->fetch__DOT__pcNext = ((entry - 0x10000) >> 2) - 1;
-        c->__PVT__Patmos__DOT__cores_0->fetch__DOT__relBaseNext = (entry - 0x10000) >> 2;
-        c->__PVT__Patmos__DOT__cores_0->fetch__DOT__relocNext = 0x10000 >> 2;
-        c->__PVT__Patmos__DOT__cores_0->fetch__DOT__selSpmNext = 1;
-        c->__PVT__Patmos__DOT__cores_0->icache__DOT__repl__DOT__selSpmNext = 1;
-#endif 
       }
 #if CORE_COUNT == 1
       c->Patmos__DOT__cores_0__DOT__icache__DOT__repl__DOT__callRetBaseNext = (entry >> 2);

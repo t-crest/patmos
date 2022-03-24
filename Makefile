@@ -238,6 +238,7 @@ mostlyclean:
 	-rm -rf $(CTOOLSBUILDDIR) $(BUILDDIR) $(HWBUILDDIR)
 	-rm -rf $(JAVATOOLSBUILDDIR)/classes
 	-rm -rf hardware/target
+	-rm $(HWINSTALLDIR)/bin/patemu
 
 clean: mostlyclean
 #	-rm -rf $(INSTALLDIR)/bin
