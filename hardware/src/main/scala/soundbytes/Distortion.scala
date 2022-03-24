@@ -42,7 +42,7 @@ class Distortion(dataWidth: Int = 16, gainWidth: Int = 6, lookupBits: Int = 10, 
   val lookupTable = VecInit(lookupValues.map(v => scala.math.round(v).asUInt(absDataWidth.W)))
 
   // State Variables.
-  val idle :: distort :: hasValue :: Nil = Enum(3)
+  val idle :: distort1 :: distort2 :: hasValue :: Nil = Enum(4)
   val regState = RegInit(idle)
 
   // Shared Multiplier (if needed).
@@ -58,7 +58,7 @@ class Distortion(dataWidth: Int = 16, gainWidth: Int = 6, lookupBits: Int = 10, 
   val gainMul = if (singleMultiplier) {sharedMulOut} else { inValAbs * io.gain }
   val regInValGain = RegNext(gainMul)
   
-  // Distortion stage.
+  // Distortion stage 1.
   val lookupIndex = regInValGain >> fractBits
   val lookupFraction = regInValGain(fractBits - 1, 0)
 
@@ -70,16 +70,21 @@ class Distortion(dataWidth: Int = 16, gainWidth: Int = 6, lookupBits: Int = 10, 
   }
   val lookupHigh = lookupTable(lookupIndex)
   val lookupDiff = lookupHigh - lookupLow
-  val regLookupLow = RegInit(0.U(absDataWidth.W))
+  val regLookupLow1 = RegInit(0.U(absDataWidth.W))
+  val regLookupDiff = RegInit(0.U(absDataWidth.W))
+  val regLookupFraction = RegInit(0.U(fractBits.W))
   
-  val interpMul = if (singleMultiplier) {sharedMulOut} else { lookupDiff * lookupFraction }  
+  // Distortion stage 2.
+  val interpMul = if (singleMultiplier) {sharedMulOut} else { regLookupDiff * regLookupFraction }  
   val regInterp = RegInit(0.U(absDataWidth.W))
+
+  val regLookupLow2 = RegInit(0.U(absDataWidth.W))
 
   // Output Code.
   when(regInValSign === true.B) {
-    io.out.bits := -(regInterp +& regLookupLow).asSInt()
+    io.out.bits := -(regInterp +& regLookupLow2).asSInt()
   } .otherwise {
-    io.out.bits := (regInterp +& regLookupLow).asSInt()
+    io.out.bits := (regInterp +& regLookupLow2).asSInt()
   }
 
   // FSM.
@@ -92,17 +97,24 @@ class Distortion(dataWidth: Int = 16, gainWidth: Int = 6, lookupBits: Int = 10, 
           sharedMulIn1 := inValAbs
           sharedMulIn2 := io.gain
         }
-        regState := distort
+        regState := distort1
       }
     }
-    is (distort) {
+    is (distort1) {
+      regLookupLow1 := lookupLow
+      regLookupDiff := lookupDiff
+      regLookupFraction := lookupFraction
+      
+      regState := distort2
+    }
+    is (distort2) {
       if(singleMultiplier) {
-        sharedMulIn1 := lookupDiff
-        sharedMulIn2 := lookupFraction
+        sharedMulIn1 := regLookupDiff
+        sharedMulIn2 := regLookupFraction
       }
       
-      regLookupLow := lookupLow
       regInterp := interpMul >> fractBits
+      regLookupLow2 := regLookupLow1
       
       regState := hasValue
     }
@@ -153,7 +165,7 @@ class DistortionPipelined(dataWidth: Int = 16, gainWidth: Int = 6, lookupBits: I
   
   // Gain stage.
   val inVal = io.in.bits
-  val inValAbs = inVal.abs.asUInt.min(maxSignal.U).tail(1)  
+  val inValAbs = inVal.abs.asUInt.min(maxSignal.U).tail(1)
   val regInValSign = ShiftRegister(inVal(dataWidth - 1), 2) // delay by two stages
 
   val gainMul = inValAbs * io.gain

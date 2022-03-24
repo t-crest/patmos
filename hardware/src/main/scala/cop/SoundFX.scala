@@ -54,7 +54,7 @@ class SoundFX() extends CoprocessorMemoryAccess() {
   val FUNC_DEL_OUTGAIN = 9.U(5.W)   // delay output gain
   
   // Effects Modules.
-  val distortion = Module(new Distortion(SAMPLE_WIDTH, GAIN_WIDTH, 10, 350.0f))
+  val distortion = Module(new Distortion(SAMPLE_WIDTH, GAIN_WIDTH, 10, 350.0f, false))
   val distOutGain = Module(new Gain(SAMPLE_WIDTH, GAIN_WIDTH, SAMPLE_WIDTH))
   val delay = Module(new Delay(SAMPLE_WIDTH, PTR_WIDTH, DELAY_COUNTER_WIDTH, MIX_WIDTH, FB_WIDTH))
   val delOutGain = Module(new Gain(SAMPLE_WIDTH, GAIN_WIDTH, SAMPLE_WIDTH + 1))
@@ -117,12 +117,22 @@ class SoundFX() extends CoprocessorMemoryAccess() {
     delOut(i) := outvar
   }
   
+  // Input.
+  val regSample = RegInit(0.S(SAMPLE_WIDTH.W))
+  val regSampleValid = RegInit(false.B)
+  
   // Distortion Plumbing.
   val distDemux = Module(new DecoupledDemux(SInt(SAMPLE_WIDTH.W)))
   val distMux = Module(new DecoupledMux(SInt(SAMPLE_WIDTH.W)))
   
   distDemux.io.sel := regDistEn
   distMux.io.sel := regDistEn
+  
+  distDemux.io.in.bits := regSample
+  distDemux.io.in.valid := regSampleValid
+  when (distDemux.io.in.ready) {
+    regSampleValid := false.B
+  }
   
   distDemux.io.out1 <> distortion.io.in
   distortion.io.out <> distOutGain.io.in
@@ -158,13 +168,10 @@ class SoundFX() extends CoprocessorMemoryAccess() {
   val outQueue = Module(new Queue(SInt(SAMPLE_WIDTH.W), DELAY_PACKET_SIZE))
   outQueue.io.enq <> delMux.io.out
     
-  // COP access logic.
+  // COP access logic.  
   io.copOut.ena_out := false.B
   io.copOut.result := 0.U
-  
-  distDemux.io.in.valid := false.B
-  distDemux.io.in.bits := 0.S
-  
+    
   outQueue.io.deq.ready := false.B
   
   val regTrigger = RegInit(false.B)
@@ -189,9 +196,9 @@ class SoundFX() extends CoprocessorMemoryAccess() {
     }.otherwise {
       switch(io.copIn.funcId) {
         is (FUNC_SAMPLE) {
-          when (distDemux.io.in.ready) {
-            distDemux.io.in.valid := true.B
-            distDemux.io.in.bits := io.copIn.opData(0).asSInt
+          when (!regSampleValid) {
+            regSampleValid := true.B
+            regSample := io.copIn.opData(0).asSInt
             
             io.copOut.ena_out := true.B
             regTrigger := false.B

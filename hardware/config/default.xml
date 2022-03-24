@@ -14,7 +14,7 @@
       </params> -->
     </CmpDev>
   </CmpDevs>
-  <bus burstLength="4" writeCombine="false" mmu="false" roundRobinArbiter="false" />
+  <bus burstLength="4" writeCombine="false" mmu="false" roundRobinArbiter="true" />
 
   <ICache type="method" size="8k" assoc="16" repl="fifo" />
   <DCache size="4k" assoc="1" repl="" writeThrough="true" />

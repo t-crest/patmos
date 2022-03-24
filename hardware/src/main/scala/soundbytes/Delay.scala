@@ -33,7 +33,7 @@ class Delay(dataWidth: Int = 16, ptrWidth: Int = 12, counterBits: Int = 3, mixWi
   })
     
   // Actual Delay Engine.
-  val engine = Module(new DelayEngine(dataWidth, mixWidth, feedbackWidth))
+  val engine = Module(new DelayEngine(dataWidth, mixWidth, feedbackWidth, true))
   engine.io.in.valid := false.B
   engine.io.out.ready := false.B
   engine.io.mix := io.mix
