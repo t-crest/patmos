@@ -55,7 +55,7 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
       Module(new NullICache()) // return at least a dummy cache
     }
 
-  val fetch = Module(new Fetch(binFile))
+  val fetch = Module(new Fetch(binFile.length()))
   val decode = Module(new Decode())
   val execute = Module(new Execute())
   val memory = Module(new Memory())
@@ -63,6 +63,11 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
   val exc = Module(new Exceptions())
   
   val dcache = Module(new DataCache())
+
+  //TODO : Connect to risc-v coprocessor
+  fetch.io.wrEna := false.B
+  fetch.io.wrData := DontCare()
+  fetch.io.wrAddr := DontCare()
 
   //connect icache
   icache.io.feicache <> fetch.io.feicache

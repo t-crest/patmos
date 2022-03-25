@@ -17,8 +17,8 @@ import Constants._
 import util.Utility
 import util.BlackBoxRom
 
-class Fetch(fileName : String) extends Module {
-  val io = IO(new FetchIO())
+class Fetch(amount:Int) extends Module {
+  val io = IO(new FetchIO(PC_SIZE))
 
   val pcReg = RegInit(UInt(1, PC_SIZE))
   val pcNext = dontTouch(Wire(UInt(PC_SIZE.W))) // for emulator
@@ -27,10 +27,18 @@ class Fetch(fileName : String) extends Module {
   val addrEvenReg = Reg(init = UInt(2, PC_SIZE), next = addrEven)
   val addrOddReg = Reg(init = UInt(1, PC_SIZE), next = addrOdd)
 
-  // Instantiate dual issue ROM
-  val romContents = Utility.binToDualRom(fileName, INSTR_WIDTH)
-  val romAddrUInt = log2Up(romContents._1.length)
-  val rom = Module(new BlackBoxRom(romContents, romAddrUInt))
+  val promEven = MemBlock(amount / 2, PC_SIZE)
+  val promOdd = MemBlock(amount / 2, PC_SIZE)
+
+  // If the lsb is 0 and write is enabled, write to even memory 
+  promEven.wrEna := io.write.en && !io.write.addr(0)
+  promEven.wrAddr := io.write.addr >> 1
+  promEven.wrData := io.write.data
+
+  // If the lsb is 1 and write is enabled, write to odd memory
+  promOdd.wrEna := io.write.en && io.write.addr(0)
+  promOdd.wrAddr := io.write.addr >> 1
+  promOdd.wrData := io.write.data
 
   
   val instr_a_ispm = Wire(UInt())
@@ -101,10 +109,10 @@ class Fetch(fileName : String) extends Module {
   // val data_even = RegNext(romEven(addrEven(romAddrUInt, 1)))
   // val data_odd = RegNext(romOdd(addrOdd(romAddrUInt, 1)))
 
-  rom.io.addressEven := addrEven(romAddrUInt, 1)
-  rom.io.addressOdd := addrOdd(romAddrUInt, 1)
-  val data_even = RegNext(rom.io.instructionEven)
-  val data_odd = RegNext(rom.io.instructionOdd)
+  promEven.io.rdAddr := addrEven(romAddrUInt, 1)
+  promOdd.io.rdAddr := addrOdd(romAddrUInt, 1)
+  val data_even = RegNext(promEven.io.rdData)
+  val data_odd = RegNext(promOdd.io.rdData)
   
   val instr_a_rom = Mux(pcReg(0) === UInt(0), data_even, data_odd)
   val instr_b_rom = Mux(pcReg(0) === UInt(0), data_odd, data_even)
