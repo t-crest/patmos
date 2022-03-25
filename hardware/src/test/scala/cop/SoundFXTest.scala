@@ -100,7 +100,7 @@ class SoundFXTest extends FlatSpec with ChiselScalatestTester {
         while(!finished) {
 
           if (dut.io.memPort.M.Cmd.peek.litValue.toInt == OcpCmd.RD.litValue.toInt) {
-            val addr = dut.io.memPort.M.Addr.peek.litValue.toInt 
+            val addr = dut.io.memPort.M.Addr.peek.litValue.toInt >> 2
             dut.io.memPort.S.CmdAccept.poke(1.asUInt)
             dut.clock.step()
             
@@ -114,7 +114,7 @@ class SoundFXTest extends FlatSpec with ChiselScalatestTester {
             dut.clock.step()
           }
           else if (dut.io.memPort.M.Cmd.peek.litValue.toInt == OcpCmd.WR.litValue.toInt && dut.io.memPort.M.DataValid.peek.litValue.toInt == 1) {
-            val addr = dut.io.memPort.M.Addr.peek.litValue.toInt 
+            val addr = dut.io.memPort.M.Addr.peek.litValue.toInt >> 2
             dut.io.memPort.S.CmdAccept.poke(1.asUInt)
             dut.io.memPort.S.DataAccept.poke(1.asUInt)
             delSamples(addr) = dut.io.memPort.M.Data.peek.litValue.toInt
