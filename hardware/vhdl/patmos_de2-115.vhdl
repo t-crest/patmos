@@ -17,18 +17,32 @@ use ieee.numeric_std.all;
 entity patmos_top is
   port(
     clk : in  std_logic;
+	 
     oLedsPins_led : out std_logic_vector(8 downto 0);
     iKeysPins_key : in std_logic_vector(3 downto 0);
+	 
     oUartPins_txd : out std_logic;
     iUartPins_rxd : in  std_logic;
+	 
     oSRAM_A : out std_logic_vector(19 downto 0);
     SRAM_DQ : inout std_logic_vector(15 downto 0);
     oSRAM_CE_N : out std_logic;
     oSRAM_OE_N : out std_logic;
     oSRAM_WE_N : out std_logic;
     oSRAM_LB_N : out std_logic;
-    oSRAM_UB_N : out std_logic
-  );
+    oSRAM_UB_N : out std_logic;
+	 
+    oAudioInterface_dacLrc : out std_logic;
+    oAudioInterface_bclk : out std_logic;
+    iAudioInterface_adcDat : in std_logic;
+    oAudioInterface_dacDat : out std_logic;
+    oAudioInterface_xclk : out std_logic;
+    oAudioInterface_adcLrc : out std_logic;
+
+    oAudioInterface_sclk : out std_logic;
+    ioAudioInterface_sdat : inout std_logic
+    
+	 );
 end entity patmos_top;
 
 architecture rtl of patmos_top is
@@ -37,21 +51,32 @@ architecture rtl of patmos_top is
 			clock           : in  std_logic;
 			reset           : in  std_logic;
 
-      io_Leds_led : out std_logic_vector(8 downto 0);
-      io_Keys_key : in  std_logic_vector(3 downto 0);
-      io_UartCmp_tx  : out std_logic;
-      io_UartCmp_rx  : in  std_logic;
+			io_Leds_led : out std_logic_vector(8 downto 0);
+			io_Keys_key : in  std_logic_vector(3 downto 0);
+			io_UartCmp_tx  : out std_logic;
+			io_UartCmp_rx  : in  std_logic;
 
-      io_SramCtrl_ramOut_addr : out std_logic_vector(19 downto 0);
-      io_SramCtrl_ramOut_doutEna : out std_logic;
-      io_SramCtrl_ramIn_din : in std_logic_vector(15 downto 0);
-      io_SramCtrl_ramOut_dout : out std_logic_vector(15 downto 0);
-      io_SramCtrl_ramOut_nce : out std_logic;
-      io_SramCtrl_ramOut_noe : out std_logic;
-      io_SramCtrl_ramOut_nwe : out std_logic;
-      io_SramCtrl_ramOut_nlb : out std_logic;
-      io_SramCtrl_ramOut_nub : out std_logic
+			io_SramCtrl_ramOut_addr : out std_logic_vector(19 downto 0);
+			io_SramCtrl_ramOut_doutEna : out std_logic;
+			io_SramCtrl_ramIn_din : in std_logic_vector(15 downto 0);
+			io_SramCtrl_ramOut_dout : out std_logic_vector(15 downto 0);
+			io_SramCtrl_ramOut_nce : out std_logic;
+			io_SramCtrl_ramOut_noe : out std_logic;
+			io_SramCtrl_ramOut_nwe : out std_logic;
+			io_SramCtrl_ramOut_nlb : out std_logic;
+			io_SramCtrl_ramOut_nub : out std_logic;
 
+			io_AudioInterface_dacLrc : out std_logic;
+			io_AudioInterface_bclk : out std_logic;
+			io_AudioInterface_adcDat : in std_logic;
+			io_AudioInterface_dacDat : out std_logic;
+			io_AudioInterface_xclk : out std_logic;
+			io_AudioInterface_adcLrc : out std_logic;
+			
+			io_AudioInterface_sclkOut : out std_logic;
+			io_AudioInterface_we : out std_logic;
+			io_AudioInterface_sdIn : in std_logic;
+			io_AudioInterface_sdOut : out std_logic
     );
   end component;
 
@@ -72,6 +97,12 @@ architecture rtl of patmos_top is
     signal sram_out_dout_ena : std_logic;
     signal sram_out_dout : std_logic_vector(15 downto 0);
 
+	 -- audio interface signals for tristate inout
+    signal io_AudioInterface_we : std_logic;
+    signal io_AudioInterface_sdIn : std_logic;
+    signal io_AudioInterface_sdOut : std_logic;
+    
+	 
   attribute altera_attribute : string;
   attribute altera_attribute of res_cnt : signal is "POWER_UP_LEVEL=LOW";
 
@@ -115,10 +146,26 @@ begin
       end if;
     end process;
 
+	 -- tristate i/o 
+    process(io_AudioInterface_we, io_AudioInterface_sdOut)
+    begin
+      if io_AudioInterface_we = '1' then
+        ioAudioInterface_sdat <= io_AudioInterface_sdOut;
+		  io_AudioInterface_sdIn <= '-';
+      else
+        ioAudioInterface_sdat <= 'Z';
+        io_AudioInterface_sdIn <= ioAudioInterface_sdat;
+      end if;
+    end process;
+	 
     comp : Patmos port map(clk_int, int_res,
            oLedsPins_led,
            iKeysPins_key,
            oUartPins_txd, iUartPins_rxd,
-           oSRAM_A, sram_out_dout_ena, SRAM_DQ, sram_out_dout, oSRAM_CE_N, oSRAM_OE_N, oSRAM_WE_N, oSRAM_LB_N, oSRAM_UB_N);
+           oSRAM_A, sram_out_dout_ena, SRAM_DQ, sram_out_dout, oSRAM_CE_N, oSRAM_OE_N, oSRAM_WE_N, oSRAM_LB_N, oSRAM_UB_N,
+			  oAudioInterface_dacLrc, oAudioInterface_bclk, iAudioInterface_adcDat, oAudioInterface_dacDat, oAudioInterface_xclk, oAudioInterface_adcLrc,
+			  oAudioInterface_sclk, io_AudioInterface_we, io_AudioInterface_sdIn, io_AudioInterface_sdOut
+			  );
+			  
 
 end architecture rtl;

@@ -209,30 +209,39 @@ class SoundFX() extends CoprocessorMemoryAccess() {
         is (FUNC_MOD_EN) {
           regDistEn := io.copIn.opData(0)(0)
           regDelEn := io.copIn.opData(0)(1)
+          io.copOut.ena_out := true.B
         }
         is (FUNC_DIST_GAIN) {
           regDistGain := io.copIn.opData(0)
+          io.copOut.ena_out := true.B
         }
         is (FUNC_DIST_OUTGAIN) {
           regDistOutGain := io.copIn.opData(0)
+          io.copOut.ena_out := true.B
         }
         is (FUNC_DEL_BUF) {
           regDelBuf := io.copIn.opData(0)
+          io.copOut.ena_out := true.B
         }
         is (FUNC_DEL_LEN) {
           regDelLen := io.copIn.opData(0)
+          io.copOut.ena_out := true.B
         }
         is (FUNC_DEL_MAXLEN) {
           regDelMaxLen := io.copIn.opData(0)
+          io.copOut.ena_out := true.B
         }
         is (FUNC_DEL_MIX) {
           regDelMix := io.copIn.opData(0)
+          io.copOut.ena_out := true.B
         }
         is (FUNC_DEL_FB) {
           regDelFB := io.copIn.opData(0)
+          io.copOut.ena_out := true.B
         }
         is (FUNC_DEL_OUTGAIN) {
           regDelOutGain := io.copIn.opData(0)
+          io.copOut.ena_out := true.B
         }
       }
     }
@@ -253,7 +262,7 @@ class SoundFX() extends CoprocessorMemoryAccess() {
     is(memIdle) {
       when (delay.io.delayInReq.valid) {
         io.memPort.M.Cmd := OcpCmd.RD
-        io.memPort.M.Addr := regDelBuf + (delay.io.delayInReq.bits << log2Floor(BURST_LENGTH))
+        io.memPort.M.Addr := regDelBuf + (delay.io.delayInReq.bits << (log2Floor(BURST_LENGTH) + 2))
         when (io.memPort.S.CmdAccept === 1.U) {
           regMemState := memRd
           memCounter.reset()
@@ -281,7 +290,7 @@ class SoundFX() extends CoprocessorMemoryAccess() {
     }
     is(memWrReq) {
       io.memPort.M.Cmd := OcpCmd.WR
-      io.memPort.M.Addr := regDelBuf + (regDelPtr << log2Floor(BURST_LENGTH))
+      io.memPort.M.Addr := regDelBuf + (regDelPtr << (log2Floor(BURST_LENGTH) + 2))
       io.memPort.M.Data := delOut(memCounter.value)
       io.memPort.M.DataValid := 1.U
       
