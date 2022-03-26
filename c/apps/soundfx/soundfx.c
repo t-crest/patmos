@@ -52,7 +52,7 @@ void copRun()
     register uint32_t config_data __asm__ ("19");
     
     // Enable both modules.
-    config_data = 2;
+    config_data = 3;
     asm (FUNC_MOD_EN : : "r"(config_data));
 
     // Set distortion gain to ~15%.
