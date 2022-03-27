@@ -1,16 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <machine/patmos.h>
 #include <machine/spm.h>
 
 #include "libaudio/audio_singlecore.h"
 #include "libaudio/audio_singlecore.c"
 
-
 //#define SIM
 
-
+/* GENERAL CONSTANTS */
 const uint32_t BUFFER_SIZE = 128;
 
 const uint32_t BLOCK_SIZE = 8;
@@ -21,6 +21,182 @@ int16_t delay_buffer[DELAY_BUFFER_SIZE] __attribute__((aligned(16)));
 const uint32_t SAMPLING_FREQUENCY = 80000000 / (6 * 256);
 const uint32_t BLOCK_FREQUENCY = SAMPLING_FREQUENCY / BLOCK_SIZE;
 
+/* SW Implementation */
+const int16_t dist_lut[1024] = {
+    #include "lut.h"
+};
+
+int16_t gain1(int16_t s, uint8_t g)
+{
+    int32_t in = s;
+    int32_t out = in * g >> 6;
+    return out;
+}
+
+int16_t gain2(int16_t s, uint8_t g)
+{
+    int32_t in = s;
+    int32_t out = in * g >> 5;
+    if (out > (1 << 15) - 1)
+        out = (1 << 15) - 1;
+    else if (out < -(1 << 15))
+        out = -(1 << 15);
+    return out;
+}
+
+int16_t mix(int16_t s1, int16_t s2, uint8_t m)
+{
+    int32_t in1 = s1;
+    int32_t in2 = s2;
+    int32_t diff = in2 - in1;
+    int32_t out = in1 + ((diff * m) >> 6);
+    return out;
+}
+
+int16_t distortion(int16_t s, uint8_t g)
+{
+    uint16_t in = s;
+    if (s < 0)
+        in = -s;
+    if (in == 1 << 15)
+        in = in - 1;
+        
+    uint32_t gain = in * g;
+    uint16_t index = gain >> 11;
+    uint16_t fract = gain & ((1 << 11) - 1);
+    
+    int16_t lut1;
+    int16_t lut2 = dist_lut[index];
+    if (index == 0)
+        lut1 = 0;
+    else
+        lut1 = dist_lut[index - 1];
+    
+    int16_t diff = lut2 - lut1;
+    int16_t interp = ((int32_t)diff * fract) >> 11;
+    
+    int16_t out = lut1 + interp;    
+    return s < 0 ? -out : out;
+}
+
+int16_t delay(int16_t s, uint16_t max_len, uint16_t len, uint8_t m, uint8_t f)
+{
+    static uint16_t cur_len = 8 * BLOCK_SIZE;
+    static uint16_t wrPtr = 0;
+    static int16_t interpVal = 0;
+    static bool interp = false;
+    
+    int16_t del_in;
+    int16_t del_out;
+    int16_t out;
+    
+    uint16_t rdPtr;
+    if (wrPtr < cur_len)
+        rdPtr = wrPtr - cur_len + max_len + 1;
+    else
+        rdPtr = wrPtr - cur_len;
+    
+    if (cur_len < len)
+    {
+        del_in = delay_buffer[rdPtr];
+        interpVal = del_in;
+        cur_len += 1;
+    }
+    else if (cur_len > len)
+    {
+        if (!interp)
+        {
+            int16_t newInterpVal = delay_buffer[rdPtr]; 
+            del_in = ((int32_t)interpVal + newInterpVal) >> 1;
+            interpVal = newInterpVal;
+            
+            interp = true;
+        }
+        else
+        {
+            del_in = interpVal;
+        
+            interp = false;
+            cur_len -= 1;
+        }
+    }
+    else
+    {
+        del_in = delay_buffer[rdPtr];
+        interpVal = del_in;
+    }
+        
+    del_out = mix(s, del_in, f);
+    delay_buffer[wrPtr] = del_out;
+    
+    if (wrPtr >= max_len)
+        wrPtr = 0;
+    else
+        wrPtr++;
+    
+    out = mix(s, del_in, m);
+    return out;
+}
+
+void swRun()
+{
+    volatile _SPM int16_t *sample_i;
+    volatile _SPM int16_t *sample_o;
+    volatile _SPM int16_t *dummy;
+
+    const uint32_t SAMPLE_I_ADDR = 0;
+    const uint32_t SAMPLE_O_ADDR = sizeof(int32_t);
+    const uint32_t DUMMY_ADDR = 2 * sizeof(int32_t);
+
+    sample_i = (volatile _SPM int16_t *) SAMPLE_I_ADDR;
+    sample_o = (volatile _SPM int16_t *) SAMPLE_O_ADDR;
+    dummy = (volatile _SPM int16_t *) DUMMY_ADDR;
+
+    uint8_t mod_en = 3;
+    uint8_t dist_gain = 64 * 3 / 20;
+    uint8_t dist_outgain = 64 / 10;
+    uint16_t del_maxlen = DELAY_BUFFER_SIZE - BLOCK_SIZE;
+    uint16_t del_len = SAMPLING_FREQUENCY / 4;
+    uint8_t del_mix = 64 / 4;
+    uint8_t del_fb = 64 / 20;
+    uint8_t del_outgain = 64 * 3 / 5;
+
+    int16_t sample = 0;
+    while(*keyReg & 1)
+    {
+        // Read input sample from AudioInterface.
+        #ifndef SIM 
+            getInputBufferSPM(sample_i, dummy);
+        #else
+            *sample_i = sample + 2048;
+        #endif
+        
+        sample = *sample_i;
+        
+        if (mod_en & 1)
+        {
+            sample = distortion(sample, dist_gain);
+            sample = gain1(sample, dist_outgain);
+        }
+        
+        if (mod_en & 2)
+        {
+            sample = delay(sample, del_maxlen, del_len, del_mix, del_fb);
+            sample = gain2(sample, del_outgain);
+        }
+        
+        *sample_o = sample;
+        
+        // Write output sample to AudioInterface.
+        #ifndef SIM
+            setOutputBufferSPM(sample_o, sample_o);
+        #endif
+    }
+}
+
+
+
+/* COP Implementation */
 #define FUNC_MOD_EN         ".word 0x03433001"
 #define FUNC_DIST_GAIN      ".word 0x03453001"
 #define FUNC_DIST_OUTGAIN   ".word 0x03473001"
@@ -71,7 +247,7 @@ void copRun()
     config_data = BLOCK_FREQUENCY / 4;
     asm (FUNC_DEL_LEN : : "r"(config_data));
     
-    // Set mix to ~20%.
+    // Set mix to ~25%.
     config_data = 64 / 4;
     asm (FUNC_DEL_MIX : : "r"(config_data));
 
@@ -100,7 +276,7 @@ void copRun()
             : "r"(sample_i_ext));
     }
 
-    while(*keyReg != 3)
+    while(*keyReg & 2)
     {
         // Process block of input samples.
         for (int i = 0; i < BLOCK_SIZE; ++i)
@@ -171,7 +347,10 @@ int main()
         *audioDacEnReg = 1;
     #endif
     
-    copRun();
-
+    while(*keyReg & 4) {
+        swRun();
+        copRun();
+    }
+    
     return EXIT_SUCCESS;
 }
