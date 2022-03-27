@@ -421,9 +421,11 @@ void copRun()
     // Last block of samples.
     for (int i = 0; i < BLOCK_SIZE; ++i)
     {
-        asm volatile ("" ::: "memory");
-        uint64_t start = get_time64();
-        asm volatile ("" ::: "memory");
+        #ifdef DETAILED_TIMING
+            asm volatile ("" ::: "memory");
+            uint64_t start = get_time64();
+            asm volatile ("" ::: "memory");
+        #endif
             
         // Move sample from Coprocessor.
         register int32_t sample_o_ext __asm__ ("19");
@@ -432,10 +434,12 @@ void copRun()
             : 
             : "19" );
 
-        asm volatile ("" ::: "memory");
-        uint64_t end = get_time64();
-        fx_time += end - start;
-        asm volatile ("" ::: "memory");
+        #ifdef DETAILED_TIMING
+            asm volatile ("" ::: "memory");
+            uint64_t end = get_time64();
+            fx_time += end - start;
+            asm volatile ("" ::: "memory");
+        #endif
         
         *sample_o = sample_o_ext;
         
