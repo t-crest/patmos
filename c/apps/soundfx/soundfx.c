@@ -10,6 +10,28 @@
 
 //#define SIM
 
+#define DETAILED_TIMING
+
+#define INLINE_PREFIX   static inline
+//#define INLINE_PREFIX
+
+/* Timer related code */
+
+static _iodev_ptr_t const timer_ptr_high = (_iodev_ptr_t)(PATMOS_IO_TIMER);
+static _iodev_ptr_t const timer_ptr_low = (_iodev_ptr_t)(PATMOS_IO_TIMER + 0x04);
+
+INLINE_PREFIX uint32_t get_time32()
+{
+  return *timer_ptr_low;
+}
+
+INLINE_PREFIX uint64_t get_time64()
+{
+  uint64_t ret = *timer_ptr_low;
+  ret |= ((uint64_t)*timer_ptr_high) << 32;
+  return ret;
+}
+
 /* GENERAL CONSTANTS */
 const uint32_t BUFFER_SIZE = 128;
 
@@ -26,14 +48,14 @@ const int16_t dist_lut[1024] = {
     #include "lut.h"
 };
 
-int16_t gain1(int16_t s, uint8_t g)
+INLINE_PREFIX int16_t gain1(int16_t s, uint8_t g)
 {
     int32_t in = s;
     int32_t out = in * g >> 6;
     return out;
 }
 
-int16_t gain2(int16_t s, uint8_t g)
+INLINE_PREFIX int16_t gain2(int16_t s, uint8_t g)
 {
     int32_t in = s;
     int32_t out = in * g >> 5;
@@ -44,7 +66,7 @@ int16_t gain2(int16_t s, uint8_t g)
     return out;
 }
 
-int16_t mix(int16_t s1, int16_t s2, uint8_t m)
+INLINE_PREFIX int16_t mix(int16_t s1, int16_t s2, uint8_t m)
 {
     int32_t in1 = s1;
     int32_t in2 = s2;
@@ -53,7 +75,7 @@ int16_t mix(int16_t s1, int16_t s2, uint8_t m)
     return out;
 }
 
-int16_t distortion(int16_t s, uint8_t g)
+INLINE_PREFIX int16_t distortion(int16_t s, uint8_t g)
 {
     uint16_t in = s;
     if (s < 0)
@@ -79,7 +101,7 @@ int16_t distortion(int16_t s, uint8_t g)
     return s < 0 ? -out : out;
 }
 
-int16_t delay(int16_t s, uint16_t max_len, uint16_t len, uint8_t m, uint8_t f)
+INLINE_PREFIX int16_t delay(int16_t s, uint16_t max_len, uint16_t len, uint8_t m, uint8_t f)
 {
     static uint16_t cur_len = 8 * BLOCK_SIZE;
     static uint16_t wrPtr = 0;
@@ -160,10 +182,19 @@ void swRun()
     uint8_t del_mix = 64 / 4;
     uint8_t del_fb = 64 / 20;
     uint8_t del_outgain = 64 * 3 / 5;
+    
+    // Timed code starts here:
+    uint32_t iterations = 0;
+    uint64_t total_time = 0;
+    uint64_t fx_time = 0;
+   
+    asm volatile ("" ::: "memory");
+    uint64_t t_start = get_time64();
+    asm volatile ("" ::: "memory");
 
     int16_t sample = 0;
     while(*keyReg & 1)
-    {
+    {    
         // Read input sample from AudioInterface.
         #ifndef SIM 
             getInputBufferSPM(sample_i, dummy);
@@ -173,6 +204,12 @@ void swRun()
         
         sample = *sample_i;
         
+        #ifdef DETAILED_TIMING
+            asm volatile ("" ::: "memory");
+            uint64_t start = get_time64();
+            asm volatile ("" ::: "memory");
+        #endif
+
         if (mod_en & 1)
         {
             sample = distortion(sample, dist_gain);
@@ -185,13 +222,30 @@ void swRun()
             sample = gain2(sample, del_outgain);
         }
         
+        #ifdef DETAILED_TIMING
+            asm volatile ("" ::: "memory");
+            uint64_t end = get_time64();
+            fx_time += end - start;
+            asm volatile ("" ::: "memory");
+        #endif
+
         *sample_o = sample;
         
         // Write output sample to AudioInterface.
         #ifndef SIM
             setOutputBufferSPM(sample_o, sample_o);
         #endif
+        
+        iterations++;
     }
+    
+    asm volatile ("" ::: "memory");
+    uint64_t t_end = get_time64();
+    asm volatile ("" ::: "memory");
+    
+    total_time = t_end - t_start;
+    
+    printf("[SW] %ld iterations:\n  total time: %lld (%lld)\n  fx time: %lld (%lld)\n\n", iterations, total_time, total_time / iterations, fx_time, fx_time / iterations);
 }
 
 
@@ -259,6 +313,15 @@ void copRun()
     config_data = 64 * 3 / 5;
     asm (FUNC_DEL_OUTGAIN : : "r"(config_data));
     
+    // Timed code starts here:
+    uint32_t iterations = 0;
+    uint64_t total_time = 0;
+    uint64_t fx_time = 0;
+   
+    asm volatile ("" ::: "memory");
+    uint64_t t_start = get_time64();
+    asm volatile ("" ::: "memory");
+    
     // First block of samples.
     for (int i = 0; i < BLOCK_SIZE; ++i)
     {
@@ -269,11 +332,24 @@ void copRun()
             *sample_i = 20 + (i << 6);
         #endif
         
+        #ifdef DETAILED_TIMING
+            asm volatile ("" ::: "memory");
+            uint64_t start = get_time64();
+            asm volatile ("" ::: "memory");
+        #endif
+            
         // Move sample to Coprocessor.
         register int32_t sample_i_ext __asm__ ("19") = *sample_i;
         asm (".word 0x03413001"     // unpredicated COP_WRITE to COP0 with FUNC = 00000, RA = 10011, RB = 00000
             :
             : "r"(sample_i_ext));
+        
+        #ifdef DETAILED_TIMING
+            asm volatile ("" ::: "memory");
+            uint64_t end = get_time64();
+            fx_time += end - start;
+            asm volatile ("" ::: "memory");
+        #endif
     }
 
     while(*keyReg & 2)
@@ -288,47 +364,96 @@ void copRun()
                 *sample_i = 20 + (i << 6);
             #endif
             
+            #ifdef DETAILED_TIMING
+                asm volatile ("" ::: "memory");
+                uint64_t start = get_time64();
+                asm volatile ("" ::: "memory");
+            #endif
+
             // Move sample to Coprocessor.
             register int32_t sample_i_ext __asm__ ("19") = *sample_i;
             asm (".word 0x03413001"     // unpredicated COP_WRITE to COP0 with FUNC = 00000, RA = 10011, RB = 00000
                 :
                 : "r"(sample_i_ext));
+            
+            #ifdef DETAILED_TIMING
+                asm volatile ("" ::: "memory");
+                uint64_t end = get_time64();
+                fx_time += end - start;
+                asm volatile ("" ::: "memory");
+            #endif
         }
         
         // Process block of output samples.
         for (int i = 0; i < BLOCK_SIZE; ++i)
         {
+            #ifdef DETAILED_TIMING
+                asm volatile ("" ::: "memory");
+                uint64_t start = get_time64();
+                asm volatile ("" ::: "memory");
+            #endif
+            
             // Move sample from Coprocessor.
             register int32_t sample_o_ext __asm__ ("19");
             asm (".word 0x03660003"     // unpredicated COP_READ from COP0 with FUNC = 00000, RA = 00000, RD = 10011
                 : "=r"(sample_o_ext)
                 : 
                 : "19" );
+            
+            #ifdef DETAILED_TIMING
+                asm volatile ("" ::: "memory");
+                uint64_t end = get_time64();
+                fx_time += end - start;
+                asm volatile ("" ::: "memory");
+            #endif
+            
             *sample_o = sample_o_ext;
         
             // Write output sample to AudioInterface.
             #ifndef SIM
                 setOutputBufferSPM(sample_o, sample_o);
             #endif
+            
+            iterations++;
         }
     }
     
     // Last block of samples.
     for (int i = 0; i < BLOCK_SIZE; ++i)
     {
+        asm volatile ("" ::: "memory");
+        uint64_t start = get_time64();
+        asm volatile ("" ::: "memory");
+            
         // Move sample from Coprocessor.
         register int32_t sample_o_ext __asm__ ("19");
         asm (".word 0x03660003"     // unpredicated COP_READ from COP0 with FUNC = 00000, RA = 00000, RD = 10011
             : "=r"(sample_o_ext)
             : 
-            : "19" );     
-        *sample_o = sample_o_ext;
+            : "19" );
 
+        asm volatile ("" ::: "memory");
+        uint64_t end = get_time64();
+        fx_time += end - start;
+        asm volatile ("" ::: "memory");
+        
+        *sample_o = sample_o_ext;
+        
         // Write output sample to AudioInterface.
         #ifndef SIM
             setOutputBufferSPM(sample_o, sample_o);
         #endif
+        
+        iterations++;
     }
+    
+    asm volatile ("" ::: "memory");
+    uint64_t t_end = get_time64();
+    asm volatile ("" ::: "memory");
+    
+    total_time = t_end - t_start;
+    
+    printf("[COP] %ld iterations:\n  total time: %lld (%lld)\n  cop wait time: %lld (%lld)\n\n", iterations, total_time, total_time / iterations, fx_time, fx_time / iterations);
 }
 
 int main()
@@ -340,10 +465,6 @@ int main()
         setOutputBufferSize(BUFFER_SIZE);
 
         *audioAdcEnReg = 1;
-        for(unsigned int i=0; i < BUFFER_SIZE * 1536; i++)
-        {
-            *audioDacEnReg = 0;
-        }
         *audioDacEnReg = 1;
     #endif
     
