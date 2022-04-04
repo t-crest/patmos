@@ -4,33 +4,46 @@
 #include <stdbool.h>
 #include <machine/patmos.h>
 #include <machine/spm.h>
+#include <machine/rtc.h>
 
 #include "libaudio/audio_singlecore.h"
 #include "libaudio/audio_singlecore.c"
 
-//#define SIM
+// 3 operation modes:
+//        DEFAULT         // For hardware test --> audio interface, uncapped iteration times, switching with keys
+//#define SIM             // For simulation with patemu --> no audio interface, artificial workload, low iteration times
+//#define ARTIFICIAL      // For hardware test --> no audio interface, artificial workload, high iteration times
 
-#define DETAILED_TIMING
+#define DETAILED_TIMING // Time not only overall time taken but also explicit processing time taken
 
 #define INLINE_PREFIX   static inline
-//#define INLINE_PREFIX
 
-/* Timer related code */
+#ifdef SIM
+    #define ITERATIONS 48
+#elif defined ARTIFICIAL
+    #define ITERATIONS 16384
+#endif
 
-static _iodev_ptr_t const timer_ptr_high = (_iodev_ptr_t)(PATMOS_IO_TIMER);
-static _iodev_ptr_t const timer_ptr_low = (_iodev_ptr_t)(PATMOS_IO_TIMER + 0x04);
-
-INLINE_PREFIX uint32_t get_time32()
-{
-  return *timer_ptr_low;
+/* Inlinable audio functions */
+INLINE_PREFIX int getInputBuffer(short *l, short *r) {
+  while(*audioAdcBufferEmptyReg == 1);// wait until not empty
+  *audioAdcBufferReadPulseReg = 1; // begin pulse
+  *audioAdcBufferReadPulseReg = 0; // end pulse
+  *l = *audioAdcLReg;
+  *r = *audioAdcRReg;
+  return 0;
 }
 
-INLINE_PREFIX uint64_t get_time64()
-{
-  uint64_t ret = *timer_ptr_low;
-  ret |= ((uint64_t)*timer_ptr_high) << 32;
-  return ret;
+INLINE_PREFIX int setOutputBuffer(short l, short r) {
+  *audioDacLReg = l;
+  *audioDacRReg = r;
+  while(*audioDacBufferFullReg == 1); // wait until not full
+  *audioDacBufferWritePulseReg = 1; // begin pulse
+  *audioDacBufferWritePulseReg = 0; // end pulse
+
+  return 0;
 }
+
 
 /* GENERAL CONSTANTS */
 const uint32_t BUFFER_SIZE = 128;
@@ -92,7 +105,7 @@ INLINE_PREFIX int16_t distortion(int16_t s, uint8_t g)
     if (index == 0)
         lut1 = 0;
     else
-        lut1 = dist_lut[index - 1];
+        lut1 = dist_lut[index - 1];    
     
     int16_t diff = lut2 - lut1;
     int16_t interp = ((int32_t)diff * fract) >> 11;
@@ -103,7 +116,7 @@ INLINE_PREFIX int16_t distortion(int16_t s, uint8_t g)
 
 INLINE_PREFIX int16_t delay(int16_t s, uint16_t max_len, uint16_t len, uint8_t m, uint8_t f)
 {
-    static uint16_t cur_len = 8 * BLOCK_SIZE;
+    static uint16_t cur_len = SAMPLING_FREQUENCY / 4;
     static uint16_t wrPtr = 0;
     static int16_t interpVal = 0;
     static bool interp = false;
@@ -162,17 +175,9 @@ INLINE_PREFIX int16_t delay(int16_t s, uint16_t max_len, uint16_t len, uint8_t m
 
 void swRun()
 {
-    volatile _SPM int16_t *sample_i;
-    volatile _SPM int16_t *sample_o;
-    volatile _SPM int16_t *dummy;
-
-    const uint32_t SAMPLE_I_ADDR = 0;
-    const uint32_t SAMPLE_O_ADDR = sizeof(int32_t);
-    const uint32_t DUMMY_ADDR = 2 * sizeof(int32_t);
-
-    sample_i = (volatile _SPM int16_t *) SAMPLE_I_ADDR;
-    sample_o = (volatile _SPM int16_t *) SAMPLE_O_ADDR;
-    dummy = (volatile _SPM int16_t *) DUMMY_ADDR;
+    int16_t sample_i;
+    int16_t sample_o;
+    int16_t dummy;
 
     uint8_t mod_en = 3;
     uint8_t dist_gain = 64 * 3 / 20;
@@ -186,28 +191,29 @@ void swRun()
     // Timed code starts here:
     uint32_t iterations = 0;
     uint64_t total_time = 0;
+    uint64_t aa_time = 0;
     uint64_t fx_time = 0;
    
-    asm volatile ("" ::: "memory");
-    uint64_t t_start = get_time64();
-    asm volatile ("" ::: "memory");
+    uint64_t t_start = get_cpu_cycles();
 
     int16_t sample = 0;
+    #if (defined SIM) | (defined ARTIFICIAL)
+    while(iterations < ITERATIONS)
+    #else
     while(*keyReg & 1)
-    {    
-        // Read input sample from AudioInterface.
-        #ifndef SIM 
-            getInputBufferSPM(sample_i, dummy);
+    #endif
+    {
+        // Read in951put sample from AudioInterface.
+        #if !((defined SIM) | (defined ARTIFICIAL))
+            getInputBuffer(&sample_i, &dummy);
         #else
-            *sample_i = sample + 2048;
+            sample_i = sample + 2048;
         #endif
         
-        sample = *sample_i;
+        sample = sample_i;
         
         #ifdef DETAILED_TIMING
-            asm volatile ("" ::: "memory");
-            uint64_t start = get_time64();
-            asm volatile ("" ::: "memory");
+            uint64_t start = get_cpu_cycles();
         #endif
 
         if (mod_en & 1)
@@ -223,25 +229,21 @@ void swRun()
         }
         
         #ifdef DETAILED_TIMING
-            asm volatile ("" ::: "memory");
-            uint64_t end = get_time64();
+            uint64_t end = get_cpu_cycles();
             fx_time += end - start;
-            asm volatile ("" ::: "memory");
         #endif
 
-        *sample_o = sample;
+        sample_o = sample;
         
         // Write output sample to AudioInterface.
-        #ifndef SIM
-            setOutputBufferSPM(sample_o, sample_o);
+        #if !((defined SIM) | (defined ARTIFICIAL))
+            setOutputBuffer(sample_o, sample_o);
         #endif
         
         iterations++;
     }
     
-    asm volatile ("" ::: "memory");
-    uint64_t t_end = get_time64();
-    asm volatile ("" ::: "memory");
+    uint64_t t_end = get_cpu_cycles();
     
     total_time = t_end - t_start;
     
@@ -263,17 +265,9 @@ void swRun()
 
 void copRun()
 {
-    volatile _SPM int16_t *sample_i;
-    volatile _SPM int16_t *sample_o;
-    volatile _SPM int16_t *dummy;
-
-    const uint32_t SAMPLE_I_ADDR = 0;
-    const uint32_t SAMPLE_O_ADDR = sizeof(int32_t);
-    const uint32_t DUMMY_ADDR = 2 * sizeof(int32_t);
-
-    sample_i = (volatile _SPM int16_t *) SAMPLE_I_ADDR;
-    sample_o = (volatile _SPM int16_t *) SAMPLE_O_ADDR;
-    dummy = (volatile _SPM int16_t *) DUMMY_ADDR;
+    int16_t sample_i;
+    int16_t sample_o;
+    int16_t dummy;
 
     // Set delay buffer address.
     register int16_t *delay_buffer_addr __asm__ ("19") = delay_buffer;
@@ -318,69 +312,63 @@ void copRun()
     uint64_t total_time = 0;
     uint64_t fx_time = 0;
    
-    asm volatile ("" ::: "memory");
-    uint64_t t_start = get_time64();
-    asm volatile ("" ::: "memory");
+    uint64_t t_start = get_cpu_cycles();
     
     // First block of samples.
     for (int i = 0; i < BLOCK_SIZE; ++i)
     {
         // Read input sample from AudioInterface.
-        #ifndef SIM 
-            getInputBufferSPM(sample_i, dummy);
+        #if !((defined SIM) | (defined ARTIFICIAL))
+            getInputBuffer(&sample_i, &dummy);
         #else
-            *sample_i = 20 + (i << 6);
+            sample_i = 20 + (i << 6);
         #endif
         
         #ifdef DETAILED_TIMING
-            asm volatile ("" ::: "memory");
-            uint64_t start = get_time64();
-            asm volatile ("" ::: "memory");
+            uint64_t start = get_cpu_cycles();
         #endif
             
         // Move sample to Coprocessor.
-        register int32_t sample_i_ext __asm__ ("19") = *sample_i;
-        asm (".word 0x03413001"     // unpredicated COP_WRITE to COP0 with FUNC = 00000, RA = 10011, RB = 00000
+        register int32_t sample_i_ext __asm__ ("19") = sample_i;
+        asm volatile(".word 0x03413001"     // unpredicated COP_WRITE to COP0 with FUNC = 00000, RA = 10011, RB = 00000
             :
             : "r"(sample_i_ext));
         
         #ifdef DETAILED_TIMING
-            asm volatile ("" ::: "memory");
-            uint64_t end = get_time64();
+            uint64_t end = get_cpu_cycles();
             fx_time += end - start;
-            asm volatile ("" ::: "memory");
         #endif
     }
-
+    
+    #if (defined SIM) | (defined ARTIFICIAL)
+    while(iterations < ITERATIONS - 8)
+    #else
     while(*keyReg & 2)
-    {
+    #endif
+    {    
         // Process block of input samples.
         for (int i = 0; i < BLOCK_SIZE; ++i)
         {
             // Read input sample from AudioInterface.
-            #ifndef SIM 
-                getInputBufferSPM(sample_i, dummy);
+        #if !((defined SIM) | (defined ARTIFICIAL))
+                getInputBuffer(&sample_i, &dummy);
             #else
-                *sample_i = 20 + (i << 6);
+                sample_i = 20 + (i << 6);
             #endif
             
             #ifdef DETAILED_TIMING
-                asm volatile ("" ::: "memory");
-                uint64_t start = get_time64();
-                asm volatile ("" ::: "memory");
+                uint64_t start = get_cpu_cycles();
             #endif
 
             // Move sample to Coprocessor.
-            register int32_t sample_i_ext __asm__ ("19") = *sample_i;
-            asm (".word 0x03413001"     // unpredicated COP_WRITE to COP0 with FUNC = 00000, RA = 10011, RB = 00000
+            register int32_t sample_i_ext __asm__ ("19") = sample_i;
+            asm volatile(".word 0x03413001"     // unpredicated COP_WRITE to COP0 with FUNC = 00000, RA = 10011, RB = 00000
                 :
                 : "r"(sample_i_ext));
             
             #ifdef DETAILED_TIMING
-                asm volatile ("" ::: "memory");
-                uint64_t end = get_time64();
+                uint64_t end = get_cpu_cycles();
                 fx_time += end - start;
-                asm volatile ("" ::: "memory");
             #endif
         }
         
@@ -388,30 +376,26 @@ void copRun()
         for (int i = 0; i < BLOCK_SIZE; ++i)
         {
             #ifdef DETAILED_TIMING
-                asm volatile ("" ::: "memory");
-                uint64_t start = get_time64();
-                asm volatile ("" ::: "memory");
+                uint64_t start = get_cpu_cycles();
             #endif
             
             // Move sample from Coprocessor.
             register int32_t sample_o_ext __asm__ ("19");
-            asm (".word 0x03660003"     // unpredicated COP_READ from COP0 with FUNC = 00000, RA = 00000, RD = 10011
+            asm volatile (".word 0x03660003"     // unpredicated COP_READ from COP0 with FUNC = 00000, RA = 00000, RD = 10011
                 : "=r"(sample_o_ext)
                 : 
                 : "19" );
             
             #ifdef DETAILED_TIMING
-                asm volatile ("" ::: "memory");
-                uint64_t end = get_time64();
+                uint64_t end = get_cpu_cycles();
                 fx_time += end - start;
-                asm volatile ("" ::: "memory");
             #endif
             
-            *sample_o = sample_o_ext;
+            sample_o = sample_o_ext;
         
             // Write output sample to AudioInterface.
-            #ifndef SIM
-                setOutputBufferSPM(sample_o, sample_o);
+            #if !((defined SIM) | (defined ARTIFICIAL))
+                setOutputBuffer(sample_o, sample_o);
             #endif
             
             iterations++;
@@ -422,38 +406,32 @@ void copRun()
     for (int i = 0; i < BLOCK_SIZE; ++i)
     {
         #ifdef DETAILED_TIMING
-            asm volatile ("" ::: "memory");
-            uint64_t start = get_time64();
-            asm volatile ("" ::: "memory");
+            uint64_t start = get_cpu_cycles();
         #endif
             
         // Move sample from Coprocessor.
         register int32_t sample_o_ext __asm__ ("19");
-        asm (".word 0x03660003"     // unpredicated COP_READ from COP0 with FUNC = 00000, RA = 00000, RD = 10011
+        asm volatile(".word 0x03660003"     // unpredicated COP_READ from COP0 with FUNC = 00000, RA = 00000, RD = 10011
             : "=r"(sample_o_ext)
             : 
             : "19" );
 
         #ifdef DETAILED_TIMING
-            asm volatile ("" ::: "memory");
-            uint64_t end = get_time64();
+            uint64_t end = get_cpu_cycles();
             fx_time += end - start;
-            asm volatile ("" ::: "memory");
         #endif
         
-        *sample_o = sample_o_ext;
+        sample_o = sample_o_ext;
         
         // Write output sample to AudioInterface.
-        #ifndef SIM
-            setOutputBufferSPM(sample_o, sample_o);
+        #if !((defined SIM) | (defined ARTIFICIAL))
+            setOutputBuffer(sample_o, sample_o);
         #endif
         
         iterations++;
     }
     
-    asm volatile ("" ::: "memory");
-    uint64_t t_end = get_time64();
-    asm volatile ("" ::: "memory");
+    uint64_t t_end = get_cpu_cycles();
     
     total_time = t_end - t_start;
     
@@ -462,7 +440,7 @@ void copRun()
 
 int main()
 {
-    #ifndef SIM
+    #if !((defined SIM) | (defined ARTIFICIAL))
         setup(0);
 
         setInputBufferSize(BUFFER_SIZE);
@@ -472,7 +450,14 @@ int main()
         *audioDacEnReg = 1;
     #endif
     
-    while(*keyReg & 4) {
+    #ifdef SIM
+    while(true)
+    #elif defined ARTIFICIAL
+    for (int i = 0; i < 10; ++i)
+    #else
+    while(*keyReg & 4)
+    #endif
+    {
         swRun();
         copRun();
     }
