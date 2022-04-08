@@ -138,10 +138,10 @@ class MCacheReplFifo() extends Module {
   val io = IO(new MCacheReplIO())
 
   //tag field tables  for reading tag memory
-  val addrVec = { Vec.fill(METHOD_COUNT) { Reg(UInt(width = ADDR_WIDTH)) }}
-  val sizeVec = { Vec.fill(METHOD_COUNT) { Reg(init = UInt(0, width = MCACHE_SIZE_WIDTH+1)) }}
-  val validVec = { Vec.fill(METHOD_COUNT) { Reg(init = Bool(false)) }}
-  val posVec = { Vec.fill(METHOD_COUNT) { Reg(UInt(width = MCACHE_SIZE_WIDTH)) }}
+  val addrVec = RegInit(Vec.fill(METHOD_COUNT){UInt(0, width = ADDR_WIDTH)})
+  val sizeVec = RegInit(Vec.fill(METHOD_COUNT){UInt(0, width = MCACHE_SIZE_WIDTH+1)})
+  val validVec = RegInit(Vec.fill(METHOD_COUNT){Bool(false)})
+  val posVec = RegInit(Vec.fill(METHOD_COUNT){UInt(0, width = MCACHE_SIZE_WIDTH)})
   //registers to save current replacement status
   val nextIndexReg = Reg(init = UInt(0, width = log2Up(METHOD_COUNT)))
   val nextTagReg = Reg(init = UInt(0, width = log2Up(METHOD_COUNT)))
