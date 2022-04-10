@@ -12,7 +12,7 @@
 // 3 operation modes:
 //        DEFAULT         // For hardware test --> audio interface, uncapped iteration times, switching with keys
 //#define SIM             // For simulation with patemu --> no audio interface, artificial workload, low iteration times
-//#define ARTIFICIAL      // For hardware test --> no audio interface, artificial workload, high iteration times
+#define ARTIFICIAL      // For hardware test --> no audio interface, artificial workload, high iteration times
 
 #define DETAILED_TIMING // Time not only overall time taken but also explicit processing time taken
 
@@ -21,7 +21,7 @@
 #ifdef SIM
     #define ITERATIONS 48
 #elif defined ARTIFICIAL
-    #define ITERATIONS 16384
+    #define ITERATIONS 32768
 #endif
 
 /* Inlinable audio functions */
@@ -55,6 +55,17 @@ int16_t delay_buffer[DELAY_BUFFER_SIZE] __attribute__((aligned(16)));
 
 const uint32_t SAMPLING_FREQUENCY = 80000000 / (6 * 256);
 const uint32_t BLOCK_FREQUENCY = SAMPLING_FREQUENCY / BLOCK_SIZE;
+
+/* Pipeline variables */
+uint8_t mod_en = 3;
+uint8_t dist_gain = 64 * 3 / 20;
+uint8_t dist_outgain = 64 / 10;
+uint16_t del_maxlen = DELAY_BUFFER_SIZE - BLOCK_SIZE;
+uint16_t del_len = SAMPLING_FREQUENCY / 4;
+uint8_t del_mix = 64 / 4;
+uint8_t del_fb = 64 / 20;
+uint8_t del_outgain = 64 * 3 / 5;
+
 
 /* SW Implementation */
 const int16_t dist_lut[1024] = {
@@ -175,28 +186,19 @@ INLINE_PREFIX int16_t delay(int16_t s, uint16_t max_len, uint16_t len, uint8_t m
 
 void swRun()
 {
-    int16_t sample_i;
+    int16_t sample_i = (1 << 15) - 1;
     int16_t sample_o;
     int16_t dummy;
-
-    uint8_t mod_en = 3;
-    uint8_t dist_gain = 64 * 3 / 20;
-    uint8_t dist_outgain = 64 / 10;
-    uint16_t del_maxlen = DELAY_BUFFER_SIZE - BLOCK_SIZE;
-    uint16_t del_len = SAMPLING_FREQUENCY / 4;
-    uint8_t del_mix = 64 / 4;
-    uint8_t del_fb = 64 / 20;
-    uint8_t del_outgain = 64 * 3 / 5;
     
     // Timed code starts here:
     uint32_t iterations = 0;
     uint64_t total_time = 0;
     uint64_t aa_time = 0;
     uint64_t fx_time = 0;
-   
+
     uint64_t t_start = get_cpu_cycles();
 
-    int16_t sample = 0;
+    int16_t sample;
     #if (defined SIM) | (defined ARTIFICIAL)
     while(iterations < ITERATIONS)
     #else
@@ -207,9 +209,8 @@ void swRun()
         #if !((defined SIM) | (defined ARTIFICIAL))
             getInputBuffer(&sample_i, &dummy);
         #else
-            sample_i = sample + 2048;
+            sample_i++;
         #endif
-        
         sample = sample_i;
         
         #ifdef DETAILED_TIMING
@@ -232,12 +233,14 @@ void swRun()
             uint64_t end = get_cpu_cycles();
             fx_time += end - start;
         #endif
-
-        sample_o = sample;
         
         // Write output sample to AudioInterface.
         #if !((defined SIM) | (defined ARTIFICIAL))
+            sample_o = sample;
             setOutputBuffer(sample_o, sample_o);
+        #else
+            // This artificial use of the sample variable is important to avoid dead code elimination!
+            asm volatile("" : "+r" (sample));
         #endif
         
         iterations++;
@@ -276,35 +279,35 @@ void copRun()
     register uint32_t config_data __asm__ ("19");
     
     // Enable both modules.
-    config_data = 3;
+    config_data = mod_en;
     asm (FUNC_MOD_EN : : "r"(config_data));
 
     // Set distortion gain to ~15%.
-    config_data = 64 * 3 / 20;
+    config_data = dist_gain;
     asm (FUNC_DIST_GAIN : : "r"(config_data));
     
     // Set distortion output gain to ~10%.
-    config_data = 64 / 10;
+    config_data = dist_outgain;
     asm (FUNC_DIST_OUTGAIN : : "r"(config_data));
     
     // Set maximum delay length.
-    config_data = DELAY_BUFFER_BLOCKS - 1;
+    config_data = del_maxlen / BLOCK_SIZE;
     asm (FUNC_DEL_MAXLEN : : "r"(config_data));
     
     // Set delay length to ~250 ms.
-    config_data = BLOCK_FREQUENCY / 4;
+    config_data = del_len / BLOCK_SIZE;
     asm (FUNC_DEL_LEN : : "r"(config_data));
     
     // Set mix to ~25%.
-    config_data = 64 / 4;
+    config_data = del_mix;
     asm (FUNC_DEL_MIX : : "r"(config_data));
 
     // Set feedback to ~5%.
-    config_data = 64 / 20;
+    config_data = del_fb;
     asm (FUNC_DEL_FB : : "r"(config_data));
     
     // Set delay output gain to ~120% (NOTE: 32 is 100%).
-    config_data = 64 * 3 / 5;
+    config_data = del_outgain;
     asm (FUNC_DEL_OUTGAIN : : "r"(config_data));
     
     // Timed code starts here:
@@ -321,7 +324,7 @@ void copRun()
         #if !((defined SIM) | (defined ARTIFICIAL))
             getInputBuffer(&sample_i, &dummy);
         #else
-            sample_i = 20 + (i << 6);
+            sample_i++;
         #endif
         
         #ifdef DETAILED_TIMING
@@ -353,7 +356,7 @@ void copRun()
         #if !((defined SIM) | (defined ARTIFICIAL))
                 getInputBuffer(&sample_i, &dummy);
             #else
-                sample_i = 20 + (i << 6);
+              sample_i++;
             #endif
             
             #ifdef DETAILED_TIMING
@@ -391,10 +394,9 @@ void copRun()
                 fx_time += end - start;
             #endif
             
-            sample_o = sample_o_ext;
-        
             // Write output sample to AudioInterface.
             #if !((defined SIM) | (defined ARTIFICIAL))
+                sample_o = sample_o_ext;
                 setOutputBuffer(sample_o, sample_o);
             #endif
             
@@ -421,10 +423,9 @@ void copRun()
             fx_time += end - start;
         #endif
         
-        sample_o = sample_o_ext;
-        
         // Write output sample to AudioInterface.
         #if !((defined SIM) | (defined ARTIFICIAL))
+            sample_o = sample_o_ext;
             setOutputBuffer(sample_o, sample_o);
         #endif
         
@@ -440,6 +441,23 @@ void copRun()
 
 int main()
 {
+    #if (defined SIM) | (defined ARTIFICIAL)
+    if (*keyReg > 16) {
+    #else
+    char c;
+    scanf("%c\n", &c);
+    if (c == 'y') {
+    #endif
+      scanf("%hhd", &mod_en);
+      scanf("%hhd", &dist_gain);
+      scanf("%hhd", &dist_outgain);
+      scanf("%hd", &del_maxlen);
+      scanf("%hd", &del_len);
+      scanf("%hhd", &del_mix);
+      scanf("%hhd", &del_fb);
+      scanf("%hhd", &del_outgain);
+    }
+
     #if !((defined SIM) | (defined ARTIFICIAL))
         setup(0);
 
