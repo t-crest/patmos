@@ -42,7 +42,7 @@ class Delay(dataWidth: Int = 16, ptrWidth: Int = 12, counterBits: Int = 3, mixWi
   engine.io.in.bits(1) := 0.S
   
   // Delay Sample Pointers.
-  val regDelayLength = RegInit(8.U(ptrWidth.W))
+  val regDelayLength = RegInit((1 << (ptrWidth - 1)).U(ptrWidth.W))
   val rdPtr = WireDefault(0.U(ptrWidth.W))
   val wrPtr = RegInit(0.U(ptrWidth.W))
   when (wrPtr < regDelayLength) {

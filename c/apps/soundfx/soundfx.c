@@ -11,16 +11,23 @@
 
 // 3 operation modes:
 //        DEFAULT         // For hardware test --> audio interface, uncapped iteration times, switching with keys
+//        USE_ITERATIONS  // Like DEFAULT but with fixed number of iterations
 //#define SIM             // For simulation with patemu --> no audio interface, artificial workload, low iteration times
-#define ARTIFICIAL      // For hardware test --> no audio interface, artificial workload, high iteration times
+//#define ARTIFICIAL      // For hardware test --> no audio interface, artificial workload, high iteration times
 
-#define DETAILED_TIMING // Time not only overall time taken but also explicit processing time taken
+//#define USE_COP
+//#define USE_SW
+
+//#define DETAILED_TIMING // Time not only overall time taken but also explicit processing time taken
+//#define DOUBLE_DISPATCH // Dispatch two sets of samples to the COP to keep the pipeline filled.
 
 #define INLINE_PREFIX   static inline
 
 #ifdef SIM
-    #define ITERATIONS 48
+    #define ITERATIONS 32
 #elif defined ARTIFICIAL
+    #define ITERATIONS 32768
+#elif defined USE_ITERATIONS
     #define ITERATIONS 32768
 #endif
 
@@ -45,6 +52,15 @@ INLINE_PREFIX int setOutputBuffer(short l, short r) {
 }
 
 
+static inline uint32_t get_cpu_cycles_32(void) {
+  uint32_t clo;
+  _iodev_ptr_t lo_clock = (_iodev_ptr_t)(__PATMOS_TIMER_LOCLK);
+  clo = *lo_clock;
+  return clo;
+}
+
+
+
 /* GENERAL CONSTANTS */
 const uint32_t BUFFER_SIZE = 128;
 
@@ -61,7 +77,7 @@ uint8_t mod_en = 3;
 uint8_t dist_gain = 64 * 3 / 20;
 uint8_t dist_outgain = 64 / 10;
 uint16_t del_maxlen = DELAY_BUFFER_SIZE - BLOCK_SIZE;
-uint16_t del_len = SAMPLING_FREQUENCY / 4;
+uint16_t del_len = (1 << 11) * BLOCK_SIZE; //SAMPLING_FREQUENCY / 4;
 uint8_t del_mix = 64 / 4;
 uint8_t del_fb = 64 / 20;
 uint8_t del_outgain = 64 * 3 / 5;
@@ -186,7 +202,7 @@ INLINE_PREFIX int16_t delay(int16_t s, uint16_t max_len, uint16_t len, uint8_t m
 
 void swRun()
 {
-    int16_t sample_i = (1 << 15) - 1;
+    int16_t sample_i = -(1 << 15);
     int16_t sample_o;
     int16_t dummy;
     
@@ -196,10 +212,10 @@ void swRun()
     uint64_t aa_time = 0;
     uint64_t fx_time = 0;
 
-    uint64_t t_start = get_cpu_cycles();
+    uint64_t t_start = get_cpu_cycles_32();
 
     int16_t sample;
-    #if (defined SIM) | (defined ARTIFICIAL)
+    #if (defined SIM) | (defined ARTIFICIAL) | (defined USE_ITERATIONS)
     while(iterations < ITERATIONS)
     #else
     while(*keyReg & 1)
@@ -209,12 +225,13 @@ void swRun()
         #if !((defined SIM) | (defined ARTIFICIAL))
             getInputBuffer(&sample_i, &dummy);
         #else
-            sample_i++;
+            sample_i += (65536/ITERATIONS);
         #endif
         sample = sample_i;
         
         #ifdef DETAILED_TIMING
-            uint64_t start = get_cpu_cycles();
+            asm volatile ("" : : : "memory");
+            uint32_t start = get_cpu_cycles_32();
         #endif
 
         if (mod_en & 1)
@@ -230,7 +247,8 @@ void swRun()
         }
         
         #ifdef DETAILED_TIMING
-            uint64_t end = get_cpu_cycles();
+            uint32_t end = get_cpu_cycles_32();
+            asm volatile ("" : : : "memory");
             fx_time += end - start;
         #endif
         
@@ -246,11 +264,11 @@ void swRun()
         iterations++;
     }
     
-    uint64_t t_end = get_cpu_cycles();
+    uint64_t t_end = get_cpu_cycles_32();
     
     total_time = t_end - t_start;
     
-    printf("[SW] %ld iterations:\n  total time: %lld (%lld)\n  fx time: %lld (%lld)\n\n", iterations, total_time, total_time / iterations, fx_time, fx_time / iterations);
+    printf("[SW] %ld iterations:\n  total time: %lld (%lld)\n  fx time: %lld (%lld)\n\n", iterations, total_time, (total_time + iterations / 2) / iterations, fx_time, (fx_time + iterations / 2) / iterations);
 }
 
 
@@ -268,7 +286,7 @@ void swRun()
 
 void copRun()
 {
-    int16_t sample_i;
+    int16_t sample_i = -(1 << 15);
     int16_t sample_o;
     int16_t dummy;
 
@@ -315,8 +333,9 @@ void copRun()
     uint64_t total_time = 0;
     uint64_t fx_time = 0;
    
-    uint64_t t_start = get_cpu_cycles();
+    uint64_t t_start = get_cpu_cycles_32();
     
+    #ifdef DOUBLE_DISPATCH
     // First block of samples.
     for (int i = 0; i < BLOCK_SIZE; ++i)
     {
@@ -324,11 +343,12 @@ void copRun()
         #if !((defined SIM) | (defined ARTIFICIAL))
             getInputBuffer(&sample_i, &dummy);
         #else
-            sample_i++;
+            sample_i += (65536/ITERATIONS);
         #endif
         
         #ifdef DETAILED_TIMING
-            uint64_t start = get_cpu_cycles();
+            asm volatile ("" : : : "memory");
+            uint32_t start = get_cpu_cycles_32();
         #endif
             
         // Move sample to Coprocessor.
@@ -338,13 +358,19 @@ void copRun()
             : "r"(sample_i_ext));
         
         #ifdef DETAILED_TIMING
-            uint64_t end = get_cpu_cycles();
+            uint32_t end = get_cpu_cycles_32();
+            asm volatile ("" : : : "memory");
             fx_time += end - start;
         #endif
     }
+    #endif
     
-    #if (defined SIM) | (defined ARTIFICIAL)
+    #if (defined SIM) | (defined ARTIFICIAL) | (defined USE_ITERATIONS)
+    #ifdef DOUBLE_DISPATCH
     while(iterations < ITERATIONS - 8)
+    #else
+    while(iterations < ITERATIONS)
+    #endif
     #else
     while(*keyReg & 2)
     #endif
@@ -353,14 +379,15 @@ void copRun()
         for (int i = 0; i < BLOCK_SIZE; ++i)
         {
             // Read input sample from AudioInterface.
-        #if !((defined SIM) | (defined ARTIFICIAL))
+            #if !((defined SIM) | (defined ARTIFICIAL))
                 getInputBuffer(&sample_i, &dummy);
             #else
-              sample_i++;
+                sample_i += (65536/ITERATIONS);
             #endif
             
             #ifdef DETAILED_TIMING
-                uint64_t start = get_cpu_cycles();
+                asm volatile ("" : : : "memory");
+                uint32_t start = get_cpu_cycles_32();
             #endif
 
             // Move sample to Coprocessor.
@@ -370,7 +397,8 @@ void copRun()
                 : "r"(sample_i_ext));
             
             #ifdef DETAILED_TIMING
-                uint64_t end = get_cpu_cycles();
+                uint32_t end = get_cpu_cycles_32();
+                asm volatile ("" : : : "memory");
                 fx_time += end - start;
             #endif
         }
@@ -379,7 +407,8 @@ void copRun()
         for (int i = 0; i < BLOCK_SIZE; ++i)
         {
             #ifdef DETAILED_TIMING
-                uint64_t start = get_cpu_cycles();
+                asm volatile ("" : : : "memory");
+                uint32_t start = get_cpu_cycles_32();
             #endif
             
             // Move sample from Coprocessor.
@@ -390,7 +419,8 @@ void copRun()
                 : "19" );
             
             #ifdef DETAILED_TIMING
-                uint64_t end = get_cpu_cycles();
+                uint32_t end = get_cpu_cycles_32();
+                asm volatile ("" : : : "memory");
                 fx_time += end - start;
             #endif
             
@@ -404,11 +434,13 @@ void copRun()
         }
     }
     
+    #ifdef DOUBLE_DISPATCH
     // Last block of samples.
     for (int i = 0; i < BLOCK_SIZE; ++i)
     {
         #ifdef DETAILED_TIMING
-            uint64_t start = get_cpu_cycles();
+            asm volatile ("" : : : "memory");
+            uint32_t start = get_cpu_cycles_32();
         #endif
             
         // Move sample from Coprocessor.
@@ -419,7 +451,8 @@ void copRun()
             : "19" );
 
         #ifdef DETAILED_TIMING
-            uint64_t end = get_cpu_cycles();
+            uint32_t end = get_cpu_cycles_32();
+            asm volatile ("" : : : "memory");
             fx_time += end - start;
         #endif
         
@@ -431,21 +464,22 @@ void copRun()
         
         iterations++;
     }
+    #endif
     
-    uint64_t t_end = get_cpu_cycles();
+    uint64_t t_end = get_cpu_cycles_32();
     
     total_time = t_end - t_start;
     
-    printf("[COP] %ld iterations:\n  total time: %lld (%lld)\n  cop wait time: %lld (%lld)\n\n", iterations, total_time, total_time / iterations, fx_time, fx_time / iterations);
+    printf("[COP] %ld iterations:\n  total time: %lld (%lld)\n  cop wait time: %lld (%lld)\n\n", iterations, total_time, (total_time + iterations / 2) / iterations, fx_time, (fx_time + iterations / 2) / iterations);
 }
 
 int main()
 {
-    #if (defined SIM) | (defined ARTIFICIAL)
+    #if (defined SIM) | (defined ARTIFICIAL) | (defined USE_ITERATIONS)
     if (*keyReg > 16) {
     #else
     char c;
-    scanf("%c\n", &c);
+    scanf("%c", &c);
     if (c == 'y') {
     #endif
       scanf("%hhd", &mod_en);
@@ -457,6 +491,8 @@ int main()
       scanf("%hhd", &del_fb);
       scanf("%hhd", &del_outgain);
     }
+
+    printf("%lx, %lx\n", (uint32_t)dist_lut, (uint32_t)delay_buffer);
 
     #if !((defined SIM) | (defined ARTIFICIAL))
         setup(0);
@@ -470,14 +506,18 @@ int main()
     
     #ifdef SIM
     while(true)
-    #elif defined ARTIFICIAL
+    #elif (defined ARTIFICIAL) | (defined USE_ITERATIONS)
     for (int i = 0; i < 10; ++i)
     #else
     while(*keyReg & 4)
     #endif
     {
+        #ifdef USE_SW
         swRun();
+        #endif
+        #ifdef USE_COP
         copRun();
+        #endif
     }
     
     return EXIT_SUCCESS;
