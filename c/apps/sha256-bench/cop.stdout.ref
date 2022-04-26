@@ -24,7 +24,7 @@ benchmarking 1 blocks for string "This is a message which barely fits into one d
 
 benchmarking 2 blocks for string "This is a message which already requires two data blocks"
   repetition 0
-    busy_send_time: 34
+    busy_send_time: 8
     busy_recv_time: 7
     idle_time:      337
   repetition 1
@@ -47,7 +47,7 @@ benchmarking 2 blocks for string "This is a message which already requires two d
 
 benchmarking 3 blocks for string "We need three data blocks as soon as the message is at least 120 characters long but also not longer than 183 characters"
   repetition 0
-    busy_send_time: 34
+    busy_send_time: 8
     busy_recv_time: 7
     idle_time:      442
   repetition 1
@@ -70,7 +70,7 @@ benchmarking 3 blocks for string "We need three data blocks as soon as the messa
 
 benchmarking 4 blocks for string "Random data to reach 184 characters: 7G)#SsLW`G+VAl?vUzyw1q&RY2MZJY$D-M8GFy*|"y?TfbD,y g4\Uc9W.BDkbyTHlNT.q3VnK@W'pMO%[GOENwgdB<d%> L/BV&W8YK PA_`dRTb$!?@ou.'*,QC@:uU|UP`up]bSMZ*k5*I8K"
   repetition 0
-    busy_send_time: 34
+    busy_send_time: 8
     busy_recv_time: 7
     idle_time:      547
   repetition 1
@@ -93,7 +93,7 @@ benchmarking 4 blocks for string "Random data to reach 184 characters: 7G)#SsLW`
 
 benchmarking 5 blocks for string "More random data to reach 248 characters: bcHM=-W2-O9GN&8k'_atlZNsKZ~T~#}:B1InX-t(pP'd'DiJx_Sz"wy~'_6K7@Y@2<H`Z(ycwqq2fOM#4SalQ=U/EV5*U{V4fSDN7Z y&|1UZQh,xKN3,T !Kr`[1YDz!lV6=_xZms&)@$In]q/zVsnZR6ZoNW)^oWyp.NDgIxO1ccrJ"!\YTl){c22=K|m/f..@E.gP9meOiy"
   repetition 0
-    busy_send_time: 34
+    busy_send_time: 8
     busy_recv_time: 7
     idle_time:      647
   repetition 1
@@ -116,7 +116,7 @@ benchmarking 5 blocks for string "More random data to reach 248 characters: bcHM
 
 benchmarking 6 blocks for string "Even more random data to reach 312 characters: )AkUjZLwBzAG(e>B7ll#,b6e0\7`3tllg~7R)\slUiT+CTAuF.FO^Mp,MBlL>;b@#{MhFV#f\$~dZC7=]PMn]olX!gCmjw0N]_?Y+lk?I1_)xitRdz2+2}@c\~V0DT@+52+_(E#N*GZP-~d9jm$|"ID}S%=r"wF${\z%%$+7}9o:An:k7w=b3y>B3,ez:Is8= F2;dPW"y@ZFQc{920hypYh\"KJW!hcHm/;P,>rk|,.]*8 D'S<Y6jG<5SOnnj()u]h&.1^H"
   repetition 0
-    busy_send_time: 34
+    busy_send_time: 8
     busy_recv_time: 7
     idle_time:      752
   repetition 1
