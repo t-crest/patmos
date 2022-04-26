@@ -81,10 +81,12 @@ class NullStackCache() extends Module {
 
   // translate write requests
   val wc = Module(new WriteNoBuffer())
-  wc.io.readMaster <> nc.io.slave
+  wc.io.readMaster.M := nc.io.slave.M
+  nc.io.slave.S := wc.io.readMaster.S
   wc.io.writeMaster.M := io.fromCPU.M
   wc.io.writeMaster.M.Addr := io.fromCPU.M.Addr + stackTopReg
-  wc.io.slave <> io.toMemory
+  io.toMemory.M := wc.io.slave.M
+  wc.io.slave.S := io.toMemory.S
 
   // construct response
   io.fromCPU.S.Data := nc.io.master.S.Data
