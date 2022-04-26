@@ -1,12 +1,11 @@
 # SoundFX application
 
 This application is a demonstration of the provided SoundFX coprocessor in comparison to a purely software-based implementation.
-It is used for the evaluation section of following submitted paper:
-
-!!!TODO!!!
+It is used for the evaluation section of following submitted paper:<br/>
+C. Pircher, A. Baranyai, C. Lehr and M. Schoeberl, "Coprocessor Interface for the Patmos Processor", submitted to Elsevier Microprocessors and Microsystems 2022.
 
 The Chisel sources for the SoundFX coprocessor can be found under [cop/SoundFX.scala](../../../hardware/src/main/scala/cop/SoundFX.scala).
-The implementation is based on building blocks provided by [soundbytes](https://github.com/schoeberl/soundbytes) or variations thereof which can be found in [soundbytes](../../../hardware/src/main/scala/soundbytes)
+The implementation is based on building blocks provided by [soundbytes](https://github.com/schoeberl/soundbytes) or modifications thereof which can be found in [soundbytes](../../../hardware/src/main/scala/soundbytes)
 Before building the Patmos processor and running the benchmarks, please make sure that you have successfully built T-CREST (see [Main README](../../../README.md)).
 
 ## Patmos Configuration
