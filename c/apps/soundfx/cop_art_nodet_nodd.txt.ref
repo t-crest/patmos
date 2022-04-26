@@ -1,0 +1,44 @@
+make[1]: Entering directory '/home/patmos/t-crest/patmos/c/apps/soundfx'
+patserdow -v /dev/ttyUSB0 soundfx.elf
+4bc10, 4d810
+[COP] 32768 iterations:
+  total time: 459098 (14)
+  cop wait time: 0 (0)
+
+[COP] 32768 iterations:
+  total time: 458759 (14)
+  cop wait time: 0 (0)
+
+[COP] 32768 iterations:
+  total time: 458759 (14)
+  cop wait time: 0 (0)
+
+[COP] 32768 iterations:
+  total time: 458759 (14)
+  cop wait time: 0 (0)
+
+[COP] 32768 iterations:
+  total time: 458759 (14)
+  cop wait time: 0 (0)
+
+[COP] 32768 iterations:
+  total time: 458759 (14)
+  cop wait time: 0 (0)
+
+[COP] 32768 iterations:
+  total time: 458759 (14)
+  cop wait time: 0 (0)
+
+[COP] 32768 iterations:
+  total time: 458759 (14)
+  cop wait time: 0 (0)
+
+[COP] 32768 iterations:
+  total time: 458759 (14)
+  cop wait time: 0 (0)
+
+[COP] 32768 iterations:
+  total time: 458759 (14)
+  cop wait time: 0 (0)
+
+make[1]: Leaving directory '/home/patmos/t-crest/patmos/c/apps/soundfx'

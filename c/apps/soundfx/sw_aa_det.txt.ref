@@ -1,0 +1,65 @@
+make[1]: Entering directory '/home/patmos/t-crest/patmos/c/apps/soundfx'
+patserdow -v /dev/ttyUSB0 soundfx.elf
+4c620, 4eb80
+Sending Data: 121 to address 2
+Waiting ...
+success
+Sending Data: 121 to address 3
+Waiting ...
+success
+Sending Data: 18 to address 4
+Waiting ...
+success
+Sending Data: 1 to address 5
+Waiting ...
+success
+Sending Data: 19 to address 7
+Waiting ...
+success
+Sending Data: 0 to address 8
+Waiting ...
+success
+FINISHED SETUP!
+Input buffer size set to 128
+Output buffer size set to 128
+[SW] 32768 iterations:
+  total time: 50330604 (1536)
+  fx time: 6465703 (197)
+
+[SW] 32768 iterations:
+  total time: 50135230 (1530)
+  fx time: 6441110 (197)
+
+[SW] 32768 iterations:
+  total time: 50135251 (1530)
+  fx time: 6440921 (197)
+
+[SW] 32768 iterations:
+  total time: 50135206 (1530)
+  fx time: 6440858 (197)
+
+[SW] 32768 iterations:
+  total time: 50135278 (1530)
+  fx time: 6440858 (197)
+
+[SW] 32768 iterations:
+  total time: 50135440 (1530)
+  fx time: 6440858 (197)
+
+[SW] 32768 iterations:
+  total time: 50135206 (1530)
+  fx time: 6440858 (197)
+
+[SW] 32768 iterations:
+  total time: 50135206 (1530)
+  fx time: 6440858 (197)
+
+[SW] 32768 iterations:
+  total time: 50135245 (1530)
+  fx time: 6440837 (197)
+
+[SW] 32768 iterations:
+  total time: 50135416 (1530)
+  fx time: 6440858 (197)
+
+make[1]: Leaving directory '/home/patmos/t-crest/patmos/c/apps/soundfx'
