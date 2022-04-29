@@ -1,7 +1,8 @@
 # SHA-256 Benchmarks
 
-These benchmarks are used for the evaluation section of the following paper:
-C. Pircher, A. Baranyai, C. Lehr and M. Schoeberl, "Accelerator Interface for Patmos", submitted to NorCAS 2021.
+These benchmarks are used for the evaluation section of the following papers:</br>
+[C. Pircher, A. Baranyai, C. Lehr and M. Schoeberl, "Accelerator Interface for Patmos"](https://ieeexplore.ieee.org/document/9599856), IEEE NorCAS 2021.</br>
+C. Pircher, A. Baranyai, C. Lehr and M. Schoeberl, "Coprocessor Interface for the Patmos Processor", submitted to Elsevier Microprocessors and Microsystems 2022.
 
 Results listed in the paper can be found in the `*.stdout.ref` files.
 The Chisel sources for the SHA-256 IO device and coprocessor can be found under [io/Sha256.scala](../../../hardware/src/main/scala/io/sha256.scala) and [cop/Sha256.scala](../../../hardware/src/main/scala/cop/sha256.scala) respectively.

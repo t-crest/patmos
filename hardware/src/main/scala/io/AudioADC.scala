@@ -54,16 +54,16 @@ class AudioADC(AUDIOBITLENGTH: Int, FSDIV: Int) extends Module
   bclkReg := io.bclkI
 
   //registers for audio data
-  val audioLReg = Reg(init = UInt(0, AUDIOBITLENGTH))
-  val audioRReg = Reg(init = UInt(0, AUDIOBITLENGTH))
+  val audioLReg = RegInit(Vec(Seq.fill(AUDIOBITLENGTH)(0.U(1.W))))
+  val audioRReg = RegInit(Vec(Seq.fill(AUDIOBITLENGTH)(0.U(1.W))))
   val audioLRegO = Reg(init = UInt(0, AUDIOBITLENGTH))
   val audioRRegO = Reg(init = UInt(0, AUDIOBITLENGTH))
   //connect registers to ouputs when conversion is not busy
   io.audioLO := audioLRegO
   io.audioRO := audioRRegO
   when(readEnAdcReg === UInt(1)) {
-    audioLRegO := audioLReg
-    audioRRegO := audioRReg
+    audioLRegO := Cat(audioLReg.reverse)
+    audioRRegO := Cat(audioRReg.reverse)
   }
 
   //conversion when enabled
@@ -75,33 +75,33 @@ class AudioADC(AUDIOBITLENGTH: Int, FSDIV: Int) extends Module
       //counter for audio sampling
       fsCntReg := fsCntReg + UInt(1)
       when(fsCntReg === FSCYCLES) {
-	fsCntReg := UInt(0) //reset to 0
+	      fsCntReg := UInt(0) //reset to 0
       }
       //FSM for audio conversion
       switch (state) {
-	is (sIdle)
-	{
-	  adcLrcReg := UInt(0)
+        is (sIdle)
+        {
+	        adcLrcReg := UInt(0)
           when (fsCntReg === UInt(0)) {
             readEnAdcReg := UInt(0) // to avoid initial readEn pulse
-	    state := sStart1
+	          state := sStart1
           }
           .otherwise {
             readEnAdcReg := UInt(1)
           }
-	}
-	is (sStart1)
-	{
-	  adcLrcReg := UInt(1)
+	      }
+	      is (sStart1)
+	      {
+	        adcLrcReg := UInt(1)
           readEnAdcReg := UInt(0)
-	  state := sStart2 //directly jump to next state
-	}
-	is (sStart2)
-	{
+	        state := sStart2 //directly jump to next state
+	      }
+	      is (sStart2)
+	      {
           readEnAdcReg := UInt(0)
-	  adcLrcReg := UInt(0) //lrclk low already
-	  state := sLeft //directly jump to next state
-	}
+	        adcLrcReg := UInt(0) //lrclk low already
+	        state := sLeft //directly jump to next state
+	      }
       }
     }
 
@@ -109,34 +109,34 @@ class AudioADC(AUDIOBITLENGTH: Int, FSDIV: Int) extends Module
     .elsewhen( (io.bclkI =/= bclkReg) && (io.bclkI === UInt(1)) ) {
       //FSM for audio conversion
       switch (state) {
-	is (sLeft)
-	{
+	      is (sLeft)
+	      {
           readEnAdcReg := UInt(0)
-	  audioLReg(UInt(AUDIOBITLENGTH) - audioCntReg - UInt(1)) := io.adcDatI
-	  when (audioCntReg < UInt(AUDIOBITLENGTH-1))
-	  {
-	    audioCntReg := audioCntReg + UInt(1)
-	  }
-	    .otherwise //bit AUDIOBITLENGTH-1
-	  {
-	    audioCntReg := UInt(0) //restart counter
-	    state := sRight
-	  }
-	}
-	is (sRight)
-	{
+	        audioLReg(UInt(AUDIOBITLENGTH) - audioCntReg - UInt(1)) := io.adcDatI
+	        when (audioCntReg < UInt(AUDIOBITLENGTH-1))
+	        {
+	          audioCntReg := audioCntReg + UInt(1)
+	        }
+	          .otherwise //bit AUDIOBITLENGTH-1
+	        {
+	          audioCntReg := UInt(0) //restart counter
+	          state := sRight
+	        }
+	      }
+	      is (sRight)
+	      {
           readEnAdcReg := UInt(0)
-	  audioRReg(UInt(AUDIOBITLENGTH) - audioCntReg - UInt(1)) := io.adcDatI
-	  when (audioCntReg < UInt(AUDIOBITLENGTH-1))
-	  {
-	    audioCntReg := audioCntReg + UInt(1)
-	  }
-	    .otherwise //bit AUDIOBITLENGTH-1
-	  {
-	    audioCntReg := UInt(0) //restart counter
-	    state := sIdle
-	  }
-	}
+	        audioRReg(UInt(AUDIOBITLENGTH) - audioCntReg - UInt(1)) := io.adcDatI
+	        when (audioCntReg < UInt(AUDIOBITLENGTH-1))
+	        {
+	          audioCntReg := audioCntReg + UInt(1)
+	        }
+	          .otherwise //bit AUDIOBITLENGTH-1
+	        {
+	          audioCntReg := UInt(0) //restart counter
+	          state := sIdle
+	        }
+	      }
       }
     }
   }
