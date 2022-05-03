@@ -42,8 +42,8 @@ class Fetch(fileName : String) extends Module {
 
   if (ISPM_SIZE > 0) {
     val ispmAddrUInt = log2Up(ISPM_SIZE / 4 / 2)
-    val memEven = MemBlock(ISPM_SIZE / 4 / 2, INSTR_WIDTH, bypass = false)
-    val memOdd = MemBlock(ISPM_SIZE / 4 / 2, INSTR_WIDTH, bypass = false)
+    val memEven = MemBlock(ISPM_SIZE / 4 / 2, INSTR_WIDTH)
+    val memOdd = MemBlock(ISPM_SIZE / 4 / 2, INSTR_WIDTH)
 
     // write from EX - use registers - ignore stall, as reply does not hurt
     val selWrite = (io.memfe.store & (io.memfe.addr(DATA_WIDTH-1, ISPM_ONE_BIT) === UInt(0x1)))

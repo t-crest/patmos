@@ -91,7 +91,7 @@ class StackCache() extends Module {
   // the actual memory of the stack cache
   val memoryBlock = new Array[MemBlockIO](BYTES_PER_WORD)
   for (i <- 0 until BYTES_PER_WORD) {
-    memoryBlock(i) = MemBlock(SCACHE_SIZE / BYTES_PER_WORD, BYTE_WIDTH, bypass = false).io
+    memoryBlock(i) = MemBlock(SCACHE_SIZE / BYTES_PER_WORD, BYTE_WIDTH).io
   }
 
   val mb_rdAddr = Wire(UInt(width = scSizeBits))

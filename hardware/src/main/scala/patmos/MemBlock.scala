@@ -13,8 +13,8 @@ import chisel3.SyncReadMem
 import util.SRAM
 
 object MemBlock {
-  def apply(size : Int, width : Int, bypass : Boolean = true) = {
-    Module(new MemBlock(size, width, bypass))
+  def apply(size : Int, width : Int) = {
+    Module(new MemBlock(size, width))
   }
 }
 
@@ -48,11 +48,13 @@ class MemBlockIO(size : Int, width : Int) extends Bundle {
   }
 }
 
-class MemBlock(size : Int, width : Int, bypass : Boolean = true) extends Module {
+class MemBlock(size : Int, width : Int) extends Module {
   val io = new MemBlockIO(size, width)
 
   // switch between chisel SyncReadMem and SRAM using a verilog model
   val useSimSRAM = false
+
+  val memData = Wire(UInt(width.W))
 
   if(useSimSRAM) {
 
@@ -62,7 +64,7 @@ class MemBlock(size : Int, width : Int, bypass : Boolean = true) extends Module 
     mem.io.wrAddr := io.wrAddr
     mem.io.wrData := io.wrData
     mem.io.wrEna := io.wrEna.asBool()
-    io.rdData := mem.io.rdData
+    memData := mem.io.rdData
 
   } else {
 
@@ -72,17 +74,14 @@ class MemBlock(size : Int, width : Int, bypass : Boolean = true) extends Module 
       mem.write(io.wrAddr, io.wrData)
     }
     // read
-    io.rdData := mem.read(io.rdAddr)
+    memData := mem.read(io.rdAddr)
 
   }
 
+  // bypass for read during write
+  val wrDataReg = RegNext(io.wrData)
+  val doForwardingReg = RegNext(io.wrAddr === io.rdAddr && io.wrEna.asBool)
+  io.rdData := Mux(doForwardingReg, wrDataReg, memData)
 
-  if (bypass) {
-    // force read during write behavior
-    when (Reg(next = io.wrEna) === UInt(1) &&
-          Reg(next = io.wrAddr ===  io.rdAddr)) {
-            io.rdData := Reg(next = io.wrData)
-          }
-  }
 }
 

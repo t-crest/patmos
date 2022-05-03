@@ -38,7 +38,7 @@ class Spm(size: Int) extends Module {
     // generate byte memories
     val mem = new Array[MemBlockIO](BYTES_PER_WORD)
     for (i <- 0 until BYTES_PER_WORD) {
-      mem(i) = MemBlock(size / BYTES_PER_WORD, BYTE_WIDTH, bypass = false).io
+      mem(i) = MemBlock(size / BYTES_PER_WORD, BYTE_WIDTH).io
     }
 
     // store
