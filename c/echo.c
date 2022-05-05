@@ -18,6 +18,7 @@ int main() {
 	volatile _SPM int *led_ptr = (volatile _SPM int *) PATMOS_IO_LED;
 	char val;
 
+  puts("Running");
 	for (;;) {
 		val = getchar();
 		putchar(val);

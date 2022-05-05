@@ -1,14 +1,14 @@
 <patmos default="default.xml">
   <description>default configuration for DE2-115 board</description>
 
-  <frequency Hz="80000000"/>  
+  <frequency Hz="80000000"/>
 
   <!-- Default is single core -->
-  <!-- <pipeline dual="false" />
-  <cores count="6"/>
+  <pipeline dual="false" />
+  <cores count="4"/>
   <CmpDevs>
   <CmpDev name="Argo" />
-  </CmpDevs> -->
+  </CmpDevs>
 
   <ExtMem size="2M" DevTypeRef="Sram16" />
   <!-- <ExtMem size="128k" DevTypeRef="OCRam" /> -->

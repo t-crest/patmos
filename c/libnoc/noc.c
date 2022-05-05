@@ -1,7 +1,7 @@
 /*
-   Copyright 2014 Technical University of Denmark, DTU Compute. 
+   Copyright 2014 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,7 @@
 
 /*
  * Functions to initialize and use the NoC.
- * 
+ *
  * Author: Wolfgang Puffitsch (wpuffitsch@gmail.com)
  * Author: Rasmus Bo Soerensen (rasmus@rbscloud.dk)
  *
@@ -41,7 +41,7 @@
 #include "noc.h"
 
 //#define TRAP
-  
+
 // Find the size in bytes
 int find_mem_size(volatile unsigned int _SPM * mem_addr){
   int init = *(mem_addr);
@@ -95,7 +95,7 @@ int k_noc_sched_load(void) {
     noc_conf_base_ptr += schedule_entries;
   }
   return 1;
-    
+
 }
 
 void k_noc_sched_set(unsigned char config) {
@@ -121,7 +121,7 @@ int k_noc_configure(void) {
   int ret;
   k_noc_state_set(0); // Make sure that the network is disabled
   ret = k_noc_sched_load();
-  
+
   exc_register(18,&__data_recv_handler);
   exc_register(19,&__remote_irq_handler);
 #ifdef TRAP
@@ -167,10 +167,10 @@ int k_noc_dma_write(unsigned dma_id,
       return 0;
     }
     // Read pointer and write pointer in the dma table
-    *(NOC_DMA_BASE+(dma_id<<1)) = (pkt_type << NOC_PTR_WIDTH) | write_ptr;  
+    *(NOC_DMA_BASE+(dma_id<<1)) = (pkt_type << NOC_PTR_WIDTH) | write_ptr;
     // Word count and valid bit, set active bit
-    *(NOC_DMA_BASE+(dma_id<<1)+1) = (NOC_ACTIVE_BIT | (size << NOC_PTR_WIDTH) | read_ptr);  
-    
+    *(NOC_DMA_BASE+(dma_id<<1)+1) = (NOC_ACTIVE_BIT | (size << NOC_PTR_WIDTH) | read_ptr);
+
     return 1;
 }
 
@@ -373,7 +373,7 @@ static void noc_sync(void) {
       done = 1;
       for (unsigned i = 0; i < get_cpucnt(); i++) {
         if (boot_info->slave[i].status != STATUS_NULL &&
-            boot_info->slave[i].status != STATUS_INITDONE && 
+            boot_info->slave[i].status != STATUS_INITDONE &&
             i != NOC_MASTER) {
           done = 0;
         }
@@ -414,9 +414,9 @@ void noc_init(void) {
 // The addresses and the size are in words and relative to the
 // communication SPM
 int noc_conf(unsigned dma_id, volatile void _SPM *dst,
-               volatile void _SPM *src, size_t size) { 
+               volatile void _SPM *src, size_t size) {
   unsigned wp = (char *)dst - (char *)NOC_SPM_BASE;
-  unsigned rp = (char *)src - (char *)NOC_SPM_BASE;   
+  unsigned rp = (char *)src - (char *)NOC_SPM_BASE;
   return noc_dma_write(dma_id, W(wp), W(rp), W(size), CONFIG_PKT_TYPE);
 }
 
@@ -438,10 +438,10 @@ int noc_nbwrite(unsigned dma_id, volatile void _SPM *dst,
   unsigned int pkt_type;
   if (irq_enable == 1) {
     // Enable an interrupt at the end of the DMA transfer
-    pkt_type = DATA_IRQ_PKT_TYPE;  
+    pkt_type = DATA_IRQ_PKT_TYPE;
   } else if (irq_enable == 0) {
     // Disable an interrupt at the end of the DMA transfer
-    pkt_type = DATA_PKT_TYPE;  
+    pkt_type = DATA_PKT_TYPE;
   } else {
     // Wrong parameter
     return 0;
@@ -534,7 +534,7 @@ void noc_wait_dma(coreset_t receivers) {
         while(!noc_dma_done(i));
       }
     }
-  } 
+  }
 }
 
 void __remote_irq_handler(void)  __attribute__((naked));
@@ -550,7 +550,7 @@ void __remote_irq_handler(void) {
 void __data_recv_handler(void) __attribute__((naked));
 void __data_recv_handler(void) {
   exc_prologue();
-  //WRITE("IRQ1\n",5); 
+  //WRITE("IRQ1\n",5);
   int tmp = *(NOC_IRQ_BASE+1);
   *(NOC_SPM_BASE+(tmp<<2)) = 0;
   intr_clear_pending(exc_get_source());
@@ -605,7 +605,7 @@ int _noc_trap_handler(unsigned int op,
 
 void __noc_trap_handler(void)  __attribute__((naked));
 void __noc_trap_handler(void) {
-  
+
   unsigned int op,p1,p2,p3,p4,p5;
   unsigned int ret_base,ret_offset;
   unsigned int pret;

@@ -1,6 +1,6 @@
-/* 
+/*
    C test application for the Argo 2.0 NOC.
-   Author: Luca Pezzarossa (lpez@dtu.dk) Copyright: DTU, BSD License 
+   Author: Luca Pezzarossa (lpez@dtu.dk) Copyright: DTU, BSD License
 */
 
 const int NOC_MASTER = 0;
@@ -525,6 +525,7 @@ void c_generate_bandwidth_results()
 	volatile _SPM unsigned char *block =
 		((volatile _SPM unsigned char *)block_base);
 	// Initialize memorycontent with incremental values
+  // printf("Initializing memory\n");
 	for (int i = 0; i < block_size; i++)
 	{
 		block[i] = (unsigned char)(i & 0x000000FF);
@@ -533,6 +534,7 @@ void c_generate_bandwidth_results()
 	bool timeout = false;
 	// I need to put nocsend in the cache therefore every measure is repeated
 	// twice
+
 	for (int c = 0; c < 2 * NOC_CORES; c++)
 	{
 		int i = c / 2;
@@ -563,6 +565,7 @@ void c_generate_bandwidth_results()
 			}
 		}
 	}
+  // printf("timeout=%d\n", timeout);
 	return;
 }
 
@@ -694,13 +697,13 @@ void m_bandwidth_correctness_test()
 		if (i == NOC_MASTER)
 		{
 			// The master does the measure
-			// printf("Bandwidth test: master core (%d) is testing.\n",
+			// printf("Bandwidth test: master core (%d) is testing.\n", NOC_MASTER);
 			// NOC_MASTER);
-			m_generate_bandwidth_results();
+			// m_generate_bandwidth_results();
 		}
 		else
 		{
-			// ////printf("Bandwidth test: core %d is testing.\n", i);
+			// printf("Bandwidth test: core %d is testing.\n", i);
 			ct = (int) i;
 			if (corethread_create
 				(ct, &s_generate_bandwidth_results, (void *)&slave_param))
@@ -1267,7 +1270,7 @@ int main()
 		return -1;
 	}
 */
-	
+
 	// Main loop
 	bool loop = true;
 	char c = 'v';

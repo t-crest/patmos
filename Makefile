@@ -16,7 +16,7 @@ APP?=hello_puts
 # Altera FPGA configuration cables
 #BLASTER_TYPE=ByteBlasterMV
 #BLASTER_TYPE=Arrow-USB-Blaster
-#BLASTER_TYPE?=DE-SoC 
+#BLASTER_TYPE?=DE-SoC
 BLASTER_TYPE?=USB-Blaster
 
 # Path delimiter for Wdoz and others
@@ -112,7 +112,7 @@ CORECNTT:=$(shell lscpu | grep 'Core(s) per socket:')
 emulator:
 	-mkdir -p $(HWBUILDDIR)
 	$(MAKE) -C hardware verilog BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
-	-cd $(HWBUILDDIR) && verilator --cc ../harnessConfig.vlt Patmos.v --top-module Patmos +define+TOP_TYPE=VPatmos --threads 1 -CFLAGS "-Wno-undefined-bool-conversion -O1 -DTOP_TYPE=VPatmos -DVL_USER_FINISH -include VPatmos.h" -Mdir $(HWBUILDDIR) --exe ../Patmos-harness.cpp -LDFLAGS -lelf --trace   
+	-cd $(HWBUILDDIR) && verilator --cc ../harnessConfig.vlt Patmos.v --top-module Patmos +define+TOP_TYPE=VPatmos --threads 1 -CFLAGS "-Wno-undefined-bool-conversion -O1 -DTOP_TYPE=VPatmos -DVL_USER_FINISH -include VPatmos.h" -Mdir $(HWBUILDDIR) --exe ../Patmos-harness.cpp -LDFLAGS -lelf --trace
 	-cd $(HWBUILDDIR) && make -j -f VPatmos.mk
 	-cp $(HWBUILDDIR)/VPatmos $(HWBUILDDIR)/emulator
 	-mkdir -p $(HWINSTALLDIR)/bin
