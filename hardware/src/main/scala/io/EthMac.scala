@@ -222,7 +222,7 @@ class EthMac(extAddrWidth: Int = 32, dataWidth: Int = 32, withPTP: Boolean = fal
   } else {
     println("EthMac (eth_addrWidth=" + extAddrWidth + ")")
     eth.io.M <> io.ocp.M
-    eth.io.S <> io.ocp.S
+    io.ocp.S <> eth.io.S
     io.pins.ptpPPS := true.B
   }
 }
