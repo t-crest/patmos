@@ -699,7 +699,7 @@ void m_bandwidth_correctness_test()
 			// The master does the measure
 			// printf("Bandwidth test: master core (%d) is testing.\n", NOC_MASTER);
 			// NOC_MASTER);
-			// m_generate_bandwidth_results();
+			m_generate_bandwidth_results();
 		}
 		else
 		{
