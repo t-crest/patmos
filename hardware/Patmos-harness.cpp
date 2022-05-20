@@ -1,8 +1,8 @@
-/* 
+/*
 NOTES ON STUFF MISSING FROM THE OLD EMULATOR
 - generating the emulator_config. These care hardcoded below for now
 - VCD dump
-- init_extmem - should not be needed as the current state of the new emulator 
+- init_extmem - should not be needed as the current state of the new emulator
   uses hashmap for memory. Only for testing width of data channel to memory.
   but i haven't found a way to get signal width from verilator.
 
@@ -26,7 +26,7 @@ NOTES ON STUFF MISSING FROM THE OLD EMULATOR
 #include "VPatmos.h"
 #include "verilated.h"
 #if VM_TRACE
-#include "verilated_vcd_c.h"
+#include "verilated_fst_c.h"
 #endif
 #if CORE_COUNT > 1
 #include "VPatmos_PatmosCore.h"
@@ -42,7 +42,7 @@ class Emulator
 {
   unsigned long m_tickcount;
   public: VPatmos *c;
-  VerilatedVcdC	*c_trace;
+  VerilatedFstC	*c_trace;
   // For Uart:
   bool UART_on;
   int baudrate;
@@ -63,11 +63,11 @@ class Emulator
 
   //elf - mem - ram
   #ifdef EXTMEM_SSRAM32CTRL
-  uint32_t *ram_buf; 
+  uint32_t *ram_buf;
   #endif /* EXTMEM_SSRAM32CTRL */
 
   #ifdef EXTMEM_SRAMCTRL
-  uint16_t *ram_buf; 
+  uint16_t *ram_buf;
   #endif /* EXTMEM_SRAMCTRL */
 
 public:
@@ -91,7 +91,7 @@ public:
     #endif /* EXTMEM_SRAMCTRL */
 
     trace = false;
-    
+
   }
 
   ~Emulator(void)
@@ -110,9 +110,9 @@ public:
   void setTrace(){
     trace = true;
     if (!c_trace){
-      c_trace = new VerilatedVcdC;
+      c_trace = new VerilatedFstC;
 			c->trace(c_trace, 99);
-			c_trace->open("Patmos.vcd");
+			c_trace->open("Patmos.fst");
     }
   }
 
@@ -356,7 +356,7 @@ public:
     for (int i = 0; i < (1 << EXTMEM_ADDR_BITS); i++) {
       write_extmem(i, rand());
     }
-  } 
+  }
 
 static void emu_extmem() {
   static uint32_t addr_cnt;
@@ -444,7 +444,7 @@ void emu_extmem() {}
 
   void init_icache(val_t entry)
   {
-    
+
     tick(STDIN_FILENO, STDOUT_FILENO);
     if (entry != 0)
     {
@@ -459,7 +459,7 @@ void emu_extmem() {}
         c->Patmos__DOT__cores_0__DOT__icache__DOT__repl__DOT__hitNext = 0;
 // add multicore support, at the moment only for the method cache and not the ISPM
 #endif
-       
+
 
 #if CORE_COUNT > 1
         c->__PVT__Patmos__DOT__cores_0->fetch__DOT__pcReg = -1;
@@ -673,7 +673,7 @@ void emu_extmem() {}
       }
 #if CORE_COUNT == 1
       c->Patmos__DOT__cores_0__DOT__icache__DOT__repl__DOT__callRetBaseNext = (entry >> 2);
-#endif 
+#endif
 #if CORE_COUNT > 1
       c->__PVT__Patmos__DOT__cores_0->icache__DOT__repl__DOT__callRetBaseNext = (entry >> 2);
 
@@ -725,7 +725,7 @@ void emu_extmem() {}
 #ifdef ICACHE_METHOD
 #if CORE_COUNT == 1
       c->Patmos__DOT__cores_0__DOT__icache__DOT__ctrl__DOT__callRetBaseNext = (entry >> 2);
-#endif 
+#endif
 #if CORE_COUNT > 1
       c->__PVT__Patmos__DOT__cores_0->icache__DOT__ctrl__DOT__callRetBaseNext = (entry >> 2);
 
@@ -806,7 +806,7 @@ void emu_extmem() {}
 
     *outputTarget << endl;
   }
-  
+
 };
 
 // Override Verilator definition so first $finish ends simulation
@@ -827,18 +827,18 @@ static void help(ostream &out) {
       << "  -h            Print this help" << endl
       << "  -i            Initialize memory with random values" << endl
       << "  -l <N>        Stop after <N> cycles" << endl
-      << "  -v            Dump wave forms file \"Patmos.vcd\"" << endl
+      << "  -v            Dump wave forms file \"Patmos.fst\"" << endl
       << "  -r            Print register values in each cycle" << endl
       #ifdef IO_KEYS
       << "  -k            Simulate random input from keys" << endl
       #endif /* IO_KEYS */
-      #ifdef IO_UART      
+      #ifdef IO_UART
       << "  -I <file>     Read input for UART from file <file>" << endl
       << "  -O <file>     Write output from UART to file <file>" << endl
       #endif
   ;
 }
-   
+
 
 int main(int argc, char **argv, char **env)
 {
@@ -852,7 +852,7 @@ int main(int argc, char **argv, char **env)
   int uart_in = STDIN_FILENO;
   int uart_out = STDOUT_FILENO;
   bool keys = false;
-  
+
   //Parse Arguments
   while ((opt = getopt(argc, argv, "hvl:iO:I:rk")) != -1){
     switch (opt) {
@@ -908,7 +908,7 @@ int main(int argc, char **argv, char **env)
     }
   }
 
-  
+
   emu->reset(1);
   emu->tick(uart_in, uart_out);
   emu->UART_init();
