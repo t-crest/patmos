@@ -1,6 +1,6 @@
 /*
     A small demo program demostrating the use of argo noc for communication between patmos processors
-    Master core initiates a message that is sent from one core to the next (based on get_cpuid()). 
+    Master core initiates a message that is sent from one core to the next (based on get_cpuid()).
     Each core adds its ID to the sum of ids and forwards the message to the next core,
     until it reches the master again.
 
@@ -42,10 +42,12 @@ int main() {
 	for(int i = 0; i < get_cpucnt(); i++) {
 		if (i != NOC_MASTER) {
 			int ct = i;
-			if(corethread_create(ct,&slave,(void*)slave_param) != 0){
+			while(corethread_create(ct,&slave,(void*)slave_param) != 0){
 				printf("Corethread %d not created\n",i);
 			}
+
 		}
+    printf("Corethread %0d created\n", i);
 	}
 
 	master();
@@ -113,7 +115,7 @@ void master(void) {
 
 	// wait and poll
 	while(*(spm_slave+20) == 0) {;}
-	blink(6);
+	// blink(6);
 	puts("MASTER: finished polling\n");
 
         // received message

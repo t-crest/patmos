@@ -1,5 +1,5 @@
 /*
- * Blackbox for ~/t-crest/argo/src/noc/synchronous/noc_node.vhd. 
+ * Blackbox for ~/t-crest/argo/src/noc/synchronous/noc_node.vhd.
  * Requires ~/t-crest/argo/src/noc/synchronous/noc_node_wrapper.vhd
  *
  * Authors: Eleftherios Kyriakakis (elky@dtu.dk)
@@ -16,7 +16,7 @@ import patmos.Constants._
 /**
   * Dummy for ~/t-crest/argo/src/noc/synchronous/noc_node_wrapper.vhd
   * It emulates a same-cycle Ocp.RD and a delayed accept Ocp.WR
-  * it emulates three different Argo config_bus registers for DMA_BASE, SCHED_BASE and TDM_BASE 
+  * it emulates three different Argo config_bus registers for DMA_BASE, SCHED_BASE and TDM_BASE
   * @param argoConf
   * @param master
   */
@@ -64,11 +64,11 @@ class NoCNodeDummy(val argoConf: ArgoConfig, master: Boolean) extends Module {
   }
 
   when(io.proc.M.Addr(15, 12) === 0.U){
-    io.proc.S.Data := dmaReg 
+    io.proc.S.Data := dmaReg
   }.elsewhen (io.proc.M.Addr(15, 12) === 2.U) {
     io.proc.S.Data := schReg
   } .elsewhen(io.proc.M.Addr(15, 12) === 4.U){
-    io.proc.S.Data := tdmReg 
+    io.proc.S.Data := tdmReg
   } .otherwise{
     io.proc.S.Data := 0.U
   }
@@ -81,11 +81,13 @@ class NoCNodeDummy(val argoConf: ArgoConfig, master: Boolean) extends Module {
 }
 
 /**
-  * Wrapper for ~/t-crest/argo/src/noc/synchronous/noc_node_wrapper.vhd
+  * Wrapper for ~/t-crest/argo/src/main/scala/argo/NoCNodeWrapper.scala
+  * Using a Blackbox to make it easier to interface current Patmos setup with
+  * the Chisel version of Argo 2.0
   * @param argoConf
   * @param master
   */
-class NoCNodeWrapper(val argoConf: ArgoConfig, master: Boolean) extends  BlackBox(Map("MASTER" -> (if (master) 1 else 0))) {
+class NoCNodeWrapper(val argoConf: ArgoConfig, master: Boolean) extends BlackBox {
   val io = IO(new Bundle(){
     val irq = Output(UInt(2.W))
     val run = Input(Bool())
@@ -100,12 +102,15 @@ class NoCNodeWrapper(val argoConf: ArgoConfig, master: Boolean) extends  BlackBo
     val north_out = new OutputPort(argoConf)
     val east_out = new OutputPort(argoConf)
     val south_out = new OutputPort(argoConf)
-    val west_out = new OutputPort(argoConf)    
+    val west_out = new OutputPort(argoConf)
     val clk = Input(Clock())
     val reset = Input(Reset())
   })
-  // rename signals
-  override def desiredName: String = "noc_node_wrapper"
+  override def desiredName: String = if(this.master) {
+    "NoCNodeWrapper_m"
+  } else {
+    "NoCNodeWrapper_s"
+  }
   io.clk.suggestName("clk")
   io.reset.suggestName("reset")
 }
