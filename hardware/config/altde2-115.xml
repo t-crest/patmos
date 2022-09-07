@@ -1,7 +1,7 @@
 <patmos default="default.xml">
   <description>default configuration for DE2-115 board</description>
 
-  <frequency Hz="80000000"/>  
+  <frequency Hz="80000000"/>
 
   <!-- Default is single core -->
   <!-- <pipeline dual="false" />

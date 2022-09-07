@@ -24,9 +24,6 @@ sudo apt install git openjdk-8-jdk gitk cmake make g++ texinfo flex bison \
   liblpsolve55-dev zlib1g-dev gtkwave gtkterm scala autoconf libfl2 expect
 ```
 
-Make sure to use Java 8 and remove any later Java version with ```sudo apt autoremove```.
-
-
 Install sbt according to the instructions from [sbt download](https://www.scala-sbt.org/download.html)
 
 We assume that the T-CREST project will live in $HOME/t-crest.
