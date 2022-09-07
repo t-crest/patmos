@@ -19,12 +19,12 @@ The following apt-get lists the packages that need to be
 installed on a Ubuntu Linux:
 
 ```
-sudo apt install git openjdk-8-jdk gitk cmake make g++ texinfo flex bison \
+sudo apt-get install git openjdk-11-jdk gitk cmake make g++ texinfo flex bison \
   subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby-full \
-  liblpsolve55-dev zlib1g-dev gtkwave gtkterm scala autoconf libfl2 expect
+  liblpsolve55-dev zlib1g-dev gtkwave gtkterm scala autoconf libfl2 expect verilator
 ```
 
-Install sbt according to the instructions from [sbt download](https://www.scala-sbt.org/download.html)
+Install sbt according to the instructions from [sbt download](https://www.scala-sbt.org/1.x/docs/Installing-sbt-on-Linux.html)
 
 We assume that the T-CREST project will live in $HOME/t-crest.
 Before building the compiler, add the path
@@ -34,25 +34,6 @@ to the compiler executables into your .bashrc or .profile:
 
 Use an absolute path as LLVM cannot handle a path relative to the
 home directory (~). Logout and login again to make your new PATH setting active.
-
-In order to build the C++ emulator of Patmos, Verilator version 4.028 or higher must be installed.  
-With Ubuntu 20.04 this can be installed through apt-get:
-
-    sudo apt-get install verilator
-
-Older versions of Ubuntu must install Verilator via their git repository:
-
-    git clone https://github.com/verilator/verilator
-    unset VERILATOR_ROOT
-    cd verilator
-    git checkout v4.028 #Tested version - newer should be fine
-    autoconf
-    ./configure
-    make
-    sudo make install
-
-You can remove the verilator repository after installation
-
 
 
 Patmos and the compiler can be checked out from GitHub and are built as follows:
@@ -81,10 +62,11 @@ World:
     }
 
 With the compiler installed it can be compiled to a Patmos executable
-and run with the simulator as follows:
+and run with the sw simulator and the hardware emulation as follows:
 
     patmos-clang hello.c
     pasim a.out
+    patemu a.out
 
 However, this innocent examples is quiet challenging for an embedded system.
 For further details and how to build Patmos for an FPGA see Section 6 in the
