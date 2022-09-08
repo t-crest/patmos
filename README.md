@@ -8,11 +8,18 @@ See also: http://www.t-crest.org/ and http://patmos.compute.dtu.dk/
 The Patmos [Reference Handbook](http://patmos.compute.dtu.dk/patmos_handbook.pdf)
 contains build instructions in Section 5.
 
-For questions and discussions join the Patmos mailing list at:
-https://groups.yahoo.com/group/patmos-processor/
+For questions and discussions use the GitHub discussion area of Patmos at:
+https://github.com/t-crest/patmos/discussions
+
 
 Getting Started
 ===============
+
+In the following the installation and of the T-CERST/Patmos tools and
+design on a Linux machine is described. However, we also provide a
+VMWare virtual machine with Ubuntu 20.04 and all tools installed and
+compiled at [Patmos VM](https://patmos-download.compute.dtu.dk/patmos-training.zip).
+The user id is ```patmos``` and the password is also ```patmos```.
 
 Several packages need to be installed.
 The following apt-get lists the packages that need to be
@@ -48,8 +55,7 @@ For developers with push permission the ssh based clone string is:
     git clone git@github.com:t-crest/patmos-misc.git misc
 
 build.sh will checkout several other repositories (the compiler, library,
-and the Patmos source) and
-build the compiler and the Patmos simulator.
+and the Patmos source) and build the compiler and the Patmos simulator.
 Therefore, take a cup of coffee and find some nice reading
 (e.g., the [Patmos Reference Handbook](http://patmos.compute.dtu.dk/patmos_handbook.pdf)).
 
@@ -68,7 +74,7 @@ and run with the sw simulator and the hardware emulation as follows:
     pasim a.out
     patemu a.out
 
-However, this innocent examples is quiet challenging for an embedded system.
+However, this innocent examples is quite challenging for an embedded system.
 For further details and how to build Patmos for an FPGA see Section 6 in the
 [Patmos Reference Handbook](http://patmos.compute.dtu.dk/patmos_handbook.pdf).
 
