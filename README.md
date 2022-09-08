@@ -24,7 +24,7 @@ However, we also provide a
 VMWare virtual machine with Ubuntu 20.04 and all tools installed and
 compiled at:
 
- * [Patmos VM](https://patmos-download.compute.dtu.dk/patmos-training.zip).
+ * [Patmos VM](https://patmos-download.compute.dtu.dk/patmos-training.zip)
 
 The user id is ```patmos``` and the password is also ```patmos```.
 
