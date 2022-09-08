@@ -16,10 +16,19 @@ Getting Started
 ===============
 
 In the following the installation and of the T-CERST/Patmos tools and
-design on a Linux machine is described. However, we also provide a
+design on a Linux machine is described.
+
+## A Virtual Machine for Development
+
+However, we also provide a
 VMWare virtual machine with Ubuntu 20.04 and all tools installed and
-compiled at [Patmos VM](https://patmos-download.compute.dtu.dk/patmos-training.zip).
+compiled at:
+
+ * [Patmos VM](https://patmos-download.compute.dtu.dk/patmos-training.zip).
+
 The user id is ```patmos``` and the password is also ```patmos```.
+
+## Linux (Ubuntu) based Installation
 
 Several packages need to be installed.
 The following apt-get lists the packages that need to be
@@ -59,6 +68,7 @@ and the Patmos source) and build the compiler and the Patmos simulator.
 Therefore, take a cup of coffee and find some nice reading
 (e.g., the [Patmos Reference Handbook](http://patmos.compute.dtu.dk/patmos_handbook.pdf)).
 
+## Hello World
 
 We can start with the standard, harmless looking Hello
 World:
