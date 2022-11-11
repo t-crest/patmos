@@ -17,7 +17,7 @@ CFLAGS?=-target patmos-unknown-unknown-elf -O2 \
 libcorethread: $(LIBCORETHREAD)
 $(BUILDDIR)/libcorethread/corethread.o: $(LIBCORETHREADDIR)/corethread.h
 $(LIBCORETHREAD): $(BUILDDIR)/libcorethread/corethread.o
-	patmos-ar r $@ $^
+	ar r $@ $^
 
 # WCET analysis
 

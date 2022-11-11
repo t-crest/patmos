@@ -647,7 +647,7 @@ This section can be used to specify additional command line options or configura
 \begin{verbatim}
 tool-configurations:
   - name: "clang"
-    options: ["-mpatmos-disable-vliw"]
+    options: ["-mllvm --mpatmos-disable-vliw"]
 \end{verbatim}
 
 The section contains a list of tool configurations, consisting of the following entries:

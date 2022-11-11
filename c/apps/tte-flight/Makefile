@@ -7,7 +7,7 @@ LIBETH=$(PATMOSHOME)/c/ethlib
 CFLAGS?=-target patmos-unknown-unknown-elf -O2 \
 	-I $(PATMOSHOME)/c -I $(PATMOSHOME)/c/libelf/ \
 	-I $(LIBETH) \
-	-mpatmos-disable-vliw \
+	-mllvm --mpatmos-disable-vliw \
 	$(DEFINES)
 
 wcet-server:
@@ -18,7 +18,7 @@ wcet-server:
 .PHONY: libeth
 libeth: $(LIBETH)
 $(LIBETH): $(patsubst ethlib/%.c,$(BUILDDIR)/ethlib/%.o,$(wildcard ethlib/*.c))
-	patmos-ar r $@ $^
+	ar r $@ $^
 
 flight_info_server:
 	touch flight_info_server.c
