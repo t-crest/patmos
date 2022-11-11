@@ -45,11 +45,28 @@
 
 #ifdef BOOTROM
 
-#define CACHECTRL *((volatile _IODEV int *)0xF0010014)
-#define local_mode()  do { if (CACHECTRL >= 0) { CACHECTRL = 0x80000000; } \
-    asm volatile("nop; nop;"); } while(0)
-#define global_mode() do { if (CACHECTRL < 0)  { CACHECTRL = 0x80000000; } \
-    asm volatile("nop; nop;"); } while(0)
+#define CACHECTRL 0xF0010014
+#define CACHECTRL_LOCAL_MODE_BIT_SET 0x80000000
+#define local_mode() asm volatile ( \
+	"li 			$r1 = %[addr];" \
+	"lwl 			$r2 = [$r1];" \
+	"li 			$r3 = %[new_val];" \
+	"cmplt 			$p1 = $r2, 0;" \
+	"swl	(!$p1)	[$r1] = $r3;" \
+	:  \
+	: [addr] "i" (CACHECTRL), [new_val] "i" (CACHECTRL_LOCAL_MODE_BIT_SET) \
+	: "r1", "r2", "r3", "p1" \
+  )
+#define global_mode() asm volatile ( \
+	"li 			$r1 = %[addr];" \
+	"lwl 			$r2 = [$r1];" \
+	"li 			$r3 = %[new_val];" \
+	"cmplt 			$p1 = $r2, 0;" \
+	"swl	( $p1)	[$r1] = $r3;" \
+	:  \
+	: [addr] "i" (CACHECTRL), [new_val] "i" (CACHECTRL_LOCAL_MODE_BIT_SET) \
+	: "r1", "r2", "r3", "p1" \
+  )
 
 extern int _stack_cache_base, _shadow_stack_base;
 int main(void);
@@ -57,24 +74,39 @@ void _start(void) __attribute__((naked,used));
 
 void _start(void) {
   // setup stack frame and stack cache.
-  asm volatile ("mov $r31 = %0;" // initialize shadow stack pointer"
-                "mts $ss  = %1;" // initialize the stack cache's spill pointer"
-                "mts $st  = %1;" // initialize the stack cache's top pointer"
-                : : "r" (&_shadow_stack_base),
-                  "r" (&_stack_cache_base));
+  asm volatile (
+	"mov $r31 = %0;" // initialize shadow stack pointer"
+	"mts $ss  = %1;" // initialize the stack cache's spill pointer"
+	"mts $st  = %1;" // initialize the stack cache's top pointer"				
+	: : "r" (&_shadow_stack_base),
+	  "r" (&_stack_cache_base)
+  );
 
   // enable local mode
   local_mode();
 
 #ifdef _NOC_H_
   // configure network interface
-  noc_init();
+  asm volatile(
+	"li $r1 = %[addr];"
+	"callnd $r1;" 
+	:
+	: [addr] "i" (noc_init)
+	: "r1"
+  ); 
 #endif /* _NOC_H_ */
 
   // call main()
-  main();
-  // freeze
-  for(;;);
+  asm volatile(
+	"li $r1 = %[addr];"
+	"callnd $r1;" 
+	
+	// freeze
+	"brnd 0"
+	:
+	: [addr] "i" (main)
+	: "r1"
+  ); 
 }
 #endif
 
