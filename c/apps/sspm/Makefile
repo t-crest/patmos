@@ -1,6 +1,6 @@
 CFLAGS?=-target patmos-unknown-unknown-elf -O2 \
 	-I$(CURDIR) -I $(CURDIR)/libelf/ \
-	-mpatmos-disable-vliw \
+	-mllvm --mpatmos-disable-vliw \
 	$(DEFINES)
 LDFLAGS?= \
 	-mpatmos-method-cache-size=0x1000 \

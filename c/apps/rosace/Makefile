@@ -16,7 +16,7 @@ CFLAGS?=-target patmos-unknown-unknown-elf -O3 \
 	-I $(LIBNOC) \
 	-I $(LIBMP) \
 	-I $(LIBETH) \
-	-mpatmos-disable-vliw \
+	-mllvm --mpatmos-disable-vliw \
 	$(DEFINES)
 LDFLAGS?= \
 	-mpatmos-method-cache-size=0x1000 \

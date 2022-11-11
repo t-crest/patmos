@@ -7,14 +7,14 @@ LIBETH=$(PATMOSHOME)/c/ethlib
 CFLAGS?=-target patmos-unknown-unknown-elf -O2 \
 	-I $(PATMOSHOME)/c -I $(PATMOSHOME)/c/libelf/ \
 	-I $(LIBETH) \
-	-mpatmos-disable-vliw \
+	-mllvm --mpatmos-disable-vliw \
 	$(DEFINES)
 
 # library for ethernet
 .PHONY: libeth
 libeth: $(LIBETH)
 $(LIBETH): $(patsubst ethlib/%.c,$(BUILDDIR)/ethlib/%.o,$(wildcard ethlib/*.c))
-	patmos-ar r $@ $^
+	ar r $@ $^
 
 # WCET analysis
 
