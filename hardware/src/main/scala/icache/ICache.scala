@@ -93,8 +93,7 @@ class ICacheMemIO extends Bundle() {
 /*
  ICache: Top Level Class for the Instruction Cache
  */
-class ICache() extends Module {
-  val io = IO(new ICacheIO())
+class ICache() extends CacheType {
   // Generate submodules of instruction cache
   val ctrl = Module(new ICacheCtrl())
   val repl = Module(new ICacheReplDm())

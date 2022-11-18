@@ -81,8 +81,7 @@ class MCacheMemIO extends Bundle() {
 /*
  MCache: Top Level Class for the Method Cache
  */
-class MCache() extends Module {
-  val io = IO(new ICacheIO())
+class MCache() extends CacheType {
   val ctrl = Module(new MCacheCtrl())
   val repl = Module(new MCacheReplFifo())
   //Use MCacheReplFifo2 for replacement with fixed block size

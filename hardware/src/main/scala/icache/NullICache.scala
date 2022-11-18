@@ -11,8 +11,7 @@ import Chisel._
 import Constants._
 import ocp._
 
-class NullICache() extends Module {
-  val io = IO(new ICacheIO())
+class NullICache() extends CacheType {
 
   val callRetBaseReg = RegInit(UInt(1, DATA_WIDTH))
   val callAddrReg = RegInit(UInt(1, DATA_WIDTH))
