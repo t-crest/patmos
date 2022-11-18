@@ -13,13 +13,7 @@ import patmos.DataCachePerf
 
 import ocp._
 
-class NullCache() extends Module {
-  val io = IO(new Bundle {
-    val master = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
-    val slave = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
-    val invalidate = Bool(INPUT)
-    val perf = new DataCachePerf()
-  })
+class NullCache() extends DCacheType(BURST_LENGTH) {
 
   io.perf.hit := Bool(false)
   io.perf.miss := Bool(false)

@@ -16,13 +16,7 @@ import patmos.MemBlockIO
 
 import ocp._
 
-class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends Module {
-  val io = IO(new Bundle {
-    val master = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
-    val slave = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, lineSize/4)
-    val invalidate = Bool(INPUT)
-    val perf = new DataCachePerf()
-  })
+class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends DCacheType(lineSize/4) {
 
 
   val addrBits = log2Up(size / BYTES_PER_WORD)

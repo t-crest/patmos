@@ -17,13 +17,7 @@ import patmos.MemBlockIO
 
 import ocp._
 
-class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends Module {
-  val io = IO(new Bundle {
-    val master = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
-    val slave = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, lineSize / 4)
-    val invalidate = Bool(INPUT)
-    val perf = new DataCachePerf()
-  })
+class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends DCacheType(lineSize/4) {
 
   io.perf.hit := Bool(false)
   io.perf.miss := Bool(false)
