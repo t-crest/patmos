@@ -32,8 +32,7 @@ object MemoryManagement {
 
 import MemoryManagement._
 
-class MemoryManagement extends Module {
-  val io = IO(new MMUIO())
+class MemoryManagement extends MemoryManagementType {
 
   val masterReg = RegNext(io.ctrl.M)
 

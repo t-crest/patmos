@@ -9,9 +9,7 @@ package patmos
 
 import Chisel._
 
-class NoMemoryManagement extends Module {
-  val io = IO(new MMUIO())
-
+class NoMemoryManagement extends MemoryManagementType {
   // just connect virtual and physical end
   io.phys.M <> io.virt.M
   io.virt.S <> io.phys.S
