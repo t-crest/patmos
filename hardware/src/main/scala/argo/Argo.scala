@@ -15,21 +15,19 @@ import cmp._
 
 class OcpArgoSlavePort(addrWidth : Int, dataWidth : Int, val argoConf: ArgoConfig)
   extends OcpCoreSlavePort(addrWidth, dataWidth) {
-  val superMode = Input(UInt(argoConf.CORES.W)) //Bits(INPUT, argoConf.CORES)
-  val flags = Output(UInt((2*argoConf.CORES).W))  //Bits(OUTPUT, 2*argoConf.CORES)
+  val superMode = Input(UInt(argoConf.CORES.W))
+  val flags = Output(UInt((2*argoConf.CORES).W))
 }
 
 class CmpArgoIO(corecnt : Int, val argoConf: ArgoConfig) extends CmpIO(corecnt : Int)
 {
   override val cores = Vec(corecnt, new OcpArgoSlavePort(ADDR_WIDTH, DATA_WIDTH, argoConf)).asInstanceOf[Vec[OcpCoreSlavePort]]
-
-  // override def clone = new CmpArgoIO(corecnt, argoConf).asInstanceOf[this.type]
 }
 
 class Argo(nrCores: Int, wrapped: Boolean = false, emulateBB: Boolean = false) extends Module {
   ArgoConfig.setCores(nrCores)
   val argoConf = ArgoConfig.getConfig
-  val io = IO(new CmpArgoIO(argoConf.CORES, argoConf))//Vec.fill(argoConf.CORES){new OcpArgoSlavePort(ADDR_WIDTH, DATA_WIDTH, argoConf)}
+  val io = IO(new CmpArgoIO(argoConf.CORES, argoConf))
 
   val constSelSPMBitOffset = 26  
 
@@ -135,8 +133,4 @@ class Argo(nrCores: Int, wrapped: Boolean = false, emulateBB: Boolean = false) e
   // Generate schedule
   ArgoConfig.genPoseidonSched("../../local/bin/", "../local/", "argo_platform.xml", "argo_communication.xml", "../local/argo_schedule.xml")
   ArgoConfig.genNoCInitFile("../../local/bin/", "../local/argo_schedule.xml", "../c/cmp/nocinit.c")
-}
-
-object Argo {
-  chisel3.Driver.execute(Array("--target-dir", "build"), () => new Argo(4, false, false))
 }

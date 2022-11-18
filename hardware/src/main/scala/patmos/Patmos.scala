@@ -537,37 +537,6 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
    Utility.printConfig(configFile)
 }
 
-// this testing and main file should go into it's own folder
-//commented out Chisel3 tester has changed see https://github.com/schoeberl/chisel-examples/blob/master/TowardsChisel3.md 
-/*class PatmosTest(pat: Patmos) extends Tester(pat) 
-
-  println("Patmos start")
-
-  for (i <- 0 until 100) {
-    step(1) // false as third argument disables printout
-    // The PC printout is a little off on a branch
-    val pc = peek(pat.cores(0).memory.io.memwb.pc) - 2
-    print(pc + " - ")
-    for (j <- 0 until 32)
-      print(peek(pat.cores(0).decode.rf.rf(UInt(j))) + " ")
-    println()
-  }
-}*/
-
-/*class SimpleBundle() extends Bundle{
-  val sig = UInt(width=5)
-}
-
-class TestTrait() extends CoreDevice2() {
-  override val io = IO(new CoreDeviceIO2()) /*with patmos.HasPins {
-    override val pins = new Bundle {
-      val tx = Bits(OUTPUT, 1)
-      val rx = Bits(INPUT, 1)
-    }
-  })*/
-
-}*/
-
 object PatmosMain extends App {
 
   val chiselArgs = args.slice(3, args.length)
