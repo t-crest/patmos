@@ -10,15 +10,7 @@ package ocp
 
 import Chisel._
 
-class TdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) extends Module {
-  // MS: I'm always confused from which direction the name shall be
-  // probably the other way round...
-  val io = IO(new Bundle {
-    val master = Vec.fill(cnt) { new OcpBurstSlavePort(addrWidth, dataWidth, burstLen) }
-    val slave = new OcpBurstMasterPort(addrWidth, dataWidth, burstLen)
-  })
-  //debug(io.master) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
-  //debug(io.slave)
+class TdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) extends ArbiterType(cnt, dataWidth, dataWidth, burstLen) {
 
   val cntReg = Reg(init = UInt(0, log2Up(cnt*(burstLen + 2))))
   // slot length = burst size + 2 
@@ -29,14 +21,6 @@ class TdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) ext
 
   val sIdle :: sRead :: sWrite :: Nil = Enum(UInt(), 3)
   val stateReg = RegInit(Vec.fill(cnt){sIdle})
-
-  /*debug(cntReg) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
-  debug(cpuSlot(0))
-  debug(cpuSlot(1))
-  debug(cpuSlot(2))
-  debug(stateReg(0))
-  debug(stateReg(1))
-  debug(stateReg(2))*/
 
   cntReg := Mux(cntReg === UInt(period - 1), UInt(0), cntReg + UInt(1))
 
@@ -107,24 +91,7 @@ class TdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) ext
              }
            }
         }
-    } 
-
-  //io.slave.M := io.master(masterIdReg).M
-  //debug(io.slave.M) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
-
-}
-
-object TdmArbiterMain {
-  def main(args: Array[String]): Unit = {
-
-    val chiselArgs = args.slice(4, args.length)
-    val cnt = args(0)
-    val addrWidth = args(1)
-    val dataWidth = args(2)
-    val burstLen = args(3)
-
-    chiselMain(chiselArgs, () => Module(new TdmArbiter(cnt.toInt,addrWidth.toInt,dataWidth.toInt,burstLen.toInt)))
-  }
+    }
 }
 
 

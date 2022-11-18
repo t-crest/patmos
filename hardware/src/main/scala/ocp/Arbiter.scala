@@ -12,13 +12,7 @@ package ocp
 import chisel3._
 import chisel3.util._
 
-class Arbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) extends Module {
-  // MS: I'm always confused from which direction the name shall be
-  // probably the other way round...
-  val io = IO(new Bundle {
-    val master = Vec(cnt, new OcpBurstSlavePort(addrWidth, dataWidth, burstLen))
-    val slave = new OcpBurstMasterPort(addrWidth, dataWidth, burstLen)
-  })
+class Arbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) extends ArbiterType(cnt, dataWidth, dataWidth, burstLen) {
 
   val turnReg = RegInit(0.U(log2Up(cnt).W))
   val burstCntReg = RegInit(0.U(log2Up(burstLen).W))
