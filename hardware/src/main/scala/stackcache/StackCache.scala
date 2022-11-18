@@ -47,15 +47,7 @@ import ocp._
 import patmos._
 import patmos.Constants._
 
-class StackCache() extends Module {
-  val io = new StackCacheIO() {
-    // slave to cpu
-    val fromCPU = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
-    // master to memory
-    val toMemory = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
-
-    val perf = new StackCachePerf()
-  }
+class StackCache() extends StackCacheType {
 
   io.perf.spill := Bool(false)
   io.perf.fill := Bool(false)

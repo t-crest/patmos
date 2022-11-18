@@ -41,79 +41,18 @@
 package stackcache
 
 import Chisel._
-
-import patmos._
-import patmos.Constants._
-import datacache.NullCache
-import datacache.WriteNoBuffer
-
+import datacache.{NullCache, WriteNoBuffer}
 import ocp._
+import patmos.Constants._
+import patmos._
 
-class NullStackCache() extends StackCacheType {
+abstract class StackCacheType() extends Module {
+  val io = new StackCacheIO() {
+    // slave to cpu
+    val fromCPU = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
+    // master to memory
+    val toMemory = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
 
-  io.perf.spill := Bool(false)
-  io.perf.fill := Bool(false)
-
-  // stack top pointer
-  val stackTopReg = Reg(UInt(width = DATA_WIDTH))
-  // memory top pointer
-  val memTopReg = Reg(UInt(width = DATA_WIDTH))
-
-  // never stall
-  io.stall := Bool(false)
-
-  // signals to execute stage
-  io.scex.stackTop := stackTopReg
-  io.scex.memTop := memTopReg
-  
-  // translate read requests
-  val nc = Module(new NullCache())
-  nc.io.master.M := io.fromCPU.M
-  nc.io.master.M.Addr := io.fromCPU.M.Addr + stackTopReg
-
-  // translate write requests
-  val wc = Module(new WriteNoBuffer())
-  wc.io.readMaster.M := nc.io.slave.M
-  nc.io.slave.S := wc.io.readMaster.S
-  wc.io.writeMaster.M := io.fromCPU.M
-  wc.io.writeMaster.M.Addr := io.fromCPU.M.Addr + stackTopReg
-  io.toMemory.M := wc.io.slave.M
-  wc.io.slave.S := io.toMemory.S
-
-  // construct response
-  io.fromCPU.S.Data := nc.io.master.S.Data
-  io.fromCPU.S.Resp := nc.io.master.S.Resp | wc.io.writeMaster.S.Resp
-
-  /*
-   * Stack Control Interface (mfs, sres, sens, sfree)
-   */
-  when (io.ena_in) {
-    switch(io.exsc.op) {
-      is(sc_OP_NONE) {
-        // don't do anything
-      }
-      is(sc_OP_SET_ST) {
-        // assign the operation's operand to the stack top pointer
-        stackTopReg := io.exsc.opData
-      }
-      is(sc_OP_SET_MT) {
-        // assign the operation's operand to the mem top pointer
-        memTopReg := io.exsc.opData
-      }
-      is(sc_OP_ENS) {
-        // ignore
-      }
-      is(sc_OP_FREE) {
-        // move stack top pointer upwards
-        stackTopReg := stackTopReg + io.exsc.opOff
-      }
-      is(sc_OP_RES) {
-        // decrement the stack top pointer
-        stackTopReg := stackTopReg - io.exsc.opOff
-      }
-      is (sc_OP_SPILL) {
-        // ignore
-      }
-    }
+    val perf = new StackCachePerf()
   }
 }
