@@ -90,5 +90,5 @@ class PTP1588Assist(addrWidth: Int = ADDR_WIDTH, dataWidth: Int = DATA_WIDTH, cl
 }
 
 object PTP1588Assist extends App {
-  chisel3.Driver.execute(Array("--target-dir", "generated/PTP1588Assist"), () => new PTP1588Assist(addrWidth = 16, dataWidth = 32, clockFreq = 80000000))
+  (new chisel3.stage.ChiselStage).emitVerilog(new PTP1588Assist(addrWidth = 16, dataWidth = 32, clockFreq = 80000000), Array("--target-dir", "generated/PTP1588Assist"))
 }
