@@ -37,7 +37,7 @@ installed on a Ubuntu Linux:
 ```
 sudo apt-get install git openjdk-11-jdk gitk cmake make g++ texinfo flex bison \
   subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby-full \
-  liblpsolve55-dev zlib1g-dev gtkwave gtkterm scala autoconf libfl2 expect verilator
+  liblpsolve55-dev zlib1g-dev gtkwave gtkterm scala autoconf libfl2 expect verilator curl
 ```
 
 Install sbt according to the instructions from [sbt download](https://www.scala-sbt.org/1.x/docs/Installing-sbt-on-Linux.html)
@@ -56,17 +56,21 @@ Patmos and the compiler can be checked out from GitHub and are built as follows:
 
     mkdir ~/t-crest
     cd ~/t-crest
-    git clone https://github.com/t-crest/patmos-misc.git misc
+    git clone git@github.com:t-crest/patmos-misc.git misc
     ./misc/build.sh
 
-For developers with push permission the ssh based clone string is:
+Without a GitHub login the ssh based clone string is:
 
-    git clone git@github.com:t-crest/patmos-misc.git misc
+    git clone https://github.com/t-crest/patmos-misc.git misc
 
 build.sh will checkout several other repositories (the compiler, library,
 and the Patmos source) and build the compiler and the Patmos simulator.
 Therefore, take a cup of coffee and find some nice reading
 (e.g., the [Patmos Reference Handbook](http://patmos.compute.dtu.dk/patmos_handbook.pdf)).
+
+You can also install (quicker) the precompiled tools with:
+
+    ./misc/build.sh -q
 
 ## Hello World
 
