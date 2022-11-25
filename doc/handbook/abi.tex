@@ -28,9 +28,9 @@ The register usage conventions for the general purpose registers are as follows:
         used otherwise.
 	\texttt{r31} is guaranteed to always hold the current stack pointer and
         is not used otherwise by the compiler.
-  \item \texttt{r1} through \texttt{r19} are caller-saved \emph{scratch}
+  \item \texttt{r1} through \texttt{r20} are caller-saved \emph{scratch}
         registers.
-  \item \texttt{r20} through \texttt{r31} are callee-saved \emph{saved}
+  \item \texttt{r21} through \texttt{r31} are callee-saved \emph{saved}
         registers.
 \end{itemize}
 
@@ -58,7 +58,7 @@ The usage conventions of the special registers are as follows:
   \item The stack cache control registers \texttt{ss} and \texttt{st} are
         callee-saved \emph{saved} registers.
   \item The return information registers \texttt{s7-s10} (\texttt{srb},
-        \texttt{sro}, \texttt{sxb}, \texttt{sxo}) are callee-saved
+        \texttt{sro}, \texttt{sxb}, \texttt{sxo}) are caller-saved
         \emph{saved} registers.
   \item All other special registers are caller-saved scratch registers and
         should not be used across function calls.

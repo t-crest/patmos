@@ -1479,4 +1479,82 @@ If you are using the build.sh script, set \code{GOLD\_CXXFLAGS="-Wno-narrowing"}
 \paragraph{Keeping relocations in the executable (-Xgold -q) and debugging info (-g) do not work together:}
 This seems to be a gold restriction.
 
+\section{New Version}
+
+As part of an updating effort, a new version of Patmos' compiler is available, henceforth referred to as \textit{v2}.
+This version is still based on LLVM, however has been updated to newer LLVM versions (and is easier to further update in the future.)
+However, this compiler is not as feature rich as the original (yet,) still rather buggy, and is not strictly compatible with v1.
+Therefore, this section describes how to install it and what differences it has compared to the old compiler.
+The aim is to eventually move to the v2.
+Therefore, everyone should aim to use it by default and only stay on v1 in case they cannot make v2 work, e.g., if a bug is that blocks them.
+
+\subsection{Installation \& Building}
+
+A nice feature of v2 is that we provide pre-built binaries for our two directly supported systems Ubuntu and MacOS.
+To install patmost using the v2 compiler use the following command from the \texttt{t-crest} folder:
+
+\begin{verbatim}
+	./misc/build.sh -q toolchain2
+\end{verbatim}
+
+This behaves exactly the same as the default shown in \autoref{sec:build:compiler}, except that the simulator and v2 compiler are downloaded from pre-builts and installed instead of being built locally.
+Omitting the '-q' will instead build the simulator and v2 compiler locally (useful if you are not on a directly supported system, or if the pre-builts don't work correctly.)
+Using the pre-built can greatly reduce installation time (from hours to seconds.)
+
+Since v2 is not compatible with v1, code and make-files written for the later might not work the former.
+Therefore, the patmos repository (github.com/t-crest/patmos) has a 'llvm2' branch that has been ported to v2.
+The patmos build target (\texttt{./misc/build.sh patmos}) will automatically detect which compiler type is used, and ensure the right branch is used.
+
+\subsection{Changes from v1 to v2}
+
+Here is a list of the changes in functionality from v1 to v2 that should be taken into account when modifying projects to work on the new compiler.
+
+\begin{itemize}
+	\item Can no longer use clang as a linker using the below flags: \texttt{-fpatmos-nolibsyms}, \texttt{-fpatmos-noruntimelibs}, \texttt{-fpatmos\_link\_object}. Instead, use "-c" to create object files and then call the linker directly (\texttt{patmos-ld.lld}).
+	
+	\item Removed flag \texttt{-fpatmos-skip-opt}. Use "-O0" instead.
+	\item Using v1, the "-c" would compile to bitcode by default.
+			This has been changed to compile to object code by default, to better align with Clang's behavior for other targets.
+			Likewise, "-S" outputs textual bitcode in v1. In v2 it outputs textual assembly.
+	\item Removed flag \texttt{-fpatmos-emit-asm}. Use "-S" instead.
+	\item Multiple \texttt{patmos-clang} patmos-specific flags have been removed. 
+		Instead, call the equivalent \texttt{patmos-llc} flags using \texttt{-mllvm} prefix:\\		
+		\texttt{-mpatmos-disable-stack-cache} $\rightarrow$ \texttt{-mllvm --mpatmos-disable-stack-cache}\\
+		\texttt{-mpatmos-disable-function-splitter} $\rightarrow$ \texttt{-mllvm --mpatmos-disable-function-splitter}\\
+		\texttt{-mpatmos-disable-vliw} $\rightarrow$ \texttt{-mllvm --mpatmos-disable-vliw}\\
+		Note how the flags need 2 "-" instead of the previous 1. 
+	\item Removed flag "-Xgold". Using "-Wl," instead.
+	\item Removed flag "-Xllc". Using "-mllvm" instead.
+	\item In inline assembly, input-, ouput-, and clobber registers should no longer have a "\$" prefix.
+		I.e. instead of "\$r1" use "r1" as clobber register.
+		In the inline assembly proper, registers need/allow 1 "\$" only.
+	\item Naked functions can only include inline assembly.
+		No other code is allowed per the C standard.
+		If you want to use C code in a naked function, you can manually call a non-naked function from the inline assembly.
+	\item The linker has been changed from the old \texttt{Gold} linker, which has been deprecated by its maintainers, to LLVM's own \texttt{LLD} linker. 
+	
+\end{itemize}
+
+\subsection{Known bug and workarounds}
+
+v2 is still in the early stages and is filled with bugs.
+This section lists some known problems and potential workaround.
+
+\begin{itemize}
+	\item Not all optimization flags work equally well.
+		The most stable and tested flag is "-O2". We recommend everyone use this exclusively until further notice.
+		
+	\item There is a problem with code using jump tables not being compiled to object files correctly.
+		This can manifest as a link error like: \\
+		\texttt{patmos-ld.lld: error: download.c:(function download: .text+0x218): relocation Unknown (5) out of range: 18446744073441148944 is not in [0, 4294967295]}
+		
+		To avoid this problem, the \texttt{-fno-jump-tables} flag can be passed to \texttt{patmos-clang} to avoid this.
+		Notice that relocation errors in LLD can often \texttt{cascade}, meaning an error one place can make the linker issue errors for other places that usually wouldn't occur.
+		
+	\item Unknown errors are causing the bootloader to compile wrong.
+		This means running prorams on an FPGA as described in \autoref{sec:building_patmos} will fail.
+		There is no currently known workaround.
+		However, building bootable programs in general, as described in \autoref{sec:c_blinking_led}, can work.
+		Additionally, running programs on the simulator and emulator should work too.
+\end{itemize}
 
