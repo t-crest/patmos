@@ -14,7 +14,7 @@ CFLAGS?=-target patmos-unknown-unknown-elf -O2 \
 .PHONY: libeth
 libeth: $(LIBETH)
 $(LIBETH): $(patsubst ethlib/%.c,$(BUILDDIR)/ethlib/%.o,$(wildcard ethlib/*.c))
-	ar r $@ $^
+	ar -sr $@ $^
 
 # WCET analysis
 

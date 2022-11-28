@@ -20,7 +20,7 @@ wcet:
 .PHONY: libeth
 libeth: $(LIBETH)
 $(LIBETH): $(patsubst ethlib/%.c,$(BUILDDIR)/ethlib/%.o,$(wildcard ethlib/*.c))
-	ar r $@ $^
+	ar -sr $@ $^
 
 tte_demo:
 	patmos-clang -O2 $(CFLAGS) $(LIBETH)/*.c tte_demo.c -o tte_demo.elf

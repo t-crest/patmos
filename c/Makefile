@@ -107,7 +107,7 @@ $(NOCINIT):
 libnoc: $(LIBNOC)
 $(BUILDDIR)/libnoc/noc.o: libnoc/noc.h libnoc/coreset.h
 $(LIBNOC): $(BUILDDIR)/libnoc/noc.o
-	ar r $@ $^
+	ar -sr $@ $^
 
 # library for message passing
 .PHONY: libmp
@@ -119,20 +119,20 @@ $(BUILDDIR)/libmp/sampling.o: libmp/mp.h libmp/mp_internal.h libnoc/noc.h
 $(BUILDDIR)/libmp/lock.o: libmp/mp.h libmp/mp_internal.h libnoc/noc.h
 $(BUILDDIR)/libmp/collective.o: libmp/mp.h libmp/mp_internal.h libnoc/noc.h libnoc/coreset.h
 $(LIBMP): $(BUILDDIR)/libmp/utils.o $(BUILDDIR)/libmp/mp.o $(BUILDDIR)/libmp/queuing.o $(BUILDDIR)/libmp/sampling.o $(BUILDDIR)/libmp/lock.o
-	ar r $@ $^
+	ar -sr $@ $^
 
 # library for corethreads
 .PHONY: libcorethread
 libcorethread: $(LIBCORETHREAD)
 $(BUILDDIR)/libcorethread/corethread.o: libcorethread/corethread.h
 $(LIBCORETHREAD): $(BUILDDIR)/libcorethread/corethread.o
-	ar r $@ $^
+	ar -sr $@ $^
 
 # library for ethernet
 .PHONY: libeth
 libeth: $(LIBETH)
 $(LIBETH): $(patsubst ethlib/%.c,$(BUILDDIR)/ethlib/%.o,$(wildcard ethlib/*.c))
-	ar r $@ $^
+	ar -sr $@ $^
 
 #library for audio
 .PHONY: libaudio
@@ -140,16 +140,16 @@ libaudio: $(LIBAUDIO)
 $(BUILDDIR)/libaudio/dsp_algorithms.o: libaudio/dsp_algorithms.h
 $(BUILDDIR)/libaudio/audio.o: libaudio/audio.h libaudio/audioinit.h libaudio/latencyinit.h
 $(LIBAUDIO): $(BUILDDIR)/libaudio/dsp_algorithms.o $(BUILDDIR)/libaudio/audio.o
-	ar r $@ $^
+	ar -sr $@ $^
 
 # library for parsing ELF files
 .PHONY: libelf
 libelf: $(LIBELF)
 $(LIBELF): $(patsubst libelf/%.c,$(BUILDDIR)/libelf/%.o,$(wildcard libelf/*.c))
-	ar r $@ $^
+	ar -sr $@ $^
 
 # library for using SD card
 .PHONY: libsd
 libsd: $(LIBSD)
 $(LIBSD): $(patsubst libsd/%.c,$(BUILDDIR)/libsd/%.o,$(wildcard libsd/*.c))
-	ar r $@ $^
+	ar -sr $@ $^
