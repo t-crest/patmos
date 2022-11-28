@@ -18,7 +18,7 @@ wcet-server:
 .PHONY: libeth
 libeth: $(LIBETH)
 $(LIBETH): $(patsubst ethlib/%.c,$(BUILDDIR)/ethlib/%.o,$(wildcard ethlib/*.c))
-	ar r $@ $^
+	ar -sr $@ $^
 
 flight_info_server:
 	touch flight_info_server.c
