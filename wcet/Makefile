@@ -17,7 +17,7 @@ clean:
 
 show: all
 	platin wcet -i simple.pml -b a.out -e foo -o wcet.pml
-	platin visualize -i wcet.pml --show-timings=platin
+	platin visualize -i wcet.pml -f foo --show-timings=platin
 
 dump:
 	patmos-llvm-objdump -d a.out > x.asm

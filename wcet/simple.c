@@ -9,19 +9,21 @@
 
 #include <stdio.h>
 
+volatile int n = 123;
+
 // foo is the analysis entry point that would be inlined with -O2
-int foo(int b, int val, int val2) __attribute__((noinline));
-int foo(int b, int val, int val2) {
+int foo(int b, int val) __attribute__((noinline));
+int foo(int b, int val) {
 
   int i;
 
   if (b) {
     for (i=0; i<51; ++i) {
-      val = val * val2;
+      val = val * n;
     }
   } else {
     for (i=0; i<73; ++i) {
-      val = val + val2;
+      val = val + n;
     }
   }
 
@@ -34,11 +36,10 @@ volatile int seed = 3;
 int main(int argc, char** argv) {
 
   int val = seed;
-  int val2 = seed+seed;
   int b = seed/4;
 
-  int i = foo(b, val, val2);
-//  printf("%d\n", i);
+  int i = foo(b, val);
+  printf("%d\n", i);
 
   return i;
 }
