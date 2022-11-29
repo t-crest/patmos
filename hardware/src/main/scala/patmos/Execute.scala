@@ -29,13 +29,12 @@ class Execute() extends Module {
 
   def alu(func: UInt, op1: UInt, op2: UInt): UInt = {
     val result = Wire(UInt(width = DATA_WIDTH))
-    val scaledOp1 = op1 << Mux(func === FUNC_SHADD2, UInt(2),
-                               Mux(func === FUNC_SHADD, UInt(1),
-                                   UInt(0)))
+    val scaledOp1 = op1 << Mux(func === FUNC_SHADD2, 2.U,
+                               Mux(func === FUNC_SHADD, 1.U, 0.U))
     val sum = scaledOp1 + op2
     result := sum // some default
     val shamt = op2(4, 0).asUInt
-    val srOp = Mux(func === FUNC_SRA, op1(DATA_WIDTH-1), UInt(0)) ## op1
+    val srOp = Mux(func === FUNC_SRA, op1(DATA_WIDTH-1), 0.U) ## op1
     // This kind of decoding of the ALU op in the EX stage is not efficient,
     // but we keep it for now to get something going soon.
     switch(func) {
@@ -69,7 +68,7 @@ class Execute() extends Module {
       (CFUNC_LE,    lt | eq),
       (CFUNC_ULT,   ult),
       (CFUNC_ULE,   ult | eq),
-      (CFUNC_BTEST, (op1 & bitMsk) =/= UInt(0))))
+      (CFUNC_BTEST, (op1 & bitMsk) =/= 0.U)))
   }
 
   def pred(func: UInt, op1: Bool, op2: Bool): Bool = {
@@ -85,12 +84,12 @@ class Execute() extends Module {
   val fwSrcReg  = Reg(Vec(2*PIPE_COUNT, UInt(width = log2Up(PIPE_COUNT))))
   val memResultDataReg = Reg(Vec(PIPE_COUNT, UInt(DATA_WIDTH.W)))
   val exResultDataReg  = Reg(Vec(PIPE_COUNT, UInt(DATA_WIDTH.W)))
-  val op = Wire(Vec(2*PIPE_COUNT, UInt(width = DATA_WIDTH)))
+  val op = Wire(Vec(2*PIPE_COUNT, UInt(DATA_WIDTH.W)))
 
   // precompute forwarding
   for (i <- 0 until 2*PIPE_COUNT) {
     fwReg(i) := "b000".U(3.W)
-    fwSrcReg(i) := UInt(0)
+    fwSrcReg(i) := 0.U
     for (k <- 0 until PIPE_COUNT) {
       when(io.decex.rsAddr(i) === io.memResult(k).addr && io.memResult(k).valid) {
         fwReg(i) := "b010".U(3.W)
@@ -136,13 +135,13 @@ class Execute() extends Module {
 
   val doExecute = Wire(Vec(PIPE_COUNT, Bool()))
   for (i <- 0 until PIPE_COUNT) {
-    doExecute(i) := Mux(io.flush, Bool(false),
+    doExecute(i) := Mux(io.flush, false.B,
                         predReg(exReg.pred(i)(PRED_BITS-1, 0)) ^ exReg.pred(i)(PRED_BITS))
   }
 
   // return information
-  val retBaseReg = Reg(UInt(width = DATA_WIDTH))
-  val retOffReg = Reg(UInt(width = DATA_WIDTH))
+  val retBaseReg = Reg(UInt(DATA_WIDTH.W))
+  val retOffReg = Reg(UInt(DATA_WIDTH.W))
   val saveRetOff = Reg(Bool())
   val saveND = Reg(Bool())
 
@@ -262,10 +261,10 @@ class Execute() extends Module {
       }
     }
     val mfsResult = Wire(UInt())
-    mfsResult := UInt(0, DATA_WIDTH)
+    mfsResult := 0.U(DATA_WIDTH.W)
     switch(exReg.aluOp(i).func) {
       is(SPEC_FL) {
-        mfsResult := Cat(UInt(0, DATA_WIDTH-PRED_COUNT), predReg.asUInt()).asUInt()
+        mfsResult := Cat(0.U((DATA_WIDTH-PRED_COUNT).W), predReg.asUInt()).asUInt()
       }
       is(SPEC_SL) {
         mfsResult := mulLoReg
@@ -325,7 +324,7 @@ class Execute() extends Module {
   val doCallRet = (exReg.call || exReg.ret || exReg.brcf ||
                    exReg.xcall || exReg.xret) && doExecute(0)
 
-  val brcfOff = Mux(exReg.immOp(0), UInt(0), op(1).asUInt)
+  val brcfOff = Mux(exReg.immOp(0), 0.U, op(1).asUInt)
   val callRetAddr = Mux(exReg.call || exReg.xcall, UInt(0),
                         Mux(exReg.brcf, brcfOff,
                             Mux(exReg.xret, excOffReg, retOffReg)))
@@ -371,7 +370,7 @@ class Execute() extends Module {
 
   // coprocessor handling
   if (COP_COUNT > 0) {
-    val copStartedReg = RegInit(Bool(false))
+    val copStartedReg = RegInit(false.B)
     io.copOut.map(_.defaults())
     when(!io.flush && doExecute(0)) {
       when(exReg.copOp.isCop) {
@@ -391,9 +390,9 @@ class Execute() extends Module {
         io.exmem.rd(0).data := io.copIn(exReg.copOp.copId).result
 
         when(io.ena_in) {
-          copStartedReg := Bool(true)
+          copStartedReg := true.B
           when(enableCop) {
-            copStartedReg := Bool(false)
+            copStartedReg := false.B
           }
         }
       }
@@ -419,6 +418,6 @@ class Execute() extends Module {
   // reset at end to override any computations
   when(reset) {
     exReg.flush()
-    predReg(0) := Bool(true)
+    predReg(0) := true.B
   }
 }
