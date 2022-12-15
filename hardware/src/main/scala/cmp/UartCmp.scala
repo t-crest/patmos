@@ -12,10 +12,7 @@ import patmos.Constants._
 import patmos._
 import io.Uart
 
-class CmpIO(val corecnt : Int) extends Bundle
-{
-  val cores = Vec(corecnt, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))
-}
+
 
 class UartCmp(corecnt: Int, clk_freq: Int, baud_rate: Int, fifoDepth: Int) extends Module {
 
