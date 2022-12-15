@@ -258,7 +258,9 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       case "Hardlock" => (0xE801, IO_DEVICE_ADDR_WIDTH, Module(new cmp.HardlockOCPWrapper(() => new cmp.Hardlock(nrCores, 1))))
       case "SharedSPM" => (0xE802, IO_DEVICE_ADDR_WIDTH, Module(new cmp.SharedSPM(nrCores, (nrCores-1)*2*1024)))
       case "OneWay" => (0xE803, IO_DEVICE_ADDR_WIDTH, Module(new cmp.OneWayOCPWrapper(nrCores)))
-      case "TdmArbiter" => (0xE804, IO_DEVICE_ADDR_WIDTH, Module(new cmp.TdmArbiter(nrCores)))
+      // removed as it was never used, address is free
+      // TODO: remove constants from patmos.h
+      // case "TdmArbiter" => (0xE804, IO_DEVICE_ADDR_WIDTH, Module(new cmp.TdmArbiter(nrCores)))
       case "OwnSPM" => (0xE805, IO_DEVICE_ADDR_WIDTH, Module(new cmp.OwnSPM(nrCores, (nrCores-1)*2, 1024)))
       case "SPMPool" => (0xE806, IO_DEVICE_ADDR_WIDTH, Module(new cmp.SPMPool(nrCores, (nrCores-1)*2, 1024)))
       case "S4noc" => (0xE807, IO_DEVICE_ADDR_WIDTH, Module(new cmp.S4nocOCPWrapper(nrCores, 4, 4)))
