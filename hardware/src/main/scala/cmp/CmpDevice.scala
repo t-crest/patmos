@@ -1,0 +1,5 @@
+package cmp
+
+class CmpDevice {
+
+}
