@@ -5,10 +5,6 @@ import Chisel._
 import patmos.Constants._
 import ocp._
 
-
-
-
-
 object SPMPool {
   def counter(max: Int) = {
 

@@ -12,11 +12,9 @@ import patmos.Constants._
 import ocp._
 import s4noc._
 
-class S4nocOCPWrapper(nrCores: Int, txFifo: Int, rxFifo: Int) extends Module {
+class S4nocOCPWrapper(nrCores: Int, txFifo: Int, rxFifo: Int) extends CmpDevice(nrCores) {
 
   val s4noc = Module(new S4noc(nrCores, txFifo, rxFifo))
-
-  val io = IO(new CmpIO(nrCores))
 
   for (i <- 0 until nrCores) {
 

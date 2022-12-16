@@ -51,7 +51,7 @@ class S4Router[T <: Data](schedule: Array[Array[Int]], dt: T) extends Module {
 
 
   // Convert schedule table to a Chisel type table
-  val sched = Vec(schedule.length, Vec(Const.NR_OF_PORTS, UInt(width = 3)))
+  val sched = Wire(Vec(schedule.length, Vec(Const.NR_OF_PORTS, UInt(width = 3))))
   for (i <- 0 until schedule.length) {
     for (j <- 0 until Const.NR_OF_PORTS) {
       sched(i)(j) := UInt(schedule(i)(j), 3)

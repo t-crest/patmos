@@ -11,9 +11,7 @@ import ocp._
 import patmos.Constants._
 import patmos._
 
-class CASPM(corecnt: Int, size: Int) extends Module {
-
-  val io = IO(new CmpIO(corecnt)) //Vec(corecnt, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))
+class CASPM(corecnt: Int, size: Int) extends CmpDevice(corecnt) {
 
   val spm = Module(new Spm(size))
 

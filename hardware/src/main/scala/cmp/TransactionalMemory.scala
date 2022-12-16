@@ -15,9 +15,7 @@ import patmos._
 import patmos.Constants._
 import ocp._
 
-class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, pipeline: Boolean = true) extends Module {
-  
-  override val io = IO(new CmpIO(corecnt))  //Vec.fill(corecnt){new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)} 
+class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, pipeline: Boolean = true) extends CmpDevice(corecnt) {
   
   val datawidth = DATA_WIDTH
   val memaddrwidth = log2Up(memsize)

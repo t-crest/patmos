@@ -8,7 +8,7 @@
   <pipeline dual="false" />
   <cores count="4"/>
   <CmpDevs>
-    <CmpDev name="S4noc" />
+    <CmpDev name="Argo" />
     <CmpDev name="SharedSPM" />
   </CmpDevs>
   -->

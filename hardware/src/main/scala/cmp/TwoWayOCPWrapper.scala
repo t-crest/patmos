@@ -25,7 +25,8 @@ class XXXIO(lckCnt: Int) extends Bundle {
 // Maybe I should also use this functional approach, but not for a quick test now
 // class TwoWayOCPWrapper(hardlockgen: () => AbstractHardlock) extends Module {
 
-class TwoWayOCPWrapper(nrCores: Int, memSizePrNI : Int) extends Module {
+// TODO: is this dead code? If so, just delete it.
+class TwoWayOCPWrapper(nrCores: Int, memSizePrNI : Int) extends CmpDevice(nrCores) {
 
   val dim = math.sqrt(nrCores).toInt
   if (dim * dim != nrCores) throw new Error("Number of cores must be quadratic")
@@ -35,8 +36,6 @@ class TwoWayOCPWrapper(nrCores: Int, memSizePrNI : Int) extends Module {
   val twowaymem = Module(new twoway.TwoWayMem(dim, size))
 
   println("TwoWayMem")
-
-  val io = IO(new CmpIO(nrCores))  //Vec.fill(nrCores) { new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH) }
 
   // Mapping between TwoWay memories and OCP
 

@@ -12,7 +12,7 @@ import Chisel._
 import patmos.Constants._
 import ocp._
 
-class OneWayOCPWrapper(nrCores: Int) extends Module {
+class OneWayOCPWrapper(nrCores: Int) extends CmpDevice(nrCores) {
 
   val dim = math.sqrt(nrCores).toInt
   if (dim * dim != nrCores) throw new Error("Number of cores must be quadratic")
@@ -24,7 +24,6 @@ class OneWayOCPWrapper(nrCores: Int) extends Module {
 
   val onewaymem = Module(new oneway.OneWayMem(dim, size))
 
-  val io = IO(new CmpIO(nrCores))
 
   // Connection between OneWay memories and OCPcore ports
   for (i <- 0 until nrCores) {

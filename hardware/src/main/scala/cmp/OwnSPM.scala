@@ -18,9 +18,7 @@ import patmos._
 import patmos.Constants._
 import ocp._
 
-class OwnSPM(nrCores: Int, nrSPMs: Int, size: Int) extends Module {
-
-  val io = IO(new CmpIO(nrCores))
+class OwnSPM(nrCores: Int, nrSPMs: Int, size: Int) extends CmpDevice(nrCores) {
 
   val bits = log2Up(nrSPMs)
   println("OwnSPM: cnt = " + nrSPMs + " bits = " + bits)
