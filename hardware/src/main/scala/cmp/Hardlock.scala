@@ -73,12 +73,13 @@ class Hardlock(coreCnt : Int,lckCnt : Int) extends AbstractHardlock(coreCnt, lck
   }
 }
 
-class HardlockOCPWrapper(hardlockgen: () => AbstractHardlock) extends Module {
+class HardlockOCPWrapper(nrCores: Int, hardlockgen: () => AbstractHardlock) extends CmpDevice(nrCores) {
   
   val hardlock = Module(hardlockgen())
-  
-  override val io = IO(new CmpIO(hardlock.CoreCount)) //Vec.fill(hardlock.CoreCount){new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)}
-  
+
+  // TODO: workaround:
+  io.pins.tx := 0.U
+
   // Mapping between internal io and OCP here
   
   val reqReg = Reg(init = Bits(0,hardlock.CoreCount))

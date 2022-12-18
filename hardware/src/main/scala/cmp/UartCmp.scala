@@ -14,14 +14,35 @@ import io.Uart
 
 
 
-class UartCmp(corecnt: Int, clk_freq: Int, baud_rate: Int, fifoDepth: Int) extends Module {
 
+class UartCmp(corecnt: Int, clk_freq: Int, baud_rate: Int, fifoDepth: Int) extends CmpDevice(corecnt) {
+
+/*
   override val io = IO(new CmpIO(corecnt) with patmos.HasPins {
     override val pins = new Bundle {
       val tx = Bits(OUTPUT, 1)
       val rx = Bits(INPUT, 1)
     }
   })
+
+ */
+
+/*
+  val abc = IO(new Bundle {
+    val tx = Bits(OUTPUT, 1)
+    val rx = Bits(INPUT, 1)
+  })
+
+ */
+  /*
+  val pins = IO(new Bundle() with HasPins {
+    override val pins: Bundle = new Bundle {
+      val tx = Bits(OUTPUT, 1)
+      val rx = Bits(INPUT, 1)
+    }
+  })
+
+   */
 
   val uart = Module(new Uart(clk_freq,baud_rate,fifoDepth))
 

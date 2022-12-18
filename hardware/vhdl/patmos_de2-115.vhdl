@@ -41,6 +41,8 @@ architecture rtl of patmos_top is
       io_Keys_key : in  std_logic_vector(3 downto 0);
       io_UartCmp_tx  : out std_logic;
       io_UartCmp_rx  : in  std_logic;
+      io_HardlockOCPWrapper_tx  : out std_logic;
+      io_HardlockOCPWrapper_rx  : in  std_logic;
 
       io_SramCtrl_ramOut_addr : out std_logic_vector(19 downto 0);
       io_SramCtrl_ramOut_doutEna : out std_logic;
@@ -68,9 +70,11 @@ architecture rtl of patmos_top is
   signal res_reg1, res_reg2 : std_logic;
   signal res_cnt            : unsigned(2 downto 0) := "000"; -- for the simulation
 
-    -- sram signals for tristate inout
-    signal sram_out_dout_ena : std_logic;
-    signal sram_out_dout : std_logic_vector(15 downto 0);
+  -- sram signals for tristate inout
+  signal sram_out_dout_ena : std_logic;
+  signal sram_out_dout : std_logic_vector(15 downto 0);
+
+  signal dummy : std_logic;
 
   attribute altera_attribute : string;
   attribute altera_attribute of res_cnt : signal is "POWER_UP_LEVEL=LOW";
@@ -119,6 +123,7 @@ begin
            oLedsPins_led,
            iKeysPins_key,
            oUartPins_txd, iUartPins_rxd,
+           dummy, '1',
            oSRAM_A, sram_out_dout_ena, SRAM_DQ, sram_out_dout, oSRAM_CE_N, oSRAM_OE_N, oSRAM_WE_N, oSRAM_LB_N, oSRAM_UB_N);
 
 end architecture rtl;

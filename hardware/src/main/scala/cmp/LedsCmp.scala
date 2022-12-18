@@ -1,9 +1,14 @@
+/*
+
 package cmp
 
 import Chisel._
 import io._
 import ocp.OcpCoreSlavePort
 import patmos.Constants.{ADDR_WIDTH, DATA_WIDTH}
+
+
+MS: commented out for the moment until we find a good better solution for pins on CPM devices.
 
 class LedsCmp(nrCores: Int, nrLedPerCore: Int) extends Module {
   val io = new CmpIO(nrCores) with patmos.HasPins {
@@ -27,3 +32,5 @@ class LedsCmp(nrCores: Int, nrLedPerCore: Int) extends Module {
   }
 
 }
+
+ */
