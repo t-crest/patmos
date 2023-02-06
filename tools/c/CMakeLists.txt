@@ -5,10 +5,6 @@ project(patmos)
 
 cmake_minimum_required(VERSION 2.8)
 
-# Find boost library
-include(FindBoost)
-find_package( Boost 1.40.0 COMPONENTS program_options REQUIRED)
-
 # Find libelf
 find_library(ELF elf)
 if (NOT ELF)
