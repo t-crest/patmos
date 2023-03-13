@@ -32,10 +32,14 @@ class MIITimestampUnit(timestampWidth: Int) extends Module {
   val constPTP4t2 = 0x0140.U
   val constPTPGeneralPort = 319.U
   val constPTPEventPort = 320.U
-  val constPTPSyncType = 0x00.U
-  val constPTPFollowType = 0x08.U
-  val constPTPDlyReqType = 0x01.U
-  val constPTPDlyRplyType = 0x09.U
+  val constPTPSyncType = 0x0.U
+  val constPTPFollowType = 0x8.U
+  val constPTPDlyReqType = 0x1.U
+  val constPTPDlyRplyType = 0x9.U
+  val constPTPPeerDlyReqType = 0x2.U
+  val constPTPPeerDlyRespType = 0x3.U
+  val constPTPPeerDlyRespFollowUpType = 0x9.U
+
 
   // Buffers
   val sfdReg = RegInit(0.U(8.W))
@@ -44,7 +48,7 @@ class MIITimestampUnit(timestampWidth: Int) extends Module {
   val ethTypeReg = RegInit(0.U(16.W))
   val udpDstPortReg = RegInit(0.U(16.W))
   val udpSrcPortReg = RegInit(0.U(16.W))
-  val ptpMsgTypeReg = RegInit(0.U(8.W))
+  val ptpMsgTypeReg = RegInit(0.U(4.W))
   val tempTimestampReg = RegInit(0.U(timestampWidth.W))
   val rtcTimestampReg = RegInit(0.U(timestampWidth.W))
 
@@ -61,7 +65,7 @@ class MIITimestampUnit(timestampWidth: Int) extends Module {
 
   // Counters
   val byteCntReg = RegInit(0.U(11.W))
-
+  
   // State machine
   val stCollectSFD :: stDstMAC :: stSrcMAC :: stTypeEth :: stIPhead :: stUDPhead :: stPCFHead :: stPTPhead :: stEOF :: Nil = Enum(9)
   val stateReg = RegInit(stCollectSFD)
@@ -78,7 +82,8 @@ class MIITimestampUnit(timestampWidth: Int) extends Module {
   val miiDataReg2 = RegNext(miiDataReg)
   // Flags
   val validPHYData = miiDvReg2 & !miiErrReg2
-  val risingMIIEdge = miiClkReg & !miiClkReg2
+  //val risingMIIEdge = miiClkReg & !miiClkReg2
+  val risingMIIEdge = !miiClkReg & miiClkReg2
 
   // Module
   val deserializePHYbyte = Module(new Deserializer(false, 4, 8))
@@ -220,16 +225,22 @@ class MIITimestampUnit(timestampWidth: Int) extends Module {
       printf("[stPTPhead]->[stEOF]\n")
     }
     is(stPTPhead) {
-      rtcTimestampReg := tempTimestampReg
-      timestampAvailReg := true.B
       when(byteCntReg === 1.U) { //2 byte to get msgType
-        ptpMsgTypeReg := regBuffer(7, 0)
-      }.elsewhen(byteCntReg > 2.U) {
-        when((ptpMsgTypeReg === constPTPDlyReqType && byteCntReg === 44.U) || (ptpMsgTypeReg =/= constPTPDlyReqType && byteCntReg === 34.U)) {
-          //Timestamp the frame and ignore the rest
-          stateReg := stEOF
-          printf("[stPTPhead]->[stEOF]\n")
+        ptpMsgTypeReg := regBuffer(3, 0)
+      }.elsewhen(byteCntReg >= 34.U) {
+        //Timestamp the frame and ignore the rest
+        when(ptpMsgTypeReg === constPTPSyncType || 
+             ptpMsgTypeReg === constPTPDlyReqType || 
+             ptpMsgTypeReg === constPTPDlyRplyType || 
+             ptpMsgTypeReg === constPTPPeerDlyReqType || 
+             ptpMsgTypeReg === constPTPPeerDlyRespType || 
+             ptpMsgTypeReg === constPTPPeerDlyRespFollowUpType)
+        {
+          rtcTimestampReg := tempTimestampReg
+          timestampAvailReg := true.B
         }
+        stateReg := stEOF
+        printf("[stPTPhead]->[stEOF]\n")
       }
     }
     is(stEOF) {
