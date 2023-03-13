@@ -264,10 +264,13 @@ class MIITimestampUnit(timestampWidth: Int) extends Module {
         dataReg := rtcTimestampReg(DATA_WIDTH - 1, 0)
       }
       is(0x04.U) {
-        dataReg := rtcTimestampReg(timestampWidth - 1, DATA_WIDTH)
+        dataReg := rtcTimestampReg(2*DATA_WIDTH - 1, DATA_WIDTH)
       }
       is(0x08.U) {
-        dataReg := timestampAvailReg // Cat(validPTPReg, ptpMsgTypeReg)
+        dataReg := rtcTimestampReg(3*DATA_WIDTH  - 1, 2*DATA_WIDTH)
+      }
+      is(0x0C.U) {
+        dataReg := timestampAvailReg
       }
     }
   }
@@ -275,7 +278,7 @@ class MIITimestampUnit(timestampWidth: Int) extends Module {
   // Write response
   when(masterReg.Cmd === OcpCmd.WR) {
     switch(masterReg.Addr(4, 0)){
-      is(0x08.U){
+      is(0x0C.U){
         respReg := OcpResp.DVA
         timestampAvailReg := false.B
       }
