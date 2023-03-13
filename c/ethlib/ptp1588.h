@@ -18,20 +18,18 @@
 
 #define PTP_RXCHAN_TIMESTAMP_NS(base)     *((volatile _SPM unsigned int *) (base+0xE000))
 #define PTP_RXCHAN_TIMESTAMP_SEC(base)    *((volatile _SPM unsigned int *) (base+0xE004))
-#define PTP_RXCHAN_STATUS(base)           *((volatile _SPM unsigned int *) (base+0xE008))
-#define PTP_RXCHAN_DSTMACLO_FILTER(base)    *((volatile _SPM unsigned int *) (base+0xE00C))
-#define PTP_RXCHAN_DSTMACHI_FILTER(base)    *((volatile _SPM unsigned int *) (base+0xE010))
+#define PTP_RXCHAN_TIMESTAMP_SEC_LO(base) *((volatile _SPM unsigned int *) (base+0xE004))
+#define PTP_RXCHAN_TIMESTAMP_SEC_HI(base) *((volatile _SPM unsigned int *) (base+0xE008))
+#define PTP_RXCHAN_STATUS(base)           *((volatile _SPM unsigned int *) (base+0xE00C))
 
 #define PTP_TXCHAN_TIMESTAMP_NS(base)     *((volatile _SPM unsigned int *) (base+0xE400))
 #define PTP_TXCHAN_TIMESTAMP_SEC(base)    *((volatile _SPM unsigned int *) (base+0xE404))
-#define PTP_TXCHAN_STATUS(base)           *((volatile _SPM unsigned int *) (base+0xE408))
-#define PTP_TXCHAN_DSTMACLO_FILTER(base)    *((volatile _SPM unsigned int *) (base+0xE40C))
-#define PTP_TXCHAN_DSTMACHI_FILTER(base)    *((volatile _SPM unsigned int *) (base+0xE410))
+#define PTP_TXCHAN_TIMESTAMP_SEC_LO(base) *((volatile _SPM unsigned int *) (base+0xE404))
+#define PTP_TXCHAN_TIMESTAMP_SEC_HI(base) *((volatile _SPM unsigned int *) (base+0xE408))
+#define PTP_TXCHAN_STATUS(base)           *((volatile _SPM unsigned int *) (base+0xE40C))
 
 #define RTC_TIME_NS(base)       *((volatile _SPM unsigned int *) (base+0xE800))
 #define RTC_TIME_SEC(base)      *((volatile _SPM unsigned int *) (base+0xE804))
-#define RTC_PERIOD_LO(base)     *((volatile _SPM unsigned int *) (base+0xE810))
-#define RTC_PERIOD_HI(base)     *((volatile _SPM unsigned int *) (base+0xE814))
 #define RTC_ADJUST_OFFSET(base) *((volatile _SPM signed int *)   (base+0xE820))
 
 //Protocol types
