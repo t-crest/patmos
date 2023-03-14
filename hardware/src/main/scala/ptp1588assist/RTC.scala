@@ -20,7 +20,6 @@ import patmos.Constants._
    val MICRO_IN_NANO = 1000
    val HUNDRED_NANO = 100
    val FIFTY_NANO = 50
-   val PPS_DURATION = 2 
    val PPS_DURATION = 2 * max(ppsDuration, 10) * MICRO_IN_NANO //should be between 10us to 500ms enough for a microcontroller to sample it (http://digitalsubstation.com/en/2016/11/08/white-paper-on-implementing-ptp-in-substations/)
 
    println("--RTC instantiated @ " + clockFreq / 1000000 + " MHz with a PPS pulse width= " + ppsDuration + "us")
