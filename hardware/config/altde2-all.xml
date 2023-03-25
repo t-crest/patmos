@@ -53,7 +53,7 @@
         <param name="extAddrWidth" value="16" />
         <param name="dataWidth" value="32" />
         <param name="withPTP" value="true" />
-        <param name="secondsWidth" value="32"/>
+        <param name="secondsWidth" value="64"/>
         <param name="nanoWidth" value="32"/>
         <param name="ppsDuration" value="1000"/>
       </params>

@@ -48,7 +48,7 @@ import patmos.Constants._
    val nextNano = nsTickReg + nsIncrement
    //update seconds
    when(updateSecReg) {
-     secTickReg := timeReg(2 * DATA_WIDTH - 1, DATA_WIDTH)
+     secTickReg := timeReg(3 * DATA_WIDTH - 1, DATA_WIDTH)
    }
    //update nanoseconds
    when(updateNsReg) {
@@ -74,7 +74,7 @@ import patmos.Constants._
      }
    }
 
-   //Smooth Adjustment
+  //Smooth Adjustment
    when(nsOffsetReg < -MICRO_IN_NANO.S && nsOffsetReg >= -MILLI_IN_NANO.S) { //-1ms to 1us
      correctionStepReg := TIME_STEP.S
    }.elsewhen(nsOffsetReg < -HUNDRED_NANO.S && nsOffsetReg >= -MICRO_IN_NANO.S) { //-1us to -100ns
@@ -108,11 +108,15 @@ import patmos.Constants._
      switch(masterReg.Addr(5, 0)) {
        is(Bits("h00")) {
          updateNsReg := true.B
-         timeReg := 0.U(DATA_WIDTH.W) ## masterReg.Data.asUInt()
+         timeReg := Cat(secTickReg, masterReg.Data(DATA_WIDTH-1,0))
        }
        is(Bits("h04")) {
          updateSecReg := true.B
-         timeReg:= masterReg.Data.asUInt() ## 0.U(DATA_WIDTH.W)
+         timeReg := Cat(Cat( timeReg(3*DATA_WIDTH - 1, 2*DATA_WIDTH), masterReg.Data(DATA_WIDTH-1,0)), timeReg(DATA_WIDTH - 1, 0))
+       }
+       is(Bits("h08")) {
+         updateSecReg := true.B
+         timeReg := Cat(masterReg.Data(DATA_WIDTH-1,0), timeReg(2*DATA_WIDTH - 1, 0))
        }
        is(Bits("h20")) {
          nsOffsetReg := masterReg.Data.asSInt()
@@ -129,6 +133,9 @@ import patmos.Constants._
        }
        is(Bits("h04")) {
          dataReg := timeReg(2 * DATA_WIDTH - 1, DATA_WIDTH)
+       }
+       is(Bits("h08")) {
+         dataReg := timeReg(3 * DATA_WIDTH - 1, 2* DATA_WIDTH)
        }
        is(Bits("h20")) {
          dataReg := nsOffsetReg(32, 1)
