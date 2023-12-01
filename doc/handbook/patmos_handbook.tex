@@ -4341,7 +4341,7 @@ We can now install all the needed tools:
 \begin{verbatim}
 sudo apt install git openjdk-8-jdk gitk cmake make g++ texinfo flex bison \
   subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby-full \
-  liblpsolve55-dev zlib1g-dev gtkwave gtkterm scala autoconf libfl2 expect verilator
+  liblpsolve55-dev zlib1g-dev gtkwave gtkterm scala autoconf libfl2 expect verilator curl
 \end{verbatim}
 
 Make sure to use Java 8 or a later version.
@@ -4522,14 +4522,15 @@ $ make
 
 \section{Quartus on Linux}
 
-Download the free web edition of Quartus from Intel.\footnote{When you use the
-default FPGA board DE2-115 you need to install Quartus 16.1 as later versions
-drop the support of the Cyclone~IV.}
-The Linux version is
-installed as follows:\footnote{\url{http://www.altera.com/literature/manual/quartus_install.pdf}}
-
+Download the free Prime Lite edition of Quartus from Intel official website using the link below.\footnote {For a complete tutorial about installing Quartus follow this link: \url{https://cdrdv2-public.intel.com/666293/quartus_install-683472-666293.pdf}} All currently-available versions of Quartus Prime Lite (17 to 22) support Cyclone IV with which DE2-115 is equipped. However, for DE2-70 boards containing Cyclone II you need to install Quartus web which only versions 13 and 13.1 are available to download currently and needs 32-bit compatibility libraries on 64-bit Linux distributions to be installed.\footnote {For more information about compatibility issues follow this link: \url {https://www.intel.com/content/www/us/en/support/programmable/support-resources/design-software/devices-support.html}}
+\\*
+\\*
+\url{https://www.intel.com/content/www/us/en/collections/products/fpga/software/downloads.html}
+\\
+\\
+Then decompress downloaded file using following command:
 \begin{verbatim}
-tar xvf Quartus-web-xxx.tar
+tar xvf Quartus-lite-xxx-linux.tar
 \end{verbatim}
 
 The software installation is started with:
@@ -4539,7 +4540,7 @@ bash setup.sh
 \end{verbatim}
 
 Then add the \code{bin} directory of Quartus to your \$PATH.
-%
+
 For access to the serial port the user needs access rights.
 
 \begin{verbatim}
@@ -4600,7 +4601,7 @@ and hope for an output similar to:
   020F70DD   EP3C120/EP4CE115
 \end{verbatim}
 
-In some cases, killing the the jtagd process can make the connection work againg:
+In some cases, killing the the \code{jtagd} process can make the connection work again:
 
 \begin{verbatim}
 $ sudo killall -9 jtagd
@@ -4630,13 +4631,6 @@ After fixing the permissions for the USB Blaster open Quartus and test if the
 cable is found with the programmer. Select USB-Blaster in \emph{Hardware Setup}.
 When connected to an FPGA test the USB-Blaster with \emph{Auto Detect}
 (With the DE2-115, a question about shared JTAG ID pops up -- select EP4CE115).
-
-For the DE2-115 board that contains the Cyclone~IV.
-The latest Quartus version that supports the Cyclone~IV is 16.1.
-Quartus~13.1 drops the support of Cyclone~II devices. Therefore, the
-(phased out) Altera DE2-70 board is not supported anymore. Version 13.0 supports Cyclone~II\
-till Cyclone~V devices and might be the best option at the moment if you want to
-support both DE2 boards.
 
 
 
