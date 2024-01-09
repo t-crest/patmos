@@ -1479,6 +1479,55 @@ If you are using the build.sh script, set \code{GOLD\_CXXFLAGS="-Wno-narrowing"}
 \paragraph{Keeping relocations in the executable (-Xgold -q) and debugging info (-g) do not work together:}
 This seems to be a gold restriction.
 
+\section{Single-Path Code}
+
+Single-path code is an code generation technique that negates the need for WCET analysis using \code{platin}.
+The resulting code will always have a constant execution time (CET), meaning measuring the execution time of the program using arbitrary input data is an alternative to using WCET bounds from \code{platin}.
+
+\textit{Note: This section only works for version v2 of the compiler and above.}
+
+\subsection{Enabling CET}
+
+Using \code{patmos-clang} is the easiest way of using single-path code:
+
+\begin{verbatim}
+	pamtos-clang main.c -O2 -mpatmos-enable-cet -mpatmos-cet-functions=main
+\end{verbatim}
+
+The above command will generate a binary where the \code{main} function is using single-path code to have CET.
+\code{-mpatmos-enable-cet} enables the compiler to produce CET functions, while \code{-mpatmos-cet-functions=main} tells it that the \code{main} function should use single-path code to achieve CET.
+Any function called from \code{main}, recursively, will also become single-path.
+Multiple functions may be provided.
+
+\subsection{Limitations}
+
+The source code accepted by the compiler for transformation into single-path code must adhere to the following:
+
+\begin{itemize}
+	\item All loops must have an explicit loop bound. Example:
+	\begin{verbatim}
+		_Pragma( "loopbound min 40 max 40" )
+		for(int i = 0; i<40; i++) ....
+	\end{verbatim}
+	It is undefined behavior for the bounds to be wrong.
+	E.g., if the loop may, in some cases, iterate 41 times.
+	
+	An iteration is defined as an execution of the loop body.
+	Therefore, \code{for}-loops can have a lower bound of 0, meaning the body may be skipped in the very first test of the loop condition.
+	A \code{do-while}-loop, cannot have a lower bound of 0, since its body is always executed at least once.
+	
+	\item No recursion is allowed.
+	\item No \code{goto} is allowed to result in a loop.
+	\item Any inline assembly must guarantee the single-path code properties itself. I.e. it must not result in any execution time variation.
+	This is a difficult guarantee to make, so we advice the avoidance of inline assembly in single-path code.
+	\item Single-path functions cannot call functions that do not adhere to these rules.
+\end{itemize}
+
+Additionally, the CET guarantee only currently works for single-core Patmos. Using more than one core simultaneously will result in execution time variations.
+Lastly, the compiler is quite buggy when producing single-path code.
+Therefore, some programs will fails to compile or not result in correct CET code.
+We advise that you test your final binaries to make sure they have CET for different input data.
+
 \section{New Version}
 
 As part of an updating effort, a new version of Patmos' compiler is available, henceforth referred to as \textit{v2}.
