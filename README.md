@@ -40,7 +40,9 @@ sudo apt-get install git openjdk-11-jdk gitk cmake make g++ texinfo flex bison \
   liblpsolve55-dev zlib1g-dev gtkwave gtkterm scala autoconf libfl2 expect verilator curl
 ```
 
-Install sbt according to the instructions from [sbt download](https://www.scala-sbt.org/1.x/docs/Installing-sbt-on-Linux.html)
+Install sbt according to the instructions from [sbt download](https://www.scala-sbt.org/1.x/docs/Installing-sbt-on-Linux.html).
+
+Install Quartus as instructed in the Patmos Handbook build instructions chapter.
 
 We assume that the T-CREST project will live in $HOME/t-crest.
 Before building the compiler, add the path
