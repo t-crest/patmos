@@ -4395,7 +4395,7 @@ brew install homebrew/x11/gtkwave
 Several tools are needed, best installed with \code{brew}. For Patmos simulator and assembler:
 \code{boost}, \code{libelf}.
 
-\subsection{Windows 10}
+\subsection{Windows 10/11}
 
 The Patmos tool chain doesn't build nor run directly on Windows.
 However, through the use of the Windows Subsystem for Linux (WSL), 
@@ -4423,6 +4423,43 @@ The rest of the setup can be done using the same steps as given in section \ref{
 Generally, interaction with Patmos should be done through the Ubuntu terminal as if
 the machine was actually running Ubuntu.
 The only exception is any tool that uses a graphical UI, which requires some additional setup to support.
+
+\subsubsection{Using USB devices}
+
+WSL does not have access to USB devides by default.
+This makes it impossible to configure FPGAs.
+To get access to USB devices, you first need to install \texttt{usbipd-win} following this guide: 
+
+\href{https://learn.microsoft.com/en-us/windows/wsl/connect-usb}{https://learn.microsoft.com/en-us/windows/wsl/connect-usb}\\
+
+To use a USB device from WSL, you first need to find its Bus-ID in Windows Powershell:
+
+\begin{verbatim}
+	usbipd list
+\end{verbatim}
+
+For example, the DE2-115 configuration cable could show:
+
+\begin{verbatim}
+	BUSID  VID:PID    DEVICE               STATE
+	4-1    09fb:6001  USB-Blaster          Not shared
+\end{verbatim}
+
+In an administrator-mode Powershell, force bind the device to WSL and then attach it:
+
+\begin{verbatim}
+	usbipd bind --force -b 4-1
+	usbipd attach -w -b 4-1
+\end{verbatim}
+
+WSL now has exclusive access to the device. 
+The device binding should persist even if the device is unplugged and plugged back in.
+However, it does not persist if the machine is turned off (or if WSL is shut down manually.)
+The device attachment does not persist at all. 
+It you want to be able to unplug the cable or turn off the FPGA, use the \texttt{-a} flag.
+
+You can see the attached USB device in WSL using the \texttt{lsusb} command.
+You will likely need to setup the FPGA devices as described in \autoref{sec:build:setup:quartus}.
 
 \section{Building Patmos and the Compiler Tool Chain}
 \label{sec:build:compiler}
@@ -4521,6 +4558,7 @@ $ make
 \end{verbatim}
 
 \section{Quartus on Linux}
+\label{sec:build:setup:quartus}
 
 Download the free Prime Lite edition of Quartus from Intel official website using the link below.\footnote {For a complete tutorial about installing Quartus follow this link: \url{https://cdrdv2-public.intel.com/666293/quartus_install-683472-666293.pdf}} All currently-available versions of Quartus Prime Lite (17 to 22) support Cyclone IV with which DE2-115 is equipped. However, for DE2-70 boards containing Cyclone II you need to install Quartus web which only versions 13 and 13.1 are available to download currently and needs 32-bit compatibility libraries on 64-bit Linux distributions to be installed.\footnote {For more information about compatibility issues follow this link: \url {https://www.intel.com/content/www/us/en/support/programmable/support-resources/design-software/devices-support.html}}
 \\*
@@ -4586,6 +4624,7 @@ RUN+="/bin/chmod 0666 %c"
 
 Reload the rules:
 \begin{verbatim}
+sudo service udev restart
 sudo udevadm control --reload
 \end{verbatim}
 
