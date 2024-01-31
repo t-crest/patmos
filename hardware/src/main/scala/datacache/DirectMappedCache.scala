@@ -151,3 +151,7 @@ class DirectMappedCache(size: Int, lineSize: Int) extends DCacheType(lineSize/4)
     tagVMem.map(_ := Bool(false))
   }
 }
+
+object DirectMappedCache extends App {
+  (new chisel3.stage.ChiselStage).emitVerilog(new DirectMappedCache(4096, 32))
+}
