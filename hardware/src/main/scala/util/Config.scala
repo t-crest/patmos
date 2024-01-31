@@ -40,8 +40,6 @@ import io.CoreDevice
 import io.Device
 import cop.Coprocessor
 
-import scala.tools.nsc.interpreter.IMain
-import scala.tools.nsc.Settings
 import java.io.DataInputStream
 import java.io.File
 
