@@ -19,7 +19,7 @@ class AsyncArbiterIO extends Bundle
 
 class AsyncArbiterTreeIO(cnt: Int) extends AsyncArbiterIO
 {
-  val cores = Vec(cnt, new AsyncArbiterIO().flip())
+  val cores = Vec(cnt, new AsyncArbiterIO().flip)
 
   override def clone = new AsyncArbiterTreeIO(cnt).asInstanceOf[this.type]
 }

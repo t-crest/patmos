@@ -40,7 +40,7 @@ object SPMPool {
 
   class TDMSPM(corecnt:Int, spmsize:Int) extends Module {
 
-    override val io = new Bundle()
+    val io = new Bundle()
     {
       val sched = UInt(INPUT, corecnt)
       val cores = Vec(corecnt, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))

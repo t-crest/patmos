@@ -525,7 +525,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     ramCtrl.io.superMode := false.B
   }
 
-  override val io = IO(new PatmosBundle(pins.map{case (pinid, devicepin) => pinid -> DataMirror.internal.chiselTypeClone(devicepin)}.toSeq: _*))
+  val io = IO(new PatmosBundle(pins.map{case (pinid, devicepin) => pinid -> DataMirror.internal.chiselTypeClone(devicepin)}.toSeq: _*))
 
   for((pinid, devicepin) <- pins) {
     val patmospin = io.elements(pinid)

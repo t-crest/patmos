@@ -29,7 +29,7 @@ abstract class AbstractHardlock(coreCnt : Int,lckCnt : Int) extends Module {
   val CoreCount = coreCnt
   val LockCount = lckCnt
   
-  override val io = IO(new HardlockIOVec(coreCnt, lckCnt)) // Vec.fill(coreCnt){new HardlockIO(lckCnt)}
+  val io = IO(new HardlockIOVec(coreCnt, lckCnt)) // Vec.fill(coreCnt){new HardlockIO(lckCnt)}
   
   
   val queueReg = RegInit(Vec.fill(lckCnt){Vec.fill(coreCnt){false.B}})

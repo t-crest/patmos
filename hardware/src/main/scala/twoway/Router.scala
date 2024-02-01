@@ -25,7 +25,6 @@ object Const {
 }
 
 class SingleRwChannel(w: Int) extends Bundle {
-  override def cloneType: this.type = new SingleRwChannel(w).asInstanceOf[this.type]
   val rw = Bool() // 1: Write, 0 : read
   val address = UInt(width = w)
   val data = UInt(width = 32)
@@ -43,7 +42,6 @@ class Channel extends Bundle {
 }
 
 class RwChannel(w: Int) extends Bundle {
-  override def cloneType: this.type = new RwChannel(w).asInstanceOf[this.type]
   // Channel with arbitrary address width, used in the two-way shared memory interface
   val out = new SingleRwChannel(w).asOutput
   val in = new SingleRwChannel(w).asInput
