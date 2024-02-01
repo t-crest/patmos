@@ -392,8 +392,8 @@ class PatmosToCoprocessor() extends Bundle()
   val read = Bool()     // read
                         // write if neither custom-instruction nor read
   val funcId = UInt(width = COP_FUNCID_WIDTH)
-  val opAddr = Vec(2, UInt(width = REG_BITS))
-  val opData = Vec(2, UInt(width = DATA_WIDTH))
+  val opAddr = Vec(2, UInt(REG_BITS.W))
+  val opData = Vec(2, UInt(DATA_WIDTH.W))
   val opAddrCop = Vec(2, Bool())
   
   def defaults() = {
@@ -411,7 +411,7 @@ class PatmosToCoprocessor() extends Bundle()
 class CoprocessorToPatmos() extends Bundle()
 {
   val ena_out = Bool()
-  val result  = UInt(width = DATA_WIDTH)
+  val result  = UInt(DATA_WIDTH.W)
 }
 
 class CoprocessorIO() extends Bundle()
@@ -470,58 +470,58 @@ class ICacheIO extends Bundle() {
 }
 
 class WriteBackIO() extends Bundle() {
-  val ena = Bool(INPUT)
-  val memwb = new MemWb().asInput
+  val ena = Input(Bool())
+  val memwb = Input(new MemWb())
   // wb result (unregistered)
-  val rfWrite = Vec(PIPE_COUNT, new Result().asOutput )
+  val rfWrite = Vec(PIPE_COUNT, Output(new Result()))
   // for result forwarding (register)
-  val memResult =  Vec(PIPE_COUNT, new Result().asOutput )
+  val memResult =  Vec(PIPE_COUNT, Output(new Result()))
 }
 
 class ExcIO() extends Bundle() {
-  val ena = Bool(INPUT)
+  val ena = Input(Bool())
   val ocp = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
-  val intrs = Vec(INTR_COUNT, Bool(INPUT) )
-  val excdec = new ExcDec().asOutput
-  val memexc = new MemExc().asInput
-  val superMode = Bool(OUTPUT)
-  val invalICache = Bool(OUTPUT)
-  val invalDCache = Bool(OUTPUT)
+  val intrs = Vec(INTR_COUNT, Input(Bool()))
+  val excdec = Output(new ExcDec())
+  val memexc = Input(new MemExc())
+  val superMode = Output(Bool())
+  val invalICache = Output(Bool())
+  val invalDCache = Output(Bool())
 }
 
 class MMUIO() extends Bundle() {
   val ctrl = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
-  val superMode = Bool(INPUT)
-  val exec = Bool(INPUT)
+  val superMode = Input(Bool())
+  val exec = Input(Bool())
   val virt = new OcpBurstSlavePort(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
   val phys = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
 }
 
 // Performance counters
 class InstructionCachePerf() extends Bundle() {
-  val hit = Bool(OUTPUT)
-  val miss = Bool(OUTPUT)
+  val hit = Output(Bool())
+  val miss = Output(Bool())
 }
 class DataCachePerf() extends Bundle() {
-  val hit = Bool(OUTPUT)
-  val miss = Bool(OUTPUT)
+  val hit = Output(Bool())
+  val miss = Output(Bool())
 }
 class StackCachePerf() extends Bundle() {
-  val spill = Bool(OUTPUT)
-  val fill = Bool(OUTPUT)
+  val spill = Output(Bool())
+  val fill = Output(Bool())
 }
 class WriteCombinePerf() extends Bundle() {
-  val hit = Bool(OUTPUT)
-  val miss = Bool(OUTPUT)
+  val hit = Output(Bool())
+  val miss = Output(Bool())
 }
 class MemPerf() extends Bundle() {
-  val read = Bool(OUTPUT)
-  val write = Bool(OUTPUT)
+  val read = Output(Bool())
+  val write = Output(Bool())
 }
 class PerfCounterIO() extends Bundle() {
-  val ic = new InstructionCachePerf().asInput
-  val dc = new DataCachePerf().asInput
-  val sc = new StackCachePerf().asInput
-  val wc = new WriteCombinePerf().asInput
-  val mem = new MemPerf().asInput
+  val ic = Input(new InstructionCachePerf())
+  val dc = Input(new DataCachePerf())
+  val sc = Input(new StackCachePerf())
+  val wc = Input(new WriteCombinePerf())
+  val mem = Input(new MemPerf())
 }
