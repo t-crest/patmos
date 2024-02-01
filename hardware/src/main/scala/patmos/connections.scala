@@ -291,23 +291,23 @@ class RegFileRead() extends Bundle() {
 }
 
 class RegFileIO() extends Bundle() {
-  val ena = Bool(INPUT)
+  val ena = Input(Bool())
   val rfRead = new RegFileRead()
-  val rfWrite = Vec(PIPE_COUNT, new Result().asInput )
+  val rfWrite = Vec(PIPE_COUNT, Input(new Result()) )
 }
 
 class FetchIO extends Bundle() {
-  val ena = Bool(INPUT)
-  val fedec = new FeDec().asOutput
+  val ena = Input(Bool())
+  val fedec = Output(new FeDec())
   // PC for returns
-  val feex = new FeEx().asOutput
+  val feex = Output(new FeEx())
   // branch from EX
-  val exfe = new ExFe().asInput
+  val exfe = Input(new ExFe())
   // call from MEM
-  val memfe = new MemFe().asInput
+  val memfe = Input(new MemFe())
   // connections to instruction cache
-  val feicache = new FeICache().asOutput
-  val icachefe = new ICacheFe().asInput
+  val feicache = Output(new FeICache())
+  val icachefe = Input(new ICacheFe())
 }
 
 class ExcDec() extends Bundle() {
@@ -321,34 +321,34 @@ class ExcDec() extends Bundle() {
 }
 
 class DecodeIO() extends Bundle() {
-  val ena = Bool(INPUT)
-  val flush = Bool(INPUT)
-  val fedec = new FeDec().asInput
-  val decex = new DecEx().asOutput
-  val rfWrite =  Vec(PIPE_COUNT, new Result().asInput )
+  val ena = Input(Bool())
+  val flush = Input(Bool())
+  val fedec = Input(new FeDec())
+  val decex = Output(new DecEx())
+  val rfWrite =  Vec(PIPE_COUNT, Input(new Result()))
   val exc = new ExcDec().asInput
 }
 
 class ExecuteIO() extends Bundle() {
-  val ena_in = Bool(INPUT)
-  val ena_out = Bool(OUTPUT)
-  val flush = Bool(INPUT)
-  val brflush = Bool(OUTPUT)
-  val decex = new DecEx().asInput
-  val exmem = new ExMem().asOutput
-  val exicache = new ExICache().asOutput
-  val feex = new FeEx().asInput
+  val ena_in = Input(Bool())
+  val ena_out = Output(Bool())
+  val flush = Input(Bool())
+  val brflush = Output(Bool())
+  val decex = Input(new DecEx())
+  val exmem = Output(new ExMem())
+  val exicache = Output(new ExICache())
+  val feex = Input(new FeEx())
   // forwarding inputs
-  val exResult = Vec(PIPE_COUNT, new Result().asInput )
-  val memResult = Vec(PIPE_COUNT, new Result().asInput )
+  val exResult = Vec(PIPE_COUNT, Input(new Result()))
+  val memResult = Vec(PIPE_COUNT, Input(new Result()))
   // branch for FE
-  val exfe = new ExFe().asOutput
+  val exfe = Output(new ExFe())
   //stack cache
-  val exsc = new ExSc().asOutput
-  val scex = new ScEx().asInput
+  val exsc = Output(new ExSc())
+  val scex = Input(new ScEx())
   // coprocessor
-  val copOut = Vec(COP_COUNT, new PatmosToCoprocessor().asOutput)
-  val copIn = Vec(COP_COUNT, new CoprocessorToPatmos().asInput)
+  val copOut = Vec(COP_COUNT, Output(new PatmosToCoprocessor()))
+  val copIn = Vec(COP_COUNT, Input(new CoprocessorToPatmos()))
 }
 
 class BootMemIO() extends Bundle() {
@@ -367,21 +367,21 @@ class MemExc() extends Bundle() {
 }
 
 class MemoryIO() extends Bundle() {
-  val ena_out = Bool(OUTPUT)
-  val ena_in = Bool(INPUT)
-  val flush = Bool(OUTPUT)
-  val exmem = new ExMem().asInput
-  val memwb = new MemWb().asOutput
-  val memfe = new MemFe().asOutput
+  val ena_out = Output(Bool())
+  val ena_in = Input(Bool())
+  val flush = Output(Bool())
+  val exmem = Input(new ExMem())
+  val memwb = Output(new MemWb())
+  val memfe = Output(new MemFe())
   // for result forwarding
-  val exResult = Vec(PIPE_COUNT, new Result().asOutput )
+  val exResult = Vec(PIPE_COUNT, Output(new Result()))
   // local and global accesses
   val localInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val globalInOut = new OcpCacheMasterPort(ADDR_WIDTH, DATA_WIDTH)
   // exceptions
-  val icacheIllMem = Bool(INPUT)
-  val scacheIllMem = Bool(INPUT)
-  val exc = new MemExc().asOutput
+  val icacheIllMem = Input(Bool())
+  val scacheIllMem = Input(Bool())
+  val exc = Output(new MemExc())
 }
 
 class PatmosToCoprocessor() extends Bundle()
@@ -416,22 +416,22 @@ class CoprocessorToPatmos() extends Bundle()
 
 class CoprocessorIO() extends Bundle()
 {
-  val patmosCop = new PatmosToCoprocessor().asOutput
-  val copPatmos = new CoprocessorToPatmos().asInput  
+  val patmosCop = Output(new PatmosToCoprocessor())
+  val copPatmos = Input(new CoprocessorToPatmos())
 }
 
 //stack cache
 class StackCacheIO() extends Bundle() {
   // check if another transfer is active
-  val ena_in = Bool(INPUT)
+  val ena_in = Input(Bool())
   // signals from EX stage to stack cache
-  val exsc = new ExSc().asInput
+  val exsc = Input(new ExSc())
   // signals from stack cache back to the EX stage
-  val scex = new ScEx().asOutput
+  val scex = Output(new ScEx())
   // signal an illegal memory access
-  val illMem = Bool(OUTPUT)
+  val illMem = Output(Bool())
   // indicate a stall
-  val stall = Bool(OUTPUT)
+  val stall = Output(Bool())
 }
 
 // method/instruction cache connections
@@ -458,14 +458,14 @@ class ICacheFe extends Bundle() {
   val memSel = UInt(width = 2)
 }
 class ICacheIO extends Bundle() {
-  val ena_out = Bool(OUTPUT)
-  val ena_in = Bool(INPUT)
-  val invalidate = Bool(INPUT)
-  val feicache = new FeICache().asInput
-  val exicache = new ExICache().asInput
-  val icachefe = new ICacheFe().asOutput
+  val ena_out = Output(Bool())
+  val ena_in = Input(Bool())
+  val invalidate = Input(Bool())
+  val feicache = Input(new FeICache())
+  val exicache = Input(new ExICache())
+  val icachefe = Output(new ICacheFe())
   val ocp_port = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
-  val illMem = Bool(OUTPUT)
+  val illMem = Output(Bool())
   val perf = new InstructionCachePerf()
 }
 
