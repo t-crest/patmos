@@ -7,6 +7,7 @@ import chisel3._
 import chisel3.util._
 import patmos.Constants._
 import scala.language.postfixOps
+import scala.xml._
 
 abstract class ArgoConfig {
   // NoC Dimensions
