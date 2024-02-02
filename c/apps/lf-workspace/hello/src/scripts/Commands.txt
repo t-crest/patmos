@@ -1,0 +1,5 @@
+lfc c/apps/lf-workspace/hello/src/HelloWorld.lf
+bash c/apps/lf-workspace/hello/src/scripts/patmos_build.sh
+make lf-app APP=HelloWorld comp config download
+make lf-app APP=HelloWorld comp
+make lf-wcet APP=HelloWorld comp 

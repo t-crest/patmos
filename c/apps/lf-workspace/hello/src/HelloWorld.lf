@@ -1,0 +1,43 @@
+target C
+{    
+    threading:false, 
+}
+
+main reactor {
+    p = new Printer()
+    c = new Counter(stride=1)
+    d = new Double()
+    
+    c.out->d.x
+    d.y->p.in
+   reaction(startup) {=
+        lf_print("Hello World!");
+   =}  
+}
+
+reactor Double { 
+    input x: int
+    output y: int
+    reaction(x) -> y {=
+      lf_set(y, x->value * 1);
+    =}
+}
+
+reactor Counter(stride:int(1)) {
+    timer t (0, 1 sec)
+    state count:int(0)
+    output out:int
+    reaction (t) -> out {=  
+        lf_set(out, self->count);
+        self->count += self->stride;
+    =}
+}
+
+reactor Printer {
+    input in:int
+    reaction(in) {=
+       lf_print("time is %02d:%02d:%02d", in->value/3600, (in->value/60)%60, in->value%60);
+    =}
+}
+
+  

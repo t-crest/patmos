@@ -102,3 +102,12 @@ c/cmp/nocinit.c
 emulator.h
 emul_api.h
 sim_api.h 
+
+# Ignore LF generated files
+
+c/apps/lf-workspace/.metadata
+c/apps/lf-workspace/hello/.settings
+c/apps/lf-workspace/hello/bin
+c/apps/lf-workspace/hello/include
+c/apps/lf-workspace/hello/src-gen
+c/apps/lf-workspace/hello/.project

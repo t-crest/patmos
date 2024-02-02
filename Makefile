@@ -158,6 +158,15 @@ app:
 
 .PRECIOUS: $(BUILDDIR)/%.elf
 
+# Compile an lf app that lives in the lf-workspace folder
+lf-app:
+	make -C c/apps/lf-workspace/hello/src-gen/$(APP)
+	mkdir -p $(BUILDDIR)
+	cp c/apps/lf-workspace/hello/src-gen/$(APP)/$(APP).elf $(BUILDDIR)
+
+.PRECIOUS: $(BUILDDIR)/%.elf
+lf-wcet:
+	make wcet -C c/apps/lf-workspace/hello/src-gen/$(APP)
 # High-level pasim simulation
 swsim: $(BUILDDIR)/$(BOOTAPP).bin
 	$(INSTALLDIR)/bin/pasim --debug --debug-fmt=short $(BUILDDIR)/$(BOOTAPP).bin; exit 0
