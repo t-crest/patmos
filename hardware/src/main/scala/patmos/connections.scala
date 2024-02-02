@@ -15,12 +15,12 @@ import Constants._
 import ocp._
 
 class FeDec() extends Bundle() {
-  val instr_a = UInt(width = INSTR_WIDTH)
-  val instr_b = UInt(width = INSTR_WIDTH)
-  val pc = UInt(width = PC_SIZE)
-  val base = UInt(width = PC_SIZE)
-  val reloc = UInt(width = ADDR_WIDTH)
-  val relPc = UInt(width = PC_SIZE)
+  val instr_a = UInt(INSTR_WIDTH.W)
+  val instr_b = UInt(INSTR_WIDTH.W)
+  val pc = UInt(PC_SIZE.W)
+  val base = UInt(PC_SIZE.W)
+  val reloc = UInt(ADDR_WIDTH.W)
+  val relPc = UInt(PC_SIZE.W)
 
   def flush() = {
     // flush only necessary parts of instruction
@@ -28,13 +28,13 @@ class FeDec() extends Bundle() {
     // instr_a(26, 25) := OPCODE_ALUI
     // instr_b(30, 27) := PRED_IFFALSE
     // instr_b(26, 25) := OPCODE_ALUI
-    instr_a := UInt(0)
-    instr_b := UInt(0)
+    instr_a := 0.U
+    instr_b := 0.U
   }
 }
 
 class AluOp() extends Bundle() {
-  val func = UInt(width = 4)
+  val func = UInt(4.W)
   val isMul = Bool()
   val isCmp = Bool()
   val isPred = Bool()
@@ -44,38 +44,38 @@ class AluOp() extends Bundle() {
 
   def defaults() = {
     func := UInt(0)
-    isMul := Bool(false)
-    isCmp := Bool(false)
-    isPred := Bool(false)
-    isBCpy := Bool(false)
-    isMTS := Bool(false)
-    isMFS := Bool(false)
+    isMul := false.B
+    isCmp := false.B
+    isPred := false.B
+    isBCpy := false.B
+    isMTS := false.B
+    isMFS := false.B
   }
 }
 
 class PredOp() extends Bundle() {
-  val func = UInt(width = 2) // as they have a strange encoding
-  val dest = UInt(width = PRED_BITS)
-  val s1Addr = UInt(width = PRED_BITS+1)
-  val s2Addr = UInt(width = PRED_BITS+1)
+  val func = UInt(2.W) // as they have a strange encoding
+  val dest = UInt(PRED_BITS.W)
+  val s1Addr = UInt((PRED_BITS+1).W)
+  val s2Addr = UInt((PRED_BITS+1).W)
 
   def defaults() = {
-    func := UInt(0)
-    dest := UInt(0)
-    s1Addr := UInt(0)
-    s2Addr := UInt(0)
+    func := 0.U
+    dest := 0.U
+    s1Addr := 0.U
+    s2Addr := 0.U
   }
 }
 
 class JmpOp() extends Bundle() {
   val branch = Bool()
-  val target = UInt(width = PC_SIZE)
-  val reloc = UInt(width = ADDR_WIDTH)
+  val target = UInt(PC_SIZE.W)
+  val reloc = UInt(ADDR_WIDTH.W)
 
   def defaults() = {
-    branch := Bool(false)
-    target := UInt(0)
-    reloc := UInt(0)
+    branch := false.B
+    target := 0.U
+    reloc := 0.U
   }
 }
 
@@ -88,12 +88,12 @@ class MemOp() extends Bundle() {
   val typ  = UInt(width = 2)
 
   def defaults() = {
-    load := Bool(false)
-    store := Bool(false)
-    hword := Bool(false)
-    byte := Bool(false)
-    zext := Bool(false)
-    typ := UInt(0)
+    load := false.B
+    store := false.B
+    hword := false.B
+    byte := false.B
+    zext := false.B
+    typ := 0.U
   }
 }
 
@@ -101,11 +101,11 @@ class CopOp() extends Bundle() {
   val isCop = Bool()
   val isCustom = Bool()
   val rsAddrCop = Vec(2, Bool())
-  val copId = UInt(width = COP_ID_WIDTH)
-  val funcId = UInt(width = COP_FUNCID_WIDTH)
+  val copId = UInt(COP_ID_WIDTH.W)
+  val funcId = UInt(COP_FUNCID_WIDTH.W)
 
   def defaults() = {
-    isCop := Bool(false)
+    isCop := false.B
     isCustom := Bool(false)
     rsAddrCop := Vec.fill(2) { Bool(false) }
     copId := UInt(0)
