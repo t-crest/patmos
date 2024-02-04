@@ -108,7 +108,7 @@ class CopOp() extends Bundle() {
   def defaults() = {
     isCop := false.B
     isCustom := false.B
-    rsAddrCop := Vec.fill(2) { false.B }
+    rsAddrCop := VecInit(Seq.fill(2)(false.B))
     copId := 0.U
     funcId := 0.U
   }
@@ -149,7 +149,7 @@ class DecEx() extends Bundle() {
   val illOp = Bool()
 
   def flush() = {
-    pred := Vec.fill(PIPE_COUNT) { PRED_IFFALSE }
+    pred := VecInit(Seq.fill(PIPE_COUNT)(PRED_IFFALSE))
     illOp := false.B
     copOp.isCop := false.B
   }
@@ -157,20 +157,19 @@ class DecEx() extends Bundle() {
   def defaults() = {
     pc := 0.U
     relPc := 0.U
-    pred := Vec.fill(PIPE_COUNT) { PRED_IFFALSE }
+    pred := VecInit(Seq.fill(PIPE_COUNT)(PRED_IFFALSE))
     aluOp.map(_.defaults())
     predOp.map(_.defaults())
     jmpOp.defaults()
     memOp.defaults()
     stackOp := sc_OP_NONE
     copOp.defaults()
-    // rsAddr := Vec.fill(2*PIPE_COUNT) { 0.U }
     rsAddr := VecInit(Seq.fill(2*PIPE_COUNT)(0.U))
-    rsData := Vec.fill(2*PIPE_COUNT) { 0.U }
-    rdAddr := Vec.fill(PIPE_COUNT) { 0.U }
-    immVal := Vec.fill(PIPE_COUNT) { 0.U }
-    immOp := Vec.fill(PIPE_COUNT) { false.B }
-    wrRd := Vec.fill(PIPE_COUNT) { false.B }
+    rsData := VecInit(Seq.fill(2*PIPE_COUNT)(0.U))
+    rdAddr := VecInit(Seq.fill(PIPE_COUNT)(0.U))
+    immVal := VecInit(Seq.fill(PIPE_COUNT)(0.U))
+    immOp := VecInit(Seq.fill(PIPE_COUNT)(false.B))
+    wrRd := VecInit(Seq.fill(PIPE_COUNT)(false.B))
     callAddr := 0.U
     call := false.B
     ret := false.B
@@ -404,9 +403,9 @@ class PatmosToCoprocessor() extends Bundle()
     isCustom := false.B
     read := false.B
     funcId := 0.U
-    opAddr := Vec.fill(2) { 0.U }
-    opData := Vec.fill(2) { 0.U }
-    opAddrCop := Vec.fill(2) { false.B }
+    opAddr := VecInit(Seq.fill(2)(0.U))
+    opData := VecInit(Seq.fill(2)(0.U))
+    opAddrCop := VecInit(Seq.fill(2)(false.B))
   }
 }
 
