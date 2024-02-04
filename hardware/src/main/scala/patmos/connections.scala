@@ -8,8 +8,7 @@
 
 package patmos
 
-import Chisel._
-import chisel3.VecInit
+import chisel3._
 
 import Constants._
 
@@ -287,8 +286,8 @@ class MemWb() extends Bundle() {
 
 class RegFileRead() extends Bundle() {
   // first two are for pipeline A, second two for pipeline B
-  val rsAddr = Vec(2*PIPE_COUNT, UInt(INPUT, REG_BITS) )
-  val rsData = Vec(2*PIPE_COUNT, UInt(OUTPUT, DATA_WIDTH) )
+  val rsAddr = Vec(2*PIPE_COUNT, Input(UInt(REG_BITS.W)))
+  val rsData = Vec(2*PIPE_COUNT, Output(UInt(DATA_WIDTH.W)))
 }
 
 class RegFileIO() extends Bundle() {
@@ -327,7 +326,7 @@ class DecodeIO() extends Bundle() {
   val fedec = Input(new FeDec())
   val decex = Output(new DecEx())
   val rfWrite =  Vec(PIPE_COUNT, Input(new Result()))
-  val exc = new ExcDec().asInput
+  val exc = Input(new ExcDec())
 }
 
 class ExecuteIO() extends Bundle() {
