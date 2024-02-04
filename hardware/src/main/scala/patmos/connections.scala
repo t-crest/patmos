@@ -9,6 +9,7 @@
 package patmos
 
 import Chisel._
+import chisel3.VecInit
 
 import Constants._
 
@@ -43,7 +44,7 @@ class AluOp() extends Bundle() {
   val isMFS = Bool()
 
   def defaults() = {
-    func := UInt(0)
+    func := 0.U
     isMul := false.B
     isCmp := false.B
     isPred := false.B
@@ -163,20 +164,21 @@ class DecEx() extends Bundle() {
     memOp.defaults()
     stackOp := sc_OP_NONE
     copOp.defaults()
-    rsAddr := Vec.fill(2*PIPE_COUNT) { UInt(0) }
-    rsData := Vec.fill(2*PIPE_COUNT) { UInt(0) }
-    rdAddr := Vec.fill(PIPE_COUNT) { UInt(0) }
-    immVal := Vec.fill(PIPE_COUNT) { UInt(0) }
+    // rsAddr := Vec.fill(2*PIPE_COUNT) { 0.U }
+    rsAddr := VecInit(Seq.fill(2*PIPE_COUNT)(0.U))
+    rsData := Vec.fill(2*PIPE_COUNT) { 0.U }
+    rdAddr := Vec.fill(PIPE_COUNT) { 0.U }
+    immVal := Vec.fill(PIPE_COUNT) { 0.U }
     immOp := Vec.fill(PIPE_COUNT) { false.B }
     wrRd := Vec.fill(PIPE_COUNT) { false.B }
-    callAddr := UInt(0)
+    callAddr := 0.U
     call := false.B
     ret := false.B
     brcf := false.B
     trap := false.B
     xcall := false.B
     xret := false.B
-    xsrc := UInt(0)
+    xsrc := 0.U
     nonDelayed := false.B
     illOp := false.B
   }
@@ -401,9 +403,9 @@ class PatmosToCoprocessor() extends Bundle()
     trigger := false.B
     isCustom := false.B
     read := false.B
-    funcId := UInt(0)
-    opAddr := Vec.fill(2) { UInt(0) }
-    opData := Vec.fill(2) { UInt(0) }
+    funcId := 0.U
+    opAddr := Vec.fill(2) { 0.U }
+    opData := Vec.fill(2) { 0.U }
     opAddrCop := Vec.fill(2) { false.B }
   }
 }
