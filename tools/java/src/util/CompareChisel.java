@@ -179,7 +179,7 @@ public class CompareChisel {
 				if (csReg[i] != hsReg[i]) {
 					System.out.println("Difference at PC: " + pc + " line: " + line);
 					System.out.println("Register " + i + " Chisel: " + csReg[i]
-							+ " patsim: " + hsReg[i]);
+							+ " pasim: " + hsReg[i]);
 					System.exit(1);
 				}
 			}

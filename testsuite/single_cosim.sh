@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Synopsis: ./single_isa.sh APP
+# Synopsis: ./single_cosim.sh APP
 #
 # Return Value:
 #   0 ... test ok
@@ -17,12 +17,12 @@ echo "${TEST}"
 make hwsim BOOTAPP="${TEST}" 1> "${LOG_DIR}/${TEST}.emu.out" 2> "${LOG_DIR}/${TEST}.emu.err"
 echo "EXIT $?" >> "${LOG_DIR}/${TEST}.emu.out"
 
-# run ISA simulator
-make isasim BOOTAPP="${TEST}" 1> "${LOG_DIR}/${TEST}.sim.out" 2> "${LOG_DIR}/${TEST}.sim.err"
-echo "EXIT $?" >> "${LOG_DIR}/${TEST}.sim.out"
+# run Pasim simulator
+make swsim BOOTAPP="${TEST}" 1> "${LOG_DIR}/${TEST}.sim.out" 2> "${LOG_DIR}/${TEST}.sim.err"
+echo "EXIT $?" >> "${LOG_DIR}/${TEST}.ssim.out"
 
 # compare output
-java -cp $INSTALLDIR/lib/java/patmos-tools.jar util.CompareScala "${LOG_DIR}/${TEST}.sim.out" "${LOG_DIR}/${TEST}.emu.out" | \
+java -cp $INSTALLDIR/lib/java/patmos-tools.jar util.CompareChisel "${LOG_DIR}/${TEST}.sim.err" "${LOG_DIR}/${TEST}.emu.out" | \
     tee "${LOG_DIR}/${TEST}.comptest.out" | sed -e 's/^\(\S\)/ \1/'
 
 # report failure or ok

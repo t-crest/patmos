@@ -972,6 +972,9 @@ int main(int argc, char **argv, char **env)
   }
 
   emu->stopTrace();
+  if(reg_print){
+    printf("PASSED\n");
+  }
   exit(EXIT_SUCCESS);
 }
 
