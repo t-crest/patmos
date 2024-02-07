@@ -1,6 +1,8 @@
 package io
 
 import Chisel._
+import chisel3.VecInit
+
 import patmos.Constants._
 import ptp1588assist.RTC
 
@@ -24,7 +26,7 @@ object StandaloneRTC extends DeviceObject {
 class StandaloneRTC(secondsWidth: Int = 40, nanoWidth: Int = 24, initialTime: BigInt = 0L, timeStep: Int = 25) extends CoreDevice() {
   override val io = new CoreDeviceIO() with patmos.HasPins {
     override val pins = new Bundle {
-      val hexDisp = Vec.fill(8) {Bits(OUTPUT, 7)}
+      val hexDisp = Output(VecInit(Seq.fill(8)(0.U(7.W)))) // MS: this should not be a fill, just a Vec without defaults
     }
   }
 
@@ -92,9 +94,7 @@ class StandaloneRTC(secondsWidth: Int = 40, nanoWidth: Int = 24, initialTime: Bi
   val rtc = Module(new RTC(CLOCK_FREQ, secondsWidth, nanoWidth, initialTime, timeStep))
   rtc.io.ocp <> io.ocp
 
-//  io.standaloneRTCPins.hexDisp.setName("io_sevenSegmentDisplayPins_hexDisp")
-
-  val dispRegVec = RegInit(Vec.fill(8){Bits(0, width = 7)})
+  val dispRegVec = RegInit(VecInit(Seq.fill(8)(Bits(7.W))))
 
   dispRegVec(0) := sevenSegBCDDecode(rtc.io.ptpTimestamp(35, 32), segmentPolarity = 0)
   dispRegVec(1) := sevenSegBCDDecode(rtc.io.ptpTimestamp(39, 36), segmentPolarity = 0)

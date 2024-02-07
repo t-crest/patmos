@@ -9,6 +9,7 @@
 package io
 
 import Chisel._
+import chisel3.VecInit
 
 import patmos.Constants._
 import patmos.PerfCounterIO
@@ -45,7 +46,7 @@ class PerfCounters() extends CoreDevice() {
 
   val PERFCOUNTER_COUNT = 10
 
-  val inputVec = Vec.fill(PERFCOUNTER_COUNT) { Reg(Bool()) }
+  val inputVec = RegInit(VecInit(Seq.fill(PERFCOUNTER_COUNT)(true.B)))
   inputVec(0) := io.perf.ic.hit
   inputVec(1) := io.perf.ic.miss
   inputVec(2) := io.perf.dc.hit
@@ -57,7 +58,7 @@ class PerfCounters() extends CoreDevice() {
   inputVec(8) := io.perf.mem.read
   inputVec(9) := io.perf.mem.write
 
-  val counterVec = RegInit(Vec.fill(PERFCOUNTER_COUNT) { UInt(0, width = DATA_WIDTH) })
+  val counterVec = RegInit(VecInit(Seq.fill(PERFCOUNTER_COUNT)(0.U(DATA_WIDTH.W))))
   for (i <- 0 until PERFCOUNTER_COUNT) {
     when (inputVec(i)) {
       counterVec(i) := counterVec(i) + UInt(1)
