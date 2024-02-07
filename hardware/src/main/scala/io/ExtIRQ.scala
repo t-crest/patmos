@@ -8,6 +8,7 @@
 package io
 
 import Chisel._
+import chisel3.VecInit
 
 import ocp._
 
@@ -29,7 +30,7 @@ class ExtIRQ(IRQCount : Int) extends CoreDevice() {
     override val pins = new Bundle() {
       val irq = Bits(INPUT, IRQCount)
     }
-    override val interrupts = Vec.fill(IRQCount) { Bool(OUTPUT) }
+    override val interrupts = Output(VecInit(Seq.fill(IRQCount)(Bool())))
   }
 
   val IRQSyncReg = Reg(Bits(width = IRQCount))

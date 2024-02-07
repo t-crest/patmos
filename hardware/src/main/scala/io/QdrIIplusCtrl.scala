@@ -15,6 +15,7 @@ package io
 import scala.math._
 
 import Chisel._
+import chisel3.VecInit
 
 import ocp._
 
@@ -51,10 +52,10 @@ class QdrIIplusCtrl(ocpAddrWidth   : Int,
 
       val nrps  = Bits(OUTPUT, width = 1)
       val nwps  = Bits(OUTPUT, width = 1)
-      val nbws  = Vec.fill(2) { Bits(OUTPUT, width = ramDataWidth / 8) }
+      val nbws  = Output(VecInit(Seq.fill(2)(Bits(width = ramDataWidth / 8))))
 
-      val din   = Vec.fill(2) { Bits(INPUT, width = ramDataWidth) }
-      val dout  = Vec.fill(2) { Bits(OUTPUT, width = ramDataWidth) }
+      val din   = VecInit(Seq.fill(2)(Bits(INPUT, width = ramDataWidth)))
+      val dout  = VecInit(Seq.fill(2)(Bits(OUTPUT, width = ramDataWidth)))
 
       val ndoff = Bits(OUTPUT, width = 1)
     }

@@ -76,8 +76,6 @@ object EthMac extends DeviceObject {
       val ledPHY = Output(UInt(1.W))
       val ledSOF = Output(UInt(1.W))
       val ledEOF = Output(UInt(1.W))
-      // val ledSFD = Output(UInt(width=8)
-      // val rtcDisp = Vec.fill(8) {Output(UInt(7)}
     }
   }
 
