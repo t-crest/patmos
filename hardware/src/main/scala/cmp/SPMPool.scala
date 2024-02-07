@@ -1,6 +1,7 @@
 package cmp
 
 import Chisel._
+import chisel3.VecInit
 
 import patmos.Constants._
 import ocp._
@@ -89,7 +90,7 @@ class SPMPool(corecnt:Int, spmcnt:Int, spmsize:Int, spmcntmax:Int = 15, spmsizem
   val nxtavail = PriorityEncoder(avails)
   val anyavail = avails.orR
 
-  val respRegs = RegInit(Vec.fill(corecnt) { OcpResp.NULL})
+  val respRegs = RegInit(VecInit(Seq.fill(corecnt)(OcpResp.NULL)))
   val dataRegs = Reg(Vec(corecnt, io.cores(0).S.Data))
 
   val dumio = Wire(Vec(corecnt, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)))

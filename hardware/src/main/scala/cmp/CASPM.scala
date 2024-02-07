@@ -7,6 +7,7 @@
 package cmp
 
 import Chisel._
+import chisel3.VecInit
 import ocp._
 import patmos.Constants._
 import patmos._
@@ -21,7 +22,7 @@ class CASPM(corecnt: Int, size: Int) extends CmpDevice(corecnt) {
   val cnt = Reg(init = UInt(0, log2Up(corecnt)))
   cnt := Mux(precnt =/= cntmax, cnt, Mux(cnt === (corecnt-1).U, 0.U, cnt + 1.U))
 
-  val cmdRegs = RegInit(Vec.fill(corecnt) {OcpCmd.RD})
+  val cmdRegs = RegInit(VecInit(Seq.fill(corecnt)(OcpCmd.RD)))
   val addrRegs = Reg(Vec(corecnt, spm.io.M.Addr))
   val newvalRegs = Reg(Vec(corecnt, spm.io.M.Data))
   val bytenRegs = Reg(Vec(corecnt, spm.io.M.ByteEn))
@@ -29,7 +30,7 @@ class CASPM(corecnt: Int, size: Int) extends CmpDevice(corecnt) {
   val expvalRegs = Reg(Vec(corecnt, spm.io.S.Data))
 
   val sIdle :: sRead :: sWrite :: Nil = Enum(UInt(),3)
-  val states = RegInit(Vec.fill(corecnt) {sIdle})
+  val states = RegInit(VecInit(Seq.fill(corecnt)(sIdle)))
 
   spm.io.M.Cmd := cmdRegs(cnt)
   spm.io.M.Addr := addrRegs(cnt)

@@ -13,6 +13,7 @@
 package cmp
 
 import Chisel._
+import chisel3.VecInit
 
 import patmos._
 import patmos.Constants._
@@ -25,7 +26,7 @@ class OwnSPM(nrCores: Int, nrSPMs: Int, size: Int) extends CmpDevice(nrCores) {
 
   val masters = Wire(Vec(nrSPMs, Vec(nrCores, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))))
   val spms = (0 until nrSPMs).map(i => Module(new Spm(size)))
-  val cmdOutReg = RegInit(Vec.fill(nrCores) {Bool(false)})
+  val cmdOutReg = RegInit(VecInit(Seq.fill(nrCores)(false.B)))
 
   for (s <- 0 until nrSPMs) {
     // And gate non-active masters.

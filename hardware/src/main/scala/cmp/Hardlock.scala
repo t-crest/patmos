@@ -10,6 +10,7 @@
 package cmp
  
 import Chisel._
+import chisel3.VecInit
 import patmos.Constants._
 import ocp._
 
@@ -29,10 +30,10 @@ abstract class AbstractHardlock(coreCnt : Int,lckCnt : Int) extends Module {
   val CoreCount = coreCnt
   val LockCount = lckCnt
   
-  val io = IO(new HardlockIOVec(coreCnt, lckCnt)) // Vec.fill(coreCnt){new HardlockIO(lckCnt)}
+  val io = IO(new HardlockIOVec(coreCnt, lckCnt))
   
   
-  val queueReg = RegInit(Vec.fill(lckCnt){Vec.fill(coreCnt){false.B}})
+  val queueReg = RegInit(VecInit(Seq.fill(lckCnt)(VecInit(Seq.fill(coreCnt)(false.B)))))
   for (i <- 0 until lckCnt) {
     for (j <- 0 until coreCnt) {
       when(io.cores(j).sel === UInt(i) && io.cores(j).en === Bool(true)) {
@@ -41,7 +42,7 @@ abstract class AbstractHardlock(coreCnt : Int,lckCnt : Int) extends Module {
     }
   }
   
-  val curReg = RegInit(Vec.fill(lckCnt){UInt(0, log2Up(coreCnt))})
+  val curReg = RegInit(VecInit(Seq.fill(lckCnt)(0.U(log2Up(coreCnt).W))))
   
   val blocks = Wire(Vec(coreCnt, Vec(lckCnt, Bool())))
   

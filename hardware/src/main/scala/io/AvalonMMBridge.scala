@@ -8,6 +8,7 @@
 package io
 
 import Chisel._
+import chisel3.VecInit
 import ocp._
 import patmos.Constants._
 
@@ -44,7 +45,7 @@ class AvalonMMBridge(extAddrWidth : Int = 32,
       val avs_debugaccess = Bool(OUTPUT)
       val avs_intr = Bits(INPUT,numIntrs)
     }
-    override val interrupts = Vec.fill(numIntrs) { Bool(OUTPUT) }
+    override val interrupts = Output(VecInit(Seq.fill(numIntrs)(Bool()))) // why is there a VecInit? a Vec would just be fine (MS)
   }
 
   val coreBus = Module(new OcpCoreBus(ADDR_WIDTH,dataWidth))
