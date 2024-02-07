@@ -9,6 +9,7 @@
 package ocp
 
 import Chisel._
+import chisel3.VecInit
 
 class TdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) extends ArbiterType(cnt, dataWidth, dataWidth, burstLen) {
 
@@ -17,10 +18,10 @@ class TdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) ext
   val burstCntReg = Reg(init = UInt(0, log2Up(burstLen)))
   val period = cnt * (burstLen + 2)
   val slotLen = burstLen + 2
-  val cpuSlot = RegInit(Vec.fill(cnt){UInt(0, width=1)})
+  val cpuSlot = RegInit(VecInit(Seq.fill(cnt)((0.U(1.W)))))
 
   val sIdle :: sRead :: sWrite :: Nil = Enum(UInt(), 3)
-  val stateReg = RegInit(Vec.fill(cnt){sIdle})
+  val stateReg = RegInit(VecInit(Seq.fill(cnt)(sIdle)))
 
   cntReg := Mux(cntReg === UInt(period - 1), UInt(0), cntReg + UInt(1))
 

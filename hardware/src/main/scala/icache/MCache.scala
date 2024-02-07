@@ -7,6 +7,8 @@
 package patmos
 
 import Chisel._
+import chisel3.VecInit
+
 import chisel3.dontTouch
 import MConstants._
 import Constants._
@@ -137,10 +139,10 @@ class MCacheReplFifo() extends Module {
   val io = IO(new MCacheReplIO())
 
   //tag field tables  for reading tag memory
-  val addrVec = RegInit(Vec.fill(METHOD_COUNT){UInt(0, width = ADDR_WIDTH)})
-  val sizeVec = RegInit(Vec.fill(METHOD_COUNT){UInt(0, width = MCACHE_SIZE_WIDTH+1)})
-  val validVec = RegInit(Vec.fill(METHOD_COUNT){Bool(false)})
-  val posVec = RegInit(Vec.fill(METHOD_COUNT){UInt(0, width = MCACHE_SIZE_WIDTH)})
+  val addrVec = RegInit(VecInit(Seq.fill(METHOD_COUNT)(0.U(ADDR_WIDTH.W))))
+  val sizeVec = RegInit(VecInit(Seq.fill(METHOD_COUNT)(0.U((MCACHE_SIZE_WIDTH+1).W))))
+  val validVec = RegInit(VecInit(Seq.fill(METHOD_COUNT)(false.B)))
+  val posVec = RegInit(VecInit(Seq.fill(METHOD_COUNT)(0.U(MCACHE_SIZE_WIDTH.W))))
   //registers to save current replacement status
   val nextIndexReg = Reg(init = UInt(0, width = log2Up(METHOD_COUNT)))
   val nextTagReg = Reg(init = UInt(0, width = log2Up(METHOD_COUNT)))

@@ -9,6 +9,7 @@
 package ocp
 
 import Chisel._
+import chisel3.VecInit
 
 // Burst masters provide handshake signals
 class OcpBurstMasterSignals(addrWidth : Int, dataWidth : Int)
@@ -248,7 +249,7 @@ class OcpBurstBus(addrWidth : Int, dataWidth : Int, burstLen : Int) extends Modu
 // Buffer a burst for pipelining
 class OcpBurstBuffer(master : OcpBurstMasterPort, slave : OcpBurstSlavePort) {
 
-  val MBuffer = RegInit(Vec.fill(master.burstLength) { master.M })
+  val MBuffer = RegInit(VecInit(Seq.fill(master.burstLength)(master.M)))
 
   val free = MBuffer(0).Cmd === OcpCmd.IDLE
   when (free || slave.S.CmdAccept === UInt(1)) {

@@ -12,6 +12,7 @@ import Chisel._
 import java.io.File
 import chisel3.experimental._
 import chisel3.dontTouch
+import chisel3.VecInit
 import Constants._
 import util._
 import io._
@@ -291,7 +292,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
     println(s"Config core $i:")
     // Default values for interrupt pins
-      cores(i).io.interrupts := Vec.fill(INTR_COUNT) {false.B}
+      cores(i).io.interrupts := VecInit(Seq.fill(INTR_COUNT)(false.B))
 
     // Creation of IO devices
     val cpuinfo = Module(new CpuInfo(Config.datFile, nrCores))

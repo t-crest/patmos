@@ -7,6 +7,7 @@
 package patmos
 
 import Chisel._
+import chisel3.VecInit
 import chisel3.dontTouch
 import IConstants._
 import Constants._
@@ -148,7 +149,7 @@ class ICacheReplDm() extends Module {
   // Tag memory and vector for valid bits
   val tagMemEven = MemBlock(LINE_COUNT / 2, TAG_SIZE)
   val tagMemOdd = MemBlock(LINE_COUNT / 2, TAG_SIZE)
-  val validVec = RegInit(Vec.fill(LINE_COUNT) {Bool(false)})
+  val validVec = RegInit(VecInit(Seq.fill(LINE_COUNT)(false.B)))
 
   // Variables for call/return
   val callRetBaseReg = RegInit(UInt(1, DATA_WIDTH))

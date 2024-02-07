@@ -8,6 +8,7 @@
 package ocp.test
 
 import Chisel._
+import chisel3.VecInit
 import ocp._
 import io.SSRam32Ctrl
 
@@ -58,7 +59,7 @@ import io.SSRam32Ctrl
 class NodeTdmArbiterTop() extends Module {
 
   val io = IO(new Bundle {
-    val port = Vec.fill(3){new OcpBurstMasterPort(32, 32, 4)}
+    val port = VecInit(Seq.fill(3)(new OcpBurstMasterPort(32, 32, 4))) //TODO: this should pronanly a plain Scala Seq, or maybe not
   })
   val CNT = 3
   //val arb = Module(new ocp.NodeTdmArbiter(CNT, 32, 32, 4))
