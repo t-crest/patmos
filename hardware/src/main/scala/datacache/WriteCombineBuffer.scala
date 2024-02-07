@@ -39,6 +39,7 @@
 package datacache
 
 import Chisel._
+import chisel3.VecInit
 
 import patmos.Constants._
 import patmos.WriteCombinePerf
@@ -72,11 +73,11 @@ class WriteCombineBuffer() extends WriteBufferType {
   // Registers for write combining
   val tagReg = Reg(init = Bits(0, width = tagWidth))
   val dataBuffer = Reg(Vec(burstLength, Bits(width = dataWidth)))
-  val byteEnBuffer = RegInit(Vec.fill(burstLength) { Bits(0, width = byteEnWidth) })
+  val byteEnBuffer = RegInit(VecInit(Seq.fill(burstLength)(Bits(0, width = byteEnWidth))))
   val hitReg = Reg(Bool())
 
   // Temporary vector for combining
-  val comb = Vec.fill(byteEnWidth) { Bits(width = 8) }
+  val comb = VecInit(Seq.fill(byteEnWidth)(Bits(width = 8)))
   for (i <- 0 until byteEnWidth) {
     comb(i) := Bits(0)
   }

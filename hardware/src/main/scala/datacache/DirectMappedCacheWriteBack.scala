@@ -8,6 +8,7 @@
 package datacache
 
 import Chisel._
+import chisel3.VecInit
 
 import patmos.Constants._
 import patmos.DataCachePerf
@@ -32,7 +33,7 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends DCacheType(li
   val coreByteEnReg = Reg(Bits(width = DATA_WIDTH/BYTE_WIDTH)) // register for WR cmd byte enables
 
   // Temporary vector for combining written bytes with bytes from memory
-  val comb = Vec.fill(DATA_WIDTH/BYTE_WIDTH) { Bits(width = BYTE_WIDTH) }
+  val comb = VecInit(Seq.fill(DATA_WIDTH/BYTE_WIDTH) (Bits(width = BYTE_WIDTH)))
   for (i <- 0 until DATA_WIDTH/BYTE_WIDTH) { comb(i) := Bits(0) }
 
   val tagWidth = ADDR_WIDTH - addrBits - 2
@@ -51,8 +52,8 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends DCacheType(li
 
   // Generate memories
   val tagMem = MemBlock(tagCount, tagWidth)
-  val tagVMem = RegInit(Vec.fill(tagCount) { Bool(false)})
-  val dirtyMem = RegInit(Vec.fill(tagCount) { Bool(false)})
+  val tagVMem = RegInit(VecInit(Seq.fill(tagCount)(false.B)))
+  val dirtyMem = RegInit(VecInit(Seq.fill(tagCount)(false.B)))
   val mem = new Array[MemBlockIO](BYTES_PER_WORD)
   for (i <- 0 until BYTES_PER_WORD) {
     mem(i) = MemBlock(size / BYTES_PER_WORD, BYTE_WIDTH).io

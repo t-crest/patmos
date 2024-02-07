@@ -7,6 +7,7 @@
 package s4noc
 
 import Chisel._
+import chisel3.VecInit
 import ocp._
 import patmos.Constants._
 
@@ -18,7 +19,7 @@ class S4nocTrafficGen(nrNodes: Int, txFifo: Int, rxFifo: Int) extends Module {
     val data = Output(UInt(width = 32))
   })
 
-  val outReg = RegInit(Vec.fill(nrNodes) {UInt(0, width = 32)})
+  val outReg = RegInit(VecInit(Seq.fill(nrNodes)(0.U(32.W))))
 
 
   for (i <- 0 until nrNodes) {

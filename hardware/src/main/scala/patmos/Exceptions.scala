@@ -8,6 +8,7 @@
 package patmos
 
 import Chisel._
+import chisel3.VecInit
 
 import Constants._
 
@@ -40,9 +41,9 @@ class Exceptions extends Module {
 
   // Latches for incoming exceptions and interrupts
   val excPend     = Wire(Vec(EXC_COUNT, Bool()))
-  val excPendReg  = RegInit(Vec.fill(EXC_COUNT){Bool(false)})
+  val excPendReg  = RegInit(VecInit(Seq.fill(EXC_COUNT)(false.B)))
   val intrPend    = Wire(Vec(EXC_COUNT, Bool()))
-  val intrPendReg = RegInit(Vec.fill(EXC_COUNT) {Bool(false)})
+  val intrPendReg = RegInit(VecInit(Seq.fill(EXC_COUNT)(false.B)))
   excPend := excPendReg
   intrPend := intrPendReg
 

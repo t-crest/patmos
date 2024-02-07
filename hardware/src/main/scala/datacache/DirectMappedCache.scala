@@ -8,6 +8,7 @@
 package datacache
 
 import Chisel._
+import chisel3.VecInit
 
 import patmos.Constants._
 import patmos.DataCachePerf
@@ -33,7 +34,7 @@ class DirectMappedCache(size: Int, lineSize: Int) extends DCacheType(lineSize/4)
 
   // Generate memories
   val tagMem = MemBlock(tagCount, tagWidth)
-  val tagVMem = RegInit(Vec.fill(tagCount) { Bool(false) })
+  val tagVMem = RegInit(VecInit(Seq.fill(tagCount)(false.B)))
   val mem = new Array[MemBlockIO](BYTES_PER_WORD)
   for (i <- 0 until BYTES_PER_WORD) {
     mem(i) = MemBlock(size / BYTES_PER_WORD, BYTE_WIDTH).io

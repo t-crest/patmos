@@ -10,6 +10,7 @@
 package cmp
 
 import Chisel._
+import chisel3.VecInit
 
 import patmos._
 import patmos.Constants._
@@ -61,8 +62,8 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
     
     val bufaddr = ioM.Addr(memaddrwidth+2,2)
     val bufaddrs = Reg(Vec(bufsize, UInt(memaddrwidth.W)))
-    val bufrds = RegInit(Vec.fill(bufsize) {false.B})
-    val bufwrs = RegInit(Vec.fill(bufsize) {false.B})
+    val bufrds = RegInit(VecInit(Seq.fill(bufsize)(false.B)))
+    val bufwrs = RegInit(VecInit(Seq.fill(bufsize)(false.B)))
     val bufnxt = Counter(bufsize+1)
     
     val bufmem = Mem(UInt(width = datawidth), bufsize)
