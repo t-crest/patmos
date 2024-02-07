@@ -8,6 +8,7 @@
 package patmos
 
 import Chisel._
+import chisel3.VecInit
 
 import Constants._
 
@@ -57,7 +58,7 @@ class Decode() extends Module {
   }
 
   val decoded = Wire(Vec(PIPE_COUNT, Bool()))
-  decoded := Vec.fill(PIPE_COUNT) {Bool(false)}
+  decoded := VecInit(Seq.fill(PIPE_COUNT)(false.B))
 
   // Decoding of dual-issue operations
   val dual = decReg.instr_a(INSTR_WIDTH - 1) && decReg.instr_a(26, 22) =/= OPCODE_ALUL;

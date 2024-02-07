@@ -12,6 +12,7 @@
 package sspm
 
 import Chisel._
+import chisel3.VecInit
 
 import patmos.Constants._
 
@@ -159,7 +160,7 @@ class  memSPM(size: Int) extends Module {
   val addrBits = log2Up(size) //
 
   // Vector for each connector
-  val memories = Vec.fill(4) {Module(new memModule(size)).io} // Using .io here, means that we do not
+  val memories = VecInit(Seq.fill(4)(Module(new memModule(size)).io)) // Using .io here, means that we do not
                                                                 // have to write e.g.  memories(j).io.M.Data
   //val dataReg = Reg(init=UInt(0, width=BYTE_WIDTH))
   //dataReg := UInt(0)

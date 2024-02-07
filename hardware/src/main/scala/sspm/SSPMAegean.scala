@@ -9,6 +9,7 @@
 package sspm
 
 import Chisel._
+import chisel3.VecInit
 
 import patmos.Constants._
 
@@ -27,11 +28,11 @@ class SSPMAegean(val nCores: Int,
 
   //override val io = new CoreDeviceIO()
 
-  val io = IO(new CmpIO(nCores)) //Vec.fill(nCores) { new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH) }
+  val io = IO(new CmpIO(nCores))
 
   // Generate modules
   val mem = Module(new memSPM(16384))
-  val connectors = Vec.fill(nCores) { Module(new SSPMConnector()).io }
+  val connectors = VecInit(Seq.fill(nCores)(Module(new SSPMConnector()).io)) // MS: shall this be really a Vec and not a Seq?
 
   val firstCore = 0
   val nextCore = Reg(init = UInt(firstCore + 1, log2Up(nCores)))
