@@ -20,6 +20,7 @@
 \usepackage{ulem}
 \usepackage{enumerate}
 \usepackage{framed}
+\usepackage{tikz}
 
 % avoid clubs and widows
 \clubpenalty=10000
@@ -2854,6 +2855,39 @@ What other instructions can be executed in both pipelines is still open for
 discussion and evaluation with benchmarks. A minimal approach, as first
 step for the hardware implementation, is to have only ALU instructions
 available in the second pipelines (excluding predicate manipulation instructions).
+
+It is undefined behavior for the two instructions in a bundle to be enabled at runtime and write to the same target register of any kind (with the exception on the read-only registers like \texttt{r0} and \texttt{p0}).
+\autoref{tab:doublewrites} gives some examples of defined and undefined instruction combinations.
+Notice that the target register does not have to be explicit, as in the example with \texttt{mts} writing to the same register as a \texttt{mul}.
+
+% Draws a checkmark. Source: https://tex.stackexchange.com/a/655719/192254
+\newcommand{\tikzxmark}{%
+	\tikz[scale=0.23] {
+		\draw[line width=0.7,line cap=round] (0,0) to [bend left=6] (1,1);
+		\draw[line width=0.7,line cap=round] (0.2,0.95) to [bend right=3] (0.8,0.05);
+}}
+
+% Draws a crossmark. Source: https://tex.stackexchange.com/a/655719/192254
+\newcommand{\tikzcmark}{%
+	\tikz[scale=0.23] {
+		\draw[line width=0.7,line cap=round] (0.25,0) to [bend left=10] (1,1);
+		\draw[line width=0.8,line cap=round] (0,0.35) to [bend right=1] (0.23,0);
+}}
+
+\begin{table}[hb]
+	\centering
+	\begin{tabular}{l l  | c}
+		Instruction 1 & Instruction 2 & Defined \\
+		\hline
+		\texttt{(\tikzcmark) add r0 = ..} & \texttt{(\tikzcmark) add r0 = ..} & \tikzcmark \\
+		\texttt{(\tikzcmark) add r1 = ..} & \texttt{(\tikzcmark) add r1 = ..} & \tikzxmark \\
+		\texttt{(\tikzcmark) add r1 = ..} & \texttt{(\tikzxmark) add r1 = ..} & \tikzcmark \\
+		\texttt{(\tikzcmark) mul ..} & \texttt{(\tikzcmark) mul ..} & \tikzxmark \\
+		\texttt{(\tikzcmark) mul ..} & \texttt{(\tikzcmark) mts sl = ..} & \tikzxmark \\
+	\end{tabular}
+	\caption{Examples of (un)defined writes to the same register. Checkmarks in the predicate position represent whether the predicate and its negation evaluate to true when the bundle is executed.}
+	\label{tab:doublewrites}
+\end{table}
 
 \stefan{From what I see in the code, it might also help a lot to allow SWS in the
 second pipeline, as they are quite common. Predicate instructions are not that common
