@@ -72,7 +72,7 @@ class CoreDeviceIO() extends InternalIO() {
 }
 
 class IODevice() extends Device() {
-  override val io = IO(new IODeviceIO())
+  val io = IO(new IODeviceIO())
 }
 
 class IODeviceIO() extends InternalIO() {
@@ -80,7 +80,7 @@ class IODeviceIO() extends InternalIO() {
 }
 
 class BurstDevice(addrBits: Int) extends Device() {
-  override val io = new BurstDeviceIO(addrBits)
+  val io = new BurstDeviceIO(addrBits)
 }
 
 class BurstDeviceIO(val addrBits: Int) extends InternalIO() {
