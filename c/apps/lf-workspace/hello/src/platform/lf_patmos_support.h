@@ -1,8 +1,8 @@
 
-/* FlexPRET API support for the C target of Lingua Franca. */
+/* Patmos API support for the C target of Lingua Franca. */
 
 /*************
-Copyright (c) 2021, The University of California at Berkeley.
+Copyright (c) 2024, The University of California at Berkeley.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -26,7 +26,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
 /**
- * FlexPRET API support for the C target of Lingua Franca.
+ * Patmos API support for the C target of Lingua Franca.
  *
  * This is based on lf_nrf_support.h in icyphy/lf-buckler.
  *  
@@ -53,22 +53,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Keep track of physical actions being entered into the system
 static volatile bool _lf_async_event = false;
-// Keep track of nested critical sections
-static uint32_t _lf_num_nested_critical_sections=0;
-/**
- * Global timing variables:
- * Since Arduino is 32bit, we need to also maintain the 32 higher bits.
 
- * _lf_time_us_high is incremented at each overflow of 32bit Arduino timer.
- * _lf_time_us_low_last is the last value we read from the 32 bit Arduino timer.
- *  We can detect overflow by reading a value that is lower than this.
- *  This does require us to read the timer and update this variable at least once per 35 minutes.
- *  This is not an issue when we do a busy-sleep. If we go to HW timer sleep we would want to register an interrupt
- *  capturing the overflow.
-
- */
-static volatile uint32_t _lf_time_us_high = 0;
-static volatile uint32_t _lf_time_us_low_last = 0; 
 // The underlying physical clock for Linux
 #define _LF_CLOCK CLOCK_MONOTONIC
 

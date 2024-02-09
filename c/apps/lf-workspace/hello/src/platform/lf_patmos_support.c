@@ -1,11 +1,20 @@
-
 #include <time.h>
 #include <errno.h>
 #include <assert.h>
 #include <lf_patmos_support.h>
 #include "../platform.h"
 #include <machine/rtc.h>
+#include <machine/exceptions.h>
 #include <stdio.h>
+
+/**
+ * @brief Sleep until an absolute time.
+ * TODO: For improved power consumption this should be implemented with a HW timer and interrupts.
+ *
+ * @param wakeup int64_t time of wakeup
+ * @return int 0 if successful sleep, -1 if awoken by async event
+ */
+
 int _lf_interruptable_sleep_until_locked(environment_t* env, instant_t wakeup) {
     instant_t now;
     _lf_async_event = false;
@@ -26,9 +35,8 @@ int _lf_interruptable_sleep_until_locked(environment_t* env, instant_t wakeup) {
     }
 }
 
-
 /**
- * Initialize the LF clock. Arduino auto-initializes its clock, so we don't do anything.
+ * Patmos clock does not need initialization.
  */
 void _lf_initialize_clock() {
 
@@ -45,53 +53,37 @@ int _lf_clock_now(instant_t* t) {
 
     assert(t != NULL);
 
-   //*t = (get_cpu_cycles() * 12); //12 sec
-    *t = get_cpu_usecs() *1000;
-   //*t = ((get_cpu_cycles() >> 1)  * 25) ;
-   //*t = ((get_cpu_cycles() *25)  >> 1) ;
+   *t = get_cpu_usecs() * 1000;
+   
     return 0;
 }
 
 #if defined(LF_UNTHREADED)
 
 int lf_enable_interrupts_nested() {
-    // if (_lf_num_nested_critical_sections++ == 0) {
-    //     // First nested entry into a critical section.
-    //     // If interrupts are not initially enabled, then increment again to prevent
-    //     // TODO: Do we need to check whether the interrupts were enabled to
-    //     //  begin with? AFAIK there is no Arduino API for that
-    //     noInterrupts();
-    // }
-    // return 0;
+    // unmask interrupts
+    intr_unmask_all();
+    // clear pending flags
+    intr_clear_all_pending();
+    // enable interrupts
+    intr_enable();
+    return 0;
 }
 int lf_disable_interrupts_nested() {
-    // if (_lf_num_nested_critical_sections <= 0) {
-    //     return 1;
-    // }
-    // if (--_lf_num_nested_critical_sections == 0) {
-    //     interrupts();
-    // }
-    // return 0;
-}
-
-/**
- * Handle notifications from the runtime of changes to the event queue.
- * If a sleep is in progress, it should be interrupted.
-*/
-int _lf_unthreaded_notify_of_event() {
-//    _lf_async_event = true;
-//    return 0;
+    intr_disable();
+    return 0;
 }
 
 #endif
 // Overwrite print functions with NoOp.
 int puts(const char *str) {}
 
-// int printf(const char *format, ...) {}
-// int sprintf(char *str, const char *format, ...) {}
-// int snprintf(char *str, size_t size, const char *format, ...) {}
-// int vprintf(const char *format, va_list ap) {}
-// int vfprintf(FILE *stream, const char *format, va_list arg) {}
+#if LF_PRINT_ENABLE == 1
 
-//void lf_print_error_and_exit(const char* format, ...) {}
-// Fun
+int printf(const char *format, ...) {}
+int sprintf(char *str, const char *format, ...) {}
+int snprintf(char *str, size_t size, const char *format, ...) {}
+int vprintf(const char *format, va_list ap) {}
+int vfprintf(FILE *stream, const char *format, va_list arg) {}
+
+#endif

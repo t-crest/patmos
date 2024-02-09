@@ -6,25 +6,25 @@ target C
 main reactor {
     p = new Printer()
     c = new Counter(stride=1)
-    d = new Double()
+    d = new Multiplier()
     
-    c.out->d.x
-    d.y->p.in
+    c.out->d.in
+    d.out->p.in
    reaction(startup) {=
         lf_print("Hello World!");
    =}  
 }
 
-reactor Double { 
-    input x: int
-    output y: int
-    reaction(x) -> y {=
-      lf_set(y, x->value * 1);
+reactor Multiplier { 
+    input in: int
+    output out: int
+    reaction(in) -> out {=
+      lf_set(out, in->value * 1);
     =}
 }
 
 reactor Counter(stride:int(1)) {
-    timer t (0, 1 sec)
+    timer t (1 sec, 1 sec)
     state count:int(0)
     output out:int
     reaction (t) -> out {=  
@@ -36,7 +36,7 @@ reactor Counter(stride:int(1)) {
 reactor Printer {
     input in:int
     reaction(in) {=
-       lf_print("time is %02d:%02d:%02d", in->value/3600, (in->value/60)%60, in->value%60);
+       lf_print("Time Is %02d:%02d:%02d", in->value/3600, (in->value/60)%60, in->value%60);
     =}
 }
 
