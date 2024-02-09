@@ -8,13 +8,17 @@
 
 package patmos
 
+// MS: if util is imported later, Config is confused as chisel3 has an util itself.
+// MS: maybe avoid a utiel package with chisel3? A shame.
+import util._
+
 import Chisel._
 import java.io.File
 import chisel3.experimental._
 import chisel3.dontTouch
 import chisel3.VecInit
+import chisel3.WireDefault
 import Constants._
-import util._
 import io._
 import datacache._
 import ocp.{OcpCoreSlavePort, _}
@@ -30,9 +34,9 @@ import scala.collection.mutable
 class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
 
   val io = IO(new Bundle() with HasSuperMode with HasPerfCounter with HasInterrupts {
-    override val superMode = Bool(OUTPUT)
-    override val perf = new PerfCounterIO().asOutput
-    override val interrupts = Vec(INTR_COUNT, Bool(INPUT) )
+    override val superMode = Output(Bool())
+    override val perf = Flipped(new PerfCounterIO())
+    override val interrupts = Input(Vec(INTR_COUNT, Bool()))
     val memPort = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
     val memInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
     val excInOut = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
@@ -139,7 +143,7 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
   decode.io.ena := enable
   writeback.io.ena := enable
   exc.io.ena := enable
-  val enableReg = Reg(next = enable)
+  val enableReg = RegNext(enable)
 
   dontTouch(enableReg)
 
@@ -163,9 +167,9 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
   io.perf.sc := dcache.io.scPerf
   io.perf.wc := dcache.io.wcPerf
   io.perf.mem.read := (io.memPort.M.Cmd === OcpCmd.RD &&
-    io.memPort.S.CmdAccept === UInt(1))
+    io.memPort.S.CmdAccept === 1.U)
   io.perf.mem.write := (io.memPort.M.Cmd === OcpCmd.WR &&
-    io.memPort.S.CmdAccept === UInt(1))
+    io.memPort.S.CmdAccept === 1.U)
 
   // The inputs and outputs
   io.memPort <> mmu.io.phys
@@ -193,7 +197,7 @@ trait HasPerfCounter {
 }
 
 trait HasSuperMode {
-  val superMode = Bool(INPUT);
+  val superMode = Input(Bool());
 }
 
 final class PatmosBundle(elts: (String, Data)*) extends Record {
@@ -393,8 +397,8 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
         case __io: CoreDeviceIO => __io.ocp
       }
 
-    cores(i).io.memInOut.S.Data := UInt(0)
-    val validdev = Wire(Bool(), false.B)
+    cores(i).io.memInOut.S.Data := 0.U
+    val validdev = WireDefault(false.B)
     for(dev <- devios) {
       val _io = getIO(dev.io, i)
       val ocp = getSlavePort(_io)
@@ -433,7 +437,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     }
 
     // Register for error response
-    val errRespReg = Reg(init = OcpResp.NULL)
+    val errRespReg = RegInit(OcpResp.NULL)
     when(cores(i).io.memInOut.M.Cmd =/= OcpCmd.IDLE && !validdev) {
       errRespReg := OcpResp.ERR
     }
