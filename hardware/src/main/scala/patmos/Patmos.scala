@@ -143,8 +143,9 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
   decode.io.ena := enable
   writeback.io.ena := enable
   exc.io.ena := enable
-  val enableReg = RegNext(enable)
 
+  // TODO: only used by the emulator, how usefull?
+  val enableReg = RegNext(enable)
   dontTouch(enableReg)
 
   // Flush signal
