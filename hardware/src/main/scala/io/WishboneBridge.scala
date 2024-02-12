@@ -30,13 +30,13 @@ class WishboneBridge(extAddrWidth : Int = 32,
     override val pins = new Bundle() {
       val wb_addr_o = UInt(OUTPUT,extAddrWidth)
       val wb_data_i = UInt(INPUT,dataWidth)
-      val wb_err_i = Bool(INPUT)
+      val wb_err_i = Input(Bool())
       val wb_data_o = UInt(OUTPUT,dataWidth)
-      val wb_we_o = Bool(OUTPUT)
+      val wb_we_o = Output(Bool())
       val wb_sel_o = UInt(OUTPUT,4)
-      val wb_stb_o = Bool(OUTPUT)
-      val wb_ack_i = Bool(INPUT)
-      val wb_cyc_o = Bool(OUTPUT)
+      val wb_stb_o = Output(Bool())
+      val wb_ack_i = Input(Bool())
+      val wb_cyc_o = Output(Bool())
     }
   }
   // Registers

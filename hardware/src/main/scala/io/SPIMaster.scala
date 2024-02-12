@@ -135,7 +135,7 @@ class SPIMaster(clkFreq : Int, slaveCount : Int, sclkHz : Int, fifoDepth : Int, 
       // loadToSend := true.B
       respReg := OcpResp.DVA
       txQueue.io.enq.bits := io.ocp.M.Data(wordLen-1, 0)
-      txQueue.io.enq.valid := Bool(true)    
+      txQueue.io.enq.valid := Bool(true)
     }
 
 

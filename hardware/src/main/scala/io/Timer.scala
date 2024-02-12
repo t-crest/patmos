@@ -26,7 +26,7 @@ object Timer extends DeviceObject {
 class Timer(clk_freq: Int) extends CoreDevice() {
 
   override val io = IO(new CoreDeviceIO() with patmos.HasInterrupts {
-    override val interrupts = Vec(2, Bool(OUTPUT) )
+    override val interrupts = Vec(2, Output(Bool()) )
   })
 
   val masterReg = Reg(next = io.ocp.M)

@@ -86,7 +86,7 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends DCacheType(lin
                           OcpResp.DVA, OcpResp.NULL)
                           
   // Update lru on hit
-  when ((masterReg.Cmd === OcpCmd.WR || masterReg.Cmd === OcpCmd.RD) && (tagValid1 || tagValid2) && fillReg === Bool(false)) { 
+  when ((masterReg.Cmd === OcpCmd.WR || masterReg.Cmd === OcpCmd.RD) && (tagValid1 || tagValid2) && fillReg === Bool(false)) {
 	  lruMem(masterReg.Addr(addrBits + 1, 2)) := Mux(tagValid1, Bool(true), Bool(false))
   }
 

@@ -11,8 +11,8 @@ import Chisel._
 
 class AsyncArbiterIO extends Bundle
 {
-  val ack = Bool(INPUT)
-  val req = Bool(OUTPUT)
+  val ack = Input(Bool())
+  val req = Output(Bool())
 
   override def clone = new AsyncArbiterIO().asInstanceOf[this.type]
 }
@@ -27,10 +27,10 @@ class AsyncArbiterTreeIO(cnt: Int) extends AsyncArbiterIO
 class AsyncArbiterBB() extends BlackBox {
   val io = new AsyncArbiterIO()
   {
-    val req1 = Bool(INPUT)
-    val req2 = Bool(INPUT)
-    val ack1 = Bool(OUTPUT)
-    val ack2 = Bool(OUTPUT)
+    val req1 = Input(Bool())
+    val req2 = Input(Bool())
+    val ack1 = Output(Bool())
+    val ack2 = Output(Bool())
   }
   //throw new Error("BlackBox wrapper for AsyncArbiter needs update for Chisel 3")
 

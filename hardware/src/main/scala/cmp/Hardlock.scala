@@ -16,9 +16,9 @@ import ocp._
 
 class HardlockIO(val lckCnt : Int) extends Bundle {
   val sel = UInt(INPUT, log2Up(lckCnt))
-  val op = Bool(INPUT)
-  val en = Bool(INPUT)
-  val blck = Bool(OUTPUT)
+  val op = Input(Bool())
+  val en = Input(Bool())
+  val blck = Output(Bool())
 }
 
 class HardlockIOVec(val coreCnt : Int, val lckCnt : Int) extends Bundle {

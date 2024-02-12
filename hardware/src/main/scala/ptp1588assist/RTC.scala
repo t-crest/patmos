@@ -10,7 +10,7 @@ import patmos.Constants._
    val io = new Bundle() {
      val ocp = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
      val ptpTimestamp = UInt(OUTPUT, width = secondsWidth + nanoWidth)
-     val pps = Bool(OUTPUT)
+     val pps = Output(Bool())
    }
 
    // Constants
@@ -156,8 +156,8 @@ import patmos.Constants._
 //  override val io = new Bundle() {
 //    val ocp = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
 //    val ptpTimestamp = UInt(OUTPUT, width = secondsWidth + nanoWidth)
-//    val periodIntr = Bool(OUTPUT)
-//    val pps = Bool(OUTPUT)
+//    val periodIntr = Output(Bool())
+//    val pps = Output(Bool())
 //  }
 //
 //  // Constants

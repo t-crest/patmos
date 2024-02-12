@@ -20,7 +20,7 @@ class DataCache extends Module {
     val master = new OcpCacheSlavePort(ADDR_WIDTH, DATA_WIDTH)
     val slave = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
     val scIO = new StackCacheIO()
-    val invalDCache = Bool(INPUT)
+    val invalDCache = Input(Bool())
     val dcPerf = new DataCachePerf()
     val scPerf = new StackCachePerf()
     val wcPerf = new WriteCombinePerf()

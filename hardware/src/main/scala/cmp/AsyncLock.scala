@@ -14,10 +14,10 @@ import scala.collection.mutable
 
 class AsyncMutexIO extends Bundle
 {
-  val req1 = Bool(INPUT)
-  val req2 = Bool(INPUT)
-  val gnt1 = Bool(OUTPUT)
-  val gnt2 = Bool(OUTPUT)
+  val req1 = Input(Bool())
+  val req2 = Input(Bool())
+  val gnt1 = Output(Bool())
+  val gnt2 = Output(Bool())
 
   override def clone = new AsyncMutexIO().asInstanceOf[this.type]
 }

@@ -3,7 +3,7 @@ package ptp1588assist
 import Chisel._
 
 class MIIChannel extends Bundle{
-  val clk = Bool(INPUT)
+  val clk = Input(Bool())
   val dv = Bool()
   val data = Bits(width=4)
   val err = Bool()

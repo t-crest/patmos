@@ -130,7 +130,7 @@ class SDHostCtrl() extends CoreDevice() {
     io.pins.sdClk := clkReg
   }
   .otherwise { // Not enabled
-    io.pins.sdClk := Bool(false) 
+    io.pins.sdClk := Bool(false)
     clkReg := Bool(false) // As to begin with a rising edge
   }
 

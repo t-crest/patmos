@@ -40,15 +40,15 @@ object IConstants {
   Internal connections for the instruction cache
  */
 class ICacheCtrlIO extends Bundle() {
-  val ena_in = Bool(INPUT)
-  val fetchEna = Bool(OUTPUT)
+  val ena_in = Input(Bool())
+  val fetchEna = Output(Bool())
   val ctrlrepl = new ICacheCtrlRepl().asOutput
   val replctrl = new ICacheReplCtrl().asInput
   val feicache = new FeICache().asInput
   val exicache = new ExICache().asInput
   val ocp_port = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
   val perf = new InstructionCachePerf()
-  val illMem = Bool(OUTPUT)
+  val illMem = Output(Bool())
 }
 class ICacheCtrlRepl extends Bundle() {
   val wEna = Bool()
@@ -62,8 +62,8 @@ class ICacheReplCtrl extends Bundle() {
   val selCache = Bool()
 }
 class ICacheReplIO extends Bundle() {
-  val ena_in = Bool(INPUT)
-  val invalidate = Bool(INPUT)
+  val ena_in = Input(Bool())
+  val invalidate = Input(Bool())
   val exicache = new ExICache().asInput
   val feicache = new FeICache().asInput
   val icachefe = new ICacheFe().asOutput

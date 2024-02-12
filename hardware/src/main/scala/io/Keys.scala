@@ -29,7 +29,7 @@ class Keys(keyCount : Int) extends CoreDevice() {
     override val pins = new Bundle() {
       val key = Bits(INPUT, keyCount)
     }
-    override val interrupts = Vec(keyCount, Bool(OUTPUT) )
+    override val interrupts = Vec(keyCount, Output(Bool()) )
   })
 
   val keySyncReg = Reg(Bits(width = keyCount))

@@ -28,15 +28,15 @@ object MConstants {
   Internal connections for the method cache
  */
 class MCacheCtrlIO extends Bundle() {
-  val ena_in = Bool(INPUT)
-  val fetchEna = Bool(OUTPUT)
+  val ena_in = Input(Bool())
+  val fetchEna = Output(Bool())
   val ctrlrepl = new MCacheCtrlRepl().asOutput
   val replctrl = new MCacheReplCtrl().asInput
   val femcache = new FeICache().asInput
   val exmcache = new ExICache().asInput
   val ocp_port = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
-  val illMem = Bool(OUTPUT)
-  val forceHit = Bool(OUTPUT)
+  val illMem = Output(Bool())
+  val forceHit = Output(Bool())
 }
 class MCacheCtrlRepl extends Bundle() {
   val wEna = Bool()
@@ -51,9 +51,9 @@ class MCacheReplCtrl extends Bundle() {
   val hit = Bool()
 }
 class MCacheReplIO extends Bundle() {
-  val ena_in = Bool(INPUT)
-  val invalidate = Bool(INPUT)
-  val hitEna = Bool(OUTPUT)
+  val ena_in = Input(Bool())
+  val invalidate = Input(Bool())
+  val hitEna = Output(Bool())
   val exmcache = new ExICache().asInput
   val mcachefe = new ICacheFe().asOutput
   val ctrlrepl = new MCacheCtrlRepl().asInput

@@ -39,10 +39,10 @@ class AvalonMMBridge(extAddrWidth : Int = 32,
       val avs_burstcount = Bits(OUTPUT,1)
       val avs_writedata = UInt(OUTPUT,dataWidth)
       val avs_address = UInt(OUTPUT,extAddrWidth)
-      val avs_write = Bool(OUTPUT)
-      val avs_read = Bool(OUTPUT)
+      val avs_write = Output(Bool())
+      val avs_read = Output(Bool())
       val avs_byteenable = Bits(OUTPUT, dataWidth/8)
-      val avs_debugaccess = Bool(OUTPUT)
+      val avs_debugaccess = Output(Bool())
       val avs_intr = Bits(INPUT,numIntrs)
     }
     override val interrupts = Output(VecInit(Seq.fill(numIntrs)(Bool()))) // why is there a VecInit? a Vec would just be fine (MS)
