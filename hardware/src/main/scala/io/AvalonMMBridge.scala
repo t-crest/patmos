@@ -75,8 +75,8 @@ class AvalonMMBridge(extAddrWidth : Int = 32,
   //val respReg = Reg(init = OcpResp.NULL)
   //val dataReg = Reg(init = Bits(0, dataWidth))
 
-  val ReadWriteActive = Bool(true)
-  val ReadWriteInactive = Bool(false)
+  val ReadWriteActive = true.B
+  val ReadWriteInactive = false.B
   // Default values in case of ILDE command
   //respReg := OcpResp.NULL
   //dataReg := Bits(0)

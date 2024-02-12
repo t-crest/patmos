@@ -34,7 +34,7 @@ class Memory() extends Module {
   io.flush := flush
 
   // Stall logic
-  val mayStallReg = RegInit(Bool(false))
+  val mayStallReg = RegInit(false.B)
   val enable = (io.localInOut.S.Resp === OcpResp.DVA
                 || io.globalInOut.S.Resp === OcpResp.DVA
                 || !mayStallReg)
@@ -46,21 +46,21 @@ class Memory() extends Module {
     mayStallReg := io.exmem.mem.load || io.exmem.mem.store
     when(flush) {
       memReg.flush()
-      mayStallReg := Bool(false)
+      mayStallReg := false.B
     }
   }
   when(illMem) {
-      mayStallReg := Bool(false)
+      mayStallReg := false.B
   }
 
   // Buffer incoming data while being stalled from I-cache
-  val rdDataEnaReg = RegInit(Bool(false))
+  val rdDataEnaReg = RegInit(false.B)
   val rdDataReg = RegInit(UInt(0, width = 32))
   // Save incoming data if available during I-cache stall
   when (!io.ena_in) {
     when (io.localInOut.S.Resp =/= OcpResp.NULL || io.globalInOut.S.Resp =/= OcpResp.NULL) {
-      mayStallReg := Bool(false)
-      rdDataEnaReg := Bool(true)
+      mayStallReg := false.B
+      rdDataEnaReg := true.B
     }
     when (io.localInOut.S.Resp === OcpResp.DVA) {
       rdDataReg := io.localInOut.S.Data
@@ -70,7 +70,7 @@ class Memory() extends Module {
     }
   }
   .otherwise {
-    rdDataEnaReg := Bool(false)
+    rdDataEnaReg := false.B
   }
 
   // Write data multiplexing and write enables

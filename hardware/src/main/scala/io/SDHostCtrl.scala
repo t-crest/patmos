@@ -31,7 +31,7 @@ class SDHostCtrl() extends CoreDevice() {
   }
 
   // Internals
-  val enReg = Reg(Bool(false)) // Is the controller enabled?
+  val enReg = Reg(false.B) // Is the controller enabled?
   val bufPntReg = Reg(UInt(0, 4)) // Counts the bit being transmitted.
                                   // Must be large enough to contain buffer size.
 
@@ -39,14 +39,14 @@ class SDHostCtrl() extends CoreDevice() {
   val DEFAULTCLKDIV = 100 // 80MHz Patmos -> 400kHz SCLK
   val clkDivReg = Reg(UInt(DEFAULTCLKDIV, 16))
   val clkCntReg = Reg(UInt(0, 16)) // Could be smaller
-  val clkReg = Reg(Bool(true))
+  val clkReg = Reg(true.B)
 
   // Buffer
   val bufOutReg = Reg(Bits(width = 8))
   val bufInReg = Reg(Bits(width = 8))
 
   // Settings register
-  val csReg = Reg(Bool(false)) // CS pin
+  val csReg = Reg(false.B) // CS pin
 
   // OCP
   val ocpDataReg = Reg(Bits(width = 32))
@@ -65,7 +65,7 @@ class SDHostCtrl() extends CoreDevice() {
         bufInReg := UInt(0)
 
         // Trigger transaction
-        enReg := Bool(true)
+        enReg := true.B
         bufPntReg := UInt(8)
         clkCntReg := clkDivReg
       }
@@ -106,17 +106,17 @@ class SDHostCtrl() extends CoreDevice() {
   // Connections to pins
   val bufIdx = bufPntReg - UInt(1) // For convenience
 
-  when(enReg === Bool(true)) {
+  when(enReg === true.B) {
     when (clkCntReg === UInt(1)) {
       clkCntReg := clkDivReg
       clkReg := ~clkReg
 
-      when(clkReg === Bool(true)) { // Falling edge -> Sample
+      when(clkReg === true.B) { // Falling edge -> Sample
         bufInReg(bufIdx) := io.pins.sdDatOut
 
         // Count clock cycles
         when (bufPntReg === UInt(1)) {
-          enReg := Bool(false) // Transaction done
+          enReg := false.B // Transaction done
         }
         .otherwise {
           bufPntReg := bufPntReg - UInt(1)
@@ -130,8 +130,8 @@ class SDHostCtrl() extends CoreDevice() {
     io.pins.sdClk := clkReg
   }
   .otherwise { // Not enabled
-    io.pins.sdClk := Bool(false)
-    clkReg := Bool(false) // As to begin with a rising edge
+    io.pins.sdClk := false.B
+    clkReg := false.B // As to begin with a rising edge
   }
 
   io.pins.sdDatIn := bufOutReg(bufIdx)

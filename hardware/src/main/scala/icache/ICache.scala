@@ -155,9 +155,9 @@ class ICacheReplDm() extends Module {
   val callRetBaseReg = RegInit(UInt(1, DATA_WIDTH))
   val callRetBaseNext = dontTouch(Wire(UInt(DATA_WIDTH.W))) // for emulator
   val callAddrReg = RegInit(UInt(1, DATA_WIDTH))
-  val selSpmReg = RegInit(Bool(false))
+  val selSpmReg = RegInit(false.B)
   val selSpmNext = dontTouch(Wire(Bool())) //for emulator
-  val selCacheReg = RegInit(Bool(false))
+  val selCacheReg = RegInit(false.B)
   val selCacheNext = dontTouch(Wire(Bool())) //for emulator
 
   val fetchAddr = Wire(UInt(width = ADDR_WIDTH))
@@ -213,14 +213,14 @@ class ICacheReplDm() extends Module {
   val valid = validEven && validOdd
 
   // Check for a hit of both instructions in the address bundle
-  hitEven := Bool(true)
-  hitOdd := Bool(true)
+  hitEven := true.B
+  hitOdd := true.B
   when ((tagEven =/= addrEvenReg(TAG_HIGH, TAG_LOW)) || (!validEven)) {
-    hitEven := Bool(false)
+    hitEven := false.B
   }
   fetchAddr := addrEvenReg
   when ((tagOdd =/= addrOddReg(TAG_HIGH, TAG_LOW)) || (!validOdd)) {
-    hitOdd := Bool(false)
+    hitOdd := false.B
     fetchAddr := addrOddReg
   }
   // Keep signals alive for emulator
@@ -237,14 +237,14 @@ class ICacheReplDm() extends Module {
   tagMemEven.io <= (io.ctrlrepl.wTag && !wrAddrParity, wrAddrIndex, wrAddrTag)
   tagMemOdd.io <= (io.ctrlrepl.wTag && wrAddrParity, wrAddrIndex, wrAddrTag)
   when (io.ctrlrepl.wTag) {
-    validVec(wrValidIndex) := Bool(true)
+    validVec(wrValidIndex) := true.B
   }
 
   val wrParity = io.ctrlrepl.wAddr(0)
 
   // Outputs to cache memory
-  io.memIn.wEven := Mux(wrParity, Bool(false), io.ctrlrepl.wEna)
-  io.memIn.wOdd := Mux(wrParity, io.ctrlrepl.wEna, Bool(false))
+  io.memIn.wEven := Mux(wrParity, false.B, io.ctrlrepl.wEna)
+  io.memIn.wOdd := Mux(wrParity, io.ctrlrepl.wEna, false.B)
   io.memIn.wData := io.ctrlrepl.wData
   io.memIn.wAddr := io.ctrlrepl.wAddr(INDEX_HIGH,1)
   io.memIn.addrOdd := io.feicache.addrOdd(INDEX_HIGH,1)
@@ -266,7 +266,7 @@ class ICacheReplDm() extends Module {
   io.replctrl.selCache := selCacheReg
 
   when (io.invalidate) {
-    validVec.map(_ := Bool(false))
+    validVec.map(_ := false.B)
   }
 }
 
@@ -296,12 +296,12 @@ class ICacheCtrl() extends Module {
 
   // Initialize signals
   wData := UInt(0)
-  wTag := Bool(false)
-  wEna := Bool(false)
+  wTag := false.B
+  wEna := false.B
   wAddr := UInt(0)
   ocpCmd := OcpCmd.IDLE
   ocpAddr := UInt(0)
-  fetchEna := Bool(true)
+  fetchEna := true.B
 
   // Wait till ICache is the selected source of instructions
   when (stateReg === initState) {
@@ -314,13 +314,13 @@ class ICacheCtrl() extends Module {
       stateReg := initState
     } .otherwise {
       when (!io.replctrl.hit) {
-        fetchEna := Bool(false)
+        fetchEna := false.B
         val addr = io.replctrl.fetchAddr(ADDR_WIDTH-1, LINE_WORD_SIZE_WIDTH)
         addrReg := addr
         burstCntReg := UInt(0)
         fetchCntReg := UInt(0)
         // Write new tag field memory
-        wTag := Bool(true)
+        wTag := true.B
         wAddr := Cat(addr, UInt(0, width = LINE_WORD_SIZE_WIDTH))
         // Check if command is accepted by the memory controller
         ocpAddr := Cat(addr, UInt(0, width =  LINE_WORD_SIZE_WIDTH))
@@ -334,7 +334,7 @@ class ICacheCtrl() extends Module {
     }
   }
   when (stateReg === waitState) {
-    fetchEna := Bool(false)
+    fetchEna := false.B
     ocpAddr := Cat(addrReg, UInt(0, width = LINE_WORD_SIZE_WIDTH))
     ocpCmd := OcpCmd.RD
     when (io.ocp_port.S.CmdAccept === UInt(1)) {
@@ -343,7 +343,7 @@ class ICacheCtrl() extends Module {
   }
   // Transfer/fetch cache block
   when (stateReg === transferState) {
-    fetchEna := Bool(false)
+    fetchEna := false.B
     when (fetchCntReg < UInt(LINE_WORD_SIZE)) {
       when (ocpSlaveReg.Resp === OcpResp.DVA) {
         fetchCntReg := fetchCntReg + UInt(1)
@@ -358,7 +358,7 @@ class ICacheCtrl() extends Module {
         }
         // Write current address to icache memory
         wData := ocpSlaveReg.Data
-        wEna := Bool(true)
+        wEna := true.B
       }
       wAddr := Cat(addrReg, UInt(0, width = LINE_WORD_SIZE_WIDTH)) + fetchCntReg
     }
@@ -369,19 +369,19 @@ class ICacheCtrl() extends Module {
   }
 
   // abort on error response
-  io.illMem := Bool(false)
+  io.illMem := false.B
   when (ocpSlaveReg.Resp === OcpResp.ERR) {
     burstCntReg := burstCntReg + UInt(1)
     stateReg := errorState
   }
   // wait for end of burst before signalling error
   when (stateReg === errorState) {
-    fetchEna := Bool(false)
+    fetchEna := false.B
     when (ocpSlaveReg.Resp =/= OcpResp.NULL) {
       burstCntReg := burstCntReg + UInt(1)
     }
     when (burstCntReg === UInt(BURST_LENGTH - 1)) {
-      io.illMem := Bool(true)
+      io.illMem := true.B
       stateReg := idleState
     }
   }
@@ -402,13 +402,13 @@ class ICacheCtrl() extends Module {
   io.ocp_port.M.DataValid := UInt(0) //read-only
 
   // Output to performance counters
-  io.perf.hit := Bool(false)
-  io.perf.miss := Bool(false)
+  io.perf.hit := false.B
+  io.perf.miss := false.B
   when (io.ena_in && io.replctrl.selCache && stateReg === idleState) {
     when (io.replctrl.hit) {
-      io.perf.hit := Bool(true)
+      io.perf.hit := true.B
     } .otherwise {
-      io.perf.miss := Bool(true)
+      io.perf.miss := true.B
     }
   }
 }

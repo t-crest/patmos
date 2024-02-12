@@ -57,8 +57,8 @@ class Uart(clk_freq: Int, baud_rate: Int, fifoDepth: Int) extends CoreDevice() {
 
     val txQueue = Module(new Queue(Bits(width = 8), fifoDepth))
     txQueue.io.enq.bits     := io.ocp.M.Data(7, 0)
-    txQueue.io.enq.valid    := Bool(false)
-    txQueue.io.deq.ready    := Bool(false)
+    txQueue.io.enq.valid    := false.B
+    txQueue.io.deq.ready    := false.B
 
     val rxd_reg0            = Reg(init = Bits(1, 1))
     val rxd_reg1            = Reg(init = Bits(1, 1))
@@ -66,7 +66,7 @@ class Uart(clk_freq: Int, baud_rate: Int, fifoDepth: Int) extends CoreDevice() {
 
     val rx_baud_counter     = Reg(init = UInt(0, log2Up(clk_freq/baud_rate)))
     val rx_baud_tick        = Reg(init = UInt(0, 1))
-    val rx_enable           = Reg(init = Bool(false))
+    val rx_enable           = Reg(init = false.B)
 
     val rx_buff             = Reg(init = Bits(0, 8))
     val rx_counter          = Reg(init = UInt(0, 3))
@@ -75,8 +75,8 @@ class Uart(clk_freq: Int, baud_rate: Int, fifoDepth: Int) extends CoreDevice() {
 
     val rxQueue = Module(new Queue(Bits(width = 8), fifoDepth))
     rxQueue.io.enq.bits     := rx_buff
-    rxQueue.io.enq.valid    := Bool(false)
-    rxQueue.io.deq.ready    := Bool(false)
+    rxQueue.io.enq.valid    := false.B
+    rxQueue.io.deq.ready    := false.B
 
     // Default response and data
     val respReg = Reg(init = OcpResp.NULL)
@@ -91,7 +91,7 @@ class Uart(clk_freq: Int, baud_rate: Int, fifoDepth: Int) extends CoreDevice() {
     when (io.ocp.M.Cmd === OcpCmd.WR) {
         respReg := OcpResp.DVA
         txQueue.io.enq.bits := io.ocp.M.Data(7, 0)
-        txQueue.io.enq.valid := Bool(true)
+        txQueue.io.enq.valid := true.B
     }
 
     // Read data
@@ -118,7 +118,7 @@ class Uart(clk_freq: Int, baud_rate: Int, fifoDepth: Int) extends CoreDevice() {
 
     when (tx_state === tx_idle) {
         when (txQueue.io.deq.valid) {
-          txQueue.io.deq.ready := Bool(true)
+          txQueue.io.deq.ready := true.B
           tx_buff              := Cat(Bits(1), txQueue.io.deq.bits, Bits(0))
           tx_state             := tx_send
         }
@@ -132,7 +132,7 @@ class Uart(clk_freq: Int, baud_rate: Int, fifoDepth: Int) extends CoreDevice() {
 
             when (tx_counter === UInt(10)) {
               when (txQueue.io.deq.valid) {
-                txQueue.io.deq.ready := Bool(true)
+                txQueue.io.deq.ready := true.B
                 tx_buff              := Cat(Bits(1), txQueue.io.deq.bits)
                 tx_reg               := UInt(0)
                 tx_counter           := UInt(1)
@@ -175,7 +175,7 @@ class Uart(clk_freq: Int, baud_rate: Int, fifoDepth: Int) extends CoreDevice() {
         when (rxd_reg2 === UInt(0)){
            rx_state         := rx_start
            rx_baud_counter  := UInt(clk_freq/baud_rate) / UInt(2)
-           rx_enable        := Bool(true)
+           rx_enable        := true.B
         }
     }
 
@@ -202,13 +202,13 @@ class Uart(clk_freq: Int, baud_rate: Int, fifoDepth: Int) extends CoreDevice() {
         when (rx_baud_tick === UInt(1)){
             when (rxd_reg2 === UInt(1)) {
                 rx_state        := rx_idle
-                rx_enable       := Bool(false)
+                rx_enable       := false.B
                 rxQueue.io.enq.bits  := rx_buff
-                rxQueue.io.enq.valid := Bool(true)
+                rxQueue.io.enq.valid := true.B
             }
             .otherwise{
                 rx_state        := rx_idle
-                rx_enable       := Bool(false)
+                rx_enable       := false.B
             }
         }
     }

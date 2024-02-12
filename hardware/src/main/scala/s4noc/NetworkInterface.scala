@@ -48,11 +48,11 @@ class NetworkInterface[T <: Data](dim: Int, txFifo: Int, rxFifo: Int, dt: T) ext
   }
 
   val inFifo = Module(new BubbleFifo(rxFifo))
-  inFifo.io.enq.write := Bool(false)
+  inFifo.io.enq.write := false.B
   inFifo.io.enq.din.data := io.cpuPort.wrData
   inFifo.io.enq.din.time := io.cpuPort.addr
   when (io.cpuPort.wr && !inFifo.io.enq.full) {
-    inFifo.io.enq.write := Bool(true)
+    inFifo.io.enq.write := true.B
   }
 
   io.local.out.data := inFifo.io.deq.dout.data
@@ -67,20 +67,20 @@ class NetworkInterface[T <: Data](dim: Int, txFifo: Int, rxFifo: Int, dt: T) ext
   // for now same clock cycle
 
   val outFifo = Module(new BubbleFifo(txFifo))
-  outFifo.io.enq.write := Bool(false)
+  outFifo.io.enq.write := false.B
   outFifo.io.enq.din.data := io.local.in.data
   outFifo.io.enq.din.time := regDelay
   when (io.local.in.valid && !outFifo.io.enq.full) {
-    outFifo.io.enq.write := Bool(true)
+    outFifo.io.enq.write := true.B
   }
 
   io.cpuPort.rdData := outFifo.io.deq.dout.data
-  outFifo.io.deq.read := Bool(false)
+  outFifo.io.deq.read := false.B
   val regTime = RegInit(UInt(0, 6))
   when (io.cpuPort.rd) {
     val addr = io.cpuPort.addr
     when (addr === UInt(0))  {
-      outFifo.io.deq.read := Bool(true)
+      outFifo.io.deq.read := true.B
     } .elsewhen(addr === UInt(1)) {
       io.cpuPort.rdData := regTime
     } .elsewhen(addr === UInt(2)) {

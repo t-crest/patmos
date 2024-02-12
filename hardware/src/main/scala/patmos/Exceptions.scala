@@ -28,7 +28,7 @@ class Exceptions extends Module {
   val intrEna = statusReg(0) === UInt(1)
   val superMode = statusReg(1) === UInt(1)
 
-  val localModeReg = RegInit(Bool(false))
+  val localModeReg = RegInit(false.B)
 
   def checked(action: => Unit) {
     when (superMode) (action) .otherwise { io.ocp.S.Resp := OcpResp.ERR }
@@ -37,7 +37,7 @@ class Exceptions extends Module {
   val vec    = Mem(UInt(width = DATA_WIDTH), EXC_COUNT)
   val vecDup = Mem(UInt(width = DATA_WIDTH), EXC_COUNT)
 
-  val sleepReg = RegInit(Bool(false))
+  val sleepReg = RegInit(false.B)
 
   // Latches for incoming exceptions and interrupts
   val excPend     = Wire(Vec(EXC_COUNT, Bool()))
@@ -55,8 +55,8 @@ class Exceptions extends Module {
   io.superMode := superMode
 
   // No resetting by default
-  io.invalICache := Bool(false)
-  io.invalDCache := Bool(false)
+  io.invalICache := false.B
+  io.invalDCache := false.B
 
   // Handle OCP reads and writes
   when(masterReg.Cmd === OcpCmd.RD) {
@@ -91,7 +91,7 @@ class Exceptions extends Module {
       is(UInt("b000100")) {
         checked { // Go to sleep
           io.ocp.S.Resp := OcpResp.NULL
-          sleepReg := Bool(true)
+          sleepReg := true.B
         }
       }
       is(UInt("b000101")) {
@@ -112,8 +112,8 @@ class Exceptions extends Module {
 
   // Acknowledgement of exception
   when(io.memexc.call) {
-    excPend(io.memexc.src) := Bool(false)
-    intrPend(io.memexc.src) := Bool(false)
+    excPend(io.memexc.src) := false.B
+    intrPend(io.memexc.src) := false.B
     when(io.ena) {
       sourceReg := io.memexc.src
       // Shift status, enable super mode, disable interrupts
@@ -131,7 +131,7 @@ class Exceptions extends Module {
   // Latch interrupt pins
   for (i <- 0 until INTR_COUNT) {
     when(RegNext(io.intrs(i))) {
-      intrPend(16+i) := Bool(true)
+      intrPend(16+i) := true.B
     }
   }
 
@@ -139,7 +139,7 @@ class Exceptions extends Module {
   val excBaseReg = Reg(UInt(width = PC_SIZE))
   val excAddrReg = Reg(UInt(width = PC_SIZE))
   when(io.memexc.exc) {
-    excPend(io.memexc.src) := Bool(true)
+    excPend(io.memexc.src) := true.B
     excBaseReg := io.memexc.excBase
     excAddrReg := io.memexc.excAddr
   }
@@ -175,6 +175,6 @@ class Exceptions extends Module {
   // Wake up
   when (sleepReg && (exc === UInt(1) || (intr && intrEna))) {
     io.ocp.S.Resp := OcpResp.DVA
-    sleepReg := Bool(false)
+    sleepReg := false.B
   }
 }

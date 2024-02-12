@@ -144,8 +144,8 @@ class OcpBurstJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort,
 
   val selRightReg = Reg(Bool())
   val selRight = Wire(Bool())
-  selRight := Mux(left.M.Cmd =/= OcpCmd.IDLE, Bool(false),
-                     Mux(right.M.Cmd =/= OcpCmd.IDLE, Bool(true),
+  selRight := Mux(left.M.Cmd =/= OcpCmd.IDLE, false.B,
+                     Mux(right.M.Cmd =/= OcpCmd.IDLE, true.B,
                          selRightReg))
 
   joined.M := left.M
@@ -176,8 +176,8 @@ class OcpBurstPriorityJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort
   val selLeft = left.M.Cmd =/= OcpCmd.IDLE
   val selRight = right.M.Cmd =/= OcpCmd.IDLE
 
-  val leftPendingReg = Reg(init = Bool(false))
-  val rightPendingReg = Reg(init = Bool(false))
+  val leftPendingReg = Reg(init = false.B)
+  val rightPendingReg = Reg(init = false.B)
 
   val pendingRespReg = Reg(init = UInt(0))
 
@@ -206,7 +206,7 @@ class OcpBurstPriorityJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort
     when (!rightPendingReg) {
       joined.M := left.M
       pendingRespReg := Mux(left.M.Cmd === OcpCmd.WR, UInt(1), UInt(left.burstLength))
-      leftPendingReg := Bool(true)
+      leftPendingReg := true.B
       right.S.CmdAccept  := UInt(0)
       right.S.DataAccept := UInt(0)
     }
@@ -216,7 +216,7 @@ class OcpBurstPriorityJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort
     when (!selLeft && !leftPendingReg) {
       joined.M := right.M
       pendingRespReg := Mux(right.M.Cmd === OcpCmd.WR, UInt(1), UInt(right.burstLength))
-      rightPendingReg := Bool(true)
+      rightPendingReg := true.B
     }
   }
 
@@ -225,10 +225,10 @@ class OcpBurstPriorityJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort
     pendingRespReg := pendingRespReg - UInt(1)
     when (pendingRespReg === UInt(1)) {
       when (leftPendingReg) {
-        leftPendingReg := Bool(false)
+        leftPendingReg := false.B
       }
       when (rightPendingReg) {
-        rightPendingReg := Bool(false)
+        rightPendingReg := false.B
       }
     }
   }

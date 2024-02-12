@@ -14,7 +14,7 @@ object SPMPool {
     x
   }
 
-  def roundRobinArbiter(reqs: UInt, continue: Bool = Bool(false)) = {
+  def roundRobinArbiter(reqs: UInt, continue: Bool = false.B) = {
 
     val curReg = Reg(UInt(width = log2Up(reqs.getWidth)))
 
@@ -48,7 +48,7 @@ object SPMPool {
     }
 
     val spm = Module(new patmos.Spm(spmsize))
-    val cur = SPMPool.roundRobinArbiter(io.sched, Bool(true))
+    val cur = SPMPool.roundRobinArbiter(io.sched, true.B)
     val lst = RegNext(cur)
 
     spm.io.M <> io.cores(cur).M

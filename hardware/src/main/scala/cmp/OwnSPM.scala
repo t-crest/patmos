@@ -49,9 +49,9 @@ class OwnSPM(nrCores: Int, nrSPMs: Int, size: Int) extends CmpDevice(nrCores) {
   
   // Cmd out?
   for (i <- 0 until nrCores) {
-    cmdOutReg(i) := Bool(false)
+    cmdOutReg(i) := false.B
     when(io.cores(i).M.Cmd =/= OcpCmd.IDLE) {
-      cmdOutReg(i) := Bool(true)
+      cmdOutReg(i) := true.B
     }
   }
   

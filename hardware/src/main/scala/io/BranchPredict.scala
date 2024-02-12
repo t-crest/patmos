@@ -17,6 +17,6 @@ class BranchPredict() extends Module {
     val hit = Output(Bool())
   }
   
-  io.hit := Bool(true)
+  io.hit := true.B
 }
 

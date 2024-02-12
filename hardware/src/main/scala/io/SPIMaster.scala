@@ -66,7 +66,7 @@ class SPIMaster(clkFreq : Int, slaveCount : Int, sclkHz : Int, fifoDepth : Int, 
     val wordDone = wordCounterReg === UInt(wordLen)
 
     // IO Signal registers
-    val sclkReg = Reg(init = Bool(false))
+    val sclkReg = Reg(init = false.B)
 
     //val prevSclkReg = Reg(init = UInt(0, 1))
 
@@ -88,21 +88,21 @@ class SPIMaster(clkFreq : Int, slaveCount : Int, sclkHz : Int, fifoDepth : Int, 
     // Queue of received messages 
     val rxQueue = Module(new Queue(Bits(width = wordLen), fifoDepth))
     rxQueue.io.enq.bits     := misoRxReg.asUInt
-    rxQueue.io.enq.valid    := Bool(false)
-    rxQueue.io.deq.ready    := Bool(false)
+    rxQueue.io.enq.valid    := false.B
+    rxQueue.io.deq.ready    := false.B
 
     // Queue of messages to be sent
     val txQueue = Module(new Queue(Bits(width = wordLen), fifoDepth))
     txQueue.io.enq.bits     := io.ocp.M.Data(wordLen-1, 0)
-    txQueue.io.enq.valid    := Bool(false)
-    txQueue.io.deq.ready    := Bool(false)
+    txQueue.io.enq.valid    := false.B
+    txQueue.io.deq.ready    := false.B
 
     //Serial-out register for mosi
-    val loadToSend = Reg(init = Bool(false))
-    loadToSend := Bool(false) //Default value
+    val loadToSend = Reg(init = false.B)
+    loadToSend := false.B //Default value
     val mosiTxReg = Reg(init = UInt(0,wordLen))
     when (loadToSend) {
-      txQueue.io.deq.ready := Bool(true)
+      txQueue.io.deq.ready := true.B
       mosiTxReg := txQueue.io.deq.bits
     } otherwise {
       //mosiTxReg := txQueue.io.deq.bits
@@ -124,7 +124,7 @@ class SPIMaster(clkFreq : Int, slaveCount : Int, sclkHz : Int, fifoDepth : Int, 
     when(io.ocp.M.Cmd === OcpCmd.RD) {
       when(rxQueue.io.count > UInt(0))
       {
-        rxQueue.io.deq.ready := Bool(true)
+        rxQueue.io.deq.ready := true.B
         rdDataReg := rxQueue.io.deq.bits
         respReg := OcpResp.DVA
       }
@@ -135,7 +135,7 @@ class SPIMaster(clkFreq : Int, slaveCount : Int, sclkHz : Int, fifoDepth : Int, 
       // loadToSend := true.B
       respReg := OcpResp.DVA
       txQueue.io.enq.bits := io.ocp.M.Data(wordLen-1, 0)
-      txQueue.io.enq.valid := Bool(true)
+      txQueue.io.enq.valid := true.B
     }
 
 
@@ -145,7 +145,7 @@ class SPIMaster(clkFreq : Int, slaveCount : Int, sclkHz : Int, fifoDepth : Int, 
       nSSReg := Bits(1)
       wordCounterReg := Bits(0)
       mosiReg := Bits(0)
-      sclkReg := Bool(false)
+      sclkReg := false.B
       //When TX queue has data send
       when (txQueue.io.count > UInt(0) )
       {
@@ -183,7 +183,7 @@ class SPIMaster(clkFreq : Int, slaveCount : Int, sclkHz : Int, fifoDepth : Int, 
       when(wordDone)
       {
         rxQueue.io.enq.bits     := misoRxReg.asUInt
-        rxQueue.io.enq.valid    := Bool(true)
+        rxQueue.io.enq.valid    := true.B
         state := idle
       }
     }

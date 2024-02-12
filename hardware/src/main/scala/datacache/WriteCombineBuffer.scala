@@ -48,8 +48,8 @@ import ocp._
 
 class WriteCombineBuffer() extends WriteBufferType {
 
-  io.perf.hit := Bool(false)
-  io.perf.miss := Bool(false)
+  io.perf.hit := false.B
+  io.perf.miss := false.B
 
   val addrWidth = io.writeMaster.M.Addr.getWidth
   val dataWidth = io.writeMaster.M.Data.getWidth
@@ -187,10 +187,10 @@ class WriteCombineBuffer() extends WriteBufferType {
     writeMasterReg := io.writeMaster.M
     when (tagReg === io.writeMaster.M.Addr(addrWidth-1, burstAddrBits+byteAddrBits)) {
       state := writeComb
-      io.perf.hit := Bool(true)
+      io.perf.hit := true.B
     } .otherwise {
       state := write
-      io.perf.miss := Bool(true)
+      io.perf.miss := true.B
     }
   }
   // Snoop writes from readMaster

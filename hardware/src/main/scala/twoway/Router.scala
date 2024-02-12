@@ -73,7 +73,7 @@ class Router(schedule: Array[Array[Int]], validTab: Array[Boolean], inverted : B
 
 
   val setToZero = new RwChannel(w)
-  setToZero.in.valid := Bool(false)
+  setToZero.in.valid := false.B
   setToZero.in.address := UInt(0)
   
   // We assume that on reset the valid signal is false.

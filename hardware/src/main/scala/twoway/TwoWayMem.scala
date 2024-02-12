@@ -49,7 +49,7 @@ class TwoWayMem(n: Int, memSize: Int) extends Module {
     NIs(i).io.memReq.in <>  io.nodearray(i).out
     NIs(i).io.memReq.out <>  io.nodearray(i).in
     
-    //NIs(i).io.memReq.out.rw := Bool(true)//nodearray(i).local.out.rw
+    //NIs(i).io.memReq.out.rw := true.B//nodearray(i).local.out.rw
     
     NIs(i).io.writeChannel.in := writeNetwork.io.local(i).out
     writeNetwork.io.local(i).in := NIs(i).io.writeChannel.out

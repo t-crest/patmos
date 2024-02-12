@@ -15,8 +15,8 @@ import ocp._
 
 class NullCache() extends DCacheType(BURST_LENGTH) {
 
-  io.perf.hit := Bool(false)
-  io.perf.miss := Bool(false)
+  io.perf.hit := false.B
+  io.perf.miss := false.B
 
   val burstAddrBits = log2Up(BURST_LENGTH)
   val byteAddrBits = log2Up(DATA_WIDTH/8)
@@ -75,7 +75,7 @@ class NullCache() extends DCacheType(BURST_LENGTH) {
     when(io.slave.S.CmdAccept === Bits(1)) {
       stateReg := read
       posReg := masterReg.Addr(burstAddrBits+byteAddrBits-1, byteAddrBits)
-      io.perf.miss := Bool(true)
+      io.perf.miss := true.B
     }
   }
 }

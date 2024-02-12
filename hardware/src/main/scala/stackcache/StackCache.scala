@@ -49,8 +49,8 @@ import patmos.Constants._
 
 class StackCache() extends StackCacheType {
 
-  io.perf.spill := Bool(false)
-  io.perf.fill := Bool(false)
+  io.perf.spill := false.B
+  io.perf.fill := false.B
 
   // number of bits needed to address the bytes of a word
   val wordBits = Chisel.log2Up(BYTES_PER_WORD)
@@ -104,7 +104,7 @@ class StackCache() extends StackCacheType {
                         (newMemTopReg <= transferAddrReg) && (transferAddrReg < memTopReg))
 
   io.stall := stateReg =/= idleState
-  io.illMem := Bool(false)
+  io.illMem := false.B
 
   // default OCP "request"
   io.toMemory.M.Cmd := OcpCmd.IDLE
@@ -173,7 +173,7 @@ class StackCache() extends StackCacheType {
         }
         is(sc_OP_RES) {
           // register type of instruction
-          isReserveReg := Bool(true)
+          isReserveReg := true.B
           // decrement the stack top pointer
           val nextStackTop = stackTopReg - io.exsc.opOff
           stackTopReg := nextStackTop
@@ -190,7 +190,7 @@ class StackCache() extends StackCacheType {
         }
         is (sc_OP_SPILL) {
           // register type of instruction
-          isReserveReg := Bool(false)
+          isReserveReg := false.B
           // start transfer from the current mem top - offset
           val nextNewMemTop = memTopReg - io.exsc.opOff
           val nextTransferAddr = 
@@ -230,7 +230,7 @@ class StackCache() extends StackCacheType {
       stateReg := Mux(accepted, spillState, holdSpillState)
 
       when (accepted) {
-        io.perf.spill := Bool(true)
+        io.perf.spill := true.B
       }
     }
 
@@ -287,7 +287,7 @@ class StackCache() extends StackCacheType {
       stateReg := Mux(accepted, waitFillState, fillState)
 
       when (accepted) {
-        io.perf.fill := Bool(true)
+        io.perf.fill := true.B
       }
     }
 
@@ -330,7 +330,7 @@ class StackCache() extends StackCacheType {
         transferAddrReg := transferAddrReg + UInt(BYTES_PER_WORD)
       }
       when (burstCounter === UInt(BURST_LENGTH - 1)) {
-        io.illMem := Bool(true)
+        io.illMem := true.B
         stateReg := idleState
       }
     }

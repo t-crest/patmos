@@ -57,7 +57,7 @@ class Node(n: Int, size: Int) extends Module {
   memTx.io.port.rdAddr := txAddr
   io.local.out.data := memTx.io.port.rdData
   // TDM schedule starts two cycles late for read data delay
-  io.local.out.valid := RegNext(valid, init = Bool(false))
+  io.local.out.valid := RegNext(valid, init = false.B)
 
   // Receive data from the NoC  
   val regRxAddrUpper = RegInit(UInt(0, log2Up(scheduleLength)))

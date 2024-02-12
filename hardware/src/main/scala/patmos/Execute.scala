@@ -61,7 +61,7 @@ class Execute() extends Module {
     val eq = op1 === op2
     val lt = op1s < op2s
     val ult = op1 < op2
-    MuxLookup(func.asUInt, Bool(false), Array(
+    MuxLookup(func.asUInt, false.B, Array(
       (CFUNC_EQ,    eq),
       (CFUNC_NEQ,   !eq),
       (CFUNC_LT,    lt),
@@ -72,7 +72,7 @@ class Execute() extends Module {
   }
 
   def pred(func: UInt, op1: Bool, op2: Bool): Bool = {
-    MuxLookup(func.asUInt, Bool(false), Array(
+    MuxLookup(func.asUInt, false.B, Array(
       (PFUNC_OR, op1 | op2),
       (PFUNC_AND, op1 & op2),
       (PFUNC_XOR, op1 ^ op2),
@@ -220,7 +220,7 @@ class Execute() extends Module {
     when((exReg.aluOp(i).isCmp || exReg.aluOp(i).isPred) && doExecute(i)) {
       predReg(exReg.predOp(i).dest) := Mux(exReg.aluOp(i).isCmp, compResult, predResult)
     }
-    predReg(0) := Bool(true)
+    predReg(0) := true.B
 
     // special registers
     when(exReg.aluOp(i).isMTS && doExecute(i)) {
@@ -232,7 +232,7 @@ class Execute() extends Module {
             predReg(j) := op(2*i)(j)
           }
           //predReg := op(2*i)(PRED_COUNT-1, 0)
-          predReg(0) := Bool(true)
+          predReg(0) := true.B
         }
         is(SPEC_SL) {
           mulLoReg := op(2*i)

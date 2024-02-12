@@ -38,7 +38,7 @@ class Fibonacci() extends BaseCoprocessor() {
     val currentIterationReg = Reg(UInt(width = 32))
 
     io.copOut.result := UInt(0)
-    io.copOut.ena_out := Bool(false)
+    io.copOut.ena_out := false.B
 
     // start operation 
     when(io.copIn.trigger & io.copIn.ena_in) {
@@ -48,7 +48,7 @@ class Fibonacci() extends BaseCoprocessor() {
                 // fibonacci calculation
                 when(io.copIn.funcId === FUNC_FIBONACCI) {
                     io.copOut.result    := currentValueReg
-                    io.copOut.ena_out   := Bool(true)
+                    io.copOut.ena_out   := true.B
                 }
             }
             .otherwise
@@ -69,12 +69,12 @@ class Fibonacci() extends BaseCoprocessor() {
                     opStateReg            := fibonacciRunning
                     currentIterationReg   := UInt(1)
                     iterationsReg          := io.copIn.opData(0)
-                    io.copOut.ena_out   := Bool(true)
+                    io.copOut.ena_out   := true.B
                 }
             }
             .otherwise
             {
-                io.copOut.ena_out   := Bool(true)
+                io.copOut.ena_out   := true.B
             }
             
         }
@@ -98,7 +98,7 @@ class Fibonacci() extends BaseCoprocessor() {
     when (readStateReg === fibonacciReadRequest & opStateReg === idle)
     {
         io.copOut.result    := currentValueReg
-        io.copOut.ena_out   := Bool(true)
+        io.copOut.ena_out   := true.B
         readStateReg          := readIdle
     }
 

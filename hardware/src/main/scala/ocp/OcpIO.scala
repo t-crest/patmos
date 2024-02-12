@@ -70,16 +70,16 @@ class OcpIOBridge(master: OcpCoreMasterPort, slave: OcpIOSlavePort) {
 class OcpIOBridgeAlt(master: OcpCoreMasterPort, slave: OcpIOSlavePort) {
   
   val masterReg = Reg(init = master.M) // What is the reset value of this bundle?
-  val busyReg = Reg(init = Bool(false))
+  val busyReg = Reg(init = false.B)
 
   when(!busyReg) {
     masterReg := master.M
   }
   when(master.M.Cmd === OcpCmd.RD || master.M.Cmd === OcpCmd.WR) {
-    busyReg := Bool(true)
+    busyReg := true.B
   }
   when(busyReg && slave.S.CmdAccept === UInt(1)) {
-    busyReg := Bool(false)
+    busyReg := false.B
     masterReg.Cmd := OcpCmd.IDLE
   }
 

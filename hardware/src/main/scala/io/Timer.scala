@@ -108,14 +108,14 @@ class Timer(clk_freq: Int) extends CoreDevice() {
   io.ocp.S.Data := data
 
   // No interrupts by default
-  io.interrupts(0) := Bool(false)
-  io.interrupts(1) := Bool(false)
+  io.interrupts(0) := false.B
+  io.interrupts(1) := false.B
 
   // Increment cycle counter
   cycleReg := cycleReg + UInt(1)
   // Trigger cycles interrupt
   when (cycleReg + UInt(1) === cycleIntrReg) {
-    io.interrupts(0) := Bool(true)
+    io.interrupts(0) := true.B
   }
   // Increment usec counter
   usecSubReg := usecSubReg + UInt(1)
@@ -124,7 +124,7 @@ class Timer(clk_freq: Int) extends CoreDevice() {
     usecReg := usecReg + UInt(1)
     // Trigger usec interrupt
     when (usecReg + UInt(1) === usecIntrReg) {
-      io.interrupts(1) := Bool(true)
+      io.interrupts(1) := true.B
     }
   }
 }

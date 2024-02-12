@@ -47,8 +47,8 @@ import ocp._
 
 class WriteNoBuffer() extends WriteBufferType {
 
-  io.perf.hit := Bool(false)
-  io.perf.miss := Bool(false)
+  io.perf.hit := false.B
+  io.perf.miss := false.B
 
   val addrWidth = io.writeMaster.M.Addr.getWidth
   val dataWidth = io.writeMaster.M.Data.getWidth
@@ -110,6 +110,6 @@ class WriteNoBuffer() extends WriteBufferType {
   // Start write transactions
   when(io.writeMaster.M.Cmd === OcpCmd.WR) {
     state := write
-    io.perf.miss := Bool(true)
+    io.perf.miss := true.B
   }
 }

@@ -62,7 +62,7 @@ class SSPMAegean(val nCores: Int,
   val syncCounter = Reg(init = UInt(0))
   syncCounter := syncCounter
 
-  val syncUsed = Reg(init = Bool(false))
+  val syncUsed = Reg(init = false.B)
   val syncCore = Reg(init = UInt(0))
 
   when(state === s_idle) {
@@ -95,7 +95,7 @@ class SSPMAegean(val nCores: Int,
 
     if(singleExtendedSlot) {
       when(currentCore === syncCore) {
-        syncUsed := Bool(false)
+        syncUsed := false.B
       }
     }
   }
@@ -104,7 +104,7 @@ class SSPMAegean(val nCores: Int,
 
     syncCounter := syncCounter - UInt(1)
     if(singleExtendedSlot) {
-      syncUsed := Bool(true)
+      syncUsed := true.B
       syncCore := currentCore
     }
     connectors(currentCore).connectorSignals.enable := Bits(1)

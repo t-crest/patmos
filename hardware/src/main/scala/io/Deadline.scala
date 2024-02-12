@@ -75,7 +75,7 @@ class Deadline() extends CoreDevice() {
   }
   
   val timeOver = downDone
-  val stallReg = Reg(init = Bool(false))
+  val stallReg = Reg(init = false.B)
   
   // read data shall be in a register as used in the
   // following clock cycle
@@ -88,13 +88,13 @@ class Deadline() extends CoreDevice() {
   }
   // Remember that we are stalling now
   when ((io.ocp.M.Cmd === OcpCmd.RD && !timeOver)) {
-    stallReg := Bool(true)
+    stallReg := true.B
   }
   
   // release stall when timeout is done
   when (stallReg && timeOver) {
     respReg := OcpResp.DVA
-    stallReg := Bool(false)
+    stallReg := false.B
   }
   
   io.ocp.S.Data := downCountReg  

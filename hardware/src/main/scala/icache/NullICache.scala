@@ -15,9 +15,9 @@ class NullICache() extends CacheType {
 
   val callRetBaseReg = RegInit(UInt(1, DATA_WIDTH))
   val callAddrReg = RegInit(UInt(1, DATA_WIDTH))
-  val selIspmReg = RegInit(Bool(false))
+  val selIspmReg = RegInit(false.B)
 
-  io.ena_out := Bool(true)
+  io.ena_out := true.B
 
   when (io.exicache.doCallRet && io.ena_in) {
     callRetBaseReg := io.exicache.callRetBase

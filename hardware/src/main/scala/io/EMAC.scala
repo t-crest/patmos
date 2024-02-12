@@ -89,12 +89,12 @@ class EMAC() extends CoreDevice() {
   val bb = Module(new v6_emac_v2_3_wrapper())
   io.pins <> bb.io
 
-  val rx_axis_fifo_tready_Reg = Reg(init = Bool(false))
-  rx_axis_fifo_tready_Reg := Bool(false)
+  val rx_axis_fifo_tready_Reg = Reg(init = false.B)
+  rx_axis_fifo_tready_Reg := false.B
   bb.io.rx_axis_fifo_tready := rx_axis_fifo_tready_Reg
 
-  val tx_axis_fifo_tvalid_Reg = Reg(init = Bool(false))
-  tx_axis_fifo_tvalid_Reg := Bool(false)
+  val tx_axis_fifo_tvalid_Reg = Reg(init = false.B)
+  tx_axis_fifo_tvalid_Reg := false.B
   bb.io.tx_axis_fifo_tvalid := tx_axis_fifo_tvalid_Reg
 
   // Default response
@@ -115,15 +115,15 @@ class EMAC() extends CoreDevice() {
   
   when(io.ocp.M.Cmd === OcpCmd.WR) {
     respReg := OcpResp.DVA
-    tx_axis_fifo_tvalid_Reg := Bool(true)
+    tx_axis_fifo_tvalid_Reg := true.B
     dataWrReg := io.ocp.M.Data
   }
   
   when(state === sIdle) {
     when(io.ocp.M.Cmd === OcpCmd.RD) {
-      when(io.ocp.M.Addr(0) === Bool(false)) {
+      when(io.ocp.M.Addr(0) === false.B) {
         state := sWait
-        rx_axis_fifo_tready_Reg := Bool(true)
+        rx_axis_fifo_tready_Reg := true.B
       }
       .otherwise {
         respReg := OcpResp.DVA

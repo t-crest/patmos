@@ -119,30 +119,30 @@ class AsyncLock(corecnt: Int, lckcnt: Int, fair: Boolean = false) extends Module
     val blck = acks.orR
 
     for (j <- 0 until lckcnt) {
-      val reqReg = Reg(init = Bool(false))
+      val reqReg = Reg(init = false.B)
       arbiterio(j).cores(i).req := reqReg
       val ackReg = Reg(next = Reg(next = arbiterio(j).cores(i).ack))
       acks(j) := ackReg =/= reqReg
 
       when(addr === j.U) {
         when(io.cores(i).M.Cmd === OcpCmd.RD) {
-          reqReg := Bool(true)
+          reqReg := true.B
         }.elsewhen(io.cores(i).M.Cmd === OcpCmd.WR) {
-          reqReg := Bool(false)
+          reqReg := false.B
         }
       }
     }
 
-    val dvaReg = Reg(init = Bool(false))
+    val dvaReg = Reg(init = false.B)
 
     when(io.cores(i).M.Cmd =/= OcpCmd.IDLE) {
-      dvaReg := Bool(true)
-    }.elsewhen(dvaReg === Bool(true) && !blck) {
-      dvaReg := Bool(false)
+      dvaReg := true.B
+    }.elsewhen(dvaReg === true.B && !blck) {
+      dvaReg := false.B
     }
 
     io.cores(i).S.Resp := OcpResp.NULL
-    when(dvaReg === Bool(true) && !blck) {
+    when(dvaReg === true.B && !blck) {
       io.cores(i).S.Resp := OcpResp.DVA
     }
 

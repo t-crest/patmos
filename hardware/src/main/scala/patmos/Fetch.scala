@@ -63,8 +63,8 @@ class Fetch(fileName : String) extends Module {
     val memOdd = MemBlock(1, INSTR_WIDTH, bypass = false)
   }*/
 
-  val selSpm = RegInit(Bool(false))
-  val selCache = RegInit(Bool(false))
+  val selSpm = RegInit(false.B)
+  val selCache = RegInit(false.B)
   val selSpmNext = dontTouch(Wire(Bool())) // for emulator
   val selCacheNext = dontTouch(Wire(Bool())) // for emulator
   selSpmNext := selSpm

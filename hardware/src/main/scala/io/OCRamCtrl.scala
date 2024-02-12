@@ -54,7 +54,7 @@ class OCRamCtrl(addrWidth : Int, ocpBurstLen : Int=4) extends BurstDevice(addrWi
   // end transaction after a burst
   when (burstCntReg === UInt(ocpBurstLen-1)) {
     stateReg := idle
-    wrEn := Bool(false)
+    wrEn := false.B
   }
 
   // start a new transaction
@@ -71,7 +71,7 @@ class OCRamCtrl(addrWidth : Int, ocpBurstLen : Int=4) extends BurstDevice(addrWi
   }
   when (io.ocp.M.Cmd === OcpCmd.WR) {
     stateReg := write
-    wrEn := Bool(true)
+    wrEn := true.B
   }
 
   // generate byte memories

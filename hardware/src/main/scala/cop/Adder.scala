@@ -45,7 +45,7 @@ class Adder() extends CoprocessorMemoryAccess() {
   // default values
   scalarIntermediateResult := io.copIn.opData(0) +& io.copIn.opData(1)
   io.copOut.result := UInt(0)
-  io.copOut.ena_out := Bool(false)
+  io.copOut.ena_out := false.B
 
   // start operation
   when(io.copIn.trigger & io.copIn.ena_in) {
@@ -53,7 +53,7 @@ class Adder() extends CoprocessorMemoryAccess() {
     when(io.copIn.read) {
       switch(io.copIn.funcId) {
         is(FUNC_ADD) {
-          io.copOut.ena_out := Bool(true)
+          io.copOut.ena_out := true.B
           when(scalarIntermediateResult(DATA_WIDTH) === UInt(1, 1)) {
             io.copOut.result := Fill(DATA_WIDTH, 1.U)
           }.otherwise {
@@ -67,7 +67,7 @@ class Adder() extends CoprocessorMemoryAccess() {
     }.elsewhen(io.copIn.isCustom) {
       switch(io.copIn.funcId) {
         is(FUNC_VECTOR_ADD) {
-          io.copOut.ena_out := Bool(true)
+          io.copOut.ena_out := true.B
           when(vectorStateReg === vectorDone) {
             io.copOut.result := UInt(1, DATA_WIDTH.W)
             vectorStateReg := vectorIdle
@@ -77,18 +77,18 @@ class Adder() extends CoprocessorMemoryAccess() {
     }.otherwise {
       switch(io.copIn.funcId) {
         is(FUNC_ADD) {
-          io.copOut.ena_out := Bool(true)
+          io.copOut.ena_out := true.B
         }
         is(FUNC_ADD_STALL) {
-          io.copOut.ena_out := Bool(true)
+          io.copOut.ena_out := true.B
         }
         is(FUNC_VECTOR_ADD) {
-          io.copOut.ena_out := Bool(true)
+          io.copOut.ena_out := true.B
           when(vectorStateReg === vectorIdle) {
             vectorSrcReg := io.copIn.opData(0)
             vectorDstReg := io.copIn.opData(1)
             vectorStateReg := vectorRead1Req
-            io.copOut.ena_out := Bool(true)
+            io.copOut.ena_out := true.B
           }
         }
       }
@@ -97,7 +97,7 @@ class Adder() extends CoprocessorMemoryAccess() {
   
   // logic for ADD_STALL
   when(io.copIn.ena_in & scalarStateReg === scalarAdd) {
-    io.copOut.ena_out := Bool(true)
+    io.copOut.ena_out := true.B
     when(scalarIntermediateResult(DATA_WIDTH) === UInt(1, 1)) {
       io.copOut.result := Fill(DATA_WIDTH, 1.U)
     }.otherwise {

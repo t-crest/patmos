@@ -33,7 +33,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
  
   // Set default values for memReq
   io.memReq.out.data := UInt(0)
-  //io.memReq.in.valid := Bool(false)
+  //io.memReq.in.valid := false.B
 
   // Write NOC
   val st = Schedule.getSchedule(n, false, nodeIndex)
@@ -70,7 +70,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   io.writeChannel.out.rw := UInt(0)
   io.writeChannel.out.address := UInt(0)
   io.writeChannel.out.data := UInt(0)
-  io.writeChannel.out.valid := Bool(false)
+  io.writeChannel.out.valid := false.B
 
 
   // Set default vaues for memPort
@@ -80,13 +80,13 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   io.memPort.io.portA.wrData := UInt(0)
 
 
-  io.memReq.out.valid := Bool(false)
+  io.memReq.out.valid := false.B
 
   // Default to not write to local memory
-  io.memPort.io.portA.wrEna := Bool(false)
-  io.memPort.io.portB.wrEna := Bool(false)
+  io.memPort.io.portA.wrEna := false.B
+  io.memPort.io.portB.wrEna := false.B
 
-  val delayValid = Reg(init = Bool(false), next = Bool(false))
+  val delayValid = Reg(init = false.B, next = false.B)
 
   io.memReq.out.valid := delayValid  //Changed to register
 
@@ -96,7 +96,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
 
 
   //Register unsuring only having valid high to write network for one cycle.
-  val transmitted = Reg(init = Bool(false))
+  val transmitted = Reg(init = false.B)
   transmitted := transmitted
 
   when(delayData === UInt(1)){
@@ -114,10 +114,10 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
 
       delayData := UInt(0)
   //Registers for requests that takes multiple cycles, where the data is only valid one cycle.
-  val notProcessed = Reg(init = Bool(false))
+  val notProcessed = Reg(init = false.B)
   val inDataReg = Reg(init = UInt(0))
   val inAddressReg = Reg(init = UInt(0))
-  val inRwReg = Reg(init = Bool(false))
+  val inRwReg = Reg(init = false.B)
 
 
 
@@ -134,7 +134,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
       delayData := UInt(1)
 
       //When it is local it always takes a single cycle.
-      notProcessed := Bool(false)
+      notProcessed := false.B
 
       io.memPort.io.portA.addr := lowerAddr
 
@@ -144,7 +144,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
       //Read request needs one cycle delay. Also for write request.
       //Valid will go high next cycle, where the data will be stored/retrieved.
       
-      delayValid := Bool(true)
+      delayValid := true.B
 
 
       //We don't use the write channel here.
@@ -155,7 +155,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
       // LOCAL NODE -> EXTERNAL MEMORY
 
       //Assume the data has not been processed.
-      notProcessed := Bool(true)
+      notProcessed := true.B
 
       //We sample the request the first time.
       inDataReg := io.memReq.in.data
@@ -175,11 +175,11 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
 
         //When the target is correct, we set valid high next time.
         when((valid) ) {
-          notProcessed := Bool(false)
-          delayValid := Bool(true)
+          notProcessed := false.B
+          delayValid := true.B
 
           // Transmit outgoing memory read request/write when TDM reaches target node and request is not in local memory
-          io.writeChannel.out.valid := Bool(true);
+          io.writeChannel.out.valid := true.B;
           when(io.memReq.in.rw){
           // external write has been transmitted, the node is allowed to continue execution
           //io.memReq.out.valid := io.memReq.in.rw  //Multiple writes to valid.
@@ -189,12 +189,12 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
         //Read request
 
         when((valid) && !transmitted ) {
-          transmitted := Bool(true)
-          delayValid := Bool(false)
-          notProcessed := Bool(false)
+          transmitted := true.B
+          delayValid := false.B
+          notProcessed := false.B
 
           // Transmit outgoing memory read request/write when TDM reaches target node and request is not in local memory
-          io.writeChannel.out.valid := Bool(true);
+          io.writeChannel.out.valid := true.B;
         }
       }
     }
@@ -205,7 +205,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
       // LOCAL NODE -> EXTERNAL MEMORY
 
       //Assume the data has not been processed.
-      notProcessed := Bool(true)
+      notProcessed := true.B
 
 
       //We always use the delayValid
@@ -219,10 +219,10 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
 
         //When the target is correct, we set valid high next time.
         when((valid) ) {
-          delayValid := Bool(true)
-          notProcessed := Bool(false)
+          delayValid := true.B
+          notProcessed := false.B
           // Transmit outgoing memory read request/write when TDM reaches target node and request is not in local memory
-          io.writeChannel.out.valid := Bool(true);
+          io.writeChannel.out.valid := true.B;
           when(inRwReg){
           // external write has been transmitted, the node is allowed to continue execution
           //io.memReq.out.valid := io.memReq.in.rw  //Multiple writes to valid.
@@ -232,12 +232,12 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
         //read request
 
         when((valid) && !transmitted ) {
-          transmitted := Bool(true)
-          delayValid := Bool(false)
-          notProcessed := Bool(false)
+          transmitted := true.B
+          delayValid := false.B
+          notProcessed := false.B
 
           // Transmit outgoing memory read request/write when TDM reaches target node and request is not in local memory
-          io.writeChannel.out.valid := Bool(true);
+          io.writeChannel.out.valid := true.B;
         }
       }
     }
@@ -247,7 +247,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
 
 
   // ReadBack NoC variables
-  val gotValue = Reg(init = Bool(false))
+  val gotValue = Reg(init = false.B)
   val readbackValueDelayed = Reg(init= UInt(0,32))  // a 1-cycle buffer is needed on the read value for transmitting readback requests when a blank in the cycle has occured
   readbackValueDelayed := io.memPort.io.portB.rdData
 
@@ -276,10 +276,10 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
     when(io.writeChannel.in.rw){
     } .otherwise {
       // LOCAL MEMORY READ
-      gotValue := Bool(true)
+      gotValue := true.B
     }
   }.otherwise{
-    io.memPort.io.portB.wrEna := Bool(false)
+    io.memPort.io.portB.wrEna := false.B
   }
 
   //debug(io.testSignal) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
@@ -308,35 +308,35 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
     //rbFIFO(0).data := io.memPort.io.portB.rdData
     //rbFIFO(0).valid := gotValue // is set high when data is ready in from the memory
     when(io.writeChannel.in.valid && !io.writeChannel.in.rw){ // if new data is available in the next cycle
-      gotValue := Bool(true)
+      gotValue := true.B
     }.otherwise{
-      gotValue := Bool(false)
+      gotValue := false.B
     }
     /*for(i <-1 until rbFIFO.length){ 
       rbFIFO(i) := rbFIFO(i - 1)
     }*/
   }.otherwise{
-    gotValue := Bool(false)
+    gotValue := false.B
   }
 
 
   
   //Multiplexer that pics out the appropriate data in the FIFO for the readback network.
   var muxReadDataChannel = new SingleChannel()
-  //val gotValueRb = Wire(init = Bool(false))
+  //val gotValueRb = Wire(init = false.B)
   val lookupvalue = rbDelayROM(regShiftedTdmCounter)
   
 
   muxReadDataChannel.data := UInt(0)
-  muxReadDataChannel.valid := Bool(false)
+  muxReadDataChannel.valid := false.B
 
   when(lookupvalue === SInt(0)){
     muxReadDataChannel.data := io.memPort.io.portB.rdData
     muxReadDataChannel.valid := gotValue
   }.elsewhen(lookupvalue === SInt(-1)){
     muxReadDataChannel.data := io.memPort.io.portB.rdData
-    muxReadDataChannel.valid := Bool(false)
-    //gotValueRb := Bool(false)
+    muxReadDataChannel.valid := false.B
+    //gotValueRb := false.B
   }.otherwise{
 
     muxReadDataChannel := rbFIFO(lookupvalue.asUInt() - UInt(1) )
@@ -349,7 +349,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
         // ReadBack NoC reception
         when(io.readBackChannel.in.valid){
           // Node should be waiting for the valid signal to be asserted, to indicate that data is available
-          transmitted := Bool(false)
+          transmitted := false.B
           delayData := UInt(2)
           io.memReq.out.data := io.readBackChannel.in.data
           io.memReq.out.valid := io.readBackChannel.in.valid

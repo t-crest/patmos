@@ -36,7 +36,7 @@ abstract class AbstractHardlock(coreCnt : Int,lckCnt : Int) extends Module {
   val queueReg = RegInit(VecInit(Seq.fill(lckCnt)(VecInit(Seq.fill(coreCnt)(false.B)))))
   for (i <- 0 until lckCnt) {
     for (j <- 0 until coreCnt) {
-      when(io.cores(j).sel === UInt(i) && io.cores(j).en === Bool(true)) {
+      when(io.cores(j).sel === UInt(i) && io.cores(j).en === true.B) {
         queueReg(i)(j) := io.cores(j).op
       }
     }
@@ -91,22 +91,22 @@ class HardlockOCPWrapper(nrCores: Int, hardlockgen: () => AbstractHardlock) exte
   for (i <- 0 until hardlock.CoreCount) {
     hardlock.io.cores(i).op := io.cores(i).M.Data(0);
     hardlock.io.cores(i).sel := io.cores(i).M.Data >> 1;
-    hardlock.io.cores(i).en := Bool(false)
+    hardlock.io.cores(i).en := false.B
     when(io.cores(i).M.Cmd === OcpCmd.WR) {
-      hardlock.io.cores(i).en := Bool(true)
+      hardlock.io.cores(i).en := true.B
     }
 
     when(io.cores(i).M.Cmd =/= OcpCmd.IDLE) {
-      reqBools(i) := Bool(true)
+      reqBools(i) := true.B
       reqReg := reqBools.asUInt()
     }
-    .elsewhen(reqReg(i) === Bool(true) && hardlock.io.cores(i).blck === Bool(false)) {
-      reqBools(i) := Bool(false)
+    .elsewhen(reqReg(i) === true.B && hardlock.io.cores(i).blck === false.B) {
+      reqBools(i) := false.B
       reqReg := reqBools.asUInt()
     }
     
     io.cores(i).S.Resp := OcpResp.NULL
-    when(reqReg(i) === Bool(true) && hardlock.io.cores(i).blck === Bool(false)) {
+    when(reqReg(i) === true.B && hardlock.io.cores(i).blck === false.B) {
       io.cores(i).S.Resp := OcpResp.DVA
     }
       

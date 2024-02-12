@@ -62,26 +62,26 @@ class WishboneBridge(extAddrWidth : Int = 32,
 
   // Read command
   when(io.ocp.M.Cmd === OcpCmd.RD) {
-  we_o_Reg := Bool(false)
-  stb_o_Reg := Bool(true)
-  cyc_o_Reg := Bool(true)
+  we_o_Reg := false.B
+  stb_o_Reg := true.B
+  cyc_o_Reg := true.B
   addr_o_Reg := io.ocp.M.Addr(extAddrWidth-1, 0)
   }
 
   // Write command
   when(io.ocp.M.Cmd === OcpCmd.WR) {
-  we_o_Reg := Bool(true)
-  stb_o_Reg := Bool(true)
-  cyc_o_Reg := Bool(true)
+  we_o_Reg := true.B
+  stb_o_Reg := true.B
+  cyc_o_Reg := true.B
   addr_o_Reg := io.ocp.M.Addr(extAddrWidth-1, 0)
   data_o_Reg := io.ocp.M.Data
   }
 
   // Transaltion of the WB's ack into OCP's DVA
   when(io.pins.wb_ack_i === Bits(1)) {
-  we_o_Reg := Bool(false)
-  stb_o_Reg := Bool(false)
-  cyc_o_Reg := Bool(false)
+  we_o_Reg := false.B
+  stb_o_Reg := false.B
+  cyc_o_Reg := false.B
   ocp_S_resp_Reg := OcpResp.DVA
   ocp_S_data_Reg := io.pins.wb_data_i
   }

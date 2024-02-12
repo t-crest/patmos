@@ -257,10 +257,10 @@ class Sha256() extends CoprocessorMemoryAccess() {
   
   // default values
   io.copOut.result := 0.U
-  io.copOut.ena_out := Bool(false)
+  io.copOut.ena_out := false.B
   
   // register for retrying operation
-  val retryReg = RegInit(Bool(false))
+  val retryReg = RegInit(false.B)
   retryReg := ((io.copIn.trigger && io.copIn.ena_in) || retryReg) && !io.copOut.ena_out
   
   // start operation
@@ -271,7 +271,7 @@ class Sha256() extends CoprocessorMemoryAccess() {
       switch(io.copIn.funcId) {
         is(FUNC_POLL) {
           io.copOut.result := Cat(UInt(0, width = DATA_WIDTH - 1), !isIdle)
-          io.copOut.ena_out := Bool(true)
+          io.copOut.ena_out := true.B
         }
       }
     }.otherwise{
@@ -279,21 +279,21 @@ class Sha256() extends CoprocessorMemoryAccess() {
         is(FUNC_RESET) {
           when(isIdle) {
             stateReg := restart
-            io.copOut.ena_out := Bool(true)
+            io.copOut.ena_out := true.B
           }
         }
         is(FUNC_SET_HASH) {
           when(isIdle) {
             hashAddrReg := io.copIn.opData(0)
             memState := memReadReqH
-            io.copOut.ena_out := Bool(true)
+            io.copOut.ena_out := true.B
           }
         }
         is(FUNC_GET_HASH) {
           when(isIdle) {
             hashAddrReg := io.copIn.opData(0)
             memState := memWriteReqH
-            io.copOut.ena_out := Bool(true)
+            io.copOut.ena_out := true.B
           }
         }
         is(FUNC_SINGLE_BLOCK) {
@@ -301,7 +301,7 @@ class Sha256() extends CoprocessorMemoryAccess() {
             blockAddrReg := io.copIn.opData(0)
             memState := memReadReqM
             blockCountReg := UInt(1)
-            io.copOut.ena_out := Bool(true)
+            io.copOut.ena_out := true.B
           }
         }
         is(FUNC_MULTIPLE_BLOCKS) {
@@ -309,7 +309,7 @@ class Sha256() extends CoprocessorMemoryAccess() {
             blockAddrReg := io.copIn.opData(0)
             memState := memReadReqM
             blockCountReg := io.copIn.opData(1)
-            io.copOut.ena_out := Bool(true)
+            io.copOut.ena_out := true.B
           }
         }
       }
