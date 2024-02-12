@@ -48,7 +48,8 @@ HWBUILDDIR?=$(CURDIR)/hardware/build
 # Where to install tools
 INSTALLDIR?=$(CURDIR)/../local
 HWINSTALLDIR?=$(INSTALLDIR)
-
+export LF_PROJECT_ROOT:=$(CURDIR)/c/apps/lf-workspace/hello
+export LF_MAIN_TARGET:=$(APP)
 all: tools emulator patmos
 
 
@@ -158,6 +159,25 @@ app:
 
 .PRECIOUS: $(BUILDDIR)/%.elf
 
+# Compile an lf app that lives in the lf-workspace folder
+lf-app:
+	-rm -rf $(LF_PROJECT_ROOT)/bin
+	-rm -rf $(LF_PROJECT_ROOT)/include
+	-rm -rf $(LF_PROJECT_ROOT)/src-gen
+	lfc $(LF_PROJECT_ROOT)/src/$(APP).lf
+	chmod +x $(LF_PROJECT_ROOT)/src/scripts/patmos_build.sh
+	$(LF_PROJECT_ROOT)/src/scripts/patmos_build.sh $(LF_PROJECT_ROOT) $(APP)
+	make -C $(LF_PROJECT_ROOT)/src-gen/$(APP) 
+	mkdir -p $(BUILDDIR)
+	cp $(LF_PROJECT_ROOT)/src-gen/$(APP)/$(APP).elf $(BUILDDIR)
+
+.PRECIOUS: $(BUILDDIR)/%.elf
+
+lf-clean:
+	make clean -C $(LF_PROJECT_ROOT)/src-gen/$(APP)
+
+lf-wcet:
+	make wcet -C c/apps/lf-workspace/hello/src-gen/$(APP)
 # High-level pasim simulation
 swsim: $(BUILDDIR)/$(BOOTAPP).bin
 	$(INSTALLDIR)/bin/pasim --debug --debug-fmt=short $(BUILDDIR)/$(BOOTAPP).bin; exit 0
