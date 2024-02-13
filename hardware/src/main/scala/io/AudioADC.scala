@@ -19,7 +19,7 @@ class AudioADC(AUDIOBITLENGTH: Int, FSDIV: Int) extends Module
     //to/from AudioADCBuffer
     val audioLO = UInt(OUTPUT, AUDIOBITLENGTH)
     val audioRO = UInt(OUTPUT, AUDIOBITLENGTH)
-    val enAdcI = Bool(dir = INPUT) //enable signal
+    val enAdcI = Input(Bool()) //enable signal
     val readEnAdcO = UInt(OUTPUT, 1) // used for sync
     //from AudioClkGen
     val bclkI = UInt(INPUT, 1)

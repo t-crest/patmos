@@ -22,7 +22,7 @@ class AudioDAC(AUDIOBITLENGTH: Int, FSDIV: Int) extends Module
     // from/to AudioDACBuffer
     val audioLI = UInt(INPUT, AUDIOBITLENGTH)
     val audioRI = UInt(INPUT, AUDIOBITLENGTH)
-    val enDacI = Bool(dir = INPUT) //enable signal
+    val enDacI = Input(Bool()) //enable signal
     val writeEnDacO = UInt(OUTPUT, 1) // used for sync
     val convEndO = UInt(OUTPUT, 1) // indicates end of conversion
     // from AudioClkGen
