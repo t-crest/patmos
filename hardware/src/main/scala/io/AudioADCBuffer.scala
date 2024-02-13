@@ -11,17 +11,17 @@ class AudioADCBuffer(AUDIOBITLENGTH: Int, MAXADCBUFFERPOWER: Int) extends Module
   // IOs
   val io = new Bundle {
     // to/from AudioADC
-    val audioLAdcI = UInt(INPUT, AUDIOBITLENGTH)
-    val audioRAdcI = UInt(INPUT, AUDIOBITLENGTH)
-    val enAdcO = UInt(OUTPUT, 1)
-    val readEnAdcI = UInt(INPUT, 1) //used to sync reads
+    val audioLAdcI = Input(UInt(AUDIOBITLENGTH.W))
+    val audioRAdcI = Input(UInt(AUDIOBITLENGTH.W))
+    val enAdcO = Output(UInt(1.W))
+    val readEnAdcI = Input(UInt(1.W)) //used to sync reads
     // to/from PATMOS
-    val enAdcI = UInt(INPUT, 1)
-    val audioLPatmosO = UInt(OUTPUT, AUDIOBITLENGTH)
-    val audioRPatmosO = UInt(OUTPUT, AUDIOBITLENGTH)
-    val readPulseI = UInt(INPUT, 1)
-    val emptyO = UInt(OUTPUT, 1) // empty buffer indicator
-    val bufferSizeI = UInt(INPUT, MAXADCBUFFERPOWER+1) // maximum bufferSizeI: (2^MAXADCBUFFERPOWER) + 1
+    val enAdcI = Input(UInt(1.W))
+    val audioLPatmosO = Output(UInt(AUDIOBITLENGTH.W))
+    val audioRPatmosO = Output(UInt(AUDIOBITLENGTH.W))
+    val readPulseI = Input(UInt(1.W))
+    val emptyO = Output(UInt(1.W)) // empty buffer indicator
+    val bufferSizeI = Input(UInt((MAXADCBUFFERPOWER+1).W)) // maximum bufferSizeI: (2^MAXADCBUFFERPOWER) + 1
   }
 
   val BUFFERLENGTH : Int = (Math.pow(2, MAXADCBUFFERPOWER)).asInstanceOf[Int]

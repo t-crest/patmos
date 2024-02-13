@@ -20,16 +20,16 @@ class AudioDAC(AUDIOBITLENGTH: Int, FSDIV: Int) extends Module
   val io = new Bundle
   {
     // from/to AudioDACBuffer
-    val audioLI = UInt(INPUT, AUDIOBITLENGTH)
-    val audioRI = UInt(INPUT, AUDIOBITLENGTH)
+    val audioLI = Input(UInt(AUDIOBITLENGTH.W))
+    val audioRI = Input(UInt(AUDIOBITLENGTH.W))
     val enDacI = Input(Bool()) //enable signal
-    val writeEnDacO = UInt(OUTPUT, 1) // used for sync
-    val convEndO = UInt(OUTPUT, 1) // indicates end of conversion
+    val writeEnDacO = Output(UInt(1.W)) // used for sync
+    val convEndO = Output(UInt(1.W)) // indicates end of conversion
     // from AudioClkGen
-    val bclkI = UInt(INPUT, 1)
+    val bclkI = Input(UInt(1.W))
     // to WM8731
-    val dacLrcO = UInt(OUTPUT, 1)
-    val dacDatO = UInt(OUTPUT, 1)
+    val dacLrcO = Output(UInt(1.W))
+    val dacDatO = Output(UInt(1.W))
   }
 
 

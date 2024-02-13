@@ -24,14 +24,14 @@ class memModule(size: Int) extends Module {
   val io = new Bundle{
 
     val M = new Bundle() {
-       val Data = UInt(INPUT, BYTE_WIDTH)
-       val Addr = UInt(INPUT, log2Up(size / BYTES_PER_WORD))
-       val blockEnable = UInt(INPUT, 1) // From byte enable
-       val We = UInt(INPUT, 1)
+       val Data = Input(UInt(BYTE_WIDTH.W))
+       val Addr = Input(UInt(log2Up(size / BYTES_PER_WORD).W))
+       val blockEnable = Input(UInt(1.W)) // From byte enable
+       val We = Input(UInt(1.W))
     }
 
     val S = new Bundle() {
-       val Data = UInt(OUTPUT, BYTE_WIDTH)
+       val Data = Output(UInt(BYTE_WIDTH.W))
     }
   }
 
@@ -146,14 +146,14 @@ class  memSPM(size: Int) extends Module {
   val io = new Bundle{
 
     val M = new Bundle() {
-       val Data = UInt(INPUT, DATA_WIDTH)
+       val Data = Input(UInt(DATA_WIDTH.W))
        val Addr = Bits(INPUT, log2Up(size))
-       val ByteEn = UInt(INPUT, 4)
-       val We = UInt(INPUT, 1)
+       val ByteEn = Input(UInt(4.W))
+       val We = Input(UInt(1.W))
     }
 
     val S = new Bundle() {
-       val Data = UInt(OUTPUT, DATA_WIDTH)
+       val Data = Output(UInt(DATA_WIDTH.W))
     }
   }
 

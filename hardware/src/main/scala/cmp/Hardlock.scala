@@ -15,7 +15,7 @@ import patmos.Constants._
 import ocp._
 
 class HardlockIO(val lckCnt : Int) extends Bundle {
-  val sel = UInt(INPUT, log2Up(lckCnt))
+  val sel = Input(UInt(log2Up(lckCnt).W))
   val op = Input(Bool())
   val en = Input(Bool())
   val blck = Output(Bool())

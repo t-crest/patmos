@@ -27,12 +27,12 @@ class IcapCtrl(extAddrWidth : Int = 32,
                      dataWidth : Int = 32) extends CoreDevice() {
   override val io = new CoreDeviceIO() with patmos.HasPins {
     override val pins = new Bundle() {
-      val MCmd = UInt(OUTPUT,3)
-      val MAddr = UInt(OUTPUT,extAddrWidth)
-      val MData = UInt(OUTPUT,dataWidth)
-      val MByteEn = UInt(OUTPUT,4)
-      val SResp = UInt(INPUT,2)
-      val SData = UInt(INPUT,dataWidth)
+      val MCmd = Output(UInt(3.W))
+      val MAddr = Output(UInt(extAddrWidth.W))
+      val MData = Output(UInt(dataWidth.W))
+      val MByteEn = Output(UInt(4.W))
+      val SResp = Input(UInt(2.W))
+      val SData = Input(UInt(dataWidth.W))
     }
   }
   //Assigments of inputs and outputs

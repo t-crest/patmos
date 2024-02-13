@@ -19,8 +19,8 @@ import ocp._
 class CpuInfo(datFile: String, cpucnt: Int) extends CoreDevice() {
 
   override val io = IO(new CoreDeviceIO() {
-    val nr = UInt(INPUT, log2Up(cpucnt))
-    val cnt = UInt(INPUT, log2Floor(cpucnt) + 1)
+    val nr = Input(UInt(log2Up(cpucnt).W))
+    val cnt = Input(UInt((log2Floor(cpucnt) + 1).W))
   })
 
   val masterReg = Reg(next = io.ocp.M)

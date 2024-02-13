@@ -11,18 +11,18 @@ class AudioDACBuffer(AUDIOBITLENGTH: Int, MAXDACBUFFERPOWER: Int) extends Module
   // IOs
   val io = new Bundle {
     // to/from PATMOS
-    val audioLIPatmos = UInt(INPUT, AUDIOBITLENGTH)
-    val audioRIPatmos = UInt(INPUT, AUDIOBITLENGTH)
-    val enDacI = UInt(INPUT, 1) // enable signal
-    val writePulseI = UInt(INPUT, 1)
-    val fullO = UInt(OUTPUT, 1) // full buffer indicator
-    val bufferSizeI = UInt(INPUT, MAXDACBUFFERPOWER+1) // maximum bufferSizeI: (2^MAXDACBUFFERPOWER) + 1
+    val audioLIPatmos = Input(UInt(AUDIOBITLENGTH.W))
+    val audioRIPatmos = Input(UInt(AUDIOBITLENGTH.W))
+    val enDacI = Input(UInt(1.W)) // enable signal
+    val writePulseI = Input(UInt(1.W))
+    val fullO = Output(UInt(1.W)) // full buffer indicator
+    val bufferSizeI = Input(UInt((MAXDACBUFFERPOWER+1).W)) // maximum bufferSizeI: (2^MAXDACBUFFERPOWER) + 1
     // to/from AudioDAC
-    val audioLIDAC = UInt(OUTPUT, AUDIOBITLENGTH)
-    val audioRIDAC = UInt(OUTPUT, AUDIOBITLENGTH)
-    val enDacO = UInt(OUTPUT, 1) // enable signal
-    val writeEnDacI = UInt(INPUT, 1) // used to sync writes
-    val convEndI = UInt(INPUT, 1) // indicates end of conversion
+    val audioLIDAC = Output(UInt(AUDIOBITLENGTH.W))
+    val audioRIDAC = Output(UInt(AUDIOBITLENGTH.W))
+    val enDacO = Output(UInt(1.W)) // enable signal
+    val writeEnDacI = Input(UInt(1.W)) // used to sync writes
+    val convEndI = Input(UInt(1.W)) // indicates end of conversion
   }
 
   val BUFFERLENGTH : Int = (Math.pow(2, MAXDACBUFFERPOWER)).asInstanceOf[Int]

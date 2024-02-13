@@ -15,11 +15,11 @@ class AudioClkGen(CLKDIV: Int) extends Module
   val io = new Bundle
   {
     //inputs from PATMOS
-    val enAdcI = UInt(INPUT, 1)
-    val enDacI = UInt(INPUT, 1)
+    val enAdcI = Input(UInt(1.W))
+    val enDacI = Input(UInt(1.W))
     //outputs to WM8731
-    val bclkO = UInt(OUTPUT, 1)
-    val xclkO = UInt(OUTPUT, 1)
+    val bclkO = Output(UInt(1.W))
+    val xclkO = Output(UInt(1.W))
   }
 
   //register containing divider value

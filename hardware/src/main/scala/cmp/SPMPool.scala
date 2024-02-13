@@ -43,7 +43,7 @@ object SPMPool {
 
     val io = new Bundle()
     {
-      val sched = UInt(INPUT, corecnt)
+      val sched = Input(UInt(corecnt.W))
       val cores = Vec(corecnt, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))
     }
 

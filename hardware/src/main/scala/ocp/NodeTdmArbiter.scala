@@ -18,7 +18,7 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
   val io = IO(new Bundle {
     val master = new OcpBurstSlavePort(addrWidth, dataWidth, burstLen) 
     val slave = new OcpBurstMasterPort(addrWidth, dataWidth, burstLen)
-    val node = UInt(INPUT, 6)
+    val node = Input(UInt(6.W))
   })
   //debug(io.master) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
   //debug(io.slave)

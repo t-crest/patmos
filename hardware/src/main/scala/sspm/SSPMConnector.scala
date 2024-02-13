@@ -70,7 +70,7 @@ trait SSPMConnectorSignals {
     }
 
     val S = new Bundle() {
-       val Data = UInt(INPUT, DATA_WIDTH)
+       val Data = Input(UInt(DATA_WIDTH.W))
     }
   }
 }

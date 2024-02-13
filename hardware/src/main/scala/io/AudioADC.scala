@@ -17,15 +17,15 @@ class AudioADC(AUDIOBITLENGTH: Int, FSDIV: Int) extends Module
   val io = new Bundle
   {
     //to/from AudioADCBuffer
-    val audioLO = UInt(OUTPUT, AUDIOBITLENGTH)
-    val audioRO = UInt(OUTPUT, AUDIOBITLENGTH)
+    val audioLO = Output(UInt(AUDIOBITLENGTH.W))
+    val audioRO = Output(UInt(AUDIOBITLENGTH.W))
     val enAdcI = Input(Bool()) //enable signal
-    val readEnAdcO = UInt(OUTPUT, 1) // used for sync
+    val readEnAdcO = Output(UInt(1.W)) // used for sync
     //from AudioClkGen
-    val bclkI = UInt(INPUT, 1)
+    val bclkI = Input(UInt(1.W))
     //to/from WM8731
-    val adcLrcO = UInt(OUTPUT, 1)
-    val adcDatI = UInt(INPUT, 1)
+    val adcLrcO = Output(UInt(1.W))
+    val adcDatI = Input(UInt(1.W))
   }
 
   //Counter for audio sampling

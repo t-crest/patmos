@@ -9,9 +9,9 @@ class AudioWM8731ADCModel(AUDIOBITLENGTH: Int) extends Module {
 
   // IOs
   val io = new Bundle {
-    val bClk = UInt(INPUT, 1)
-    val adcLrc = UInt(INPUT, 1)
-    val adcDat = UInt(OUTPUT, 1)
+    val bClk = Input(UInt(1.W))
+    val adcLrc = Input(UInt(1.W))
+    val adcDat = Output(UInt(1.W))
   }
 
   // audio data registers

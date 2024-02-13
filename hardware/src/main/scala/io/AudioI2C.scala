@@ -13,16 +13,16 @@ class AudioI2C extends Module
   val io = new Bundle
   {
     //inputs from PATMOS
-    val dataI = UInt(INPUT, 9)
-    val addrI = UInt(INPUT, 7)
+    val dataI = Input(UInt(9.W))
+    val addrI = Input(UInt(7.W))
     //wires to  to WM8731
-    val sdinI = UInt(INPUT, 1) //inout
-    val sdinO = UInt(OUTPUT, 1) //inout
-    val sclkO = UInt(OUTPUT, 1) //output
-    val weO = UInt(OUTPUT, 1) // write enable: 1->sdinO, 0->sdinI
+    val sdinI = Input(UInt(1.W)) //inout
+    val sdinO = Output(UInt(1.W)) //inout
+    val sclkO = Output(UInt(1.W)) //output
+    val weO = Output(UInt(1.W)) // write enable: 1->sdinO, 0->sdinI
 		               //handshake with patmos
-    val reqI = UInt(INPUT, 1)
-    val ackO = UInt(OUTPUT, 1)
+    val reqI = Input(UInt(1.W))
+    val ackO = Output(UInt(1.W))
   }
 
   //registers for audio data

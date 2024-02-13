@@ -9,7 +9,7 @@ import patmos.Constants._
  class RTC(clockFreq: Int = CLOCK_FREQ, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTime: BigInt, ppsDuration: Int = 10) extends Module {
    val io = new Bundle() {
      val ocp = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
-     val ptpTimestamp = UInt(OUTPUT, width = secondsWidth + nanoWidth)
+     val ptpTimestamp = Output(UInt((secondsWidth + nanoWidth).W))
      val pps = Output(Bool())
    }
 
@@ -155,7 +155,7 @@ import patmos.Constants._
 //class RTC(clockFreq: Int = CLOCK_FREQ, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTime: BigInt, ppsDuration: Int = 10) extends Module {
 //  override val io = new Bundle() {
 //    val ocp = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
-//    val ptpTimestamp = UInt(OUTPUT, width = secondsWidth + nanoWidth)
+//    val ptpTimestamp = Output(UInt((secondsWidth + nanoWidth).W))
 //    val periodIntr = Output(Bool())
 //    val pps = Output(Bool())
 //  }

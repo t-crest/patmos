@@ -26,12 +26,12 @@ class EMACPins extends Bundle {
   // GMII Interface
   //---------------
   
-  val gmii_txd = UInt(OUTPUT,8)
+  val gmii_txd = Output(UInt(8.W))
   val gmii_tx_en = Output(Bool())
   val gmii_tx_er = Output(Bool())
   val gmii_tx_clk = Output(Bool())
   
-  val gmii_rxd = UInt(INPUT,8)
+  val gmii_rxd = Input(UInt(8.W))
   val gmii_rx_dv = Input(Bool())
   val gmii_rx_er = Input(Bool())
   val gmii_rx_clk = Input(Bool())
@@ -45,14 +45,14 @@ class EMACIO extends EMACPins {
 
   // Receiver (AXI-S) Interface
   //----------------------------------------
-  val rx_axis_fifo_tdata = UInt(OUTPUT,8)
+  val rx_axis_fifo_tdata = Output(UInt(8.W))
   val rx_axis_fifo_tvalid = Output(Bool())
   val rx_axis_fifo_tready = Input(Bool())
   val rx_axis_fifo_tlast = Output(Bool())
   
   // Transmitter (AXI-S) Interface
   //-------------------------------------------
-  val tx_axis_fifo_tdata = UInt(INPUT,8)
+  val tx_axis_fifo_tdata = Input(UInt(8.W))
   val tx_axis_fifo_tvalid = Input(Bool())
   val tx_axis_fifo_tready = Output(Bool())
   val tx_axis_fifo_tlast = Input(Bool())

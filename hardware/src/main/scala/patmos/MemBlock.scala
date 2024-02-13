@@ -19,11 +19,11 @@ object MemBlock {
 }
 
 class MemBlockIO(size : Int, width : Int) extends Bundle {
-  val rdAddr = UInt(INPUT, log2Up(size))
-  val rdData = UInt(OUTPUT, width)
-  val wrAddr = UInt(INPUT, log2Up(size))
-  val wrEna  = UInt(INPUT, 1)
-  val wrData = UInt(INPUT, width)
+  val rdAddr = Input(UInt(log2Up(size).W))
+  val rdData = Output(UInt(width.W))
+  val wrAddr = Input(UInt(log2Up(size).W))
+  val wrEna  = Input(UInt(1.W))
+  val wrData = Input(UInt(width.W))
 
   var read = false
   var write = false
