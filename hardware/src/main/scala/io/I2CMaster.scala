@@ -209,11 +209,11 @@ class I2CMaster(clkFreq : Int, bitRate : Int) extends CoreDevice() {
   val sclOReg = Reg(init = Bits(1, 1))
 
   //val sclActive = Reg(init = Bits(0, 1))
-  val sclRateCounter = Reg(init = UInt(clkFreq / bitRate, log2Up(clkFreq / bitRate)))
+  val sclRateCounter = Reg(init = (clkFreq / bitRate).U(log2Up(clkFreq / bitRate).W))
 
   val busIdle :: busReading :: busWriting :: busStopping :: Nil = Enum(UInt(), 4)
   val busState = Reg(init = busIdle)
-  val busRWCounter = Reg(init = UInt(0, 4))
+  val busRWCounter = Reg(init = 0.U(4.W))
 
   //val sdaTick = Reg(init = Bits(0, 1))
   //sdaTick := Bits(0)
@@ -223,32 +223,32 @@ class I2CMaster(clkFreq : Int, bitRate : Int) extends CoreDevice() {
       busState := busWriting
       rwReg := writeBuf(0)
       sdaOReg := Bits(0) // issue start condition
-      sclRateCounter := UInt(0)
-      busRWCounter := UInt(0)
+      sclRateCounter := 0.U
+      busRWCounter := 0.U
     }
     .elsewhen (restartReg === Bits(1)) {
       busState := busStopping
-      sclRateCounter := UInt(0)
+      sclRateCounter := 0.U
     }
     .elsewhen (stopReg === Bits(1)) {
       busState := busStopping
       sdaOReg := Bits(0) // pull SDA low to prepare for stop condition
-      sclRateCounter := UInt(0)
+      sclRateCounter := 0.U
     }
     .otherwise {
       busState := Mux(rwReg === Bits(0), busWriting, busReading)
-      busRWCounter := UInt(0)
+      busRWCounter := 0.U
     }
   }
 
-  when (sclRateCounter === UInt(clkFreq / bitRate)) {
+  when (sclRateCounter === (clkFreq / bitRate).U) {
     when (busState === busWriting) {
       // shift bits and fill up with 1 (to leave SDA high after sending)
       writeBuf := Cat(writeBuf(6,0), Bits(1))
       sdaOReg := writeBuf(7)
-      busRWCounter := busRWCounter + UInt(1)
+      busRWCounter := busRWCounter + 1.U
 
-      when (busRWCounter === UInt(9)) {
+      when (busRWCounter === 9.U) {
         when (ackReg === Bits(0)) {
           abrtReg := Bits(0)
           when (rwReg === Bits(0)) {
@@ -259,7 +259,7 @@ class I2CMaster(clkFreq : Int, bitRate : Int) extends CoreDevice() {
             busState := busReading
             busyReg := Bits(1)
             connReg := Bits(1)
-            busRWCounter := UInt(0)
+            busRWCounter := 0.U
           }
         } .otherwise {
           //busState := busIdle
@@ -270,21 +270,21 @@ class I2CMaster(clkFreq : Int, bitRate : Int) extends CoreDevice() {
           stopReg := Bits(1)
           busState := busStopping
           sdaOReg := Bits(0) // pull SDA low to prepare for stop condition
-          sclRateCounter := UInt(0)
+          sclRateCounter := 0.U
         }
       } .otherwise {
-        sclRateCounter := UInt(0)
+        sclRateCounter := 0.U
       }
     }
 
     when (busState === busReading) {
-      busRWCounter := busRWCounter + UInt(1)
+      busRWCounter := busRWCounter + 1.U
 
-      when (busRWCounter === UInt(8)) {
+      when (busRWCounter === 8.U) {
         sdaOReg := ackBehavReg
       }
 
-      when (busRWCounter === UInt(9)) {
+      when (busRWCounter === 9.U) {
         when (ackBehavReg === Bits(0)) {
           sdaOReg := Bits(1)
           busState := busIdle
@@ -295,11 +295,11 @@ class I2CMaster(clkFreq : Int, bitRate : Int) extends CoreDevice() {
           stopReg := Bits(1)
           busState := busStopping
           sdaOReg := Bits(0) // pull SDA low to prepare for stop condition
-          sclRateCounter := UInt(0)
+          sclRateCounter := 0.U
         }
       }
       .otherwise {
-        sclRateCounter := UInt(0)
+        sclRateCounter := 0.U
       }
     }
 
@@ -312,13 +312,13 @@ class I2CMaster(clkFreq : Int, bitRate : Int) extends CoreDevice() {
   .otherwise {
     // clock stretching (counter stops if sclOReg high but sclIReg still low)
     when (enClkStrReg === Bits(0) || sclOReg === Bits(0) || sclIReg === Bits(1)) {
-      sclRateCounter := sclRateCounter + UInt(1)
+      sclRateCounter := sclRateCounter + 1.U
     }
 
-    when (sclRateCounter === UInt(clkFreq / (bitRate * 4))) {
+    when (sclRateCounter === (clkFreq / (bitRate * 4)).U) {
       sclOReg := Bits(1)
     }
-    .elsewhen (sclRateCounter === UInt((clkFreq * 3) / (bitRate * 4))) {
+    .elsewhen (sclRateCounter === ((clkFreq * 3) / (bitRate * 4)).U) {
       when (busState === busStopping) {
         when (restartReg === Bits(1)) {
           restartReg := Bits(0)
@@ -326,13 +326,13 @@ class I2CMaster(clkFreq : Int, bitRate : Int) extends CoreDevice() {
           busState := busWriting
           rwReg := writeBuf(0)
           sdaOReg := Bits(0) // issue start condition
-          sclRateCounter := UInt(0)
-          busRWCounter := UInt(0)
+          sclRateCounter := 0.U
+          busRWCounter := 0.U
         }
         .elsewhen (stopReg === Bits(1)) {
           stopReg := Bits(0)
           sdaOReg := Bits(1) // issue stop condition
-          sclRateCounter := UInt(0) // wait at least one cycle before next start
+          sclRateCounter := 0.U // wait at least one cycle before next start
         }
       } .otherwise {
         sclOReg := Bits(0)

@@ -32,7 +32,7 @@ class Spm(size: Int) extends Module {
   val cmdReg = Reg(next = io.M.Cmd)
   io.S.Resp := Mux(cmdReg === OcpCmd.WR || cmdReg === OcpCmd.RD,
                    OcpResp.DVA, OcpResp.NULL)
-  io.S.Data := UInt(0)
+  io.S.Data := 0.U
 
   if (size > 0) {
     // generate byte memories
@@ -42,7 +42,7 @@ class Spm(size: Int) extends Module {
     }
 
     // store
-    val stmsk = Mux(io.M.Cmd === OcpCmd.WR, io.M.ByteEn,  UInt(0))
+    val stmsk = Mux(io.M.Cmd === OcpCmd.WR, io.M.ByteEn,  0.U)
     for (i <- 0 until BYTES_PER_WORD) {
       mem(i) <= (stmsk(i), io.M.Addr(addrUInt + 1, 2),
                  io.M.Data(BYTE_WIDTH*(i+1)-1, BYTE_WIDTH*i))

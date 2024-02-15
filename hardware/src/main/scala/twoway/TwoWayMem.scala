@@ -26,7 +26,7 @@ class TwoWayMem(n: Int, memSize: Int) extends Module {
 
 
   // Dummy output keep hardware generated
-  val dout = Reg(next = Vec(n * n, UInt(width = 32)))
+  val dout = Reg(next = Vec(n * n, UInt(32.W)))
 
   val writeNetWidth = log2Down(memSize) - log2Down(n*n)
 

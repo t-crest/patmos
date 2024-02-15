@@ -27,24 +27,24 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
     // Port B: External requests
     val memPort = Module(new TrueDualPortMemory(Math.pow(2,blockAddrWidth).toInt)) //adding module fixed a compile error. It should just make a mudule as you would in VHDL. Dont know why uou dont need ot for the channels for instance 
   
-    val testSignal = UInt(width=32).asOutput
+    val testSignal = UInt(32.W).asOutput
     
   }
  
   // Set default values for memReq
-  io.memReq.out.data := UInt(0)
+  io.memReq.out.data := 0.U
   //io.memReq.in.valid := false.B
 
   // Write NOC
   val st = Schedule.getSchedule(n, false, nodeIndex)
   val scheduleLength = st._1.length
-  val timeslotToNode = Vec(st._3.map(UInt(_))) //Converts scala generated array to ROM
+  val timeslotToNode = Vec(st._3.map(_.U)) //Converts scala generated array to ROM
   
 
   // TDM counter - same counter is used for both NoCs
-  val regTdmCounter = Reg(init = UInt(0, log2Up(scheduleLength)))
-  val end = regTdmCounter === UInt(scheduleLength - 1)
-  regTdmCounter := Mux(end, UInt(0), regTdmCounter + UInt(1))
+  val regTdmCounter = Reg(init = 0.U(log2Up(scheduleLength).W))
+  val end = regTdmCounter === (scheduleLength - 1).U
+  regTdmCounter := Mux(end, 0.U, regTdmCounter + 1.U)
 
   // Readback NOC:
   val stback = Schedule.getSchedule(n, false, nodeIndex)
@@ -53,31 +53,31 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
 
 
   // Decode memory request from LOCAL Node - use memory port A
-  val upperAddr = UInt(width = log2Up(nrChannels))
+  val upperAddr = UInt(log2Up(nrChannels).W)
   upperAddr := io.memReq.in.address >> blockAddrWidth; // Target node
   
-  val lowerAddr = UInt(width = blockAddrWidth)
+  val lowerAddr = UInt(blockAddrWidth.W)
   lowerAddr := io.memReq.in.address(blockAddrWidth, 0) // Block address
 
   // TDM schedule starts one cycles later for read data delay
-  val regDelay = RegNext(regTdmCounter, init=UInt(0))
+  val regDelay = RegNext(regTdmCounter, init=0.U)
 
 
   // Set default values for readBackChannel
-  io.readBackChannel.out.data := UInt(0)
+  io.readBackChannel.out.data := 0.U
 
   // Set default values for writeChannel
-  io.writeChannel.out.rw := UInt(0)
-  io.writeChannel.out.address := UInt(0)
-  io.writeChannel.out.data := UInt(0)
+  io.writeChannel.out.rw := 0.U
+  io.writeChannel.out.address := 0.U
+  io.writeChannel.out.data := 0.U
   io.writeChannel.out.valid := false.B
 
 
   // Set default vaues for memPort
-  io.memPort.io.portB.addr := UInt(0)
-  io.memPort.io.portB.wrData := UInt(0)
-  io.memPort.io.portA.addr := UInt(0)
-  io.memPort.io.portA.wrData := UInt(0)
+  io.memPort.io.portB.addr := 0.U
+  io.memPort.io.portB.wrData := 0.U
+  io.memPort.io.portA.addr := 0.U
+  io.memPort.io.portA.wrData := 0.U
 
 
   io.memReq.out.valid := false.B
@@ -92,31 +92,31 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
 
 
   //Delay data is used to choose between ports.
-  val delayData = Reg(init = UInt(0));
+  val delayData = Reg(init = 0.U);
 
 
   //Register unsuring only having valid high to write network for one cycle.
   val transmitted = Reg(init = false.B)
   transmitted := transmitted
 
-  when(delayData === UInt(1)){
+  when(delayData === 1.U){
     io.memReq.out.data :=  io.memPort.io.portA.rdData
   }.otherwise{
-    when(delayData === UInt(2)){
+    when(delayData === 2.U){
 
     io.memReq.out.data := io.readBackChannel.in.data
 
     }.otherwise{
-      io.memReq.out.data := UInt(0);
+      io.memReq.out.data := 0.U;
     }
   }
 
 
-      delayData := UInt(0)
+      delayData := 0.U
   //Registers for requests that takes multiple cycles, where the data is only valid one cycle.
   val notProcessed = Reg(init = false.B)
-  val inDataReg = Reg(init = UInt(0))
-  val inAddressReg = Reg(init = UInt(0))
+  val inDataReg = Reg(init = 0.U)
+  val inAddressReg = Reg(init = 0.U)
   val inRwReg = Reg(init = false.B)
 
 
@@ -127,11 +127,11 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
  
   //This when handles requests if they are immediate.
   when(io.memReq.in.valid){
-    when(upperAddr === UInt(nodeIndex)){  //Is this right? When valid it should alwayws be for the node.
+    when(upperAddr === nodeIndex.U){  //Is this right? When valid it should alwayws be for the node.
       // LOCAL NODE -> LOCAL MEMORY
       io.memPort.io.portA.wrEna := io.memReq.in.rw
 
-      delayData := UInt(1)
+      delayData := 1.U
 
       //When it is local it always takes a single cycle.
       notProcessed := false.B
@@ -248,7 +248,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
 
   // ReadBack NoC variables
   val gotValue = Reg(init = false.B)
-  val readbackValueDelayed = Reg(init= UInt(0,32))  // a 1-cycle buffer is needed on the read value for transmitting readback requests when a blank in the cycle has occured
+  val readbackValueDelayed = Reg(init= 0.U(32.W))  // a 1-cycle buffer is needed on the read value for transmitting readback requests when a blank in the cycle has occured
   readbackValueDelayed := io.memPort.io.portB.rdData
 
   val rbDelayArray = st._5
@@ -259,9 +259,9 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   
 
   // TDM counter - 1 clk cycle delayed, such that the 1 cycle read time is accounded for, one cycle for the router to NI and one unknown...
-  val FIFOTdmCounter = Reg(init = UInt(scheduleLength - 2, log2Up(scheduleLength)))
-  val endTDMFIFO = FIFOTdmCounter === UInt(scheduleLength - 1)
-  FIFOTdmCounter := Mux(endTDMFIFO, UInt(0), FIFOTdmCounter + UInt(1))
+  val FIFOTdmCounter = Reg(init = (scheduleLength - 2).U(log2Up(scheduleLength).W))
+  val endTDMFIFO = FIFOTdmCounter === (scheduleLength - 1).U
+  FIFOTdmCounter := Mux(endTDMFIFO, 0.U, FIFOTdmCounter + 1.U)
   
 
   // writeNoc reception - use memory port B
@@ -290,12 +290,12 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
 
 
   // TDM counter - 1
-  val shiftedTdmCounter = Reg(init = UInt(st._4, log2Up(scheduleLength)))
-  val end2 = shiftedTdmCounter === UInt(scheduleLength - 1)
-  shiftedTdmCounter := Mux(end2, UInt(0), shiftedTdmCounter + UInt(1))
-  val regShiftedTdmCounter = RegNext(shiftedTdmCounter, init=UInt(0))//This works for all route 2x2 and 3x3 and all route except the 4'th indexed ass 3 in 4x4
+  val shiftedTdmCounter = Reg(init = st._4.U(log2Up(scheduleLength).W))
+  val end2 = shiftedTdmCounter === (scheduleLength - 1).U
+  shiftedTdmCounter := Mux(end2, 0.U, shiftedTdmCounter + 1.U)
+  val regShiftedTdmCounter = RegNext(shiftedTdmCounter, init=0.U)//This works for all route 2x2 and 3x3 and all route except the 4'th indexed ass 3 in 4x4
   
-  shiftedTdmCounter := Mux(end2, UInt(0), shiftedTdmCounter + UInt(1))  
+  shiftedTdmCounter := Mux(end2, 0.U, shiftedTdmCounter + 1.U)
   
   
   //FIFO logic
@@ -327,7 +327,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   val lookupvalue = rbDelayROM(regShiftedTdmCounter)
   
 
-  muxReadDataChannel.data := UInt(0)
+  muxReadDataChannel.data := 0.U
   muxReadDataChannel.valid := false.B
 
   when(lookupvalue === SInt(0)){
@@ -339,7 +339,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
     //gotValueRb := false.B
   }.otherwise{
 
-    muxReadDataChannel := rbFIFO(lookupvalue.asUInt() - UInt(1) )
+    muxReadDataChannel := rbFIFO(lookupvalue.asUInt() - 1.U )
 
   }
 
@@ -350,7 +350,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
         when(io.readBackChannel.in.valid){
           // Node should be waiting for the valid signal to be asserted, to indicate that data is available
           transmitted := false.B
-          delayData := UInt(2)
+          delayData := 2.U
           io.memReq.out.data := io.readBackChannel.in.data
           io.memReq.out.valid := io.readBackChannel.in.valid
         }.otherwise{

@@ -62,7 +62,7 @@ class WriteCombineBuffer() extends WriteBufferType {
   // State of transmission
   val idle :: read :: write :: writeResp :: writeComb :: writeSnoop :: Nil = Enum(Bits(), 6)
   val state = Reg(init = idle)
-  val cntReg = Reg(init = UInt(0, burstAddrBits))
+  val cntReg = Reg(init = 0.U(burstAddrBits.W))
 
   // Register signals that come from write master
   val writeMasterReg = Reg(io.writeMaster.M)
@@ -102,10 +102,10 @@ class WriteCombineBuffer() extends WriteBufferType {
       io.readMaster.S.Data := comb.reduceLeft((x,y) => y##x)
     }
     when(io.slave.S.Resp =/= OcpResp.NULL) {
-      when(cntReg === UInt(burstLength - 1)) {
+      when(cntReg === (burstLength - 1).U) {
         state := idle
       }
-      cntReg := cntReg + UInt(1)
+      cntReg := cntReg + 1.U
     }
   }
 
@@ -129,9 +129,9 @@ class WriteCombineBuffer() extends WriteBufferType {
         dataBuffer(cntReg) := writeMasterReg.Data
         byteEnBuffer(cntReg) := writeMasterReg.ByteEn
       }
-      cntReg := cntReg + UInt(1)
+      cntReg := cntReg + 1.U
     }
-    when(cntReg === UInt(burstLength - 1)) {
+    when(cntReg === (burstLength - 1).U) {
       state := writeResp
     }
   }
@@ -169,9 +169,9 @@ class WriteCombineBuffer() extends WriteBufferType {
         dataBuffer(cntReg) := comb.reduceLeft((x,y) => y##x)
         byteEnBuffer(cntReg) := byteEnBuffer(cntReg) | readMasterReg.DataByteEn
       }
-      cntReg := cntReg + UInt(1)
+      cntReg := cntReg + 1.U
     }
-    when(cntReg === UInt(burstLength - 1)) {
+    when(cntReg === (burstLength - 1).U) {
       state := idle
     }
   }

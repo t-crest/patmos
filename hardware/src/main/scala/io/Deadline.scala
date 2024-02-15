@@ -61,14 +61,14 @@ object Deadline extends DeviceObject {
 
 class Deadline() extends CoreDevice() {
 
-  val freeRunningReg = Reg(init = UInt(0, 32))
-  val downCountReg = Reg(init = UInt(0, 32))
+  val freeRunningReg = Reg(init = 0.U(32.W))
+  val downCountReg = Reg(init = 0.U(32.W))
   
-  freeRunningReg := freeRunningReg + UInt(1)
-  val downDone = downCountReg === UInt(0)
+  freeRunningReg := freeRunningReg + 1.U
+  val downDone = downCountReg === 0.U
   
   when (!downDone) {
-    downCountReg := downCountReg - UInt(1)
+    downCountReg := downCountReg - 1.U
   }
   when (io.ocp.M.Cmd === OcpCmd.WR) {
     downCountReg := io.ocp.M.Data 

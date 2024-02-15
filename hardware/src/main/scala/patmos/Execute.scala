@@ -28,7 +28,7 @@ class Execute() extends Module {
   }
 
   def alu(func: UInt, op1: UInt, op2: UInt): UInt = {
-    val result = Wire(UInt(width = DATA_WIDTH))
+    val result = Wire(UInt(DATA_WIDTH.W))
     val scaledOp1 = op1 << Mux(func === FUNC_SHADD2, 2.U,
                                Mux(func === FUNC_SHADD, 1.U, 0.U))
     val sum = scaledOp1 + op2
@@ -55,7 +55,7 @@ class Execute() extends Module {
   def comp(func: UInt, op1: UInt, op2: UInt): Bool = {
     val op1s = op1.asSInt
     val op2s = op2.asSInt
-    val bitMsk = UInt(1) << op2(4, 0).asUInt
+    val bitMsk = 1.U << op2(4, 0).asUInt
     // Is this nicer than the switch?
     // Some of the comparison function (equ, subtract) could be shared
     val eq = op1 === op2
@@ -81,7 +81,7 @@ class Execute() extends Module {
 
   // data forwarding
   val fwReg  = Reg(Vec(2*PIPE_COUNT, UInt(3.W)))
-  val fwSrcReg  = Reg(Vec(2*PIPE_COUNT, UInt(width = log2Up(PIPE_COUNT))))
+  val fwSrcReg  = Reg(Vec(2*PIPE_COUNT, UInt(log2Up(PIPE_COUNT).W)))
   val memResultDataReg = Reg(Vec(PIPE_COUNT, UInt(DATA_WIDTH.W)))
   val exResultDataReg  = Reg(Vec(PIPE_COUNT, UInt(DATA_WIDTH.W)))
   val op = Wire(Vec(2*PIPE_COUNT, UInt(DATA_WIDTH.W)))
@@ -93,13 +93,13 @@ class Execute() extends Module {
     for (k <- 0 until PIPE_COUNT) {
       when(io.decex.rsAddr(i) === io.memResult(k).addr && io.memResult(k).valid) {
         fwReg(i) := "b010".U(3.W)
-        fwSrcReg(i) := UInt(k)
+        fwSrcReg(i) := k.U
       }
     }
     for (k <- 0 until PIPE_COUNT) {
       when(io.decex.rsAddr(i) === io.exResult(k).addr && io.exResult(k).valid) {
         fwReg(i) := "b001".U(3.W)
-        fwSrcReg(i) := UInt(k)
+        fwSrcReg(i) := k.U
       }
     }    
   }
@@ -146,20 +146,20 @@ class Execute() extends Module {
   val saveND = Reg(Bool())
 
   // exception return information
-  val excBaseReg = Reg(UInt(width = DATA_WIDTH))
-  val excOffReg = Reg(UInt(width = DATA_WIDTH))
+  val excBaseReg = Reg(UInt(DATA_WIDTH.W))
+  val excOffReg = Reg(UInt(DATA_WIDTH.W))
 
   // MS: maybe the multiplication should be in a local component?
 
   // multiplication result registers
-  val mulLoReg = Reg(UInt(width = DATA_WIDTH))
-  val mulHiReg = Reg(UInt(width = DATA_WIDTH))
+  val mulLoReg = Reg(UInt(DATA_WIDTH.W))
+  val mulHiReg = Reg(UInt(DATA_WIDTH.W))
 
   // multiplication pipeline registers
-  val mulLLReg    = Reg(UInt(width = DATA_WIDTH))
+  val mulLLReg    = Reg(UInt(DATA_WIDTH.W))
   val mulLHReg    = Reg(SInt(width = DATA_WIDTH+1))
   val mulHLReg    = Reg(SInt(width = DATA_WIDTH+1))
-  val mulHHReg    = Reg(UInt(width = DATA_WIDTH))
+  val mulHHReg    = Reg(UInt(DATA_WIDTH.W))
 
   val mulPipeReg = Reg(Bool())
 
@@ -208,8 +208,8 @@ class Execute() extends Module {
     val compResult = comp(exReg.aluOp(i).func, op(2*i), op(2*i+1))
 
     val bcpyPs = predReg(exReg.aluOp(i).func(PRED_BITS-1, 0)) ^ exReg.aluOp(i).func(PRED_BITS);
-    val shiftedPs = ((UInt(0, DATA_WIDTH-1) ## bcpyPs) << op(2*i+1)(4, 0))(DATA_WIDTH-1, 0)
-    val maskedOp = op(2*i) & ~(UInt(1, width = DATA_WIDTH) << op(2*i+1)(4, 0))(DATA_WIDTH-1, 0)
+    val shiftedPs = ((0.U((DATA_WIDTH-1).W) ## bcpyPs) << op(2*i+1)(4, 0))(DATA_WIDTH-1, 0)
+    val maskedOp = op(2*i) & ~(1.U(DATA_WIDTH.W) << op(2*i+1)(4, 0))(DATA_WIDTH-1, 0)
     val bcpyResult = maskedOp | shiftedPs
 
     // predicate operations
@@ -325,7 +325,7 @@ class Execute() extends Module {
                    exReg.xcall || exReg.xret) && doExecute(0)
 
   val brcfOff = Mux(exReg.immOp(0), 0.U, op(1).asUInt)
-  val callRetAddr = Mux(exReg.call || exReg.xcall, UInt(0),
+  val callRetAddr = Mux(exReg.call || exReg.xcall, 0.U,
                         Mux(exReg.brcf, brcfOff,
                             Mux(exReg.xret, excOffReg, retOffReg)))
 

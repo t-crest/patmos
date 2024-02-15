@@ -95,8 +95,8 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends DCacheType(lin
   val idle :: hold :: fill :: respond :: Nil = Enum(UInt(), 4)
   val stateReg = Reg(init = idle)
 
-  val burstCntReg = Reg(init = UInt(0, lineBits-2))
-  val missIndexReg = Reg(UInt(lineBits-2))
+  val burstCntReg = Reg(init = 0.U((lineBits-2).W))
+  val missIndexReg = Reg((lineBits-2).U)
 
   // Register to delay response
   val slaveReg = Reg(io.master.S)
@@ -168,10 +168,10 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends DCacheType(lin
       when(burstCntReg === missIndexReg) {
         slaveReg := io.slave.S
       }
-      when(burstCntReg === UInt(lineSize/4-1)) {
+      when(burstCntReg === (lineSize/4-1).U) {
         stateReg := respond
       }
-      burstCntReg := burstCntReg + UInt(1)
+      burstCntReg := burstCntReg + 1.U
     }
     when(io.slave.S.Resp === OcpResp.ERR) {
       when (lru === false.B) {

@@ -23,31 +23,31 @@ class AudioClkGen(CLKDIV: Int) extends Module
   }
 
   //register containing divider value
-  val clkLimReg = Reg(init = UInt(6, 5)) //5 bits, initialized to 6
-  clkLimReg := UInt(CLKDIV/2) //get from params!
+  val clkLimReg = Reg(init = 6.U(5.W)) //5 bits, initialized to 6
+  clkLimReg := (CLKDIV/2).U //get from params!
 
   //Counter: clock divider for BCLK and XCLK
-  val clkCntReg = Reg(init = UInt(0, 5)) //counter reg for BCLK and XCLK
+  val clkCntReg = Reg(init = 0.U(5.W)) //counter reg for BCLK and XCLK
 
   //registers for XCLK and BCLK
-  val clkReg = Reg(init = UInt(0, 1))
+  val clkReg = Reg(init = 0.U(1.W))
 
   //connect outputs
   io.bclkO := clkReg
   io.xclkO := clkReg
 
   //count for CLK only when any enable signal is high
-  when( (io.enAdcI === UInt(1)) || (io.enDacI === UInt(1)) ) {
-    when( clkCntReg === clkLimReg - UInt(1)) {
-      clkCntReg := UInt(0)
+  when( (io.enAdcI === 1.U) || (io.enDacI === 1.U) ) {
+    when( clkCntReg === clkLimReg - 1.U) {
+      clkCntReg := 0.U
       clkReg := ~clkReg
     }
       .otherwise {
-      clkCntReg := clkCntReg + UInt(1)
+      clkCntReg := clkCntReg + 1.U
     }
   }
     .otherwise {
-    clkCntReg := UInt(0)
-    clkReg := UInt(0)
+    clkCntReg := 0.U
+    clkReg := 0.U
   }
 }

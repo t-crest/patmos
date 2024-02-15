@@ -32,13 +32,13 @@ class SDHostCtrl() extends CoreDevice() {
 
   // Internals
   val enReg = Reg(false.B) // Is the controller enabled?
-  val bufPntReg = Reg(UInt(0, 4)) // Counts the bit being transmitted.
+  val bufPntReg = Reg(0.U(4.W)) // Counts the bit being transmitted.
                                   // Must be large enough to contain buffer size.
 
   // Clock
   val DEFAULTCLKDIV = 100 // 80MHz Patmos -> 400kHz SCLK
-  val clkDivReg = Reg(UInt(DEFAULTCLKDIV, 16))
-  val clkCntReg = Reg(UInt(0, 16)) // Could be smaller
+  val clkDivReg = Reg(DEFAULTCLKDIV.U(16.W))
+  val clkCntReg = Reg(0.U(16.W)) // Could be smaller
   val clkReg = Reg(true.B)
 
   // Buffer
@@ -62,17 +62,17 @@ class SDHostCtrl() extends CoreDevice() {
       // Data is written
       is(Bits("b0000")) {
         bufOutReg := io.ocp.M.Data
-        bufInReg := UInt(0)
+        bufInReg := 0.U
 
         // Trigger transaction
         enReg := true.B
-        bufPntReg := UInt(8)
+        bufPntReg := 8.U
         clkCntReg := clkDivReg
       }
 
       // Write to CS register
       is(Bits("b0001")) {
-        csReg := io.ocp.M.Data =/= UInt(0)
+        csReg := io.ocp.M.Data =/= 0.U
       }
 
       // Write to CKLDIV register
@@ -104,10 +104,10 @@ class SDHostCtrl() extends CoreDevice() {
   io.ocp.S.Data := ocpDataReg
 
   // Connections to pins
-  val bufIdx = bufPntReg - UInt(1) // For convenience
+  val bufIdx = bufPntReg - 1.U // For convenience
 
   when(enReg === true.B) {
-    when (clkCntReg === UInt(1)) {
+    when (clkCntReg === 1.U) {
       clkCntReg := clkDivReg
       clkReg := ~clkReg
 
@@ -115,16 +115,16 @@ class SDHostCtrl() extends CoreDevice() {
         bufInReg(bufIdx) := io.pins.sdDatOut
 
         // Count clock cycles
-        when (bufPntReg === UInt(1)) {
+        when (bufPntReg === 1.U) {
           enReg := false.B // Transaction done
         }
         .otherwise {
-          bufPntReg := bufPntReg - UInt(1)
+          bufPntReg := bufPntReg - 1.U
         }
       }
     }
     .otherwise {
-      clkCntReg := clkCntReg - UInt(1)
+      clkCntReg := clkCntReg - 1.U
     }
 
     io.pins.sdClk := clkReg

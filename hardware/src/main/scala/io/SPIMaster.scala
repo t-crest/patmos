@@ -49,12 +49,12 @@ class SPIMaster(clkFreq : Int, slaveCount : Int, sclkHz : Int, fifoDepth : Int, 
     //Sclk generation
     var sclkCounterN = log2Up(CLOCK_FREQ/sclkHz)
 
-    val sclkCounterReg = Reg(init = UInt(0, 32))
-    val tick = sclkCounterReg === UInt(sclkCounterN-1)
+    val sclkCounterReg = Reg(init = 0.U(32.W))
+    val tick = sclkCounterReg === (sclkCounterN-1).U
 
-    sclkCounterReg := sclkCounterReg + UInt(1)
+    sclkCounterReg := sclkCounterReg + 1.U
     when (tick) {
-      sclkCounterReg := UInt(0)
+      sclkCounterReg := 0.U
     }
 
     // send sm
@@ -62,28 +62,28 @@ class SPIMaster(clkFreq : Int, slaveCount : Int, sclkHz : Int, fifoDepth : Int, 
     val state = Reg(init = idle)
 
     // Tx duration count
-    val wordCounterReg = Reg(init = UInt(0,32))
-    val wordDone = wordCounterReg === UInt(wordLen)
+    val wordCounterReg = Reg(init = 0.U(32.W))
+    val wordDone = wordCounterReg === wordLen.U
 
     // IO Signal registers
     val sclkReg = Reg(init = false.B)
 
-    //val prevSclkReg = Reg(init = UInt(0, 1))
+    //val prevSclkReg = Reg(init = 0.U(1.W))
 
 
     val sclkEdge = sclkReg && !RegNext(sclkReg)
     val sclkFall = !sclkReg && RegNext(sclkReg)
 
-    val mosiReg = Reg(init = UInt(0, 1))
+    val mosiReg = Reg(init = 0.U(1.W))
     
 
-    val misoReg = Reg(init = UInt(0, 1))
-    val nSSReg = Reg(init = UInt(0, 1))
+    val misoReg = Reg(init = 0.U(1.W))
+    val nSSReg = Reg(init = 0.U(1.W))
 
 
     //Serial-in parallel out register for miso
-    //val misoRxReg = Reg(init = UInt(0, wordLen))
-    val misoRxReg = Reg(Vec(wordLen, UInt(0,1)))
+    //val misoRxReg = Reg(init = 0.U(wordLen.W))
+    val misoRxReg = Reg(Vec(wordLen, 0.U(1.W)))
 
     // Queue of received messages 
     val rxQueue = Module(new Queue(Bits(width = wordLen), fifoDepth))
@@ -100,7 +100,7 @@ class SPIMaster(clkFreq : Int, slaveCount : Int, sclkHz : Int, fifoDepth : Int, 
     //Serial-out register for mosi
     val loadToSend = Reg(init = false.B)
     loadToSend := false.B //Default value
-    val mosiTxReg = Reg(init = UInt(0,wordLen))
+    val mosiTxReg = Reg(init = 0.U(wordLen.W))
     when (loadToSend) {
       txQueue.io.deq.ready := true.B
       mosiTxReg := txQueue.io.deq.bits
@@ -122,7 +122,7 @@ class SPIMaster(clkFreq : Int, slaveCount : Int, sclkHz : Int, fifoDepth : Int, 
 
     //Read any stored data in miso queue. 
     when(io.ocp.M.Cmd === OcpCmd.RD) {
-      when(rxQueue.io.count > UInt(0))
+      when(rxQueue.io.count > 0.U)
       {
         rxQueue.io.deq.ready := true.B
         rdDataReg := rxQueue.io.deq.bits
@@ -147,7 +147,7 @@ class SPIMaster(clkFreq : Int, slaveCount : Int, sclkHz : Int, fifoDepth : Int, 
       mosiReg := Bits(0)
       sclkReg := false.B
       //When TX queue has data send
-      when (txQueue.io.count > UInt(0) )
+      when (txQueue.io.count > 0.U )
       {
         loadToSend := true.B
         state := send 
@@ -171,7 +171,7 @@ class SPIMaster(clkFreq : Int, slaveCount : Int, sclkHz : Int, fifoDepth : Int, 
       }
 
       when(sclkFall){
-        wordCounterReg := wordCounterReg + UInt(1)
+        wordCounterReg := wordCounterReg + 1.U
       }
 
       // Pull slave select low TODO:multiple slaves?

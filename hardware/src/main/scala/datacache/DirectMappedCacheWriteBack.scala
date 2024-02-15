@@ -47,8 +47,8 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends DCacheType(li
   val idle :: write :: writeWaitForResp :: hold :: fill :: respond :: Nil = Enum(UInt(), 6)
   val stateReg = Reg(init = idle)
 
-  val burstCntReg = Reg(init = UInt(0, lineBits-2))
-  val missIndexReg = Reg(UInt(lineBits-2))
+  val burstCntReg = Reg(init = 0.U((lineBits-2).W))
+  val missIndexReg = Reg((lineBits-2).U)
 
   // Generate memories
   val tagMem = MemBlock(tagCount, tagWidth)
@@ -88,7 +88,7 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends DCacheType(li
 
 
   // Count register used to index reads for write-back
-  val rdAddrCntReg = Reg(init = UInt(0, lineBits-2))
+  val rdAddrCntReg = Reg(init = 0.U((lineBits-2).W))
   // Read from cache
   val selWrBack = Bool()
   val rdAddr = Mux(selWrBack, Cat(masterReg.Addr(addrBits + 1, lineBits), rdAddrCntReg), io.master.M.Addr(addrBits + 1, 2)) // helper signal
@@ -129,7 +129,7 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends DCacheType(li
     when(dirty) {
       stateReg := write
       selWrBack := true.B
-      rdAddrCntReg := rdAddrCntReg + UInt(1)
+      rdAddrCntReg := rdAddrCntReg + 1.U
     }
     // or skip writeback if block is not dirty
     .otherwise {
@@ -170,10 +170,10 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends DCacheType(li
     io.slave.M.Data := rdData
     io.slave.M.DataByteEn := "b1111".U(4.W)
     when(io.slave.S.DataAccept === Bits(1)) {
-      burstCntReg := burstCntReg + UInt(1)
-      rdAddrCntReg := rdAddrCntReg + UInt(1)
+      burstCntReg := burstCntReg + 1.U
+      rdAddrCntReg := rdAddrCntReg + 1.U
     }
-    when(burstCntReg === UInt(burstLength - 1)) {
+    when(burstCntReg === (burstLength - 1).U) {
       when(io.slave.S.Resp === OcpResp.DVA) {
         stateReg := hold
       }
@@ -232,10 +232,10 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends DCacheType(li
           wrDataReg := comb.reduceLeft((x,y) => y##x)
         }
       }
-      when(burstCntReg === UInt(lineSize/4-1)) {
+      when(burstCntReg === (lineSize/4-1).U) {
         stateReg := respond
       }
-      burstCntReg := burstCntReg + UInt(1)
+      burstCntReg := burstCntReg + 1.U
     }
     when(io.slave.S.Resp === OcpResp.ERR) {
       tagVMem(masterReg.Addr(addrBits + 1, lineBits)) := false.B

@@ -31,11 +31,11 @@ class OwnSPM(nrCores: Int, nrSPMs: Int, size: Int) extends CmpDevice(nrCores) {
   for (s <- 0 until nrSPMs) {
     // And gate non-active masters.
     for (i <- 0 until nrCores) {
-      masters(s)(i).M.Addr := UInt(0)
-      masters(s)(i).M.Data := UInt(0)
-      masters(s)(i).M.Cmd := UInt(0)
-      masters(s)(i).M.ByteEn := UInt(0)
-      when(io.cores(i).M.Cmd =/= OcpCmd.IDLE && io.cores(i).M.Addr(12 + bits - 1, 12) === UInt(s)) {
+      masters(s)(i).M.Addr := 0.U
+      masters(s)(i).M.Data := 0.U
+      masters(s)(i).M.Cmd := 0.U
+      masters(s)(i).M.ByteEn := 0.U
+      when(io.cores(i).M.Cmd =/= OcpCmd.IDLE && io.cores(i).M.Addr(12 + bits - 1, 12) === s.U) {
         masters(s)(i).M := io.cores(i).M
       }
     }
@@ -65,7 +65,7 @@ class OwnSPM(nrCores: Int, nrSPMs: Int, size: Int) extends CmpDevice(nrCores) {
     // And gate S response as DVA from one core might cause an end of a main memory
     // transaction from a different core.
     // TODO: check if really needed for the data
-    io.cores(i).S.Data := UInt(0)
+    io.cores(i).S.Data := 0.U
     io.cores(i).S.Resp := OcpResp.NULL
     when(cmdOutReg(i)) {
       io.cores(i).S := muxes(i)(RegNext(io.cores(i).M.Addr(12 + bits - 1, 12))).S

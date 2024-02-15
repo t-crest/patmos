@@ -55,7 +55,7 @@ class Memory() extends Module {
 
   // Buffer incoming data while being stalled from I-cache
   val rdDataEnaReg = RegInit(false.B)
-  val rdDataReg = RegInit(UInt(0, width = 32))
+  val rdDataReg = RegInit(0.U(32.W))
   // Save incoming data if available during I-cache stall
   when (!io.ena_in) {
     when (io.localInOut.S.Resp =/= OcpResp.NULL || io.globalInOut.S.Resp =/= OcpResp.NULL) {
@@ -77,42 +77,42 @@ class Memory() extends Module {
   // Big endian, where MSB is at the lowest address
 
   // default is word store
-  val wrData = Wire(Vec(BYTES_PER_WORD, UInt(width = BYTE_WIDTH)))
+  val wrData = Wire(Vec(BYTES_PER_WORD, UInt(BYTE_WIDTH.W)))
   for (i <- 0 until BYTES_PER_WORD) {
     wrData(i) := io.exmem.mem.data((i+1)*BYTE_WIDTH-1, i*BYTE_WIDTH)
   }
-  val byteEn = Wire(UInt(width = BYTES_PER_WORD))
-  byteEn := UInt("b1111")
+  val byteEn = Wire(UInt(BYTES_PER_WORD.W))
+  byteEn := "b1111".U
   // half-word stores
   when(io.exmem.mem.hword) {
-    when(io.exmem.mem.addr(1) === UInt("b0")) {
+    when(io.exmem.mem.addr(1) === "b0".U) {
       wrData(2) := io.exmem.mem.data(BYTE_WIDTH-1, 0)
       wrData(3) := io.exmem.mem.data(2*BYTE_WIDTH-1, BYTE_WIDTH)
-      byteEn := UInt("b1100")
-    }.elsewhen(io.exmem.mem.addr(1) === UInt("b1")){
+      byteEn := "b1100".U
+    }.elsewhen(io.exmem.mem.addr(1) === "b1".U){
       wrData(0) := io.exmem.mem.data(BYTE_WIDTH-1, 0)
       wrData(1) := io.exmem.mem.data(2*BYTE_WIDTH-1, BYTE_WIDTH)
-      byteEn := UInt("b0011")
+      byteEn := "b0011".U
     }
   }
   // byte stores
   when(io.exmem.mem.byte) {
     switch(io.exmem.mem.addr(1, 0)) {
-      is(UInt("b00")) {
+      is("b00".U) {
         wrData(3) := io.exmem.mem.data(BYTE_WIDTH-1, 0)
-        byteEn := UInt("b1000")
+        byteEn := "b1000".U
       }
-      is(UInt("b01")) {
+      is("b01".U) {
         wrData(2) := io.exmem.mem.data(BYTE_WIDTH-1, 0)
-        byteEn := UInt("b0100")
+        byteEn := "b0100".U
       }
-      is(UInt("b10")) {
+      is("b10".U) {
         wrData(1) := io.exmem.mem.data(BYTE_WIDTH-1, 0)
-        byteEn := UInt("b0010")
+        byteEn := "b0010".U
       }
-      is(UInt("b11")) {
+      is("b11".U) {
         wrData(0) := io.exmem.mem.data(BYTE_WIDTH-1, 0)
-        byteEn := UInt("b0001")
+        byteEn := "b0001".U
       }
     }
   }
@@ -120,7 +120,7 @@ class Memory() extends Module {
   // Path to memories and IO is combinatorial, registering happens in
   // the individual modules
   val cmd = Mux(enable && io.ena_in && !flush,
-                UInt("b0") ## io.exmem.mem.load ## io.exmem.mem.store,
+                "b0".U ## io.exmem.mem.load ## io.exmem.mem.store,
                 OcpCmd.IDLE)
 
   io.localInOut.M.Cmd := Mux(io.exmem.mem.typ === MTYPE_L, cmd, OcpCmd.IDLE)
@@ -137,7 +137,7 @@ class Memory() extends Module {
                                         OcpCache.UNCACHED))
 
   def splitData(word: UInt) = {
-    val retval = Wire(Vec(BYTES_PER_WORD, UInt(width = BYTE_WIDTH)))
+    val retval = Wire(Vec(BYTES_PER_WORD, UInt(BYTE_WIDTH.W)))
     for (i <- 0 until BYTES_PER_WORD) {
       retval(i) := word((i+1)*BYTE_WIDTH-1, i*BYTE_WIDTH)
     }
@@ -150,30 +150,30 @@ class Memory() extends Module {
                              Mux(memReg.mem.typ === MTYPE_L,
                                  io.localInOut.S.Data, io.globalInOut.S.Data)))
 
-  val dout = Wire(UInt(width = DATA_WIDTH))
+  val dout = Wire(UInt(DATA_WIDTH.W))
   // default word read
   dout := Cat(rdData(3), rdData(2), rdData(1), rdData(0))
 
   // byte read
   val bval = MuxLookup(memReg.mem.addr(1, 0), rdData(0), Array(
-    (UInt("b00"), rdData(3)),
-    (UInt("b01"), rdData(2)),
-    (UInt("b10"), rdData(1)),
-    (UInt("b11"), rdData(0))))
+    ("b00".U, rdData(3)),
+    ("b01".U, rdData(2)),
+    ("b10".U, rdData(1)),
+    ("b11".U, rdData(0))))
   // half-word read
-  val hval = Mux(memReg.mem.addr(1) === UInt(0),
+  val hval = Mux(memReg.mem.addr(1) === 0.U,
                  Cat(rdData(3), rdData(2)),
                  Cat(rdData(1), rdData(0)))
 
   // sign extensions
   when(memReg.mem.byte) {
     dout := Mux(memReg.mem.zext,
-                UInt(0, DATA_WIDTH-BYTE_WIDTH),
+                0.U((DATA_WIDTH-BYTE_WIDTH).W),
                 Fill(DATA_WIDTH-BYTE_WIDTH, bval(BYTE_WIDTH-1))) ## bval
   }
   when(memReg.mem.hword) {
     dout := Mux(memReg.mem.zext,
-                UInt(0, DATA_WIDTH-2*BYTE_WIDTH),
+                0.U((DATA_WIDTH-2*BYTE_WIDTH).W),
                 Fill(DATA_WIDTH-2*BYTE_WIDTH, hval(DATA_WIDTH/2-1))) ## hval
   }
 
@@ -202,11 +202,11 @@ class Memory() extends Module {
   // trigger exception
   io.exc.exc := memReg.mem.trap || memReg.mem.illOp || illMemReg
 
-  io.exc.src := Mux(memReg.mem.illOp, UInt(0),
-                    Mux(illMemReg, UInt(1),
+  io.exc.src := Mux(memReg.mem.illOp, 0.U,
+                    Mux(illMemReg, 1.U,
                         memReg.mem.xsrc))
   io.exc.excBase := memReg.base
-  io.exc.excAddr := Mux(memReg.mem.trap, memReg.relPc + UInt(1), memReg.relPc)
+  io.exc.excAddr := Mux(memReg.mem.trap, memReg.relPc + 1.U, memReg.relPc)
 
   // Keep signal alive for debugging
   //debug(io.memwb.pc) does nothing in chisel3 (no proning in frontend of chisel3 anyway)

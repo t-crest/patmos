@@ -55,9 +55,9 @@ class NullStackCache() extends StackCacheType {
   io.perf.fill := false.B
 
   // stack top pointer
-  val stackTopReg = Reg(UInt(width = DATA_WIDTH))
+  val stackTopReg = Reg(UInt(DATA_WIDTH.W))
   // memory top pointer
-  val memTopReg = Reg(UInt(width = DATA_WIDTH))
+  val memTopReg = Reg(UInt(DATA_WIDTH.W))
 
   // never stall
   io.stall := false.B

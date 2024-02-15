@@ -26,18 +26,18 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
   
   // MS: have all generated constants at one place
 
-  val cntReg = Reg(init = UInt(0, log2Up(cnt*(burstLen + ctrlDelay + 1))))
+  val cntReg = Reg(init = 0.U(log2Up(cnt*(burstLen + ctrlDelay + 1)).W))
   // slot length = burst size + 1 
-  val burstCntReg = Reg(init = UInt(0, log2Up(burstLen)))
+  val burstCntReg = Reg(init = 0.U(log2Up(burstLen).W))
   val period = cnt * (burstLen + ctrlDelay + 1)
   val slotLen = burstLen + ctrlDelay + 1
   val numPipe = 3 
   
   val wrPipeDelay = burstLen + ctrlDelay + numPipe 
-  val wrCntReg = Reg(init = UInt(0, log2Up(wrPipeDelay)))
+  val wrCntReg = Reg(init = 0.U(log2Up(wrPipeDelay).W))
 
   val rdPipeDelay = burstLen + ctrlDelay + numPipe 
-  val rdCntReg = Reg(init = UInt(0, log2Up(rdPipeDelay)))
+  val rdCntReg = Reg(init = 0.U(log2Up(rdPipeDelay).W))
   
   // MS: merge rdCntReg and wrCntReg and let it count till slot length
  
@@ -54,10 +54,10 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
   debug(wrCntReg)
   debug(rdCntReg)*/
 
-  cntReg := Mux(cntReg === UInt(period - 1), UInt(0), cntReg + UInt(1))
+  cntReg := Mux(cntReg === (period - 1).U, 0.U, cntReg + 1.U)
   
   def slotTable(i: Int): UInt = {
-    (cntReg === UInt(i*slotLen)).asUInt
+    (cntReg === (i*slotLen).U).asUInt
   }
   
   for (i <- 0 until cnt){
@@ -65,21 +65,21 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
   }
   
   // Initialize master data to zero when cpuSlot is not enabled 
-  io.slave.M.Addr       := UInt(0)
-  io.slave.M.Cmd        := UInt(0)
-  io.slave.M.DataByteEn := UInt(0)
-  io.slave.M.DataValid  := UInt(0)
-  io.slave.M.Data       := UInt(0)
+  io.slave.M.Addr       := 0.U
+  io.slave.M.Cmd        := 0.U
+  io.slave.M.DataByteEn := 0.U
+  io.slave.M.DataValid  := 0.U
+  io.slave.M.Data       := 0.U
 
   // Initialize slave data to zero
-  io.master.S.Data       := UInt(0)
+  io.master.S.Data       := 0.U
   io.master.S.Resp       := OcpResp.NULL
-  io.master.S.CmdAccept  := UInt(0)
-  io.master.S.DataAccept := UInt(0)
+  io.master.S.CmdAccept  := 0.U
+  io.master.S.DataAccept := 0.U
   
   // FSM for TDM Arbiter 
   when (stateReg === sIdle) {
-    when (cpuSlot(io.node) === UInt(1)) {
+    when (cpuSlot(io.node) === 1.U) {
       val master = io.master.M
       //io.slave.M := master
       
@@ -87,15 +87,15 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
         when (master.Cmd === OcpCmd.RD) {
           io.slave.M := master
           stateReg := sRead
-          io.master.S.CmdAccept := UInt(1)
-          rdCntReg := UInt(0)
+          io.master.S.CmdAccept := 1.U
+          rdCntReg := 0.U
         }
         when (master.Cmd === OcpCmd.WR) {
           io.slave.M := master
           stateReg := sWrite
-          io.master.S.CmdAccept := UInt(1)
-          io.master.S.DataAccept := UInt(1)
-          wrCntReg := UInt(0)
+          io.master.S.CmdAccept := 1.U
+          io.master.S.DataAccept := 1.U
+          wrCntReg := 0.U
         }
       }
     }
@@ -103,28 +103,28 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
 
   when (stateReg === sWrite){
     io.slave.M := io.master.M
-    io.master.S.DataAccept := UInt(1)
+    io.master.S.DataAccept := 1.U
     // MS: why not counting just up to the slot length
     // Then we can avoid >= and use =
-    wrCntReg := Mux(wrCntReg === UInt(wrPipeDelay), UInt(0), wrCntReg + UInt(1))
+    wrCntReg := Mux(wrCntReg === wrPipeDelay.U, 0.U, wrCntReg + 1.U)
    
     // Sends ZEROs after the burst is done 
-    when (wrCntReg >= UInt(burstLen-1)) {
-      io.slave.M.Cmd  := UInt(0)
-      io.slave.M.Addr := UInt(0)
-      io.slave.M.Data := UInt(0)
-      io.slave.M.DataValid := UInt(0)
-      io.slave.M.DataByteEn := UInt(0)
+    when (wrCntReg >= (burstLen-1).U) {
+      io.slave.M.Cmd  := 0.U
+      io.slave.M.Addr := 0.U
+      io.slave.M.Data := 0.U
+      io.slave.M.DataValid := 0.U
+      io.slave.M.DataByteEn := 0.U
     }
 
     // Turn off the DataValid after a burst of 4
-    when (wrCntReg >= UInt(burstLen-1)){
-      io.master.S.DataAccept := UInt(0)
+    when (wrCntReg >= (burstLen-1).U){
+      io.master.S.DataAccept := 0.U
     }
     
     // Forward Rsp/DVA back to node 
     // Ms: not hard coded constants in the source
-    when (wrCntReg === UInt(4)) {
+    when (wrCntReg === 4.U) {
       io.master.S.Resp := OcpResp.DVA
     }
     // Wait on DVA 
@@ -135,29 +135,29 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
      
   when (stateReg === sRead){
     io.slave.M := io.master.M
-    rdCntReg := Mux(rdCntReg === UInt(rdPipeDelay + burstLen), UInt(0), rdCntReg + UInt(1))
+    rdCntReg := Mux(rdCntReg === (rdPipeDelay + burstLen).U, 0.U, rdCntReg + 1.U)
     
     // Sends ZEROs after the burst is done 
     // MS: This should also (as in write) be just the slot length.
-    when (rdCntReg >= UInt(burstLen-1)) {
-      io.slave.M.Cmd  := UInt(0)
-      io.slave.M.Addr := UInt(0)
-      io.slave.M.Data := UInt(0)
-      io.slave.M.DataValid := UInt(0)
-      io.slave.M.DataByteEn := UInt(0) 
+    when (rdCntReg >= (burstLen-1).U) {
+      io.slave.M.Cmd  := 0.U
+      io.slave.M.Addr := 0.U
+      io.slave.M.Data := 0.U
+      io.slave.M.DataValid := 0.U
+      io.slave.M.DataByteEn := 0.U
     }
     
     // rdCntReg starts 1 clock cycle after the arrival of the 1st data
     // MS: rdCntReg is used for two different purposes -- fix it
     // The following shall also include number of pipeline stages on the return path
-    when (rdCntReg >= UInt(ctrlDelay + numPipe)) {
+    when (rdCntReg >= (ctrlDelay + numPipe).U) {
       io.master.S.Data := io.slave.S.Data
       io.master.S.Resp := io.slave.S.Resp
     }
   
     when (io.master.S.Resp === OcpResp.DVA) {
-      burstCntReg := burstCntReg + UInt(1)
-        when (burstCntReg === UInt(burstLen) - UInt(1)) {
+      burstCntReg := burstCntReg + 1.U
+        when (burstCntReg === burstLen.U - 1.U) {
           stateReg := sIdle
         }
      }
@@ -182,19 +182,19 @@ class MemMuxIntf(nr: Int, addrWidth : Int, dataWidth : Int, burstLen: Int) exten
     
     // 1st stage pipeline registers for inputs 
     val mCmd_p1_Reg         = RegInit(VecInit(Seq.fill(nr)(0.U(3.W))))
-    val mAddr_p1_Reg        = Reg(Vec(nr, UInt(width=addrWidth)))
-    val mData_p1_Reg        = Reg(Vec(nr, UInt(width=dataWidth)))
-    val mDataByteEn_p1_Reg  = Reg(Vec(nr, UInt(width=dataWidth/8)))
-    val mDataValid_p1_Reg   = Reg(Vec(nr, UInt(width=1)))
+    val mAddr_p1_Reg        = Reg(Vec(nr, UInt(addrWidth.W)))
+    val mData_p1_Reg        = Reg(Vec(nr, UInt(dataWidth.W)))
+    val mDataByteEn_p1_Reg  = Reg(Vec(nr, UInt((dataWidth/8).W)))
+    val mDataValid_p1_Reg   = Reg(Vec(nr, UInt(1.W)))
 
     // 2st stage pipeline registers for inputs
     // MS: what about using the whole bundle as a single signal?
     // val mMasterReg = Reg(init=OcpBurstMasterSignals(...))
-    val mCmd_p2_Reg         = Reg(init=UInt(0, width=3))
-    val mAddr_p2_Reg        = Reg(UInt(width=addrWidth))
-    val mData_p2_Reg        = Reg(UInt(width=dataWidth))
-    val mDataByteEn_p2_Reg  = Reg(UInt(width=dataWidth/8))
-    val mDataValid_p2_Reg   = Reg(UInt(width=1))
+    val mCmd_p2_Reg         = Reg(init=0.U(3.W))
+    val mAddr_p2_Reg        = Reg(UInt(addrWidth.W))
+    val mData_p2_Reg        = Reg(UInt(dataWidth.W))
+    val mDataByteEn_p2_Reg  = Reg(UInt((dataWidth/8).W))
+    val mDataValid_p2_Reg   = Reg(UInt(1.W))
     
     // Pipeline registers default to 0
     for(i <- 0 until nr){

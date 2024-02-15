@@ -14,14 +14,14 @@ import s4noc._
  */
 class OneWayMem(n: Int, memSize: Int) extends Module {
   val io = IO(new Bundle {
-    // val dout = UInt(width = 32).asOutput
+    // val dout = UInt(32.W).asOutput
     val memPorts = Vec(n * n, new DualPort(memSize))
   })
 
   // Dummy output keep hardware generated
-  val dout = RegNext(Vec(n * n, UInt(width = 32)))
+  val dout = RegNext(Vec(n * n, UInt(32.W)))
 
-  val net = Module(new Network(n, UInt(width = 32)))
+  val net = Module(new Network(n, UInt(32.W)))
 
   for (i <- 0 until n * n) {
     // val node = Module(new DummyNode(i))
@@ -33,7 +33,7 @@ class OneWayMem(n: Int, memSize: Int) extends Module {
   }
 
   // single output for the synthesizer results
-  // val or = dout.fold(UInt(0))(_ | _)
+  // val or = dout.fold(0.U)(_ | _)
   // io.dout := Reg(next = or)
 
 }

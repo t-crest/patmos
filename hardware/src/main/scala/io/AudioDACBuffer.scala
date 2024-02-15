@@ -28,21 +28,21 @@ class AudioDACBuffer(AUDIOBITLENGTH: Int, MAXDACBUFFERPOWER: Int) extends Module
   val BUFFERLENGTH : Int = (Math.pow(2, MAXDACBUFFERPOWER)).asInstanceOf[Int]
 
   //Registers for output audio data
-  val audioLIReg = Reg(init = UInt(0, AUDIOBITLENGTH))
-  val audioRIReg = Reg(init = UInt(0, AUDIOBITLENGTH))
+  val audioLIReg = Reg(init = 0.U(AUDIOBITLENGTH.W))
+  val audioRIReg = Reg(init = 0.U(AUDIOBITLENGTH.W))
   io.audioLIDAC := audioLIReg
   io.audioRIDAC := audioRIReg
 
   //FIFO buffer registers
   val audioBufferL = RegInit(VecInit(Seq.fill(BUFFERLENGTH)(0.U(AUDIOBITLENGTH.W))))
   val audioBufferR = RegInit(VecInit(Seq.fill(BUFFERLENGTH)(0.U(AUDIOBITLENGTH.W))))
-  val w_pnt = Reg(init = UInt(0, MAXDACBUFFERPOWER))
-  val r_pnt = Reg(init = UInt(0, MAXDACBUFFERPOWER))
-  val fullReg  = Reg(init = UInt(0, 1))
-  val emptyReg = Reg(init = UInt(1, 1)) // starts empty
+  val w_pnt = Reg(init = 0.U(MAXDACBUFFERPOWER.W))
+  val r_pnt = Reg(init = 0.U(MAXDACBUFFERPOWER.W))
+  val fullReg  = Reg(init = 0.U(1.W))
+  val emptyReg = Reg(init = 1.U(1.W)) // starts empty
   io.fullO := fullReg
-  val w_inc = Reg(init = UInt(0, 1)) // write pointer increment
-  val r_inc = Reg(init = UInt(0, 1)) // read pointer increment
+  val w_inc = Reg(init = 0.U(1.W)) // write pointer increment
+  val r_inc = Reg(init = 0.U(1.W)) // read pointer increment
 
 
   // output handshake state machine
@@ -58,37 +58,37 @@ class AudioDACBuffer(AUDIOBITLENGTH: Int, MAXDACBUFFERPOWER: Int) extends Module
   val stateFE = Reg(init = sFEEmpty)
 
   //output enable register: For AudioDAC and for output conversion
-  val enOutReg = Reg(init = UInt(0, 1)) //starts low because its empty
+  val enOutReg = Reg(init = 0.U(1.W)) //starts low because its empty
   io.enDacO := enOutReg
-  val lastOutputReg = Reg(init = UInt(0, 1)) // indicator of last output conversion
+  val lastOutputReg = Reg(init = 0.U(1.W)) // indicator of last output conversion
 
   // state machine for last output conversion
   val sCEWaitFirst :: sCEFirstPulse :: sCEWaitSecond :: Nil = Enum(UInt(), 3)
   val stateCE = Reg(init = sCEWaitFirst)
 
   // register to keep track of buffer size
-  val bufferSizeReg = Reg(init = UInt(0, MAXDACBUFFERPOWER+1))
+  val bufferSizeReg = Reg(init = 0.U((MAXDACBUFFERPOWER+1).W))
   //update buffer size register
   when(bufferSizeReg =/= io.bufferSizeI) {
     bufferSizeReg := io.bufferSizeI
-    r_pnt := r_pnt & (io.bufferSizeI - UInt(1))
-    w_pnt := w_pnt & (io.bufferSizeI - UInt(1))
+    r_pnt := r_pnt & (io.bufferSizeI - 1.U)
+    w_pnt := w_pnt & (io.bufferSizeI - 1.U)
   }
 
   // audio output handshake: if output handshake enabled
-  when (enOutReg === UInt(1)) {
+  when (enOutReg === 1.U) {
     //state machine
     switch (stateOut) {
       is (sOutIdle) {
         //wait until posEdge writeEnDacI
-        when(io.writeEnDacI === UInt(1)) {
+        when(io.writeEnDacI === 1.U) {
           // write only when its not empty (for last conversion case)
-          when(emptyReg === UInt(0)) {
+          when(emptyReg === 0.U) {
             //write output, increment read pointer
             audioLIReg := audioBufferL(r_pnt)
             audioRIReg := audioBufferR(r_pnt)
-            r_pnt := (r_pnt + UInt(1)) & (io.bufferSizeI - UInt(1))
-            r_inc := UInt(1)
+            r_pnt := (r_pnt + 1.U) & (io.bufferSizeI - 1.U)
+            r_inc := 1.U
           }
           //update state
           stateOut := sOutWrote
@@ -96,7 +96,7 @@ class AudioDACBuffer(AUDIOBITLENGTH: Int, MAXDACBUFFERPOWER: Int) extends Module
       }
       is (sOutWrote) {
         //wait until negEdge writeEnDacI
-        when(io.writeEnDacI === UInt(0)) {
+        when(io.writeEnDacI === 0.U) {
           //update state
           stateOut := sOutIdle
         }
@@ -105,26 +105,26 @@ class AudioDACBuffer(AUDIOBITLENGTH: Int, MAXDACBUFFERPOWER: Int) extends Module
   }
   .otherwise {
     stateOut := sOutIdle
-    r_inc := UInt(0)
+    r_inc := 0.U
   }
 
 
 
   // audio input handshake: if enable and not full
-  when ( (io.enDacI === UInt(1)) && (fullReg === UInt(0)) ) {
+  when ( (io.enDacI === 1.U) && (fullReg === 0.U) ) {
     //state machine
     switch (stateIn) {
       is (sInIdle) {
-        when(io.writePulseI === UInt(1)) {
+        when(io.writePulseI === 1.U) {
           audioBufferL(w_pnt) := io.audioLIPatmos
           audioBufferR(w_pnt) := io.audioRIPatmos
           stateIn := sInWriting
         }
       }
       is (sInWriting) {
-        when(io.writePulseI === UInt(0)) {
-          w_pnt := (w_pnt + UInt(1)) & (io.bufferSizeI - UInt(1))
-          w_inc := UInt(1)
+        when(io.writePulseI === 0.U) {
+          w_pnt := (w_pnt + 1.U) & (io.bufferSizeI - 1.U)
+          w_inc := 1.U
           stateIn := sInIdle
         }
       }
@@ -137,39 +137,39 @@ class AudioDACBuffer(AUDIOBITLENGTH: Int, MAXDACBUFFERPOWER: Int) extends Module
 
 
   //update output handshake enable register
-  when (emptyReg === UInt(0)) { //if not empty, always enable
-    enOutReg := UInt(1)
+  when (emptyReg === 0.U) { //if not empty, always enable
+    enOutReg := 1.U
   }
   .otherwise { // empty
-    when (lastOutputReg === UInt(1)) { // if last output conversion, enable
-      enOutReg := UInt(1)
+    when (lastOutputReg === 1.U) { // if last output conversion, enable
+      enOutReg := 1.U
     }
     .otherwise {
-      enOutReg := UInt(0)
+      enOutReg := 0.U
     }
   }
 
   // when last conversion finishes:
-  when(lastOutputReg === UInt(1)) {
+  when(lastOutputReg === 1.U) {
     // if stateFE is not empty anymore, or if it is but conversion ends
     when(stateFE =/= sFEEmpty) { // if state is not empty anymore
-      lastOutputReg := UInt(0)
+      lastOutputReg := 0.U
     }
     .otherwise { // state machine to detect 2nd convEndI pulse
       switch (stateCE) {
         is (sCEWaitFirst) {
-          when(io.convEndI === UInt(1)) {
+          when(io.convEndI === 1.U) {
             stateCE := sCEFirstPulse
           }
         }
         is (sCEFirstPulse) {
-          when(io.convEndI === UInt(0)) {
+          when(io.convEndI === 0.U) {
             stateCE := sCEWaitSecond
           }
         }
         is (sCEWaitSecond) {
-          when(io.convEndI === UInt(1)) {
-            lastOutputReg := UInt(0)
+          when(io.convEndI === 1.U) {
+            lastOutputReg := 0.U
             stateCE := sCEWaitFirst
           }
         }
@@ -184,59 +184,59 @@ class AudioDACBuffer(AUDIOBITLENGTH: Int, MAXDACBUFFERPOWER: Int) extends Module
 
 
   //update full and empty states
-  when ( (w_inc === UInt(1)) || (r_inc === UInt(1)) ) {
+  when ( (w_inc === 1.U) || (r_inc === 1.U) ) {
     //default: set back variables
-    w_inc := UInt(0)
-    r_inc := UInt(0)
+    w_inc := 0.U
+    r_inc := 0.U
     //state machine
     switch (stateFE) {
       is (sFEIdle) {
-        fullReg  := UInt(0)
-        emptyReg := UInt(0)
-        when( (w_inc === UInt(1)) && (w_pnt === ( (r_pnt - UInt(1)) & (io.bufferSizeI - UInt(1)) ) ) && (r_inc === UInt(0)) ) {
+        fullReg  := 0.U
+        emptyReg := 0.U
+        when( (w_inc === 1.U) && (w_pnt === ( (r_pnt - 1.U) & (io.bufferSizeI - 1.U) ) ) && (r_inc === 0.U) ) {
           stateFE := sFEAlmostFull
         }
-        .elsewhen( (r_inc === UInt(1)) && (r_pnt === ( (w_pnt - UInt(1)) & (io.bufferSizeI - UInt(1)) ) ) && (w_inc === UInt(0)) ) {
+        .elsewhen( (r_inc === 1.U) && (r_pnt === ( (w_pnt - 1.U) & (io.bufferSizeI - 1.U) ) ) && (w_inc === 0.U) ) {
           stateFE := sFEAlmostEmpty
         }
       }
       is(sFEAlmostFull) {
-        fullReg  := UInt(0)
-        emptyReg := UInt(0)
-        when( (r_inc === UInt(1)) && (w_inc === UInt(0)) ) {
+        fullReg  := 0.U
+        emptyReg := 0.U
+        when( (r_inc === 1.U) && (w_inc === 0.U) ) {
           stateFE := sFEIdle
         }
-        .elsewhen( (w_inc === UInt(1)) && (r_inc === UInt(0)) ) {
+        .elsewhen( (w_inc === 1.U) && (r_inc === 0.U) ) {
           stateFE := sFEFull
-          fullReg := UInt(1)
+          fullReg := 1.U
         }
       }
       is(sFEFull) {
-        fullReg  := UInt(1)
-        emptyReg := UInt(0)
-        when( (r_inc === UInt(1)) && (w_inc === UInt(0)) ) {
+        fullReg  := 1.U
+        emptyReg := 0.U
+        when( (r_inc === 1.U) && (w_inc === 0.U) ) {
           stateFE := sFEAlmostFull
-          fullReg := UInt(0)
+          fullReg := 0.U
         }
       }
       is(sFEAlmostEmpty) {
-        fullReg  := UInt(0)
-        emptyReg := UInt(0)
-        when( (w_inc === UInt(1)) && (r_inc === UInt(0)) ) {
+        fullReg  := 0.U
+        emptyReg := 0.U
+        when( (w_inc === 1.U) && (r_inc === 0.U) ) {
           stateFE := sFEIdle
         }
-        .elsewhen( (r_inc === UInt(1)) && (w_inc === UInt(0)) ) {
+        .elsewhen( (r_inc === 1.U) && (w_inc === 0.U) ) {
           stateFE := sFEEmpty
-          emptyReg := UInt(1)
-          lastOutputReg := UInt(1) // indicator of last output conversion
+          emptyReg := 1.U
+          lastOutputReg := 1.U // indicator of last output conversion
         }
       }
       is(sFEEmpty) {
-        fullReg  := UInt(0)
-        emptyReg := UInt(1)
-        when( (w_inc === UInt(1)) && (r_inc === UInt(0)) ) {
+        fullReg  := 0.U
+        emptyReg := 1.U
+        when( (w_inc === 1.U) && (r_inc === 0.U) ) {
           stateFE := sFEAlmostEmpty
-          emptyReg := UInt(0)
+          emptyReg := 0.U
         }
       }
     }

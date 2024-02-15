@@ -26,32 +26,32 @@ class AudioI2C extends Module
   }
 
   //registers for audio data
-  val dataReg = Reg(init = UInt(0, 9))
-  val addrReg = Reg(init = UInt(0, 7))
+  val dataReg = Reg(init = 0.U(9.W))
+  val addrReg = Reg(init = 0.U(7.W))
 
   //connect inputs to registers
   dataReg := io.dataI
   addrReg := io.addrI
 
   //clock divider for SCLK
-  val sclkCntReg = Reg(init = UInt(0, 10)) //10 bit counter
-  val sclkCntMax  = UInt(400/2) // 80 MHz -> 400 cycles -> 200 kHz
-  val sclkCntMax2 = UInt(400) 	// Only used for finishing conditions
+  val sclkCntReg = Reg(init = 0.U(10.W)) //10 bit counter
+  val sclkCntMax  = (400/2).U // 80 MHz -> 400 cycles -> 200 kHz
+  val sclkCntMax2 = 400.U 	// Only used for finishing conditions
 
-  val wordCntReg = Reg(init = UInt(0, 3)) //counter register for each word: 8 bit counter (000 to 111)
+  val wordCntReg = Reg(init = 0.U(3.W)) //counter register for each word: 8 bit counter (000 to 111)
 
   //register for SCLK
-  val sclkReg = Reg(init = UInt(1, 1)) //default high
+  val sclkReg = Reg(init = 1.U(1.W)) //default high
   io.sclkO := sclkReg
   //register for SDINO
-  val sdinReg = Reg(init = UInt(1, 1)) //default high
+  val sdinReg = Reg(init = 1.U(1.W)) //default high
   io.sdinO := sdinReg
   //register for WEO
-  val weReg = Reg(init = UInt(1, 1)) //default high: master controls SDIN
+  val weReg = Reg(init = 1.U(1.W)) //default high: master controls SDIN
   io.weO := weReg
 
   //register for SLAVEADDR: constant
-  val rAddrReg = Reg(init = UInt(SLAVEADDR, 7))
+  val rAddrReg = Reg(init = SLAVEADDR.U(7.W))
 
   //states
   val sIdle :: sStart :: sAck1 :: sDataMsb :: sAck2 :: sDataLsb :: sAck3 :: sFinish1 :: sFinish2 :: sFinishPatmos :: Nil = Enum(UInt(), 10)
@@ -59,120 +59,120 @@ class AudioI2C extends Module
   val state = Reg(init = sIdle)
 
   //Default values:
-  io.ackO 	:= UInt(0)
+  io.ackO 	:= 0.U
 
-  when (io.reqI === UInt(1))
+  when (io.reqI === 1.U)
   { //PATMOS starts handshake
 
     //initial transition: idle to start
     when(state === sIdle) {
-      weReg := UInt(1)
-      sdinReg := UInt(0)
+      weReg := 1.U
+      sdinReg := 0.U
       state := sStart
     }
       .elsewhen(state === sFinish2) {
       //counter for SCLK
-      sclkCntReg := sclkCntReg + UInt(1)
+      sclkCntReg := sclkCntReg + 1.U
       when(sclkCntReg === sclkCntMax) {
-	sclkReg := UInt(1)
+	sclkReg := 1.U
       }
 	.elsewhen(sclkCntReg === sclkCntMax2) {
-	sclkCntReg := UInt(0)
-	sdinReg := UInt(1)
-	io.ackO := UInt(1) //to PATMOS
+	sclkCntReg := 0.U
+	sdinReg := 1.U
+	io.ackO := 1.U //to PATMOS
 	state := sFinishPatmos
       }
     }
       .elsewhen(state === sFinishPatmos) {
-      io.ackO := UInt(1) //to PATMOS
+      io.ackO := 1.U //to PATMOS
     }
 
     //in any other state, enable counter and everything
     .otherwise{
       //counter for SCLK
-      sclkCntReg := sclkCntReg + UInt(1)
+      sclkCntReg := sclkCntReg + 1.U
       //when limit - 1 -> switch
-      when( sclkCntReg === (sclkCntMax - UInt(1)) ) {
+      when( sclkCntReg === (sclkCntMax - 1.U) ) {
 	sclkReg := ~sclkReg
       }
       //when limit -> restart counter
 	.elsewhen(sclkCntReg === sclkCntMax)
       {
-	sclkCntReg := UInt(0)
+	sclkCntReg := 0.U
 	//update state machine only at falling edge
-	when (sclkReg === UInt(0)) {
+	when (sclkReg === 0.U) {
 	  switch (state) {
 	    is (sStart) {
-	      when(wordCntReg < UInt(7)){
-		sdinReg := rAddrReg(UInt(6)-wordCntReg)
-		wordCntReg := wordCntReg + UInt(1)
+	      when(wordCntReg < 7.U){
+		sdinReg := rAddrReg(6.U-wordCntReg)
+		wordCntReg := wordCntReg + 1.U
 	      }
-		.otherwise {//wordCntReg === UInt(7))
-		sdinReg := UInt(0) //for write
-		wordCntReg := UInt(0)
+		.otherwise {//wordCntReg === 7.U)
+		sdinReg := 0.U //for write
+		wordCntReg := 0.U
 		state := sAck1
 	      }
 	    }
 	    is (sAck1) {
-	      weReg := UInt(0)
-	      sdinReg := UInt(1) //doesn't really matter
+	      weReg := 0.U
+	      sdinReg := 1.U //doesn't really matter
 	      state := sDataMsb
 
 	    }
 	    is (sDataMsb) {
-	      weReg := UInt(1)
+	      weReg := 1.U
 	      //check if WM8731 responded with ACK correctly on the first CC of this state
-	      when(  (sclkCntReg === UInt(0)) && (io.sdinI === UInt(1)) ) {
+	      when(  (sclkCntReg === 0.U) && (io.sdinI === 1.U) ) {
 		//in this case, reset
-		sclkCntReg := UInt(0)
+		sclkCntReg := 0.U
 		state := sIdle
 	      }
 	      //if it ACK is correct (sdin === 0), then proceed
-	      when(wordCntReg < UInt(7)){
-		sdinReg := addrReg(UInt(6)-wordCntReg)
-		wordCntReg := wordCntReg + UInt(1)
+	      when(wordCntReg < 7.U){
+		sdinReg := addrReg(6.U-wordCntReg)
+		wordCntReg := wordCntReg + 1.U
 	      }
-		.otherwise {//wordCntReg === UInt(7))
-		sdinReg := dataReg(UInt(8))
-		wordCntReg := UInt(0)
+		.otherwise {//wordCntReg === 7.U)
+		sdinReg := dataReg(8.U)
+		wordCntReg := 0.U
 		state := sAck2
 	      }
 	    }
 	    is (sAck2) {
-	      weReg := UInt(0)
-	      sdinReg := UInt(1) //doesn't really matter
+	      weReg := 0.U
+	      sdinReg := 1.U //doesn't really matter
 	      state := sDataLsb
 	    }
 	    is (sDataLsb) {
-	      weReg := UInt(1)
+	      weReg := 1.U
 	      //check if WM8731 responded with ACK correctly on the first CC of this state
-	      when(  (sclkCntReg === UInt(0)) && (io.sdinI === UInt(1)) ) {
+	      when(  (sclkCntReg === 0.U) && (io.sdinI === 1.U) ) {
 		//in this case, reset
-		sclkCntReg := UInt(0)
+		sclkCntReg := 0.U
 		state := sIdle
 	      }
 	      //if it ACK is correct (sdin === 0), then proceed
-	      when(wordCntReg < UInt(7)){
-		sdinReg := dataReg(UInt(7)-wordCntReg)
-		wordCntReg := wordCntReg + UInt(1)
+	      when(wordCntReg < 7.U){
+		sdinReg := dataReg(7.U-wordCntReg)
+		wordCntReg := wordCntReg + 1.U
 	      }
-		.otherwise {//wordCntReg === UInt(7))
-		sdinReg := dataReg(UInt(0))
-		wordCntReg := UInt(0)
+		.otherwise {//wordCntReg === 7.U)
+		sdinReg := dataReg(0.U)
+		wordCntReg := 0.U
 		state := sAck3
 	      }
 	    }
 	    is (sAck3) {
-	      weReg := UInt(0)
-	      sdinReg := UInt(0) //I think it matters on this case
+	      weReg := 0.U
+	      sdinReg := 0.U //I think it matters on this case
 	      state := sFinish1
 	    }
 	    //added
 	    is (sFinish1) {
-	      weReg := UInt(1)
-	      sdinReg := UInt(0)
+	      weReg := 1.U
+	      sdinReg := 0.U
 	      //check if WM8731 responded with ACK correctly
-	      when(io.sdinI === UInt(0)) {
+	      when(io.sdinI === 0.U) {
 		state := sFinish2
 	      }
 		.otherwise { // if no ack
@@ -184,7 +184,7 @@ class AudioI2C extends Module
       }
     }
   }
-    .otherwise { //io.reqI === UInt(0)
+    .otherwise { //io.reqI === 0.U
     when (state === sFinishPatmos) {
       state := sIdle
     }

@@ -22,16 +22,16 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
   val memaddrwidth = log2Up(memsize)
   val corecur = Counter(corecnt)
   
-  val sharedmem = Mem(UInt(width = datawidth), memsize)
+  val sharedmem = Mem(UInt(datawidth.W), memsize)
   val sharedmemwr = Bool()
   sharedmemwr := false.B
   val sharedmemwrfin = Bool()
   sharedmemwrfin := false.B
-  val sharedmemrdaddrReg = Reg(UInt(width = memaddrwidth))
-  val sharedmemwraddr = UInt(width = memaddrwidth)
+  val sharedmemrdaddrReg = Reg(UInt(memaddrwidth.W))
+  val sharedmemwraddr = UInt(memaddrwidth.W)
   sharedmemwraddr := 0.U
   val sharedmemrddata = sharedmem(sharedmemrdaddrReg)
-  val sharedmemwrdata = UInt(width = datawidth)
+  val sharedmemwrdata = UInt(datawidth.W)
   sharedmemwrdata := 0.U
   
   val _bufwr = Bool()
@@ -58,7 +58,7 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
     
     val bufaddrwidth = log2Up(bufsize)
     
-    val memrdaddrReg = Reg(UInt(width = memaddrwidth))
+    val memrdaddrReg = Reg(UInt(memaddrwidth.W))
     
     val bufaddr = ioM.Addr(memaddrwidth+2,2)
     val bufaddrs = Reg(Vec(bufsize, UInt(memaddrwidth.W)))
@@ -66,21 +66,21 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
     val bufwrs = RegInit(VecInit(Seq.fill(bufsize)(false.B)))
     val bufnxt = Counter(bufsize+1)
     
-    val bufmem = Mem(UInt(width = datawidth), bufsize)
+    val bufmem = Mem(UInt(datawidth.W), bufsize)
     val bufmemwr = Bool()
-    val bufmemrdaddrReg = RegInit(UInt(0,width = bufaddrwidth))
+    val bufmemrdaddrReg = RegInit(0.U(bufaddrwidth.W))
     bufmemrdaddrReg := 0.U
-    val bufmemwraddr = UInt(width = bufaddrwidth)
+    val bufmemwraddr = UInt(bufaddrwidth.W)
     bufmemwraddr := 0.U
     val bufmemrddata = bufmem(bufmemrdaddrReg)
-    val bufmemwrdata = UInt(width = datawidth)
+    val bufmemwrdata = UInt(datawidth.W)
     bufmemwrdata := 0.U
     
     when(bufmemwr) {
       bufmem(bufmemwraddr) := bufmemwrdata
     }
     
-    val bufmatches = UInt(width = bufsize)
+    val bufmatches = UInt(bufsize.W)
     bufmatches := 0.U
     for(j <- 0 until bufsize) {
       bufmatches(j) := (bufaddrs(j) === bufaddr) && (bufrds(j) || bufwrs(j))

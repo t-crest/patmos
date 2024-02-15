@@ -35,8 +35,8 @@ class SSPMAegean(val nCores: Int,
   val connectors = VecInit(Seq.fill(nCores)(Module(new SSPMConnector()).io)) // MS: shall this be really a Vec and not a Seq?
 
   val firstCore = 0
-  val nextCore = Reg(init = UInt(firstCore + 1, log2Up(nCores)))
-  val currentCore = Reg(init = UInt(firstCore, log2Up(nCores)))
+  val nextCore = Reg(init = (firstCore + 1).U(log2Up(nCores).W))
+  val currentCore = Reg(init = firstCore.U(log2Up(nCores).W))
   val decoder = UIntToOH(currentCore, nCores)
 
   // Connect the SSPMConnector with the SSPMAegean
@@ -59,22 +59,22 @@ class SSPMAegean(val nCores: Int,
   val s_idle :: s_sync :: Nil = Enum(UInt(), 2)
 
   val state = Reg(init = s_idle)
-  val syncCounter = Reg(init = UInt(0))
+  val syncCounter = Reg(init = 0.U)
   syncCounter := syncCounter
 
   val syncUsed = Reg(init = false.B)
-  val syncCore = Reg(init = UInt(0))
+  val syncCore = Reg(init = 0.U)
 
   when(state === s_idle) {
     state := s_idle
-    nextCore := nextCore + UInt(1)
+    nextCore := nextCore + 1.U
     currentCore := nextCore
     connectors(currentCore).connectorSignals.enable := Bits(1)
 
     when(connectors(currentCore).connectorSignals.syncReq === Bits(1)) {
       if(singleExtendedSlot) {
         when(!syncUsed) {
-          syncCounter := UInt(extendedSlotSize - 1)
+          syncCounter := (extendedSlotSize - 1).U
           nextCore := nextCore
           currentCore := currentCore
           state := s_sync
@@ -82,15 +82,15 @@ class SSPMAegean(val nCores: Int,
           connectors(currentCore).connectorSignals.enable := Bits(0)
         }
       } else {
-        syncCounter := UInt(extendedSlotSize - 1)
+        syncCounter := (extendedSlotSize - 1).U
         nextCore := nextCore
         currentCore := currentCore
         state := s_sync
       }
     }
 
-    when(nextCore > UInt(nCores - 1)) {
-      nextCore := UInt(0)
+    when(nextCore > (nCores - 1).U) {
+      nextCore := 0.U
     }
 
     if(singleExtendedSlot) {
@@ -102,7 +102,7 @@ class SSPMAegean(val nCores: Int,
 
   when(state === s_sync) {
 
-    syncCounter := syncCounter - UInt(1)
+    syncCounter := syncCounter - 1.U
     if(singleExtendedSlot) {
       syncUsed := true.B
       syncCore := currentCore
@@ -111,8 +111,8 @@ class SSPMAegean(val nCores: Int,
 
     state := s_sync
 
-    when(syncCounter === UInt(0)) {
-      nextCore := nextCore + UInt(1)
+    when(syncCounter === 0.U) {
+      nextCore := nextCore + 1.U
       currentCore := nextCore
       state := s_idle
     }

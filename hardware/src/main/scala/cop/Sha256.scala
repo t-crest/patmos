@@ -29,45 +29,45 @@ class Sha256() extends CoprocessorMemoryAccess() {
   val MSG_WORD_COUNT = 16
   
   val hashDefaults = Vec(Seq(
-    UInt("h6a09e667", width = DATA_WIDTH), UInt("hbb67ae85"),
-    UInt("h3c6ef372"), UInt("ha54ff53a"),
-    UInt("h510e527f"), UInt("h9b05688c"),
-    UInt("h1f83d9ab"), UInt("h5be0cd19")
+    "h6a09e667".U(DATA_WIDTH.W), "hbb67ae85".U,
+    "h3c6ef372".U, "ha54ff53a".U,
+    "h510e527f".U, "h9b05688c".U,
+    "h1f83d9ab".U, "h5be0cd19".U
   ))
 
   val roundConsts = Vec(Seq(
-    UInt("h428a2f98", width = DATA_WIDTH), UInt("h71374491"),
-    UInt("hb5c0fbcf"), UInt("he9b5dba5"),
-    UInt("h3956c25b"), UInt("h59f111f1"),
-    UInt("h923f82a4"), UInt("hab1c5ed5"),
-    UInt("hd807aa98"), UInt("h12835b01"),
-    UInt("h243185be"), UInt("h550c7dc3"),
-    UInt("h72be5d74"), UInt("h80deb1fe"),
-    UInt("h9bdc06a7"), UInt("hc19bf174"),
-    UInt("he49b69c1"), UInt("hefbe4786"),
-    UInt("h0fc19dc6"), UInt("h240ca1cc"),
-    UInt("h2de92c6f"), UInt("h4a7484aa"),
-    UInt("h5cb0a9dc"), UInt("h76f988da"),
-    UInt("h983e5152"), UInt("ha831c66d"),
-    UInt("hb00327c8"), UInt("hbf597fc7"),
-    UInt("hc6e00bf3"), UInt("hd5a79147"),
-    UInt("h06ca6351"), UInt("h14292967"),
-    UInt("h27b70a85"), UInt("h2e1b2138"),
-    UInt("h4d2c6dfc"), UInt("h53380d13"),
-    UInt("h650a7354"), UInt("h766a0abb"),
-    UInt("h81c2c92e"), UInt("h92722c85"),
-    UInt("ha2bfe8a1"), UInt("ha81a664b"),
-    UInt("hc24b8b70"), UInt("hc76c51a3"),
-    UInt("hd192e819"), UInt("hd6990624"),
-    UInt("hf40e3585"), UInt("h106aa070"),
-    UInt("h19a4c116"), UInt("h1e376c08"),
-    UInt("h2748774c"), UInt("h34b0bcb5"),
-    UInt("h391c0cb3"), UInt("h4ed8aa4a"),
-    UInt("h5b9cca4f"), UInt("h682e6ff3"),
-    UInt("h748f82ee"), UInt("h78a5636f"),
-    UInt("h84c87814"), UInt("h8cc70208"),
-    UInt("h90befffa"), UInt("ha4506ceb"),
-    UInt("hbef9a3f7"), UInt("hc67178f2")
+    "h428a2f98".U(DATA_WIDTH.W), "h71374491".U,
+    "hb5c0fbcf".U, "he9b5dba5".U,
+    "h3956c25b".U, "h59f111f1".U,
+    "h923f82a4".U, "hab1c5ed5".U,
+    "hd807aa98".U, "h12835b01".U,
+    "h243185be".U, "h550c7dc3".U,
+    "h72be5d74".U, "h80deb1fe".U,
+    "h9bdc06a7".U, "hc19bf174".U,
+    "he49b69c1".U, "hefbe4786".U,
+    "h0fc19dc6".U, "h240ca1cc".U,
+    "h2de92c6f".U, "h4a7484aa".U,
+    "h5cb0a9dc".U, "h76f988da".U,
+    "h983e5152".U, "ha831c66d".U,
+    "hb00327c8".U, "hbf597fc7".U,
+    "hc6e00bf3".U, "hd5a79147".U,
+    "h06ca6351".U, "h14292967".U,
+    "h27b70a85".U, "h2e1b2138".U,
+    "h4d2c6dfc".U, "h53380d13".U,
+    "h650a7354".U, "h766a0abb".U,
+    "h81c2c92e".U, "h92722c85".U,
+    "ha2bfe8a1".U, "ha81a664b".U,
+    "hc24b8b70".U, "hc76c51a3".U,
+    "hd192e819".U, "hd6990624".U,
+    "hf40e3585".U, "h106aa070".U,
+    "h19a4c116".U, "h1e376c08".U,
+    "h2748774c".U, "h34b0bcb5".U,
+    "h391c0cb3".U, "h4ed8aa4a".U,
+    "h5b9cca4f".U, "h682e6ff3".U,
+    "h748f82ee".U, "h78a5636f".U,
+    "h84c87814".U, "h8cc70208".U,
+    "h90befffa".U, "ha4506ceb".U,
+    "hbef9a3f7".U, "hc67178f2".U
   ))
   
   /*--------------------------------------------constants for coprocessor--------------------------------------------*/
@@ -98,20 +98,20 @@ class Sha256() extends CoprocessorMemoryAccess() {
   val hash = Reg(Vec(HASH_WORD_COUNT, UInt(DATA_WIDTH.W)))
 
   // temporary registers
-  val a = Reg(UInt(width = DATA_WIDTH))
-  val b = Reg(UInt(width = DATA_WIDTH))
-  val c = Reg(UInt(width = DATA_WIDTH))
-  val d = Reg(UInt(width = DATA_WIDTH))
-  val e = Reg(UInt(width = DATA_WIDTH))
-  val f = Reg(UInt(width = DATA_WIDTH))
-  val g = Reg(UInt(width = DATA_WIDTH))
-  val h = Reg(UInt(width = DATA_WIDTH))
+  val a = Reg(UInt(DATA_WIDTH.W))
+  val b = Reg(UInt(DATA_WIDTH.W))
+  val c = Reg(UInt(DATA_WIDTH.W))
+  val d = Reg(UInt(DATA_WIDTH.W))
+  val e = Reg(UInt(DATA_WIDTH.W))
+  val f = Reg(UInt(DATA_WIDTH.W))
+  val g = Reg(UInt(DATA_WIDTH.W))
+  val h = Reg(UInt(DATA_WIDTH.W))
 
   // index
-  val idxReg = Reg(init = UInt(0, width = log2Ceil(ROUND_COUNT)+1))
+  val idxReg = Reg(init = 0.U((log2Ceil(ROUND_COUNT)+1).W))
 
   // message memory (Note: has been extended to enable double-buffering)
-  val msg = Mem(UInt(width = DATA_WIDTH), MSG_WORD_COUNT * 2)
+  val msg = Mem(UInt(DATA_WIDTH.W), MSG_WORD_COUNT * 2)
 
   // read data from message memory
   val msgRdData = msg(Cat(ShaBufferReg, idxReg(log2Ceil(MSG_WORD_COUNT)-1, 0)))
@@ -129,10 +129,10 @@ class Sha256() extends CoprocessorMemoryAccess() {
     Nil = Enum(7)*/
   val memIdle :: memReadReqM :: memReadM :: memReadReqH :: memReadH :: memWriteReqH :: memWriteH :: memWait :: Nil = Enum(8)
   val memState = RegInit(memIdle)
-  val blockAddrReg = Reg(UInt(width = DATA_WIDTH))
-  val hashAddrReg = Reg(UInt(width = DATA_WIDTH))
+  val blockAddrReg = Reg(UInt(DATA_WIDTH.W))
+  val hashAddrReg = Reg(UInt(DATA_WIDTH.W))
   val wordCountReg = RegInit(0.U(WORD_COUNT_WIDTH.W))
-  val blockCountReg = Reg(UInt(width = DATA_WIDTH))
+  val blockCountReg = Reg(UInt(DATA_WIDTH.W))
 
   /*----------------------------------------------sha256 state machine-----------------------------------------------*/  
   // transformation functions
@@ -140,10 +140,10 @@ class Sha256() extends CoprocessorMemoryAccess() {
     data(amt-1, 0) ## data(DATA_WIDTH-1, amt)
   }
   def s0(data : UInt) = {
-    rotateRight(data, 7) ^ rotateRight(data, 18) ^ (data.asUInt >> UInt(3))
+    rotateRight(data, 7) ^ rotateRight(data, 18) ^ (data.asUInt >> 3.U)
   }
   def s1(data : UInt) = {
-    rotateRight(data, 17) ^ rotateRight(data, 19) ^ (data.asUInt >> UInt(10))
+    rotateRight(data, 17) ^ rotateRight(data, 19) ^ (data.asUInt >> 10.U)
   }
   def e0(data : UInt) = {
     rotateRight(data, 2) ^ rotateRight(data, 13) ^ rotateRight(data, 22)
@@ -177,7 +177,7 @@ class Sha256() extends CoprocessorMemoryAccess() {
   wx := wt(12) + s0(wt(11))
   wy := wx + wt(4)
   wz := wy + s1(wt(0))
-  w0 := Mux(idxReg < UInt(MSG_WORD_COUNT), msgRdData, wz)
+  w0 := Mux(idxReg < MSG_WORD_COUNT.U, msgRdData, wz)
   wt(0) := w0
 
   // compression
@@ -204,15 +204,15 @@ class Sha256() extends CoprocessorMemoryAccess() {
     f := hash(5)
     g := hash(6)
     h := hash(7)
-    idxReg := idxReg + UInt(1)
+    idxReg := idxReg + 1.U
 
     stateReg := compress
   }
 
   // compression loop
   when (stateReg === compress) {
-    idxReg := idxReg + UInt(1)
-    when (idxReg < UInt(ROUND_COUNT)) {
+    idxReg := idxReg + 1.U
+    when (idxReg < ROUND_COUNT.U) {
       stateReg := compress
     }
     .otherwise {
@@ -270,7 +270,7 @@ class Sha256() extends CoprocessorMemoryAccess() {
     }.elsewhen(io.copIn.read) {
       switch(io.copIn.funcId) {
         is(FUNC_POLL) {
-          io.copOut.result := Cat(UInt(0, width = DATA_WIDTH - 1), !isIdle)
+          io.copOut.result := Cat(0.U((DATA_WIDTH - 1).W), !isIdle)
           io.copOut.ena_out := true.B
         }
       }
@@ -300,7 +300,7 @@ class Sha256() extends CoprocessorMemoryAccess() {
           when(isIdle) {
             blockAddrReg := io.copIn.opData(0)
             memState := memReadReqM
-            blockCountReg := UInt(1)
+            blockCountReg := 1.U
             io.copOut.ena_out := true.B
           }
         }
@@ -333,11 +333,11 @@ class Sha256() extends CoprocessorMemoryAccess() {
     is(memReadM) {
       msg(Cat(memBufferReg, wordCountReg(MSG_WORD_COUNT_WIDTH - 1, 0))) := io.memPort.S.Data
       when(io.memPort.S.Resp === OcpResp.DVA) {
-        when(wordCountReg(BURST_OFFSET - 1, 0) < UInt(BURST_LENGTH - 1)) {
+        when(wordCountReg(BURST_OFFSET - 1, 0) < (BURST_LENGTH - 1).U) {
           wordCountReg := wordCountReg + 1.U
         }.otherwise {
-          blockAddrReg := blockAddrReg + UInt(BURST_ADDR_OFFSET)
-          when(wordCountReg(MSG_WORD_COUNT_WIDTH - 1, BURST_OFFSET) < UInt(BURSTS_PER_MSG - 1)) {
+          blockAddrReg := blockAddrReg + BURST_ADDR_OFFSET.U
+          when(wordCountReg(MSG_WORD_COUNT_WIDTH - 1, BURST_OFFSET) < (BURSTS_PER_MSG - 1).U) {
             wordCountReg := wordCountReg + 1.U
             memState := memReadReqM
           }.otherwise {
@@ -364,18 +364,18 @@ class Sha256() extends CoprocessorMemoryAccess() {
     is(memReadReqH) {
       io.memPort.M.Cmd := OcpCmd.RD
       io.memPort.M.Addr := hashAddrReg
-      when(io.memPort.S.CmdAccept === UInt(1)) {
+      when(io.memPort.S.CmdAccept === 1.U) {
         memState := memReadH
       }
     }
     is(memReadH) {
       hash(wordCountReg(HASH_WORD_COUNT_WIDTH - 1, 0)) := io.memPort.S.Data
       when(io.memPort.S.Resp === OcpResp.DVA) {
-        when(wordCountReg(BURST_OFFSET - 1, 0) < UInt(BURST_LENGTH - 1)) {
+        when(wordCountReg(BURST_OFFSET - 1, 0) < (BURST_LENGTH - 1).U) {
           wordCountReg := wordCountReg + 1.U
         }.otherwise {
-          hashAddrReg := hashAddrReg + UInt(BURST_ADDR_OFFSET)
-          when(wordCountReg(HASH_WORD_COUNT_WIDTH - 1, BURST_OFFSET) < UInt(BURSTS_PER_HASH - 1)) {
+          hashAddrReg := hashAddrReg + BURST_ADDR_OFFSET.U
+          when(wordCountReg(HASH_WORD_COUNT_WIDTH - 1, BURST_OFFSET) < (BURSTS_PER_HASH - 1).U) {
             wordCountReg := wordCountReg + 1.U
             memState := memReadReqH
           }.otherwise {
@@ -398,14 +398,14 @@ class Sha256() extends CoprocessorMemoryAccess() {
     is(memWriteH) {
       io.memPort.M.Data := hash(wordCountReg(HASH_WORD_COUNT_WIDTH - 1, 0));
       io.memPort.M.DataValid := 1.U
-      when(io.memPort.S.DataAccept === UInt(1)) {
-        when(wordCountReg(BURST_OFFSET - 1, 0) < UInt(BURST_LENGTH - 1)) {
+      when(io.memPort.S.DataAccept === 1.U) {
+        when(wordCountReg(BURST_OFFSET - 1, 0) < (BURST_LENGTH - 1).U) {
           wordCountReg := wordCountReg + 1.U
         }
       }
       when(io.memPort.S.Resp === OcpResp.DVA) {
-        hashAddrReg := hashAddrReg + UInt(BURST_ADDR_OFFSET)
-        when(wordCountReg(HASH_WORD_COUNT_WIDTH - 1, BURST_OFFSET) < UInt(BURSTS_PER_HASH - 1)) {
+        hashAddrReg := hashAddrReg + BURST_ADDR_OFFSET.U
+        when(wordCountReg(HASH_WORD_COUNT_WIDTH - 1, BURST_OFFSET) < (BURSTS_PER_HASH - 1).U) {
           wordCountReg := wordCountReg + 1.U
           memState := memWriteReqH
         }.otherwise {

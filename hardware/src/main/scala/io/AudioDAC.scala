@@ -34,10 +34,10 @@ class AudioDAC(AUDIOBITLENGTH: Int, FSDIV: Int) extends Module
 
 
   //Counter for audio sampling
-  val FSCYCLES = UInt(FSDIV - 1);
-  val fsCntReg = Reg(init = UInt(0, 9)) //counter register for Fs
+  val FSCYCLES = (FSDIV - 1).U;
+  val fsCntReg = Reg(init = 0.U(9.W)) //counter register for Fs
 
-  val audioCntReg = Reg(init = UInt(0, 5)) //counter register for Audio bits: max 32 bits: 5 bit counter
+  val audioCntReg = Reg(init = 0.U(5.W)) //counter register for Audio bits: max 32 bits: 5 bit counter
 
   //states
   val sIdle :: sStart :: sLeft :: sRight :: Nil = Enum(UInt(), 4)
@@ -45,97 +45,97 @@ class AudioDAC(AUDIOBITLENGTH: Int, FSDIV: Int) extends Module
   val state = Reg(init = sIdle)
 
   //Registers for outputs:
-  val dacLrcReg = Reg(init = UInt(0, 1))
-  val dacDatReg = Reg(init = UInt(0, 1))
+  val dacLrcReg = Reg(init = 0.U(1.W))
+  val dacDatReg = Reg(init = 0.U(1.W))
   //assign to ouputs
   io.dacLrcO 	:= dacLrcReg
   io.dacDatO 	:= dacDatReg
 
   //register for write enable signal to buffer
-  val writeEnDacReg = Reg(init = UInt(0, 1)) // starts with writing disabled
+  val writeEnDacReg = Reg(init = 0.U(1.W)) // starts with writing disabled
   io.writeEnDacO := writeEnDacReg
 
   //registers for audio data
-  val audioLReg = Reg(init = UInt(0, AUDIOBITLENGTH))
-  val audioRReg = Reg(init = UInt(0, AUDIOBITLENGTH))
+  val audioLReg = Reg(init = 0.U(AUDIOBITLENGTH.W))
+  val audioRReg = Reg(init = 0.U(AUDIOBITLENGTH.W))
 
   //register for bclkI
-  val bclkReg = Reg(init = UInt(0, 1))
+  val bclkReg = Reg(init = 0.U(1.W))
   bclkReg := io.bclkI
 
   //end of conversion indicator
-  val convEndReg = Reg(init = UInt(0, 1))
+  val convEndReg = Reg(init = 0.U(1.W))
   io.convEndO := convEndReg
 
   //connect inputs to registers when writing is enabled
-  when(writeEnDacReg === UInt(1)) {
+  when(writeEnDacReg === 1.U) {
     audioLReg := io.audioLI
     audioRReg := io.audioRI
   }
 
 
-  when(io.enDacI === UInt(1)) { //when conversion is enabled
+  when(io.enDacI === 1.U) { //when conversion is enabled
 
     //state machine: on falling edge of BCLK
-    when( (io.bclkI =/= bclkReg) && (io.bclkI === UInt(0)) ) {
+    when( (io.bclkI =/= bclkReg) && (io.bclkI === 0.U) ) {
 
       //counter for audio sampling
-      fsCntReg := fsCntReg + UInt(1)
+      fsCntReg := fsCntReg + 1.U
       when(fsCntReg === FSCYCLES)
       {
-	fsCntReg := UInt(0) //reset to 0
-        convEndReg := UInt(1) // Indicate end of conversion cycle
+	fsCntReg := 0.U //reset to 0
+        convEndReg := 1.U // Indicate end of conversion cycle
       }
       .otherwise {
-        convEndReg := UInt(0)
+        convEndReg := 0.U
       }
 
       //FSM for audio conversion
       switch (state) {
 	is (sIdle)
 	{
-	  dacLrcReg := UInt(0)
-	  dacDatReg := UInt(0)
-	  when(fsCntReg === UInt(0)) {
-            writeEnDacReg := UInt(0) //to start disabled
+	  dacLrcReg := 0.U
+	  dacDatReg := 0.U
+	  when(fsCntReg === 0.U) {
+            writeEnDacReg := 0.U //to start disabled
 	    state := sStart
 	  }
           .otherwise {
-	    writeEnDacReg := UInt(1)
+	    writeEnDacReg := 1.U
           }
 	}
 	is (sStart)
 	{
-	  dacLrcReg := UInt(1)
-	  writeEnDacReg := UInt(0)
+	  dacLrcReg := 1.U
+	  writeEnDacReg := 0.U
 	  state := sLeft //directly jump to next state
 	}
 	is (sLeft)
 	{
-	  dacLrcReg := UInt(0)
-	  writeEnDacReg := UInt(0)
-	  dacDatReg := audioLReg( UInt(AUDIOBITLENGTH) - audioCntReg - UInt(1))
-	  when (audioCntReg < UInt(AUDIOBITLENGTH-1))
+	  dacLrcReg := 0.U
+	  writeEnDacReg := 0.U
+	  dacDatReg := audioLReg( AUDIOBITLENGTH.U - audioCntReg - 1.U)
+	  when (audioCntReg < (AUDIOBITLENGTH-1).U)
 	  {
-	    audioCntReg := audioCntReg + UInt(1)
+	    audioCntReg := audioCntReg + 1.U
 	  }
 	    .otherwise //bit AUDIOBITLENGTH-1
 	  {
-	    audioCntReg := UInt(0) //restart counter
+	    audioCntReg := 0.U //restart counter
 	    state := sRight
 	  }
 	}
 	is (sRight)
 	{
-	  writeEnDacReg := UInt(0)
-	  dacDatReg := audioRReg(UInt(AUDIOBITLENGTH) - audioCntReg - UInt(1))
-	  when (audioCntReg < UInt(AUDIOBITLENGTH-1))
+	  writeEnDacReg := 0.U
+	  dacDatReg := audioRReg(AUDIOBITLENGTH.U - audioCntReg - 1.U)
+	  when (audioCntReg < (AUDIOBITLENGTH-1).U)
 	  {
-	    audioCntReg := audioCntReg + UInt(1)
+	    audioCntReg := audioCntReg + 1.U
 	  }
 	    .otherwise 	 //bit AUDIOBITLENGTH-1
 	  {
-	    audioCntReg := UInt(0) //restart counter
+	    audioCntReg := 0.U //restart counter
 	    state := sIdle
 	  }
 	}
@@ -145,14 +145,14 @@ class AudioDAC(AUDIOBITLENGTH: Int, FSDIV: Int) extends Module
     .otherwise //when conversion is disabled
   {
     state := sIdle
-    fsCntReg := UInt(0)
-    audioCntReg := UInt(0)
-    writeEnDacReg := UInt(0)
-    dacLrcReg := UInt(0)
-    dacDatReg := UInt(0)
-    convEndReg := UInt(0)
-    audioLReg := UInt(0)
-    audioRReg := UInt(0)
+    fsCntReg := 0.U
+    audioCntReg := 0.U
+    writeEnDacReg := 0.U
+    dacLrcReg := 0.U
+    dacDatReg := 0.U
+    convEndReg := 0.U
+    audioLReg := 0.U
+    audioRReg := 0.U
   }
 
 }

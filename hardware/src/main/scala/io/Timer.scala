@@ -32,14 +32,14 @@ class Timer(clk_freq: Int) extends CoreDevice() {
   val masterReg = Reg(next = io.ocp.M)
 
   // Register for cycle counter
-  val cycleReg     = Reg(init = UInt(0, 2*DATA_WIDTH))
-  val cycleIntrReg = Reg(init = UInt(0, 2*DATA_WIDTH))
+  val cycleReg     = Reg(init = 0.U((2*DATA_WIDTH).W))
+  val cycleIntrReg = Reg(init = 0.U((2*DATA_WIDTH).W))
 
   // Registers for usec counter
-  val cycPerUSec  = UInt(clk_freq/1000000)
-  val usecSubReg  = Reg(init = UInt(0, log2Up(clk_freq/1000000)))
-  val usecReg     = Reg(init = UInt(0, 2*DATA_WIDTH))
-  val usecIntrReg = Reg(init = UInt(0, 2*DATA_WIDTH))
+  val cycPerUSec  = (clk_freq/1000000).U
+  val usecSubReg  = Reg(init = 0.U(log2Up(clk_freq/1000000).W))
+  val usecReg     = Reg(init = 0.U((2*DATA_WIDTH).W))
+  val usecIntrReg = Reg(init = 0.U((2*DATA_WIDTH).W))
 
   // Registers for data to read
   val cycleHiReg  = Reg(Bits(width = DATA_WIDTH))
@@ -112,18 +112,18 @@ class Timer(clk_freq: Int) extends CoreDevice() {
   io.interrupts(1) := false.B
 
   // Increment cycle counter
-  cycleReg := cycleReg + UInt(1)
+  cycleReg := cycleReg + 1.U
   // Trigger cycles interrupt
-  when (cycleReg + UInt(1) === cycleIntrReg) {
+  when (cycleReg + 1.U === cycleIntrReg) {
     io.interrupts(0) := true.B
   }
   // Increment usec counter
-  usecSubReg := usecSubReg + UInt(1)
-  when(usecSubReg === cycPerUSec - UInt(1)) {
-    usecSubReg := UInt(0)
-    usecReg := usecReg + UInt(1)
+  usecSubReg := usecSubReg + 1.U
+  when(usecSubReg === cycPerUSec - 1.U) {
+    usecSubReg := 0.U
+    usecReg := usecReg + 1.U
     // Trigger usec interrupt
-    when (usecReg + UInt(1) === usecIntrReg) {
+    when (usecReg + 1.U === usecIntrReg) {
       io.interrupts(1) := true.B
     }
   }

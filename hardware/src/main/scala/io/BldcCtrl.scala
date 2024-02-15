@@ -72,36 +72,36 @@ class BldcCtrl(clkFreq : Int, pwmFreq : Int, motorCount : Int) extends CoreDevic
   val counterWidth = log2Up(clkFreq / pwmFreq)
 
   //val pwmOutReg = Reg(init = Bits(0, motorCount))
-  val counterReg = Reg(init = UInt(0, counterWidth))
+  val counterReg = Reg(init = 0.U(counterWidth.W))
 
   val pwmOut0Reg = Reg(init = Bits(0, 1))
   val pwmOut1Reg = Reg(init = Bits(0, 1))
   val pwmOut2Reg = Reg(init = Bits(0, 1))
   val pwmOut3Reg = Reg(init = Bits(0, 1))
 
-  val motor0Reg = Reg(init = UInt(0, counterWidth))
-  val motor1Reg = Reg(init = UInt(0, counterWidth))
-  val motor2Reg = Reg(init = UInt(0, counterWidth))
-  val motor3Reg = Reg(init = UInt(0, counterWidth))
+  val motor0Reg = Reg(init = 0.U(counterWidth.W))
+  val motor1Reg = Reg(init = 0.U(counterWidth.W))
+  val motor2Reg = Reg(init = 0.U(counterWidth.W))
+  val motor3Reg = Reg(init = 0.U(counterWidth.W))
 
-  val motor0tmpReg = Reg(init = UInt(0, counterWidth))
-  val motor1tmpReg = Reg(init = UInt(0, counterWidth))
-  val motor2tmpReg = Reg(init = UInt(0, counterWidth))
-  val motor3tmpReg = Reg(init = UInt(0, counterWidth))
+  val motor0tmpReg = Reg(init = 0.U(counterWidth.W))
+  val motor1tmpReg = Reg(init = 0.U(counterWidth.W))
+  val motor2tmpReg = Reg(init = 0.U(counterWidth.W))
+  val motor3tmpReg = Reg(init = 0.U(counterWidth.W))
 
-  when (counterReg === UInt(clkFreq / pwmFreq)) {
+  when (counterReg === (clkFreq / pwmFreq).U) {
     // update motor registers:
     motor0Reg := motor0tmpReg
     motor1Reg := motor1tmpReg
     motor2Reg := motor2tmpReg
     motor3Reg := motor3tmpReg
-    counterReg := UInt(0)
+    counterReg := 0.U
   }
   .otherwise {
-    counterReg := counterReg + UInt(1)
+    counterReg := counterReg + 1.U
   }
 
-  when (counterReg === UInt(0)) {
+  when (counterReg === 0.U) {
     // all outputs high:
     //pwmOutReg := ~Bits(0, motorCount)
     pwmOut0Reg := Bits(1)

@@ -24,7 +24,7 @@ class NullCache() extends DCacheType(BURST_LENGTH) {
   // State machine for read bursts
   val idle :: read :: readResp :: Nil = Enum(UInt(), 3)
   val stateReg = Reg(init = idle)
-  val burstCntReg = Reg(init = UInt(0, burstAddrBits))
+  val burstCntReg = Reg(init = 0.U(burstAddrBits.W))
   val posReg = Reg(Bits(width = burstAddrBits))
 
   // Register for master signals
@@ -57,10 +57,10 @@ class NullCache() extends DCacheType(BURST_LENGTH) {
       slaveReg := io.slave.S
     }
     when(io.slave.S.Resp =/= OcpResp.NULL) {
-      when(burstCntReg === UInt(BURST_LENGTH-1)) {
+      when(burstCntReg === (BURST_LENGTH-1).U) {
         stateReg := readResp
       }
-      burstCntReg := burstCntReg + UInt(1)
+      burstCntReg := burstCntReg + 1.U
     }
   }
   // Pass data to master

@@ -36,7 +36,7 @@ abstract class AbstractHardlock(coreCnt : Int,lckCnt : Int) extends Module {
   val queueReg = RegInit(VecInit(Seq.fill(lckCnt)(VecInit(Seq.fill(coreCnt)(false.B)))))
   for (i <- 0 until lckCnt) {
     for (j <- 0 until coreCnt) {
-      when(io.cores(j).sel === UInt(i) && io.cores(j).en === true.B) {
+      when(io.cores(j).sel === i.U && io.cores(j).en === true.B) {
         queueReg(i)(j) := io.cores(j).op
       }
     }
@@ -48,7 +48,7 @@ abstract class AbstractHardlock(coreCnt : Int,lckCnt : Int) extends Module {
   
   for (i <- 0 until coreCnt) {
     for (j <- 0 until lckCnt) {
-      blocks(i)(j) := queueReg(j)(i) && (curReg(j) =/= UInt(i))
+      blocks(i)(j) := queueReg(j)(i) && (curReg(j) =/= i.U)
     }
     io.cores(i).blck := blocks(i).asUInt.orR
   }
@@ -61,8 +61,8 @@ class Hardlock(coreCnt : Int,lckCnt : Int) extends AbstractHardlock(coreCnt, lck
   
   for (i <- 0 until lckCnt) {
     for (j <- 0 until coreCnt) {
-      lo(i)(j) := queueReg(i)(j) && (curReg(i) > UInt(j))
-      hi(i)(j) := queueReg(i)(j) && (curReg(i) <= UInt(j))  
+      lo(i)(j) := queueReg(i)(j) && (curReg(i) > j.U)
+      hi(i)(j) := queueReg(i)(j) && (curReg(i) <= j.U)
     }
     
     when(hi(i).asUInt.orR) {
@@ -110,6 +110,6 @@ class HardlockOCPWrapper(nrCores: Int, hardlockgen: () => AbstractHardlock) exte
       io.cores(i).S.Resp := OcpResp.DVA
     }
       
-    io.cores(i).S.Data := UInt(0)
+    io.cores(i).S.Data := 0.U
   }
 }

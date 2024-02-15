@@ -147,6 +147,6 @@ class AsyncLock(corecnt: Int, lckcnt: Int, fair: Boolean = false) extends Module
     }
 
     // Perhaps remove this
-    io.cores(i).S.Data := UInt(0)
+    io.cores(i).S.Data := 0.U
   }
 }

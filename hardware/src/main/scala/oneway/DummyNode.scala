@@ -16,11 +16,11 @@ import s4noc._
  */
 class DummyNode(n: Int) extends Module {
   val io = IO(new Bundle {
-    val local = new Channel(UInt(width = 32))
-    val dout = UInt(width = 32).asOutput
+    val local = new Channel(UInt(32.W))
+    val dout = UInt(32.W).asOutput
   })
   
-  val regAccu = Reg(init=UInt(n, 32))
+  val regAccu = Reg(init=n.U(32.W))
   regAccu := regAccu + io.local.in.data
   io.local.out.data := regAccu
   io.dout := regAccu
