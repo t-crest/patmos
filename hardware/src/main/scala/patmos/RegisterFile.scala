@@ -7,7 +7,8 @@
 
 package patmos
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 
 import Constants._
 
@@ -15,7 +16,7 @@ class RegisterFile() extends Module {
   val io = IO(new RegFileIO())
 
   // Using Mem (instead of Vec) leads to smaller HW for single-issue config
-  val rf = Mem(UInt(DATA_WIDTH.W), REG_COUNT)
+  val rf = Mem(REG_COUNT, UInt(DATA_WIDTH.W))
 
   // We are registering the inputs here, similar as it would
   // be with an on-chip memory for the register file

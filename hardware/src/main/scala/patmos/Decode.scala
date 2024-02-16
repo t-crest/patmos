@@ -7,8 +7,8 @@
 
 package patmos
 
-import Chisel._
-import chisel3.VecInit
+import chisel3._
+import chisel3.util._
 
 import Constants._
 
@@ -384,8 +384,8 @@ class Decode() extends Module {
   val addrImm = Wire(UInt())
   addrImm := Cat(0.U, instr(6, 0))
   switch(shamt) {
-    is(1.U) { addrImm := Cat(0.U, instr(6, 0), Bits(0, width = 1)) }
-    is(2.U) { addrImm := Cat(0.U, instr(6, 0), Bits(0, width = 2)) }
+    is(1.U) { addrImm := Cat(0.U, instr(6, 0), 0.U(1.W)) }
+    is(2.U) { addrImm := Cat(0.U, instr(6, 0), 0.U(2.W)) }
   }
 
   // Non-default immediate value
@@ -451,5 +451,5 @@ class Decode() extends Module {
   }
 
   // reset at end to override any computations
-  when(reset) { decReg.flush() }
+  when(reset.asBool) { decReg.flush() }
 }

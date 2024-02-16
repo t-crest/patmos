@@ -7,7 +7,8 @@
 
 package patmos
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 
 import Constants._
 
@@ -40,8 +41,8 @@ class MemoryManagement extends MemoryManagementType {
     when (io.superMode) (action) .otherwise { io.ctrl.S.Resp := OcpResp.ERR }
   }
 
-  val segInfoVec = Mem(UInt((ADDR_WIDTH-ALIGN_BITS).W), SEG_COUNT)
-  val segBaseVec = Mem(UInt((ADDR_WIDTH-ALIGN_BITS).W), SEG_COUNT)
+  val segInfoVec = Mem(SEG_COUNT, UInt((ADDR_WIDTH-ALIGN_BITS).W))
+  val segBaseVec = Mem(SEG_COUNT, UInt((ADDR_WIDTH-ALIGN_BITS).W))
 
   // Default OCP response
   io.ctrl.S.Resp := OcpResp.NULL
@@ -84,7 +85,7 @@ class MemoryManagement extends MemoryManagementType {
   val buffer = Module(new Queue(new OcpBurstMasterSignals(EXTMEM_ADDR_WIDTH, DATA_WIDTH), BURST_LENGTH))
 
   buffer.io.enq.bits := translated
-  buffer.io.enq.valid := !reset
+  buffer.io.enq.valid := !reset.asBool
   io.virt.S.CmdAccept := buffer.io.enq.ready
   io.virt.S.DataAccept := buffer.io.enq.ready
 
@@ -95,17 +96,17 @@ class MemoryManagement extends MemoryManagementType {
   val permViol = ((virtReg.Cmd === OcpCmd.RD && !execReg && segment.perm(PERM_R) === 0.U) ||
                   (virtReg.Cmd === OcpCmd.RD && execReg && segment.perm(PERM_X) === 0.U) ||
                   (virtReg.Cmd === OcpCmd.WR && segment.perm(PERM_W) === 0.U))
-  val permViolReg = Reg(next = permViol)
+  val permViolReg = RegNext(next = permViol)
   //debug(permViolReg) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
 
   val lengthViol = (segment.length =/= 0.U &&
                     virtReg.Addr(ADDR_WIDTH-SEG_BITS-1, ALIGN_BITS) >= segment.length)
-  val lengthViolReg = Reg(next = lengthViol)
+  val lengthViolReg = RegNext(next = lengthViol)
   //debug(lengthViolReg)   does nothing in chisel3 (no proning in frontend of chisel3 anyway)
 
   // State machine for handling violations
-  val idle :: respRd :: waitWr :: respWr :: Nil = Enum(UInt(), 4)
-  val stateReg = Reg(init = idle)
+  val idle :: respRd :: waitWr :: respWr :: Nil = Enum(4)
+  val stateReg = RegInit(init = idle)
   val burstReg = Reg(UInt())
 
   // Trigger violation handling

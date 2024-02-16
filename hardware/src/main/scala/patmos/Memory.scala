@@ -8,7 +8,8 @@
 
 package patmos
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 
 import Constants._
 
@@ -24,7 +25,7 @@ class Memory() extends Module {
   val illMem = (io.localInOut.S.Resp === OcpResp.ERR ||
                 io.globalInOut.S.Resp === OcpResp.ERR ||
                 io.icacheIllMem || io.scacheIllMem)
-  val illMemReg = Reg(next = illMem)
+  val illMemReg = RegNext(next = illMem)
 
   // Flush logic
   val flush = (memReg.mem.xcall || memReg.mem.trap ||
@@ -145,7 +146,7 @@ class Memory() extends Module {
   }
 
   // Read data multiplexing and sign extensions if needed
-  val rdData = splitData(Mux(Bool(ICACHE_TYPE == ICACHE_TYPE_LINE) && rdDataEnaReg,
+  val rdData = splitData(Mux((ICACHE_TYPE == ICACHE_TYPE_LINE).B && rdDataEnaReg,
                              rdDataReg,
                              Mux(memReg.mem.typ === MTYPE_L,
                                  io.localInOut.S.Data, io.globalInOut.S.Data)))
@@ -212,5 +213,5 @@ class Memory() extends Module {
   //debug(io.memwb.pc) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
 
   // reset at end to override any computations
-  when(reset) { memReg.flush() }
+  when(reset.asBool) { memReg.flush() }
 }

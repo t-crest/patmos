@@ -8,14 +8,15 @@
 
 package patmos
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 
 import Constants._
 
 class Execute() extends Module {
   val io = IO(new ExecuteIO())
 
-  val enableCop = Wire(Bool(), true.B)
+  val enableCop = WireDefault(Bool(), true.B)
   io.ena_out := enableCop
 
   val exReg = Reg(new DecEx())
@@ -31,7 +32,7 @@ class Execute() extends Module {
     val result = Wire(UInt(DATA_WIDTH.W))
     val scaledOp1 = op1 << Mux(func === FUNC_SHADD2, 2.U,
                                Mux(func === FUNC_SHADD, 1.U, 0.U))
-    val sum = scaledOp1 + op2
+    val sum = scaledOp1.asUInt + op2
     result := sum // some default
     val shamt = op2(4, 0).asUInt
     val srOp = Mux(func === FUNC_SRA, op1(DATA_WIDTH-1), 0.U) ## op1
@@ -68,7 +69,7 @@ class Execute() extends Module {
       (CFUNC_LE,    lt | eq),
       (CFUNC_ULT,   ult),
       (CFUNC_ULE,   ult | eq),
-      (CFUNC_BTEST, (op1 & bitMsk) =/= 0.U)))
+      (CFUNC_BTEST, (op1 & bitMsk.asUInt) =/= 0.U)))
   }
 
   def pred(func: UInt, op1: Bool, op2: Bool): Bool = {
@@ -157,8 +158,8 @@ class Execute() extends Module {
 
   // multiplication pipeline registers
   val mulLLReg    = Reg(UInt(DATA_WIDTH.W))
-  val mulLHReg    = Reg(SInt(width = DATA_WIDTH+1))
-  val mulHLReg    = Reg(SInt(width = DATA_WIDTH+1))
+  val mulLHReg    = Reg(SInt((DATA_WIDTH+1).W))
+  val mulHLReg    = Reg(SInt((DATA_WIDTH+1).W))
   val mulHHReg    = Reg(UInt(DATA_WIDTH.W))
 
   val mulPipeReg = Reg(Bool())
@@ -182,8 +183,8 @@ class Execute() extends Module {
     mulHHReg := (op1H * op2H).asUInt
 
     val mulResult = (Cat(mulHHReg, mulLLReg).asSInt
-                     + Cat(mulHLReg, SInt(0, width = DATA_WIDTH/2)).asSInt
-                     + Cat(mulLHReg, SInt(0, width = DATA_WIDTH/2)).asSInt)
+                     + Cat(mulHLReg, 0.S((DATA_WIDTH/2).W)).asSInt
+                     + Cat(mulLHReg, 0.S((DATA_WIDTH/2).W)).asSInt)
 
     when(mulPipeReg) {
       mulHiReg := mulResult(2*DATA_WIDTH-1, DATA_WIDTH)
@@ -209,7 +210,7 @@ class Execute() extends Module {
 
     val bcpyPs = predReg(exReg.aluOp(i).func(PRED_BITS-1, 0)) ^ exReg.aluOp(i).func(PRED_BITS);
     val shiftedPs = ((0.U((DATA_WIDTH-1).W) ## bcpyPs) << op(2*i+1)(4, 0))(DATA_WIDTH-1, 0)
-    val maskedOp = op(2*i) & ~(1.U(DATA_WIDTH.W) << op(2*i+1)(4, 0))(DATA_WIDTH-1, 0)
+    val maskedOp = op(2*i) & (~(1.U(DATA_WIDTH.W) << op(2*i+1)(4, 0))(DATA_WIDTH-1, 0)).asUInt
     val bcpyResult = maskedOp | shiftedPs
 
     // predicate operations
@@ -264,7 +265,7 @@ class Execute() extends Module {
     mfsResult := 0.U(DATA_WIDTH.W)
     switch(exReg.aluOp(i).func) {
       is(SPEC_FL) {
-        mfsResult := Cat(0.U((DATA_WIDTH-PRED_COUNT).W), predReg.asUInt()).asUInt()
+        mfsResult := Cat(0.U((DATA_WIDTH-PRED_COUNT).W), predReg.asUInt).asUInt
       }
       is(SPEC_SL) {
         mfsResult := mulLoReg
@@ -416,7 +417,7 @@ class Execute() extends Module {
   }
 
   // reset at end to override any computations
-  when(reset) {
+  when(reset.asBool) {
     exReg.flush()
     predReg(0) := true.B
   }

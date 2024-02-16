@@ -8,14 +8,15 @@
 
 package patmos
 
-import Chisel._
+import util.Utility
+import util.BlackBoxRom
 
-import chisel3.dontTouch
+import chisel3._
+import chisel3.util._
 
 import Constants._
 
-import util.Utility
-import util.BlackBoxRom
+
 
 class Fetch(fileName : String) extends Module {
   val io = IO(new FetchIO())
@@ -24,8 +25,8 @@ class Fetch(fileName : String) extends Module {
   val pcNext = dontTouch(Wire(UInt(PC_SIZE.W))) // for emulator
   val addrEven = Wire(UInt())
   val addrOdd = Wire(UInt())
-  val addrEvenReg = Reg(init = 2.U(PC_SIZE.W), next = addrEven)
-  val addrOddReg = Reg(init = 1.U(PC_SIZE.W), next = addrOdd)
+  val addrEvenReg = RegNext(init = 2.U(PC_SIZE.W), next = addrEven)
+  val addrOddReg = RegNext(init = 1.U(PC_SIZE.W), next = addrOdd)
 
   // Instantiate dual issue ROM
   val romContents = Utility.binToDualRom(fileName, INSTR_WIDTH)
@@ -136,7 +137,7 @@ class Fetch(fileName : String) extends Module {
   val pc_inc = Mux(pc_next(0), pc_next2, pc_next)
   addrEven := addrEvenReg
   addrOdd := addrOddReg
-  when(io.ena && !reset) {
+  when(io.ena && !reset.asBool) {
     addrEven := Cat((pc_inc)(PC_SIZE - 1, 1), 0.U).asUInt
     addrOdd := Cat((pc_next)(PC_SIZE - 1, 1), 1.U).asUInt
     pcReg := pcNext //is pc_next - needed for emulator

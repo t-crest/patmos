@@ -8,9 +8,10 @@
 
 package patmos
 
-import Chisel._
+import util.Config
 
-import util.log2Up
+import chisel3._
+import chisel3.util._
 
 object ConstantsForConf { // TODO Remove when baud is obtained from configuration .xml
   val UART_BAUD = 115200
@@ -18,21 +19,21 @@ object ConstantsForConf { // TODO Remove when baud is obtained from configuratio
 
 object Constants {
 
-  val CLOCK_FREQ = util.Config.getConfig.frequency
+  val CLOCK_FREQ = Config.getConfig.frequency
 
-  val PIPE_COUNT = util.Config.getConfig.pipeCount
+  val PIPE_COUNT = Config.getConfig.pipeCount
 
-  val ISPM_SIZE = util.Config.getConfig.ISPM.size
-  val DSPM_SIZE = util.Config.getConfig.DSPM.size
+  val ISPM_SIZE = Config.getConfig.ISPM.size
+  val DSPM_SIZE = Config.getConfig.DSPM.size
 
-  val ICACHE_TYPE = util.Config.getConfig.ICache.typ
-  val ICACHE_SIZE = util.Config.getConfig.ICache.size
-  val ICACHE_ASSOC = util.Config.getConfig.ICache.assoc
-  val ICACHE_REPL = util.Config.getConfig.ICache.repl
+  val ICACHE_TYPE = Config.getConfig.ICache.typ
+  val ICACHE_SIZE = Config.getConfig.ICache.size
+  val ICACHE_ASSOC = Config.getConfig.ICache.assoc
+  val ICACHE_REPL = Config.getConfig.ICache.repl
 
-  val DCACHE_SIZE = util.Config.getConfig.DCache.size
-  val DCACHE_ASSOC = util.Config.getConfig.DCache.assoc
-  val DCACHE_REPL = util.Config.getConfig.DCache.repl
+  val DCACHE_SIZE = Config.getConfig.DCache.size
+  val DCACHE_ASSOC = Config.getConfig.DCache.assoc
+  val DCACHE_REPL = Config.getConfig.DCache.repl
 
   val UART_BAUD = ConstantsForConf.UART_BAUD // TODO obtain from configuration .xml through Config.scala
 
@@ -52,23 +53,23 @@ object Constants {
     case _                  => 0
   }
 
-  val DCACHE_WRITETHROUGH = util.Config.getConfig.DCache.writeThrough
-  val SCACHE_SIZE = util.Config.getConfig.SCache.size
+  val DCACHE_WRITETHROUGH = Config.getConfig.DCache.writeThrough
+  val SCACHE_SIZE = Config.getConfig.SCache.size
 
   // we use a very simple decoding of ISPM at address 0x00010000
   val ISPM_ONE_BIT = 16
 
-  val EXTMEM_SIZE = util.Config.getConfig.ExtMem.size
+  val EXTMEM_SIZE = Config.getConfig.ExtMem.size
   val EXTMEM_ADDR_WIDTH = log2Up(EXTMEM_SIZE)
-  val BURST_LENGTH = util.Config.getConfig.burstLength // For SSRAM on DE2-70 board max. 4
-  val WRITE_COMBINE = util.Config.getConfig.writeCombine
+  val BURST_LENGTH = Config.getConfig.burstLength // For SSRAM on DE2-70 board max. 4
+  val WRITE_COMBINE = Config.getConfig.writeCombine
 
   // minimum size of internal program counter
   val MIN_OFF_WIDTH = if (ICACHE_TYPE == ICACHE_TYPE_METHOD) 0 else log2Up(EXTMEM_SIZE)
 
   // maximum width between ISPM size, ICache size and boot ROM size
   val MAX_OFF_WIDTH = List(log2Up(ICACHE_SIZE / 4), log2Up(ISPM_SIZE / 4),
-    util.Config.minPcWidth, MIN_OFF_WIDTH).reduce(math.max)
+    Config.minPcWidth, MIN_OFF_WIDTH).reduce(math.max)
 
 
   // Exceptions/interrupts
@@ -82,7 +83,7 @@ object Constants {
   val NI_EXT_INTR = 3
 
   // Memory management unit
-  val HAS_MMU = util.Config.getConfig.mmu
+  val HAS_MMU = Config.getConfig.mmu
   val MMU_IO_OFFSET = 7
   
   // CPU Info unit
@@ -204,13 +205,13 @@ object Constants {
   def STC_SSPILLR = "b1101".U(4.W)
 
   def SC_OP_BITS = 3
-  val sc_OP_NONE :: sc_OP_SET_ST :: sc_OP_SET_MT :: sc_OP_RES :: sc_OP_ENS :: sc_OP_FREE :: sc_OP_SPILL :: Nil = Enum(UInt(), 7)
+  val sc_OP_NONE :: sc_OP_SET_ST :: sc_OP_SET_MT :: sc_OP_RES :: sc_OP_ENS :: sc_OP_FREE :: sc_OP_SPILL :: Nil = Enum(7)
 
   def OPCODE_COP = "b01101".U(5.W)
   def COP_CUSTOM_BIT = "b0".U(1.W)
   def COP_READ_BIT = "b1".U(1.W)
   val COP_ID_WIDTH      = 3
-  val COP_COUNT         = util.Config.getConfig.coprocessorCount
+  val COP_COUNT         = Config.getConfig.coprocessorCount
   val COP_FUNCID_WIDTH  = 5
 
 }

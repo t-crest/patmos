@@ -7,7 +7,7 @@
 
 package patmos
 
-import Chisel._
+import chisel3._
 
 class MemoryManagementType extends Module {
   val io = IO(new MMUIO())

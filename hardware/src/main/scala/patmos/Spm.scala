@@ -17,7 +17,8 @@
 
 package patmos
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 
 import Constants._
 
@@ -29,7 +30,7 @@ class Spm(size: Int) extends Module {
   val addrUInt = log2Up(size / BYTES_PER_WORD)
 
   // respond and return (dummy) data
-  val cmdReg = Reg(next = io.M.Cmd)
+  val cmdReg = RegNext(next = io.M.Cmd)
   io.S.Resp := Mux(cmdReg === OcpCmd.WR || cmdReg === OcpCmd.RD,
                    OcpResp.DVA, OcpResp.NULL)
   io.S.Data := 0.U

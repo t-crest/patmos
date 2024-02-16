@@ -7,8 +7,8 @@
 
 package patmos
 
-import Chisel._
-import chisel3.VecInit
+import chisel3._
+import chisel3.util._
 
 import Constants._
 
@@ -34,8 +34,8 @@ class Exceptions extends Module {
     when (superMode) (action) .otherwise { io.ocp.S.Resp := OcpResp.ERR }
   }
 
-  val vec    = Mem(UInt(DATA_WIDTH.W), EXC_COUNT)
-  val vecDup = Mem(UInt(DATA_WIDTH.W), EXC_COUNT)
+  val vec    = Mem(EXC_COUNT, UInt(DATA_WIDTH.W))
+  val vecDup = Mem(EXC_COUNT, UInt(DATA_WIDTH.W))
 
   val sleepReg = RegInit(false.B)
 
@@ -117,7 +117,7 @@ class Exceptions extends Module {
     when(io.ena) {
       sourceReg := io.memexc.src
       // Shift status, enable super mode, disable interrupts
-      statusReg := (statusReg << 2.U) | 2.U
+      statusReg := (statusReg << 2.U).asUInt | 2.U
     }
   }
   // Return from exception

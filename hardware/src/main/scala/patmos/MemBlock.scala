@@ -8,9 +8,10 @@
 
 package patmos
 
-import Chisel._
-import chisel3.SyncReadMem
 import util.SRAM
+
+import chisel3._
+import chisel3.util._
 
 object MemBlock {
   def apply(size : Int, width : Int) = {
@@ -49,7 +50,7 @@ class MemBlockIO(size : Int, width : Int) extends Bundle {
 }
 
 class MemBlock(size : Int, width : Int) extends Module {
-  val io = new MemBlockIO(size, width)
+  val io = IO(new MemBlockIO(size, width))
 
   // switch between chisel SyncReadMem and SRAM using a verilog model
   val useSimSRAM = false
@@ -63,14 +64,14 @@ class MemBlock(size : Int, width : Int) extends Module {
     mem.io.rdAddr := io.rdAddr
     mem.io.wrAddr := io.wrAddr
     mem.io.wrData := io.wrData
-    mem.io.wrEna := io.wrEna.asBool()
+    mem.io.wrEna := io.wrEna.asBool
     memData := mem.io.rdData
 
   } else {
 
     val mem = SyncReadMem(size, UInt(width.W))
     // write
-    when(io.wrEna === 1.U) {
+    when(io.wrEna.asBool) {
       mem.write(io.wrAddr, io.wrData)
     }
     // read
