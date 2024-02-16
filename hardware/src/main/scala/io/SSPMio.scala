@@ -26,15 +26,15 @@ object SSPMio extends DeviceObject {
   trait Pins extends patmos.HasPins {
     override val pins = new Bundle() {
       val M = new Bundle() {
-        val Cmd    = UInt(OUTPUT,3)
-        val Addr   = UInt(OUTPUT,extAddrWidth)
-        val Data   = UInt(OUTPUT,dataWidth)
-        val ByteEn = UInt(OUTPUT,4)
+        val Cmd    = Output(UInt(3.W))
+        val Addr   = Output(UInt(extAddrWidth.W))
+        val Data   = Output(UInt(dataWidth.W))
+        val ByteEn = Output(UInt(4.W))
       }
 
       val S = new Bundle() {
-        val Data   = UInt(INPUT,dataWidth)
-        val Resp = UInt(INPUT, 2)
+        val Data   = Input(UInt(dataWidth.W))
+        val Resp = Input(UInt(2.W))
       }
     }
   }

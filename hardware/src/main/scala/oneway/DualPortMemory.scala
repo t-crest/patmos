@@ -9,17 +9,17 @@ package oneway
 import Chisel._
 
 class Port(size: Int) extends Bundle {
-  val addr = Input(UInt(width = log2Up(size)))
-  val wrData = Input(UInt(width = 32))
-  val rdData = Output(UInt(width = 32))
+  val addr = Input(UInt(log2Up(size).W))
+  val wrData = Input(UInt(32.W))
+  val rdData = Output(UInt(32.W))
   val wren = Input(Bool())
 }
 
 class DualPort(size: Int) extends Bundle {
-  val rdAddr = Input(UInt(width = log2Up(size)))
-  val wrAddr = Input(UInt(width = log2Up(size)))
-  val wrData = Input(UInt(width = 32))
-  val rdData = Output(UInt(width = 32))
+  val rdAddr = Input(UInt(log2Up(size).W))
+  val wrAddr = Input(UInt(log2Up(size).W))
+  val wrData = Input(UInt(32.W))
+  val rdData = Output(UInt(32.W))
   val wrEna = Input(Bool())
 }
 
@@ -28,7 +28,7 @@ class DualPortMemory(size: Int) extends Module {
     val port = new DualPort(size)
   })
 
-  val mem = Mem(UInt(width = 32), size)
+  val mem = Mem(UInt(32.W), size)
 
   io.port.rdData := mem(Reg(next = io.port.rdAddr))
   when(io.port.wrEna) {
@@ -46,7 +46,7 @@ class TrueDualPortMemory(size: Int) extends Module {
     val portB = new Port(size)
   })
 
-  val mem = Mem(UInt(width = 32), size)
+  val mem = Mem(UInt(32.W), size)
 
   val regAddrA = Reg(io.portA.addr)
   when(io.portA.wren) {

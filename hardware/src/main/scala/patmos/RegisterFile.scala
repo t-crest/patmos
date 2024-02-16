@@ -15,7 +15,7 @@ class RegisterFile() extends Module {
   val io = IO(new RegFileIO())
 
   // Using Mem (instead of Vec) leads to smaller HW for single-issue config
-  val rf = Mem(UInt(width = DATA_WIDTH), REG_COUNT)
+  val rf = Mem(UInt(DATA_WIDTH.W), REG_COUNT)
 
   // We are registering the inputs here, similar as it would
   // be with an on-chip memory for the register file
@@ -41,8 +41,8 @@ class RegisterFile() extends Module {
         io.rfRead.rsData(i) := wrReg(k).data
       }
     }
-    when(addrReg(i) === UInt(0)) {
-      io.rfRead.rsData(i) := UInt(0)
+    when(addrReg(i) === 0.U) {
+      io.rfRead.rsData(i) := 0.U
     }
   }
 
@@ -55,9 +55,9 @@ class RegisterFile() extends Module {
   }
 
   // Signal for debugging register values - Chisel3: wierdly gave errors in chisel3 as it was used for debugging it has been commented out
-  /*val rfDebug = Vec(REG_COUNT, Reg(UInt(width = DATA_WIDTH)))
+  /*val rfDebug = Vec(REG_COUNT, Reg(UInt(DATA_WIDTH.W)))
   for(i <- 0 until REG_COUNT) {
-    rfDebug(i) := rf(UInt(i))
+    rfDebug(i) := rf(i.U)
     // Keep signal alive
     //if(Driver.isVCD){
     //debug(rfDebug(i)) does nothing in chisel3 (no proning in frontend of chisel3 anyway)

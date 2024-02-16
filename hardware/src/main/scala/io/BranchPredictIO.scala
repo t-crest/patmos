@@ -58,21 +58,21 @@ object BranchPredictIO extends DeviceObject {
 
 class BranchPredictIO() extends CoreDevice() {
 
-  val freeRunningReg = Reg(init = UInt(0, 32))
-  val downCountReg = Reg(init = UInt(0, 32))
+  val freeRunningReg = Reg(init = 0.U(32.W))
+  val downCountReg = Reg(init = 0.U(32.W))
   
-  freeRunningReg := freeRunningReg + UInt(1)
-  val downDone = downCountReg === UInt(0)
+  freeRunningReg := freeRunningReg + 1.U
+  val downDone = downCountReg === 0.U
   
   when (!downDone) {
-    downCountReg := downCountReg - UInt(1)
+    downCountReg := downCountReg - 1.U
   }
   when (io.ocp.M.Cmd === OcpCmd.WR) {
     downCountReg := io.ocp.M.Data 
   }
   
   val timeOver = downDone
-  val stallReg = Reg(init = Bool(false))
+  val stallReg = Reg(init = false.B)
   
   // read data shall be in a register as used in the
   // following clock cycle
@@ -85,13 +85,13 @@ class BranchPredictIO() extends CoreDevice() {
   }
   // Remember that we are stalling now
   when ((io.ocp.M.Cmd === OcpCmd.RD && !timeOver)) {
-    stallReg := Bool(true)
+    stallReg := true.B
   }
   
   // release stall when timeout is done
   when (stallReg && timeOver) {
     respReg := OcpResp.DVA
-    stallReg := Bool(false)
+    stallReg := false.B
   }
   
   io.ocp.S.Data := downCountReg  

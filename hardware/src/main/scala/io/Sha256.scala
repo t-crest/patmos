@@ -37,74 +37,74 @@ class Sha256() extends CoreDevice() {
   val MSG_WORD_COUNT = 16
 
   val hashDefaults = Vec(Seq(
-    UInt("h6a09e667", width = DATA_WIDTH), UInt("hbb67ae85"),
-    UInt("h3c6ef372"), UInt("ha54ff53a"),
-    UInt("h510e527f"), UInt("h9b05688c"),
-    UInt("h1f83d9ab"), UInt("h5be0cd19")
+    "h6a09e667".U(DATA_WIDTH.W), "hbb67ae85".U,
+    "h3c6ef372".U, "ha54ff53a".U,
+    "h510e527f".U, "h9b05688c".U,
+    "h1f83d9ab".U, "h5be0cd19".U
   ))
 
   val roundConsts = Vec(Seq(
-    UInt("h428a2f98", width = DATA_WIDTH), UInt("h71374491"),
-    UInt("hb5c0fbcf"), UInt("he9b5dba5"),
-    UInt("h3956c25b"), UInt("h59f111f1"),
-    UInt("h923f82a4"), UInt("hab1c5ed5"),
-    UInt("hd807aa98"), UInt("h12835b01"),
-    UInt("h243185be"), UInt("h550c7dc3"),
-    UInt("h72be5d74"), UInt("h80deb1fe"),
-    UInt("h9bdc06a7"), UInt("hc19bf174"),
-    UInt("he49b69c1"), UInt("hefbe4786"),
-    UInt("h0fc19dc6"), UInt("h240ca1cc"),
-    UInt("h2de92c6f"), UInt("h4a7484aa"),
-    UInt("h5cb0a9dc"), UInt("h76f988da"),
-    UInt("h983e5152"), UInt("ha831c66d"),
-    UInt("hb00327c8"), UInt("hbf597fc7"),
-    UInt("hc6e00bf3"), UInt("hd5a79147"),
-    UInt("h06ca6351"), UInt("h14292967"),
-    UInt("h27b70a85"), UInt("h2e1b2138"),
-    UInt("h4d2c6dfc"), UInt("h53380d13"),
-    UInt("h650a7354"), UInt("h766a0abb"),
-    UInt("h81c2c92e"), UInt("h92722c85"),
-    UInt("ha2bfe8a1"), UInt("ha81a664b"),
-    UInt("hc24b8b70"), UInt("hc76c51a3"),
-    UInt("hd192e819"), UInt("hd6990624"),
-    UInt("hf40e3585"), UInt("h106aa070"),
-    UInt("h19a4c116"), UInt("h1e376c08"),
-    UInt("h2748774c"), UInt("h34b0bcb5"),
-    UInt("h391c0cb3"), UInt("h4ed8aa4a"),
-    UInt("h5b9cca4f"), UInt("h682e6ff3"),
-    UInt("h748f82ee"), UInt("h78a5636f"),
-    UInt("h84c87814"), UInt("h8cc70208"),
-    UInt("h90befffa"), UInt("ha4506ceb"),
-    UInt("hbef9a3f7"), UInt("hc67178f2")
+    "h428a2f98".U(DATA_WIDTH.W), "h71374491".U,
+    "hb5c0fbcf".U, "he9b5dba5".U,
+    "h3956c25b".U, "h59f111f1".U,
+    "h923f82a4".U, "hab1c5ed5".U,
+    "hd807aa98".U, "h12835b01".U,
+    "h243185be".U, "h550c7dc3".U,
+    "h72be5d74".U, "h80deb1fe".U,
+    "h9bdc06a7".U, "hc19bf174".U,
+    "he49b69c1".U, "hefbe4786".U,
+    "h0fc19dc6".U, "h240ca1cc".U,
+    "h2de92c6f".U, "h4a7484aa".U,
+    "h5cb0a9dc".U, "h76f988da".U,
+    "h983e5152".U, "ha831c66d".U,
+    "hb00327c8".U, "hbf597fc7".U,
+    "hc6e00bf3".U, "hd5a79147".U,
+    "h06ca6351".U, "h14292967".U,
+    "h27b70a85".U, "h2e1b2138".U,
+    "h4d2c6dfc".U, "h53380d13".U,
+    "h650a7354".U, "h766a0abb".U,
+    "h81c2c92e".U, "h92722c85".U,
+    "ha2bfe8a1".U, "ha81a664b".U,
+    "hc24b8b70".U, "hc76c51a3".U,
+    "hd192e819".U, "hd6990624".U,
+    "hf40e3585".U, "h106aa070".U,
+    "h19a4c116".U, "h1e376c08".U,
+    "h2748774c".U, "h34b0bcb5".U,
+    "h391c0cb3".U, "h4ed8aa4a".U,
+    "h5b9cca4f".U, "h682e6ff3".U,
+    "h748f82ee".U, "h78a5636f".U,
+    "h84c87814".U, "h8cc70208".U,
+    "h90befffa".U, "ha4506ceb".U,
+    "hbef9a3f7".U, "hc67178f2".U
   ))
 
   // The hash value
   val hash = Reg(Vec(HASH_WORD_COUNT, UInt(DATA_WIDTH.W)))
 
   // Temporary registers
-  val a = Reg(UInt(width = DATA_WIDTH))
-  val b = Reg(UInt(width = DATA_WIDTH))
-  val c = Reg(UInt(width = DATA_WIDTH))
-  val d = Reg(UInt(width = DATA_WIDTH))
-  val e = Reg(UInt(width = DATA_WIDTH))
-  val f = Reg(UInt(width = DATA_WIDTH))
-  val g = Reg(UInt(width = DATA_WIDTH))
-  val h = Reg(UInt(width = DATA_WIDTH))
+  val a = Reg(UInt(DATA_WIDTH.W))
+  val b = Reg(UInt(DATA_WIDTH.W))
+  val c = Reg(UInt(DATA_WIDTH.W))
+  val d = Reg(UInt(DATA_WIDTH.W))
+  val e = Reg(UInt(DATA_WIDTH.W))
+  val f = Reg(UInt(DATA_WIDTH.W))
+  val g = Reg(UInt(DATA_WIDTH.W))
+  val h = Reg(UInt(DATA_WIDTH.W))
 
   // Index
-  val idxReg = Reg(init = UInt(0, width = log2Up(ROUND_COUNT)+1))
+  val idxReg = Reg(init = 0.U((log2Up(ROUND_COUNT)+1).W))
   idxReg := io.ocp.M.Addr(log2Up(MSG_WORD_COUNT)+1, 2)
 
   // Message memory
-  val msg = Mem(UInt(width = DATA_WIDTH), MSG_WORD_COUNT)
+  val msg = Mem(UInt(DATA_WIDTH.W), MSG_WORD_COUNT)
 
   // Read data from message memory
   val msgRdData = msg(idxReg(log2Up(MSG_WORD_COUNT)-1, 0))
 
   // Helper signal for byte enables
-  val comb = Wire(Vec(masterReg.ByteEn.getWidth, UInt(width = 8)))
+  val comb = Wire(Vec(masterReg.ByteEn.getWidth, UInt(8.W)))
   for (i <- 0 until masterReg.ByteEn.getWidth) {
-    comb(i) := UInt(0)
+    comb(i) := 0.U
   }
 
   // States
@@ -116,10 +116,10 @@ class Sha256() extends CoreDevice() {
     data(amt-1, 0) ## data(DATA_WIDTH-1, amt)
   }
   def s0(data : UInt) = {
-    rotateRight(data, 7) ^ rotateRight(data, 18) ^ (data.asUInt >> UInt(3))
+    rotateRight(data, 7) ^ rotateRight(data, 18) ^ (data.asUInt >> 3.U)
   }
   def s1(data : UInt) = {
-    rotateRight(data, 17) ^ rotateRight(data, 19) ^ (data.asUInt >> UInt(10))
+    rotateRight(data, 17) ^ rotateRight(data, 19) ^ (data.asUInt >> 10.U)
   }
   def e0(data : UInt) = {
     rotateRight(data, 2) ^ rotateRight(data, 13) ^ rotateRight(data, 22)
@@ -153,7 +153,7 @@ class Sha256() extends CoreDevice() {
   wx := wt(12) + s0(wt(11))
   wy := wx + wt(4)
   wz := wy + s1(wt(0))
-  w0 := Mux(idxReg < UInt(MSG_WORD_COUNT), msgRdData, wz)
+  w0 := Mux(idxReg < MSG_WORD_COUNT.U, msgRdData, wz)
   wt(0) := w0
 
   // Compression
@@ -180,15 +180,15 @@ class Sha256() extends CoreDevice() {
     f := hash(5)
     g := hash(6)
     h := hash(7)
-    idxReg := idxReg + UInt(1)
+    idxReg := idxReg + 1.U
 
     stateReg := compress
   }
 
   // Compression loop
   when (stateReg === compress) {
-    idxReg := idxReg + UInt(1)
-    when (idxReg < UInt(ROUND_COUNT)) {
+    idxReg := idxReg + 1.U
+    when (idxReg < ROUND_COUNT.U) {
       stateReg := compress
     }
     .otherwise {
@@ -212,20 +212,20 @@ class Sha256() extends CoreDevice() {
 
   // Default OCP response
   io.ocp.S.Resp := OcpResp.NULL
-  io.ocp.S.Data := UInt(0, width = DATA_WIDTH)
+  io.ocp.S.Data := 0.U(DATA_WIDTH.W)
 
   // Handle OCP reads
   when (masterReg.Cmd === OcpCmd.RD) {
     io.ocp.S.Resp := OcpResp.DVA
     // Read state
-    when (masterReg.Addr(7, 2) === UInt("b000000")) {
-      io.ocp.S.Data := Cat(UInt(0, width = DATA_WIDTH-1), stateReg =/= idle)
+    when (masterReg.Addr(7, 2) === "b000000".U) {
+      io.ocp.S.Data := Cat(0.U((DATA_WIDTH-1).W), stateReg =/= idle)
     }
     // Read hash value
-    when (masterReg.Addr(7, 5) === UInt("b010")) {
+    when (masterReg.Addr(7, 5) === "b010".U) {
       io.ocp.S.Data := Mux(stateReg === idle,
                            hash(masterReg.Addr(log2Up(HASH_WORD_COUNT)+1, 2)),
-                           UInt(0))
+                           0.U)
     }
   }
 
@@ -233,23 +233,23 @@ class Sha256() extends CoreDevice() {
   when (masterReg.Cmd === OcpCmd.WR) {
     io.ocp.S.Resp := OcpResp.DVA
     when (stateReg === idle) {      
-      when (masterReg.Addr(7, 2) === UInt("b000000")) {
-        when(masterReg.Data(0) === UInt(0)){ // Reset seed
+      when (masterReg.Addr(7, 2) === "b000000".U) {
+        when(masterReg.Data(0) === 0.U){ // Reset seed
           stateReg := restart
-        }.elsewhen(masterReg.Data(0) === UInt(1)){// Start computation
-          idxReg := UInt(0)
+        }.elsewhen(masterReg.Data(0) === 1.U){// Start computation
+          idxReg := 0.U
           stateReg := start
         }
       }
       // Write seed value
-      when (masterReg.Addr(7, 5) === UInt("b010")) {
+      when (masterReg.Addr(7, 5) === "b010".U) {
         hash(masterReg.Addr(log2Up(HASH_WORD_COUNT)+1, 2)) := masterReg.Data
       }
       // Write data
-      when (masterReg.Addr(7, 6) === UInt("b10")) {
+      when (masterReg.Addr(7, 6) === "b10".U) {
         // Fill in data according to byte enables
         for (i <- 0 until masterReg.ByteEn.getWidth) {
-          comb(i) := Mux(masterReg.ByteEn(i) === UInt(1),
+          comb(i) := Mux(masterReg.ByteEn(i) === 1.U,
                          masterReg.Data(8*i+7, 8*i),
                          msgRdData(8*i+7, 8*i))
         }

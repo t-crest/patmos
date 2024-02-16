@@ -9,8 +9,8 @@ import patmos.Constants._
  class RTC(clockFreq: Int = CLOCK_FREQ, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTime: BigInt, ppsDuration: Int = 10) extends Module {
    val io = new Bundle() {
      val ocp = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
-     val ptpTimestamp = UInt(OUTPUT, width = secondsWidth + nanoWidth)
-     val pps = Bool(OUTPUT)
+     val ptpTimestamp = Output(UInt((secondsWidth + nanoWidth).W))
+     val pps = Output(Bool())
    }
 
    // Constants
@@ -155,9 +155,9 @@ import patmos.Constants._
 //class RTC(clockFreq: Int = CLOCK_FREQ, secondsWidth: Int = 32, nanoWidth: Int = 32, initialTime: BigInt, ppsDuration: Int = 10) extends Module {
 //  override val io = new Bundle() {
 //    val ocp = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
-//    val ptpTimestamp = UInt(OUTPUT, width = secondsWidth + nanoWidth)
-//    val periodIntr = Bool(OUTPUT)
-//    val pps = Bool(OUTPUT)
+//    val ptpTimestamp = Output(UInt((secondsWidth + nanoWidth).W))
+//    val periodIntr = Output(Bool())
+//    val pps = Output(Bool())
 //  }
 //
 //  // Constants
@@ -176,17 +176,17 @@ import patmos.Constants._
 //  val masterReg = Reg(next = io.ocp.M)
 //
 //  // Registers
-//  val prescaleReg = Reg(init = UInt(0, width = PRESCALER_WIDTH))
+//  val prescaleReg = Reg(init = 0.U(PRESCALER_WIDTH.W))
 //  val correctionStepReg = Reg(init = SInt(0, width = nanoWidth+1))
 //  val nsOffsetReg = Reg(init = SInt(0, width = nanoWidth+1))
-//  val timeReg = Reg(init = UInt(0, width = secondsWidth + nanoWidth))
-//  val secTickReg = Reg(init = UInt(initialTime, width = secondsWidth))
-//  val nsTickReg = Reg(init = UInt(0, width = nanoWidth))
+//  val timeReg = Reg(init = 0.U((secondsWidth + nanoWidth).W))
+//  val secTickReg = Reg(init = initialTime.U((secondsWidth).W))
+//  val nsTickReg = Reg(init = 0.U(nanoWidth.W))
 //  val updateSecReg = Reg(init = false.B)
 //  val updateNsReg = Reg(init = false.B)
-//  val periodSelReg = Reg(init = UInt(secondsWidth + nanoWidth - 1, width = log2Up(secondsWidth + nanoWidth)))
+//  val periodSelReg = Reg(init = (secondsWidth + nanoWidth - 1).U(log2Up(secondsWidth + nanoWidth).W))
 //  val ppsReg = Reg(init = false.B)
-//  val ppsHoldCountReg = Reg(init = UInt(PPS_DURATION, width = log2Up(PPS_DURATION)))
+//  val ppsHoldCountReg = Reg(init = PPS_DURATION.U(log2Up(PPS_DURATION).W))
 //
 //  // Default response
 //  val respReg = Reg(init = OcpResp.NULL)

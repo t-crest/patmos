@@ -14,10 +14,10 @@ import scala.collection.mutable
 
 class AsyncMutexIO extends Bundle
 {
-  val req1 = Bool(INPUT)
-  val req2 = Bool(INPUT)
-  val gnt1 = Bool(OUTPUT)
-  val gnt2 = Bool(OUTPUT)
+  val req1 = Input(Bool())
+  val req2 = Input(Bool())
+  val gnt1 = Output(Bool())
+  val gnt2 = Output(Bool())
 
   override def clone = new AsyncMutexIO().asInstanceOf[this.type]
 }
@@ -119,34 +119,34 @@ class AsyncLock(corecnt: Int, lckcnt: Int, fair: Boolean = false) extends Module
     val blck = acks.orR
 
     for (j <- 0 until lckcnt) {
-      val reqReg = Reg(init = Bool(false))
+      val reqReg = Reg(init = false.B)
       arbiterio(j).cores(i).req := reqReg
       val ackReg = Reg(next = Reg(next = arbiterio(j).cores(i).ack))
       acks(j) := ackReg =/= reqReg
 
       when(addr === j.U) {
         when(io.cores(i).M.Cmd === OcpCmd.RD) {
-          reqReg := Bool(true)
+          reqReg := true.B
         }.elsewhen(io.cores(i).M.Cmd === OcpCmd.WR) {
-          reqReg := Bool(false)
+          reqReg := false.B
         }
       }
     }
 
-    val dvaReg = Reg(init = Bool(false))
+    val dvaReg = Reg(init = false.B)
 
     when(io.cores(i).M.Cmd =/= OcpCmd.IDLE) {
-      dvaReg := Bool(true)
-    }.elsewhen(dvaReg === Bool(true) && !blck) {
-      dvaReg := Bool(false)
+      dvaReg := true.B
+    }.elsewhen(dvaReg === true.B && !blck) {
+      dvaReg := false.B
     }
 
     io.cores(i).S.Resp := OcpResp.NULL
-    when(dvaReg === Bool(true) && !blck) {
+    when(dvaReg === true.B && !blck) {
       io.cores(i).S.Resp := OcpResp.DVA
     }
 
     // Perhaps remove this
-    io.cores(i).S.Data := UInt(0)
+    io.cores(i).S.Data := 0.U
   }
 }

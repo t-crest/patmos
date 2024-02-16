@@ -51,16 +51,16 @@ import ocp._
 
 class NullStackCache() extends StackCacheType {
 
-  io.perf.spill := Bool(false)
-  io.perf.fill := Bool(false)
+  io.perf.spill := false.B
+  io.perf.fill := false.B
 
   // stack top pointer
-  val stackTopReg = Reg(UInt(width = DATA_WIDTH))
+  val stackTopReg = Reg(UInt(DATA_WIDTH.W))
   // memory top pointer
-  val memTopReg = Reg(UInt(width = DATA_WIDTH))
+  val memTopReg = Reg(UInt(DATA_WIDTH.W))
 
   // never stall
-  io.stall := Bool(false)
+  io.stall := false.B
 
   // signals to execute stage
   io.scex.stackTop := stackTopReg

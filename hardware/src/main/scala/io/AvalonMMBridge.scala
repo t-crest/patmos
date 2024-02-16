@@ -34,15 +34,15 @@ class AvalonMMBridge(extAddrWidth : Int = 32,
   override val io = new CoreDeviceIO() with patmos.HasPins with patmos.HasInterrupts {
     override val pins = new Bundle() {
       val avs_waitrequest = Bits(INPUT,1)
-      val avs_readdata = UInt(INPUT,dataWidth)
+      val avs_readdata = Input(UInt(dataWidth.W))
       val avs_readdatavalid = Bits(INPUT,1)
       val avs_burstcount = Bits(OUTPUT,1)
-      val avs_writedata = UInt(OUTPUT,dataWidth)
-      val avs_address = UInt(OUTPUT,extAddrWidth)
-      val avs_write = Bool(OUTPUT)
-      val avs_read = Bool(OUTPUT)
+      val avs_writedata = Output(UInt(dataWidth.W))
+      val avs_address = Output(UInt(extAddrWidth.W))
+      val avs_write = Output(Bool())
+      val avs_read = Output(Bool())
       val avs_byteenable = Bits(OUTPUT, dataWidth/8)
-      val avs_debugaccess = Bool(OUTPUT)
+      val avs_debugaccess = Output(Bool())
       val avs_intr = Bits(INPUT,numIntrs)
     }
     override val interrupts = Output(VecInit(Seq.fill(numIntrs)(Bool()))) // why is there a VecInit? a Vec would just be fine (MS)
@@ -75,8 +75,8 @@ class AvalonMMBridge(extAddrWidth : Int = 32,
   //val respReg = Reg(init = OcpResp.NULL)
   //val dataReg = Reg(init = Bits(0, dataWidth))
 
-  val ReadWriteActive = Bool(true)
-  val ReadWriteInactive = Bool(false)
+  val ReadWriteActive = true.B
+  val ReadWriteInactive = false.B
   // Default values in case of ILDE command
   //respReg := OcpResp.NULL
   //dataReg := Bits(0)

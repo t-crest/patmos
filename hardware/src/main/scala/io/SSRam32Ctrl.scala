@@ -67,8 +67,8 @@ class SSRam32Ctrl (
 
   val idle :: rd1 :: wr1 :: Nil = Enum(UInt(), 3)
   val ssramState = Reg(init = idle)
-  val waitState = Reg(UInt(width = 4))
-  val burstCnt = Reg(UInt(width = log2Up(burstLen)))
+  val waitState = Reg(UInt(4.W))
+  val burstCnt = Reg(UInt(log2Up(burstLen).W))
   val rdDataEna = Reg(Bits(width = 1))
   val rdData = Reg(Bits(width = 32))
   val resp = Reg(Bits(width = 2))
@@ -93,7 +93,7 @@ class SSRam32Ctrl (
   nadv := Bits(1)
   resp := OcpResp.NULL
   ramDout := io.ocp.M.Data
-  burstCnt := UInt(0)
+  burstCnt := 0.U
   dataAccept := Bits(0)
   cmdAccept := Bits(1)
 
@@ -113,12 +113,12 @@ class SSRam32Ctrl (
     noe := Bits(0)
     nadv := Bits(0)
     cmdAccept := Bits(0)
-    when (waitState <= UInt(1)) {
+    when (waitState <= 1.U) {
       rdDataEna := Bits(1)
-      burstCnt := burstCnt + UInt(1)
+      burstCnt := burstCnt + 1.U
       resp := OcpResp.DVA
-      when (burstCnt === UInt(burstLen-1)) {
-        burstCnt := UInt(0)
+      when (burstCnt === (burstLen-1).U) {
+        burstCnt := 0.U
         nadv := Bits(1)
         noe := Bits(1)
         cmdAccept := Bits(1)
@@ -128,16 +128,16 @@ class SSRam32Ctrl (
   }
   when (ssramState === wr1) {
     cmdAccept := Bits(0)
-    when (waitState <= UInt(1)) {
-      when (burstCnt === UInt(burstLen-1)) {
-        burstCnt := UInt(0)
+    when (waitState <= 1.U) {
+      when (burstCnt === (burstLen-1).U) {
+        burstCnt := 0.U
         resp := OcpResp.DVA
         cmdAccept := Bits(1)
         ssramState := idle
       }
       when (io.ocp.M.DataValid === Bits(1)) {
         dataAccept := Bits(1)
-        burstCnt := burstCnt + UInt(1)
+        burstCnt := burstCnt + 1.U
         nadsc := Bits(0)
         nbwe := Bits(0)
         nbw := ~(io.ocp.M.DataByteEn)
@@ -161,15 +161,15 @@ class SSRam32Ctrl (
   }
 
   //counter till output is ready
-  when (waitState =/= UInt(0)) {
-    waitState := waitState - UInt(1)
+  when (waitState =/= 0.U) {
+    waitState := waitState - 1.U
   }
   //set wait state after incoming request
   when (io.ocp.M.Cmd === OcpCmd.RD) {
-    waitState := UInt(ramWsRd + 1)
+    waitState := (ramWsRd + 1).U
   }
   when (io.ocp.M.Cmd === OcpCmd.WR) {
-    waitState := UInt(ramWsWr + 1)
+    waitState := (ramWsWr + 1).U
   }
 
   io.pins.ramOut.dout := io.ocp.M.Data

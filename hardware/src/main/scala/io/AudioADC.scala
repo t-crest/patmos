@@ -17,22 +17,22 @@ class AudioADC(AUDIOBITLENGTH: Int, FSDIV: Int) extends Module
   val io = new Bundle
   {
     //to/from AudioADCBuffer
-    val audioLO = UInt(OUTPUT, AUDIOBITLENGTH)
-    val audioRO = UInt(OUTPUT, AUDIOBITLENGTH)
-    val enAdcI = Bool(dir = INPUT) //enable signal
-    val readEnAdcO = UInt(OUTPUT, 1) // used for sync
+    val audioLO = Output(UInt(AUDIOBITLENGTH.W))
+    val audioRO = Output(UInt(AUDIOBITLENGTH.W))
+    val enAdcI = Input(Bool()) //enable signal
+    val readEnAdcO = Output(UInt(1.W)) // used for sync
     //from AudioClkGen
-    val bclkI = UInt(INPUT, 1)
+    val bclkI = Input(UInt(1.W))
     //to/from WM8731
-    val adcLrcO = UInt(OUTPUT, 1)
-    val adcDatI = UInt(INPUT, 1)
+    val adcLrcO = Output(UInt(1.W))
+    val adcDatI = Input(UInt(1.W))
   }
 
   //Counter for audio sampling
-  val FSCYCLES = UInt(FSDIV-1);
-  val fsCntReg = Reg(init = UInt(0, 9)) //counter register for Fs
+  val FSCYCLES = (FSDIV-1).U;
+  val fsCntReg = Reg(init = 0.U(9.W)) //counter register for Fs
 
-  val audioCntReg = Reg(init = UInt(0, 5)) //counter register for Audio bits: max 32 bits: 5 bit counter
+  val audioCntReg = Reg(init = 0.U(5.W)) //counter register for Audio bits: max 32 bits: 5 bit counter
 
   //states
   val sIdle :: sStart1 :: sStart2 :: sLeft :: sRight :: Nil = Enum(UInt(), 5)
@@ -40,100 +40,100 @@ class AudioADC(AUDIOBITLENGTH: Int, FSDIV: Int) extends Module
   val state = Reg(init = sIdle)
 
   //Registers for outputs:
-  val adcLrcReg = Reg(init = UInt(0, 1))
+  val adcLrcReg = Reg(init = 0.U(1.W))
 
   // register for read enable signal to buffer
-  val readEnAdcReg = Reg(init = UInt(0, 1)) // starts with read disabled
+  val readEnAdcReg = Reg(init = 0.U(1.W)) // starts with read disabled
   io.readEnAdcO := readEnAdcReg
 
   //assign to inputs/uputs
   io.adcLrcO 	:= adcLrcReg
 
   //register for bclkI
-  val bclkReg = Reg(init = UInt(0, 1))
+  val bclkReg = Reg(init = 0.U(1.W))
   bclkReg := io.bclkI
 
   //registers for audio data
   val audioLReg = RegInit(Vec(Seq.fill(AUDIOBITLENGTH)(0.U(1.W))))
   val audioRReg = RegInit(Vec(Seq.fill(AUDIOBITLENGTH)(0.U(1.W))))
-  val audioLRegO = Reg(init = UInt(0, AUDIOBITLENGTH))
-  val audioRRegO = Reg(init = UInt(0, AUDIOBITLENGTH))
+  val audioLRegO = Reg(init = 0.U(AUDIOBITLENGTH.W))
+  val audioRRegO = Reg(init = 0.U(AUDIOBITLENGTH.W))
   //connect registers to ouputs when conversion is not busy
   io.audioLO := audioLRegO
   io.audioRO := audioRRegO
-  when(readEnAdcReg === UInt(1)) {
+  when(readEnAdcReg === 1.U) {
     audioLRegO := Cat(audioLReg.reverse)
     audioRRegO := Cat(audioRReg.reverse)
   }
 
   //conversion when enabled
-  when (io.enAdcI === UInt(1)) {
+  when (io.enAdcI === 1.U) {
 
     //state machine: on falling edge of BCLK for idle, start and wait
-    when( (io.bclkI =/= bclkReg) && (io.bclkI === UInt(0)) ) {
+    when( (io.bclkI =/= bclkReg) && (io.bclkI === 0.U) ) {
 
       //counter for audio sampling
-      fsCntReg := fsCntReg + UInt(1)
+      fsCntReg := fsCntReg + 1.U
       when(fsCntReg === FSCYCLES) {
-	      fsCntReg := UInt(0) //reset to 0
+	      fsCntReg := 0.U //reset to 0
       }
       //FSM for audio conversion
       switch (state) {
         is (sIdle)
         {
-	        adcLrcReg := UInt(0)
-          when (fsCntReg === UInt(0)) {
-            readEnAdcReg := UInt(0) // to avoid initial readEn pulse
+	        adcLrcReg := 0.U
+          when (fsCntReg === 0.U) {
+            readEnAdcReg := 0.U // to avoid initial readEn pulse
 	          state := sStart1
           }
           .otherwise {
-            readEnAdcReg := UInt(1)
+            readEnAdcReg := 1.U
           }
 	      }
 	      is (sStart1)
 	      {
-	        adcLrcReg := UInt(1)
-          readEnAdcReg := UInt(0)
+	        adcLrcReg := 1.U
+          readEnAdcReg := 0.U
 	        state := sStart2 //directly jump to next state
 	      }
 	      is (sStart2)
 	      {
-          readEnAdcReg := UInt(0)
-	        adcLrcReg := UInt(0) //lrclk low already
+          readEnAdcReg := 0.U
+	        adcLrcReg := 0.U //lrclk low already
 	        state := sLeft //directly jump to next state
 	      }
       }
     }
 
     //state machine: on raising edge of BCLK for left and right
-    .elsewhen( (io.bclkI =/= bclkReg) && (io.bclkI === UInt(1)) ) {
+    .elsewhen( (io.bclkI =/= bclkReg) && (io.bclkI === 1.U) ) {
       //FSM for audio conversion
       switch (state) {
 	      is (sLeft)
 	      {
-          readEnAdcReg := UInt(0)
-	        audioLReg(UInt(AUDIOBITLENGTH) - audioCntReg - UInt(1)) := io.adcDatI
-	        when (audioCntReg < UInt(AUDIOBITLENGTH-1))
+          readEnAdcReg := 0.U
+	        audioLReg(AUDIOBITLENGTH.U - audioCntReg - 1.U) := io.adcDatI
+	        when (audioCntReg < (AUDIOBITLENGTH-1).U)
 	        {
-	          audioCntReg := audioCntReg + UInt(1)
+	          audioCntReg := audioCntReg + 1.U
 	        }
 	          .otherwise //bit AUDIOBITLENGTH-1
 	        {
-	          audioCntReg := UInt(0) //restart counter
+	          audioCntReg := 0.U //restart counter
 	          state := sRight
 	        }
 	      }
 	      is (sRight)
 	      {
-          readEnAdcReg := UInt(0)
-	        audioRReg(UInt(AUDIOBITLENGTH) - audioCntReg - UInt(1)) := io.adcDatI
-	        when (audioCntReg < UInt(AUDIOBITLENGTH-1))
+          readEnAdcReg := 0.U
+	        audioRReg(AUDIOBITLENGTH.U - audioCntReg - 1.U) := io.adcDatI
+	        when (audioCntReg < (AUDIOBITLENGTH-1).U)
 	        {
-	          audioCntReg := audioCntReg + UInt(1)
+	          audioCntReg := audioCntReg + 1.U
 	        }
 	          .otherwise //bit AUDIOBITLENGTH-1
 	        {
-	          audioCntReg := UInt(0) //restart counter
+	          audioCntReg := 0.U //restart counter
 	          state := sIdle
 	        }
 	      }
@@ -142,9 +142,9 @@ class AudioADC(AUDIOBITLENGTH: Int, FSDIV: Int) extends Module
   }
     .otherwise {//when not enable
     state := sIdle
-    fsCntReg := UInt(0)
-    audioCntReg := UInt(0)
-    readEnAdcReg := UInt(0)
-    adcLrcReg := UInt(0)
+    fsCntReg := 0.U
+    audioCntReg := 0.U
+    readEnAdcReg := 0.U
+    adcLrcReg := 0.U
   }
 }

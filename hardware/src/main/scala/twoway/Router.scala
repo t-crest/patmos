@@ -26,13 +26,13 @@ object Const {
 
 class SingleRwChannel(w: Int) extends Bundle {
   val rw = Bool() // 1: Write, 0 : read
-  val address = UInt(width = w)
-  val data = UInt(width = 32)
+  val address = UInt(w.W)
+  val data = UInt(32.W)
   val valid = Bool()
 }
 
 class SingleChannel extends Bundle {
-  val data = UInt(width = 32)
+  val data = UInt(32.W)
   val valid = Bool()
 }
  
@@ -54,27 +54,27 @@ class RouterPorts(w : Int) extends Bundle {
 class Router(schedule: Array[Array[Int]], validTab: Array[Boolean], inverted : Boolean, w : Int, timeshift: Int) extends Module {
   val io = new RouterPorts(w)
   val shift = if (inverted) timeshift else 0
-  val regCounter = RegInit(UInt(shift, log2Up(schedule.length)))
-  val end = regCounter === UInt(schedule.length - 1)
-  regCounter := Mux(end, UInt(0), regCounter + UInt(1))
+  val regCounter = RegInit(shift.U(log2Up(schedule.length).W))
+  val end = regCounter === (schedule.length - 1).U
+  regCounter := Mux(end, 0.U, regCounter + 1.U)
   
 
   // Convert schedule table to a Chisel type table
-  val sched = Vec(schedule.length, Vec(Const.NR_OF_PORTS, UInt(width = 3)))
+  val sched = Vec(schedule.length, Vec(Const.NR_OF_PORTS, UInt(3.W)))
   for (i <- 0 until schedule.length) {
     for (j <- 0 until Const.NR_OF_PORTS) {
-      sched(i)(j) := UInt(schedule(i)(j), 3)
+      sched(i)(j) := schedule(i)(j).U(3.W)
     }
   }
 
   // TDM schedule starts one cycles later for read data delay
-  val regDelay = RegNext(regCounter, init=UInt(0))
+  val regDelay = RegNext(regCounter, init=0.U)
   val currentSched = sched(regDelay)
 
 
   val setToZero = new RwChannel(w)
-  setToZero.in.valid := Bool(false)
-  setToZero.in.address := UInt(0)
+  setToZero.in.valid := false.B
+  setToZero.in.address := 0.U
   
   // We assume that on reset the valid signal is false.
   // Better have it reset. 

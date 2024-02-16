@@ -84,10 +84,10 @@ class QdrIIplusCtrl(ocpAddrWidth   : Int,
   val mAddrReg         = Reg(Bits(width = ramAddrWidth))
   val rdBufferReg      = Reg(Vec(TRANSPERCMD, Bits(width = ramDataWidth)))
   val wrBufferReg      = Reg(Vec(TRANSPERCMD, new Trans(BYTESPERTRAN, ramDataWidth)))
-  val transCountReg    = Reg(init = UInt(0, width = log2upNew(TRANSPERCMD)))
-  val subTransCountReg = Reg(init = UInt(0, width = log2upNew(TRANSPERSEL)))
-  val wordCountReg     = Reg(init = UInt(0, width = log2upNew(ocpBurstLen)))
-  val waitCountReg     = Reg(init = UInt(0, width = log2upNew(readWaitCycles)))
+  val transCountReg    = Reg(init = 0.U(log2upNew(TRANSPERCMD).W))
+  val subTransCountReg = Reg(init = 0.U(log2upNew(TRANSPERSEL).W))
+  val wordCountReg     = Reg(init = 0.U(log2upNew(ocpBurstLen).W))
+  val waitCountReg     = Reg(init = 0.U(log2upNew(readWaitCycles).W))
 
   // Output Registers
   val addrReg = Reg(Bits(width = ramAddrWidth))
@@ -101,7 +101,7 @@ class QdrIIplusCtrl(ocpAddrWidth   : Int,
   io.ocp.S.CmdAccept := Bits(0)
   io.ocp.S.DataAccept := Bits(0)
   val data = for(i <- 0 until TRANSPERWORD)
-             yield rdBufferReg(wordCountReg ## UInt(i))
+             yield rdBufferReg(wordCountReg ## i.U)
   io.ocp.S.Data := data.reduceLeft((x,y) => y ## x)
 
   // Default values for output ports
@@ -127,7 +127,7 @@ class QdrIIplusCtrl(ocpAddrWidth   : Int,
       }
       when(io.ocp.M.Cmd === OcpCmd.WR) {
         io.ocp.S.DataAccept := Bits(1)
-        wordCountReg := UInt(1) // The first ocp data word is already in wrBufferReg
+        wordCountReg := 1.U // The first ocp data word is already in wrBufferReg
         stateReg := sWriteRec
       }
     }
@@ -141,48 +141,48 @@ class QdrIIplusCtrl(ocpAddrWidth   : Int,
     }
   }
   when(stateReg === sReadWait) {
-    waitCountReg := waitCountReg + UInt(1)
-    when(waitCountReg === UInt(readWaitCycles-1)) {
+    waitCountReg := waitCountReg + 1.U
+    when(waitCountReg === (readWaitCycles-1).U) {
       stateReg := sReadExe
-      waitCountReg := UInt(0)
+      waitCountReg := 0.U
     }
   }
   when(stateReg === sReadExe) {
-    transCountReg := transCountReg + UInt(1)
-    subTransCountReg := subTransCountReg + UInt(1)
-    rdBufferReg(transCountReg ## UInt(0)) := io.pins.din(0)
-    rdBufferReg(transCountReg ## UInt(1)) := io.pins.din(1)
-    when(subTransCountReg === UInt((TRANSPERSEL+1)/2-1)) {
+    transCountReg := transCountReg + 1.U
+    subTransCountReg := subTransCountReg + 1.U
+    rdBufferReg(transCountReg ## 0.U) := io.pins.din(0)
+    rdBufferReg(transCountReg ## 1.U) := io.pins.din(1)
+    when(subTransCountReg === ((TRANSPERSEL+1)/2-1).U) {
       stateReg := sReadSel
-      mAddrReg := mAddrReg + UInt(1)
-      subTransCountReg := UInt(0)
+      mAddrReg := mAddrReg + 1.U
+      subTransCountReg := 0.U
     }
-    when(transCountReg === UInt((TRANSPERCMD+1)/2-1)) {
+    when(transCountReg === ((TRANSPERCMD+1)/2-1).U) {
       stateReg := sReadRet
-      transCountReg := UInt(0)
+      transCountReg := 0.U
     }
   }
   when(stateReg === sReadRet) {
     io.ocp.S.Resp := OcpResp.DVA
-    wordCountReg := wordCountReg + UInt(1)
-    when(wordCountReg === UInt(ocpBurstLen-1)) {
+    wordCountReg := wordCountReg + 1.U
+    when(wordCountReg === (ocpBurstLen-1).U) {
       stateReg := sReady
-      wordCountReg := UInt(0)
+      wordCountReg := 0.U
     }
   }
   when(stateReg === sWriteRec) {
     for(i <- 0 until TRANSPERWORD) {
-      wrBufferReg(wordCountReg ## UInt(i)).byteEna :=
+      wrBufferReg(wordCountReg ## i.U).byteEna :=
         io.ocp.M.DataByteEn((i+1)*BYTESPERTRAN-1,i*BYTESPERTRAN)
-      wrBufferReg(wordCountReg ## UInt(i)).data :=
+      wrBufferReg(wordCountReg ## i.U).data :=
         io.ocp.M.Data((i+1)*ramDataWidth-1,i*ramDataWidth)
     }
     when(io.ocp.M.DataValid === Bits(1)){
       io.ocp.S.DataAccept := Bits(1)
-      wordCountReg := wordCountReg + UInt(1)
-      when(wordCountReg === UInt(ocpBurstLen-1)){
+      wordCountReg := wordCountReg + 1.U
+      when(wordCountReg === (ocpBurstLen-1).U){
         stateReg := sWriteExe
-        wordCountReg := UInt(0)
+        wordCountReg := 0.U
         nwpsReg := Bits(0)
       }
     }
@@ -192,21 +192,21 @@ class QdrIIplusCtrl(ocpAddrWidth   : Int,
     nwpsReg := Bits(0)
   }
   when(stateReg === sWriteExe) {
-    doutReg(0) := wrBufferReg(transCountReg ## UInt(0)).data
-    doutReg(1) := wrBufferReg(transCountReg ## UInt(1)).data
-    nbwsReg(0) := ~wrBufferReg(transCountReg ## UInt(0)).byteEna
-    nbwsReg(1) := ~wrBufferReg(transCountReg ## UInt(1)).byteEna
-    transCountReg := transCountReg + UInt(1)
-    subTransCountReg := subTransCountReg + UInt(1)
-    when(subTransCountReg === UInt((TRANSPERSEL+1)/2-1)) {
+    doutReg(0) := wrBufferReg(transCountReg ## 0.U).data
+    doutReg(1) := wrBufferReg(transCountReg ## 1.U).data
+    nbwsReg(0) := ~wrBufferReg(transCountReg ## 0.U).byteEna
+    nbwsReg(1) := ~wrBufferReg(transCountReg ## 1.U).byteEna
+    transCountReg := transCountReg + 1.U
+    subTransCountReg := subTransCountReg + 1.U
+    when(subTransCountReg === ((TRANSPERSEL+1)/2-1).U) {
       stateReg := sWriteSel
-      mAddrReg := mAddrReg + UInt(1)
-      subTransCountReg := UInt(0)
+      mAddrReg := mAddrReg + 1.U
+      subTransCountReg := 0.U
     }
-    when(transCountReg === UInt((TRANSPERCMD+1)/2-1)) {
+    when(transCountReg === ((TRANSPERCMD+1)/2-1).U) {
       io.ocp.S.Resp := OcpResp.DVA
       stateReg := sReady
-      transCountReg := UInt(0)
+      transCountReg := 0.U
     }
   }
 

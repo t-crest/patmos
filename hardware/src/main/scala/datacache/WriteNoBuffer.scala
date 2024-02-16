@@ -47,8 +47,8 @@ import ocp._
 
 class WriteNoBuffer() extends WriteBufferType {
 
-  io.perf.hit := Bool(false)
-  io.perf.miss := Bool(false)
+  io.perf.hit := false.B
+  io.perf.miss := false.B
 
   val addrWidth = io.writeMaster.M.Addr.getWidth
   val dataWidth = io.writeMaster.M.Data.getWidth
@@ -60,7 +60,7 @@ class WriteNoBuffer() extends WriteBufferType {
   // State of transmission
   val idle :: write :: writeResp :: writeComb :: Nil = Enum(Bits(), 4)
   val state = Reg(init = idle)
-  val cntReg = Reg(init = UInt(0, burstAddrBits))
+  val cntReg = Reg(init = 0.U(burstAddrBits.W))
 
   // Register signals that come from write master
   val writeMasterReg = Reg(io.writeMaster.M)
@@ -90,9 +90,9 @@ class WriteNoBuffer() extends WriteBufferType {
       io.slave.M.DataByteEn := writeMasterReg.ByteEn
     }
     when(io.slave.S.DataAccept === Bits(1)) {
-      cntReg := cntReg + UInt(1)
+      cntReg := cntReg + 1.U
     }
-    when(cntReg === UInt(burstLength - 1)) {
+    when(cntReg === (burstLength - 1).U) {
       state := writeResp
     }
   }
@@ -110,6 +110,6 @@ class WriteNoBuffer() extends WriteBufferType {
   // Start write transactions
   when(io.writeMaster.M.Cmd === OcpCmd.WR) {
     state := write
-    io.perf.miss := Bool(true)
+    io.perf.miss := true.B
   }
 }

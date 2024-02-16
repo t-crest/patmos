@@ -20,7 +20,7 @@ class TdmArbiterWrapper(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen: In
   val memMux = Module(new MemMuxIntf(cnt, addrWidth, dataWidth, burstLen))
   
   for (i <- 0 until cnt) {
-    val nodeID = UInt(i, width=6)
+    val nodeID = i.U(6.W)
     val arb = Module(new ocp.NodeTdmArbiter(cnt, addrWidth, dataWidth, burstLen, 16))
     arb.io.master.M <> io.master(i).M
     io.master(i).S <> arb.io.master.S

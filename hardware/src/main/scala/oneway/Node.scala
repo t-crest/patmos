@@ -15,7 +15,7 @@ import s4noc._
  */
 class Node(n: Int, size: Int) extends Module {
   val io = IO(new Bundle {
-    val local = new Channel(UInt(width = size))
+    val local = new Channel(UInt(size.W))
     val memPort = new DualPort(size)
   })
 
@@ -23,9 +23,9 @@ class Node(n: Int, size: Int) extends Module {
   val scheduleLength = st._1.length
   val validTab = Vec(st._2.map(Bool(_)))
 
-  val regTdmCounter = Reg(init = UInt(0, log2Up(scheduleLength)))
-  val end = regTdmCounter === UInt(scheduleLength - 1)
-  regTdmCounter := Mux(end, UInt(0), regTdmCounter + UInt(1))
+  val regTdmCounter = Reg(init = 0.U(log2Up(scheduleLength).W))
+  val end = regTdmCounter === (scheduleLength - 1).U
+  regTdmCounter := Mux(end, 0.U, regTdmCounter + 1.U)
 
   val nrChannels = n * n - 1
   val blockAddrWidth = log2Down(size/nrChannels)
@@ -33,18 +33,18 @@ class Node(n: Int, size: Int) extends Module {
   println("Memory block size: " + scala.math.pow(2, blockAddrWidth).toInt)
 
   // Send data to the NoC
-  val regTxAddrUpper = RegInit(UInt(0, log2Up(scheduleLength)))
-  val regTxAddrLower = RegInit(UInt(0, blockAddrWidth))
+  val regTxAddrUpper = RegInit(0.U(log2Up(scheduleLength).W))
+  val regTxAddrLower = RegInit(0.U(blockAddrWidth.W))
 
   val valid = validTab(regTdmCounter)
   
   //debug(valid) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
   
   when(valid) {
-    regTxAddrUpper := regTxAddrUpper + UInt(1)
-    when(regTxAddrUpper === UInt(nrChannels - 1)) {
+    regTxAddrUpper := regTxAddrUpper + 1.U
+    when(regTxAddrUpper === (nrChannels - 1).U) {
       regTxAddrUpper := 0.U
-      regTxAddrLower := regTxAddrLower + UInt(1)
+      regTxAddrLower := regTxAddrLower + 1.U
     }
   }
 
@@ -57,21 +57,21 @@ class Node(n: Int, size: Int) extends Module {
   memTx.io.port.rdAddr := txAddr
   io.local.out.data := memTx.io.port.rdData
   // TDM schedule starts two cycles late for read data delay
-  io.local.out.valid := RegNext(valid, init = Bool(false))
+  io.local.out.valid := RegNext(valid, init = false.B)
 
   // Receive data from the NoC  
-  val regRxAddrUpper = RegInit(UInt(0, log2Up(scheduleLength)))
-  val regRxAddrLower = RegInit(UInt(0, blockAddrWidth))
+  val regRxAddrUpper = RegInit(0.U(log2Up(scheduleLength).W))
+  val regRxAddrLower = RegInit(0.U(blockAddrWidth.W))
 
   val validRx = io.local.in.valid
   
   //debug(validRx) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
 
   when(validRx) {
-    regRxAddrUpper := regRxAddrUpper + UInt(1)
-    when(regRxAddrUpper === UInt(nrChannels - 1)) {
-      regRxAddrUpper := UInt(0)
-      regRxAddrLower := regRxAddrLower + UInt(1)
+    regRxAddrUpper := regRxAddrUpper + 1.U
+    when(regRxAddrUpper === (nrChannels - 1).U) {
+      regRxAddrUpper := 0.U
+      regRxAddrLower := regRxAddrLower + 1.U
     }
   }
 

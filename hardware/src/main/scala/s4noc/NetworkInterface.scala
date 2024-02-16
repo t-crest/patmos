@@ -9,17 +9,17 @@ package s4noc
 import Chisel._
 
 class CpuPort() extends Bundle {
-  val addr = UInt(width = 8).asInput
-  val rdData = UInt(width = 32).asOutput
-  val wrData = UInt(width = 32).asInput
+  val addr = UInt(8.W).asInput
+  val rdData = UInt(32.W).asOutput
+  val wrData = UInt(32.W).asInput
   val rd = Bool().asInput
   val wr = Bool().asInput
 }
 
 // This should be a generic for the FIFO
 class Entry extends Bundle {
-  val data = UInt(width = 32).asOutput
-  val time = UInt(width = 8).asInput
+  val data = UInt(32.W).asOutput
+  val time = UInt(8.W).asInput
 }
 
 class NetworkInterface[T <: Data](dim: Int, txFifo: Int, rxFifo: Int, dt: T) extends Module {
@@ -34,11 +34,11 @@ class NetworkInterface[T <: Data](dim: Int, txFifo: Int, rxFifo: Int, dt: T) ext
   // Why duplicating it? Does it matter?
   val len = Schedule.getSchedule(dim)._1.length
 
-  val regCnt = Reg(init = UInt(0, log2Up(len)))
-  regCnt := Mux(regCnt === UInt(len - 1), UInt(0), regCnt + UInt(1))
+  val regCnt = Reg(init = 0.U(log2Up(len).W))
+  regCnt := Mux(regCnt === (len - 1).U, 0.U, regCnt + 1.U)
   // TDM schedule starts one cycles later for read data delay of OneWayMemory
   // Maybe we can use that delay here as well for something good
-  val regDelay = RegNext(regCnt, init = UInt(0))
+  val regDelay = RegNext(regCnt, init = 0.U)
 
 
   val entryReg = Reg(new Entry())
@@ -48,11 +48,11 @@ class NetworkInterface[T <: Data](dim: Int, txFifo: Int, rxFifo: Int, dt: T) ext
   }
 
   val inFifo = Module(new BubbleFifo(rxFifo))
-  inFifo.io.enq.write := Bool(false)
+  inFifo.io.enq.write := false.B
   inFifo.io.enq.din.data := io.cpuPort.wrData
   inFifo.io.enq.din.time := io.cpuPort.addr
   when (io.cpuPort.wr && !inFifo.io.enq.full) {
-    inFifo.io.enq.write := Bool(true)
+    inFifo.io.enq.write := true.B
   }
 
   io.local.out.data := inFifo.io.deq.dout.data
@@ -67,26 +67,26 @@ class NetworkInterface[T <: Data](dim: Int, txFifo: Int, rxFifo: Int, dt: T) ext
   // for now same clock cycle
 
   val outFifo = Module(new BubbleFifo(txFifo))
-  outFifo.io.enq.write := Bool(false)
+  outFifo.io.enq.write := false.B
   outFifo.io.enq.din.data := io.local.in.data
   outFifo.io.enq.din.time := regDelay
   when (io.local.in.valid && !outFifo.io.enq.full) {
-    outFifo.io.enq.write := Bool(true)
+    outFifo.io.enq.write := true.B
   }
 
   io.cpuPort.rdData := outFifo.io.deq.dout.data
-  outFifo.io.deq.read := Bool(false)
-  val regTime = RegInit(UInt(0, 6))
+  outFifo.io.deq.read := false.B
+  val regTime = RegInit(0.U(6.W))
   when (io.cpuPort.rd) {
     val addr = io.cpuPort.addr
-    when (addr === UInt(0))  {
-      outFifo.io.deq.read := Bool(true)
-    } .elsewhen(addr === UInt(1)) {
+    when (addr === 0.U)  {
+      outFifo.io.deq.read := true.B
+    } .elsewhen(addr === 1.U) {
       io.cpuPort.rdData := regTime
-    } .elsewhen(addr === UInt(2)) {
-      io.cpuPort.rdData := Cat(UInt(0, 31), !inFifo.io.enq.full)
-    } .elsewhen(addr === UInt(3)) {
-      io.cpuPort.rdData := Cat(UInt(0, 31), !outFifo.io.deq.empty)
+    } .elsewhen(addr === 2.U) {
+      io.cpuPort.rdData := Cat(0.U(31.W), !inFifo.io.enq.full)
+    } .elsewhen(addr === 3.U) {
+      io.cpuPort.rdData := Cat(0.U(31.W), !outFifo.io.deq.empty)
     }
   }
 }

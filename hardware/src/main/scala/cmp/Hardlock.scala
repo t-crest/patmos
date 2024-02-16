@@ -15,10 +15,10 @@ import patmos.Constants._
 import ocp._
 
 class HardlockIO(val lckCnt : Int) extends Bundle {
-  val sel = UInt(INPUT, log2Up(lckCnt))
-  val op = Bool(INPUT)
-  val en = Bool(INPUT)
-  val blck = Bool(OUTPUT)
+  val sel = Input(UInt(log2Up(lckCnt).W))
+  val op = Input(Bool())
+  val en = Input(Bool())
+  val blck = Output(Bool())
 }
 
 class HardlockIOVec(val coreCnt : Int, val lckCnt : Int) extends Bundle {
@@ -36,7 +36,7 @@ abstract class AbstractHardlock(coreCnt : Int,lckCnt : Int) extends Module {
   val queueReg = RegInit(VecInit(Seq.fill(lckCnt)(VecInit(Seq.fill(coreCnt)(false.B)))))
   for (i <- 0 until lckCnt) {
     for (j <- 0 until coreCnt) {
-      when(io.cores(j).sel === UInt(i) && io.cores(j).en === Bool(true)) {
+      when(io.cores(j).sel === i.U && io.cores(j).en === true.B) {
         queueReg(i)(j) := io.cores(j).op
       }
     }
@@ -48,7 +48,7 @@ abstract class AbstractHardlock(coreCnt : Int,lckCnt : Int) extends Module {
   
   for (i <- 0 until coreCnt) {
     for (j <- 0 until lckCnt) {
-      blocks(i)(j) := queueReg(j)(i) && (curReg(j) =/= UInt(i))
+      blocks(i)(j) := queueReg(j)(i) && (curReg(j) =/= i.U)
     }
     io.cores(i).blck := blocks(i).asUInt.orR
   }
@@ -61,8 +61,8 @@ class Hardlock(coreCnt : Int,lckCnt : Int) extends AbstractHardlock(coreCnt, lck
   
   for (i <- 0 until lckCnt) {
     for (j <- 0 until coreCnt) {
-      lo(i)(j) := queueReg(i)(j) && (curReg(i) > UInt(j))
-      hi(i)(j) := queueReg(i)(j) && (curReg(i) <= UInt(j))  
+      lo(i)(j) := queueReg(i)(j) && (curReg(i) > j.U)
+      hi(i)(j) := queueReg(i)(j) && (curReg(i) <= j.U)
     }
     
     when(hi(i).asUInt.orR) {
@@ -91,25 +91,25 @@ class HardlockOCPWrapper(nrCores: Int, hardlockgen: () => AbstractHardlock) exte
   for (i <- 0 until hardlock.CoreCount) {
     hardlock.io.cores(i).op := io.cores(i).M.Data(0);
     hardlock.io.cores(i).sel := io.cores(i).M.Data >> 1;
-    hardlock.io.cores(i).en := Bool(false)
+    hardlock.io.cores(i).en := false.B
     when(io.cores(i).M.Cmd === OcpCmd.WR) {
-      hardlock.io.cores(i).en := Bool(true)
+      hardlock.io.cores(i).en := true.B
     }
 
     when(io.cores(i).M.Cmd =/= OcpCmd.IDLE) {
-      reqBools(i) := Bool(true)
+      reqBools(i) := true.B
       reqReg := reqBools.asUInt()
     }
-    .elsewhen(reqReg(i) === Bool(true) && hardlock.io.cores(i).blck === Bool(false)) {
-      reqBools(i) := Bool(false)
+    .elsewhen(reqReg(i) === true.B && hardlock.io.cores(i).blck === false.B) {
+      reqBools(i) := false.B
       reqReg := reqBools.asUInt()
     }
     
     io.cores(i).S.Resp := OcpResp.NULL
-    when(reqReg(i) === Bool(true) && hardlock.io.cores(i).blck === Bool(false)) {
+    when(reqReg(i) === true.B && hardlock.io.cores(i).blck === false.B) {
       io.cores(i).S.Resp := OcpResp.DVA
     }
       
-    io.cores(i).S.Data := UInt(0)
+    io.cores(i).S.Data := 0.U
   }
 }

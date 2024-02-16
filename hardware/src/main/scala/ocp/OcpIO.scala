@@ -12,7 +12,7 @@ import Chisel._
 // Masters include a RespAccept signal
 class OcpIOMasterSignals(addrWidth: Int, dataWidth: Int)
     extends OcpCoreMasterSignals(addrWidth, dataWidth) {
-  val RespAccept = UInt(width = 1)
+  val RespAccept = UInt(1.W)
 
   // This does not really clone, but Data.clone doesn't either
   override def cloneType() = {
@@ -24,7 +24,7 @@ class OcpIOMasterSignals(addrWidth: Int, dataWidth: Int)
 // Slaves include a CmdAccept signal
 class OcpIOSlaveSignals(dataWidth: Int)
     extends OcpSlaveSignals(dataWidth) {
-  val CmdAccept = UInt(width = 1)
+  val CmdAccept = UInt(1.W)
 
   // This does not really clone, but Data.clone doesn't either
   override def cloneType() = {
@@ -51,12 +51,12 @@ class OcpIOSlavePort(val addrWidth: Int, val dataWidth: Int) extends Bundle() {
 class OcpIOBridge(master: OcpCoreMasterPort, slave: OcpIOSlavePort) {
   // Register signals that come from master
   val masterReg = Reg(init = master.M)
-  when(masterReg.Cmd === OcpCmd.IDLE || slave.S.CmdAccept === UInt(1)) {
+  when(masterReg.Cmd === OcpCmd.IDLE || slave.S.CmdAccept === 1.U) {
     masterReg := master.M
   }
   // Forward master signals to slave, always accept responses
   slave.M := masterReg
-  slave.M.RespAccept := UInt("b1")
+  slave.M.RespAccept := "b1".U
 
   // Forward slave signals to master
   master.S <> slave.S
@@ -70,22 +70,22 @@ class OcpIOBridge(master: OcpCoreMasterPort, slave: OcpIOSlavePort) {
 class OcpIOBridgeAlt(master: OcpCoreMasterPort, slave: OcpIOSlavePort) {
   
   val masterReg = Reg(init = master.M) // What is the reset value of this bundle?
-  val busyReg = Reg(init = Bool(false))
+  val busyReg = Reg(init = false.B)
 
   when(!busyReg) {
     masterReg := master.M
   }
   when(master.M.Cmd === OcpCmd.RD || master.M.Cmd === OcpCmd.WR) {
-    busyReg := Bool(true)
+    busyReg := true.B
   }
-  when(busyReg && slave.S.CmdAccept === UInt(1)) {
-    busyReg := Bool(false)
+  when(busyReg && slave.S.CmdAccept === 1.U) {
+    busyReg := false.B
     masterReg.Cmd := OcpCmd.IDLE
   }
 
   // Forward master signals to slave, always accept responses
   slave.M := masterReg
-  slave.M.RespAccept := UInt("b1")
+  slave.M.RespAccept := "b1".U
 
   // Forward slave signals to master
   master.S <> slave.S

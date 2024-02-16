@@ -40,10 +40,10 @@ class OCRamCtrl(addrWidth : Int, ocpBurstLen : Int=4) extends BurstDevice(addrWi
   val stateReg = Reg(init = idle)
 
   val ramAddrWidth = addrWidth - log2Up(BYTES_PER_WORD)
-  val addrReg = Reg(init = UInt(0, width = ramAddrWidth - log2Up(ocpBurstLen)))
+  val addrReg = Reg(init = 0.U((ramAddrWidth - log2Up(ocpBurstLen)).W))
 
-  val burstCntReg = Reg(init = UInt(0, width = log2Up(ocpBurstLen)))
-  val burstCntNext = burstCntReg + UInt(1);
+  val burstCntReg = Reg(init = 0.U(log2Up(ocpBurstLen).W))
+  val burstCntNext = burstCntReg + 1.U;
 
   val addr = Wire(UInt())
   addr := addrReg ## burstCntNext
@@ -52,9 +52,9 @@ class OCRamCtrl(addrWidth : Int, ocpBurstLen : Int=4) extends BurstDevice(addrWi
 
   burstCntReg := burstCntNext
   // end transaction after a burst
-  when (burstCntReg === UInt(ocpBurstLen-1)) {
+  when (burstCntReg === (ocpBurstLen-1).U) {
     stateReg := idle
-    wrEn := Bool(false)
+    wrEn := false.B
   }
 
   // start a new transaction
@@ -62,16 +62,16 @@ class OCRamCtrl(addrWidth : Int, ocpBurstLen : Int=4) extends BurstDevice(addrWi
     val ocpAddr = io.ocp.M.Addr(addrWidth-1,
                                 log2Up(ocpBurstLen) + log2Up(BYTES_PER_WORD))
     addrReg := ocpAddr
-    burstCntReg := UInt(0)
+    burstCntReg := 0.U
 
-    addr := ocpAddr ## UInt(0, width = log2Up(ocpBurstLen))
+    addr := ocpAddr ## 0.U(log2Up(ocpBurstLen).W)
   }
   when (io.ocp.M.Cmd === OcpCmd.RD) {
     stateReg := read
   }
   when (io.ocp.M.Cmd === OcpCmd.WR) {
     stateReg := write
-    wrEn := Bool(true)
+    wrEn := true.B
   }
 
   // generate byte memories
@@ -92,7 +92,7 @@ class OCRamCtrl(addrWidth : Int, ocpBurstLen : Int=4) extends BurstDevice(addrWi
   // respond
   io.ocp.S.Resp := OcpResp.NULL
   when (stateReg === read ||
-        (stateReg === write && burstCntReg === UInt(ocpBurstLen-1))) {
+        (stateReg === write && burstCntReg === (ocpBurstLen-1).U)) {
     io.ocp.S.Resp := OcpResp.DVA
   }
 

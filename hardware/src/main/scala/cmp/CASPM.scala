@@ -17,9 +17,9 @@ class CASPM(corecnt: Int, size: Int) extends CmpDevice(corecnt) {
   val spm = Module(new Spm(size))
 
   val cntmax = 2.U
-  val precnt = Reg(init = UInt(0, cntmax.getWidth))
+  val precnt = Reg(init = 0.U(cntmax.getWidth.W))
   precnt := Mux(precnt === cntmax, 0.U, precnt + 1.U)
-  val cnt = Reg(init = UInt(0, log2Up(corecnt)))
+  val cnt = Reg(init = 0.U(log2Up(corecnt).W))
   cnt := Mux(precnt =/= cntmax, cnt, Mux(cnt === (corecnt-1).U, 0.U, cnt + 1.U))
 
   val cmdRegs = RegInit(VecInit(Seq.fill(corecnt)(OcpCmd.RD)))

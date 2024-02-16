@@ -9,22 +9,22 @@ class AudioWM8731ADCModel(AUDIOBITLENGTH: Int) extends Module {
 
   // IOs
   val io = new Bundle {
-    val bClk = UInt(INPUT, 1)
-    val adcLrc = UInt(INPUT, 1)
-    val adcDat = UInt(OUTPUT, 1)
+    val bClk = Input(UInt(1.W))
+    val adcLrc = Input(UInt(1.W))
+    val adcDat = Output(UInt(1.W))
   }
 
   // audio data registers
-  val audioLReg = Reg(init = UInt(1024, AUDIOBITLENGTH))
-  val audioRReg = Reg(init = UInt(1025, AUDIOBITLENGTH))
+  val audioLReg = Reg(init = 1024.U(AUDIOBITLENGTH.W))
+  val audioRReg = Reg(init = 1025.U(AUDIOBITLENGTH.W))
 
   //register for output data bit
-  val adcDatReg = Reg(init = UInt(0, 1))
+  val adcDatReg = Reg(init = 0.U(1.W))
   io.adcDat := adcDatReg
 
   //Counter
-  val CNTLIMIT = UInt(AUDIOBITLENGTH - 1)
-  val CntReg = Reg(init = UInt(0, 5))
+  val CNTLIMIT = (AUDIOBITLENGTH - 1).U
+  val CntReg = Reg(init = 0.U(5.W))
 
   //state machine
   val sIdle :: sReady :: sLeftLo :: sLeftHi :: sRightLo :: sRightHi :: Nil = Enum(UInt(), 6)
@@ -32,50 +32,50 @@ class AudioWM8731ADCModel(AUDIOBITLENGTH: Int) extends Module {
 
   switch (state) {
     is (sIdle) {
-      when(io.adcLrc === UInt(1)) {
+      when(io.adcLrc === 1.U) {
         state := sReady
       }
     }
     is (sReady) {
       CntReg := CNTLIMIT
-      when(io.adcLrc === UInt(0)) {
+      when(io.adcLrc === 0.U) {
         state := sLeftLo
       }
     }
     is (sLeftLo) {
       adcDatReg := audioLReg(CntReg)
-      when (io.bClk === UInt(1)) {
+      when (io.bClk === 1.U) {
         state := sLeftHi
       }
     }
     is (sLeftHi) {
-      when (io.bClk === UInt(0)) {
-        when (CntReg === UInt(0)) { //limit reached
+      when (io.bClk === 0.U) {
+        when (CntReg === 0.U) { //limit reached
           CntReg := CNTLIMIT
           state := sRightLo
         }
         .otherwise {
-          CntReg := CntReg - UInt(1) //decrement counter
+          CntReg := CntReg - 1.U //decrement counter
           state := sLeftLo
         }
       }
     }
     is (sRightLo) {
       adcDatReg := audioRReg(CntReg)
-      when (io.bClk === UInt(1)) {
+      when (io.bClk === 1.U) {
         state := sRightHi
       }
     }
     is (sRightHi) {
-      when (io.bClk === UInt(0)) {
-        when (CntReg === UInt(0)) { //limit reached
+      when (io.bClk === 0.U) {
+        when (CntReg === 0.U) { //limit reached
           CntReg := CNTLIMIT
-          audioLReg := audioLReg + UInt(2)
-          audioRReg := audioRReg + UInt(2)
+          audioLReg := audioLReg + 2.U
+          audioRReg := audioRReg + 2.U
           state := sIdle
         }
         .otherwise {
-          CntReg := CntReg - UInt(1) //decrement counter
+          CntReg := CntReg - 1.U //decrement counter
           state := sRightLo
         }
       }

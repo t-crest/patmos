@@ -21,23 +21,23 @@ class Exceptions extends Module {
 
   val masterReg = RegNext(io.ocp.M)
 
-  val statusReg = RegInit(UInt(2, width = DATA_WIDTH))
-  val maskReg   = Reg(UInt(width = DATA_WIDTH))
-  val sourceReg = Reg(UInt(width = DATA_WIDTH))
+  val statusReg = RegInit(2.U(DATA_WIDTH.W))
+  val maskReg   = Reg(UInt(DATA_WIDTH.W))
+  val sourceReg = Reg(UInt(DATA_WIDTH.W))
 
-  val intrEna = statusReg(0) === UInt(1)
-  val superMode = statusReg(1) === UInt(1)
+  val intrEna = statusReg(0) === 1.U
+  val superMode = statusReg(1) === 1.U
 
-  val localModeReg = RegInit(Bool(false))
+  val localModeReg = RegInit(false.B)
 
   def checked(action: => Unit) {
     when (superMode) (action) .otherwise { io.ocp.S.Resp := OcpResp.ERR }
   }
 
-  val vec    = Mem(UInt(width = DATA_WIDTH), EXC_COUNT)
-  val vecDup = Mem(UInt(width = DATA_WIDTH), EXC_COUNT)
+  val vec    = Mem(UInt(DATA_WIDTH.W), EXC_COUNT)
+  val vecDup = Mem(UInt(DATA_WIDTH.W), EXC_COUNT)
 
-  val sleepReg = RegInit(Bool(false))
+  val sleepReg = RegInit(false.B)
 
   // Latches for incoming exceptions and interrupts
   val excPend     = Wire(Vec(EXC_COUNT, Bool()))
@@ -49,27 +49,27 @@ class Exceptions extends Module {
 
   // Default OCP response
   io.ocp.S.Resp := OcpResp.NULL
-  io.ocp.S.Data := UInt(0, width = DATA_WIDTH)
+  io.ocp.S.Data := 0.U(DATA_WIDTH.W)
 
   // Make privileged mode visible
   io.superMode := superMode
 
   // No resetting by default
-  io.invalICache := Bool(false)
-  io.invalDCache := Bool(false)
+  io.invalICache := false.B
+  io.invalDCache := false.B
 
   // Handle OCP reads and writes
   when(masterReg.Cmd === OcpCmd.RD) {
     io.ocp.S.Resp := OcpResp.DVA
 
     switch(masterReg.Addr(EXC_ADDR_WIDTH-1, 2)) {
-      is(UInt("b000000")) { io.ocp.S.Data := statusReg }
-      is(UInt("b000001")) { io.ocp.S.Data := maskReg }
-      is(UInt("b000011")) { io.ocp.S.Data := sourceReg }
-      is(UInt("b000010")) { io.ocp.S.Data := intrPendReg.asUInt }
-      is(UInt("b000101")) { io.ocp.S.Data := localModeReg ## UInt(0, DATA_WIDTH-1) }
+      is("b000000".U) { io.ocp.S.Data := statusReg }
+      is("b000001".U) { io.ocp.S.Data := maskReg }
+      is("b000011".U) { io.ocp.S.Data := sourceReg }
+      is("b000010".U) { io.ocp.S.Data := intrPendReg.asUInt }
+      is("b000101".U) { io.ocp.S.Data := localModeReg ## 0.U((DATA_WIDTH-1).W) }
     }
-    when(masterReg.Addr(EXC_ADDR_WIDTH-1) === UInt("b1")) {
+    when(masterReg.Addr(EXC_ADDR_WIDTH-1) === "b1".U) {
       io.ocp.S.Data := vec(masterReg.Addr(EXC_ADDR_WIDTH-2, 2))
     }
   }
@@ -78,23 +78,23 @@ class Exceptions extends Module {
   when(masterReg.Cmd === OcpCmd.WR) {
     io.ocp.S.Resp := OcpResp.DVA
     switch(masterReg.Addr(EXC_ADDR_WIDTH-1, 2)) {
-      is(UInt("b000000")) { checked{ statusReg := masterReg.Data } }
-      is(UInt("b000001")) { checked{ maskReg := masterReg.Data } }
-      is(UInt("b000011")) { checked{ sourceReg := masterReg.Data } }
-      is(UInt("b000010")) {
+      is("b000000".U) { checked{ statusReg := masterReg.Data } }
+      is("b000001".U) { checked{ maskReg := masterReg.Data } }
+      is("b000011".U) { checked{ sourceReg := masterReg.Data } }
+      is("b000010".U) {
         checked {
           for(i <- 0 until EXC_COUNT) {
             intrPend(i) := intrPendReg(i) & masterReg.Data(i)
           }
         }
       }
-      is(UInt("b000100")) {
+      is("b000100".U) {
         checked { // Go to sleep
           io.ocp.S.Resp := OcpResp.NULL
-          sleepReg := Bool(true)
+          sleepReg := true.B
         }
       }
-      is(UInt("b000101")) {
+      is("b000101".U) {
         checked {
           io.invalDCache := masterReg.Data(0)
           io.invalICache := masterReg.Data(1)
@@ -102,7 +102,7 @@ class Exceptions extends Module {
         }
       }
     }
-    when(masterReg.Addr(EXC_ADDR_WIDTH-1) === UInt("b1")) {
+    when(masterReg.Addr(EXC_ADDR_WIDTH-1) === "b1".U) {
       checked {
         vec(masterReg.Addr(EXC_ADDR_WIDTH-2, 2)) := masterReg.Data.asUInt
         vecDup(masterReg.Addr(EXC_ADDR_WIDTH-2, 2)) := masterReg.Data.asUInt
@@ -112,34 +112,34 @@ class Exceptions extends Module {
 
   // Acknowledgement of exception
   when(io.memexc.call) {
-    excPend(io.memexc.src) := Bool(false)
-    intrPend(io.memexc.src) := Bool(false)
+    excPend(io.memexc.src) := false.B
+    intrPend(io.memexc.src) := false.B
     when(io.ena) {
       sourceReg := io.memexc.src
       // Shift status, enable super mode, disable interrupts
-      statusReg := (statusReg << UInt(2)) | UInt(2)
+      statusReg := (statusReg << 2.U) | 2.U
     }
   }
   // Return from exception
   when(io.memexc.ret) {
     when(io.ena) {
       // Shift back old status
-      statusReg := statusReg >> UInt(2)
+      statusReg := statusReg >> 2.U
     }
   }
 
   // Latch interrupt pins
   for (i <- 0 until INTR_COUNT) {
     when(RegNext(io.intrs(i))) {
-      intrPend(16+i) := Bool(true)
+      intrPend(16+i) := true.B
     }
   }
 
   // Trigger internal exceptions
-  val excBaseReg = Reg(UInt(width = PC_SIZE))
-  val excAddrReg = Reg(UInt(width = PC_SIZE))
+  val excBaseReg = Reg(UInt(PC_SIZE.W))
+  val excAddrReg = Reg(UInt(PC_SIZE.W))
   when(io.memexc.exc) {
-    excPend(io.memexc.src) := Bool(true)
+    excPend(io.memexc.src) := true.B
     excBaseReg := io.memexc.excBase
     excAddrReg := io.memexc.excAddr
   }
@@ -149,19 +149,19 @@ class Exceptions extends Module {
   intrPendReg := intrPend
 
   // Compute next exception source
-  val src = Wire(UInt(width = EXC_SRC_BITS))
+  val src = Wire(UInt(EXC_SRC_BITS.W))
   val srcReg = RegNext(src)
-  src := UInt(0)
+  src := 0.U
   for (i <- (0 until EXC_COUNT).reverse) {
-    when(intrPend(i) && (maskReg(i) === UInt(1))) { src := UInt(i) }
+    when(intrPend(i) && (maskReg(i) === 1.U)) { src := i.U }
   }
   for (i <- (0 until EXC_COUNT).reverse) {
-    when(excPend(i)) { src := UInt(i) }
+    when(excPend(i)) { src := i.U }
   }
 
   // Create signals to decode stage
-  val exc = RegNext(excPend.asUInt =/= UInt(0))
-  val intr = RegNext((intrPend.asUInt & maskReg) =/= UInt(0))
+  val exc = RegNext(excPend.asUInt =/= 0.U)
+  val intr = RegNext((intrPend.asUInt & maskReg) =/= 0.U)
 
   io.excdec.exc   := exc
   io.excdec.intr  := intr && intrEna
@@ -173,8 +173,8 @@ class Exceptions extends Module {
   io.excdec.excAddr := excAddrReg
 
   // Wake up
-  when (sleepReg && (exc === UInt(1) || (intr && intrEna))) {
+  when (sleepReg && (exc === 1.U || (intr && intrEna))) {
     io.ocp.S.Resp := OcpResp.DVA
-    sleepReg := Bool(false)
+    sleepReg := false.B
   }
 }

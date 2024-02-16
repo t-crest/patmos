@@ -24,21 +24,21 @@ class memModule(size: Int) extends Module {
   val io = new Bundle{
 
     val M = new Bundle() {
-       val Data = UInt(INPUT, BYTE_WIDTH)
-       val Addr = UInt(INPUT, log2Up(size / BYTES_PER_WORD))
-       val blockEnable = UInt(INPUT, 1) // From byte enable
-       val We = UInt(INPUT, 1)
+       val Data = Input(UInt(BYTE_WIDTH.W))
+       val Addr = Input(UInt(log2Up(size / BYTES_PER_WORD).W))
+       val blockEnable = Input(UInt(1.W)) // From byte enable
+       val We = Input(UInt(1.W))
     }
 
     val S = new Bundle() {
-       val Data = UInt(OUTPUT, BYTE_WIDTH)
+       val Data = Output(UInt(BYTE_WIDTH.W))
     }
   }
 
   // Second option is number of entries
   // So e.g. for 128 entry memory of 32 bit Uint we write 128.
   // here, we dot it in BYTE_WIDTH = 8.
-  val syncMem = Mem(UInt(width=BYTE_WIDTH), size / BYTES_PER_WORD)
+  val syncMem = Mem(UInt(BYTE_WIDTH.W), size / BYTES_PER_WORD)
 
   //io.S.Data := Bits(0)
 
@@ -46,7 +46,7 @@ class memModule(size: Int) extends Module {
   // when the read and write conditons are mutually exclusie in the same when chain.
 
   // write
-  when(io.M.We === UInt(1) && io.M.blockEnable === UInt(1)) {
+  when(io.M.We === 1.U && io.M.blockEnable === 1.U) {
       syncMem(io.M.Addr) := io.M.Data
 
   }
@@ -146,14 +146,14 @@ class  memSPM(size: Int) extends Module {
   val io = new Bundle{
 
     val M = new Bundle() {
-       val Data = UInt(INPUT, DATA_WIDTH)
+       val Data = Input(UInt(DATA_WIDTH.W))
        val Addr = Bits(INPUT, log2Up(size))
-       val ByteEn = UInt(INPUT, 4)
-       val We = UInt(INPUT, 1)
+       val ByteEn = Input(UInt(4.W))
+       val We = Input(UInt(1.W))
     }
 
     val S = new Bundle() {
-       val Data = UInt(OUTPUT, DATA_WIDTH)
+       val Data = Output(UInt(DATA_WIDTH.W))
     }
   }
 
@@ -162,10 +162,10 @@ class  memSPM(size: Int) extends Module {
   // Vector for each connector
   val memories = VecInit(Seq.fill(4)(Module(new memModule(size)).io)) // Using .io here, means that we do not
                                                                 // have to write e.g.  memories(j).io.M.Data
-  //val dataReg = Reg(init=UInt(0, width=BYTE_WIDTH))
-  //dataReg := UInt(0)
+  //val dataReg = Reg(init=0.U(BYTE_WIDTH.W))
+  //dataReg := 0.U
   // For default value of io.s.data
-  io.S.Data := UInt(0)
+  io.S.Data := 0.U
 
   // Connect memories with the SSPM
   for (j <- 0 until 4) {

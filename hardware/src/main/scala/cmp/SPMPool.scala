@@ -9,23 +9,23 @@ import ocp._
 object SPMPool {
   def counter(max: Int) = {
 
-    val x = RegInit(UInt(0, width = log2Up(max)))
+    val x = RegInit(0.U(log2Up(max).U))
     x := Mux(x === max.U, 0.U, x + 1.U)
     x
   }
 
-  def roundRobinArbiter(reqs: UInt, continue: Bool = Bool(false)) = {
+  def roundRobinArbiter(reqs: UInt, continue: Bool = false.B) = {
 
-    val curReg = Reg(UInt(width = log2Up(reqs.getWidth)))
+    val curReg = Reg(UInt(log2Up(reqs.getWidth).W))
 
-    val hi = UInt(width = reqs.getWidth)
-    val lo = UInt(width = reqs.getWidth)
+    val hi = UInt(reqs.getWidth.W)
+    val lo = UInt(reqs.getWidth.W)
 
-    lo := UInt(0)
-    hi := UInt(0)
+    lo := 0.U
+    hi := 0.U
     for (i <- 0 until reqs.getWidth) {
-      lo(i) := reqs(i) && (curReg >= UInt(i))
-      hi(i) := reqs(i) && (curReg < UInt(i))
+      lo(i) := reqs(i) && (curReg >= i.U)
+      hi(i) := reqs(i) && (curReg < i.U)
     }
 
     when(!reqs(curReg) || continue) {
@@ -43,12 +43,12 @@ object SPMPool {
 
     val io = new Bundle()
     {
-      val sched = UInt(INPUT, corecnt)
+      val sched = Input(UInt(corecnt.W))
       val cores = Vec(corecnt, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))
     }
 
     val spm = Module(new patmos.Spm(spmsize))
-    val cur = SPMPool.roundRobinArbiter(io.sched, Bool(true))
+    val cur = SPMPool.roundRobinArbiter(io.sched, true.B)
     val lst = RegNext(cur)
 
     spm.io.M <> io.cores(cur).M
@@ -77,7 +77,7 @@ class SPMPool(corecnt:Int, spmcnt:Int, spmsize:Int, spmcntmax:Int = 15, spmsizem
 
   val spmios = Wire(Vec(spms.map(e => e.io.cores)))
 
-  val spmscheds = Reg(Vec(spms.map(e => UInt(width = corecnt))))
+  val spmscheds = Reg(Vec(spms.map(e => UInt(corecnt.W))))
 
   for(i <- 0 until spms.length)
     spms(i).io.sched := spmscheds(i)

@@ -14,9 +14,9 @@ import Chisel._
 class BranchPredict() extends Module {
 
   val io = new Bundle() {
-    val hit = Bool(OUTPUT)
+    val hit = Output(Bool())
   }
   
-  io.hit := Bool(true)
+  io.hit := true.B
 }
 

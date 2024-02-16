@@ -9,7 +9,7 @@ class DCacheType(burstLength: Int) extends Module {
   val io = IO(new Bundle {
     val master = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
     val slave = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, burstLength)
-    val invalidate = Bool(INPUT)
+    val invalidate = Input(Bool())
     val perf = new DataCachePerf()
   })
 }

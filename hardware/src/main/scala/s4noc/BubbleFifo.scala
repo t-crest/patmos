@@ -27,14 +27,14 @@ import Chisel._
  */
 
 class WriterIO() extends Bundle {
-  val write = Bool(INPUT)
-  val full = Bool(OUTPUT)
+  val write = Input(Bool())
+  val full = Output(Bool())
   val din = Input(new Entry())
 }
 
 class ReaderIO() extends Bundle {
-  val read = Bool(INPUT)
-  val empty = Bool(OUTPUT)
+  val read = Input(Bool())
+  val empty = Output(Bool())
   val dout = Output(new Entry())
 }
 

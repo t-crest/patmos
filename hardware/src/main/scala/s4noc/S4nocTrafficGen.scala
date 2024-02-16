@@ -16,7 +16,7 @@ class S4nocTrafficGen(nrNodes: Int, txFifo: Int, rxFifo: Int) extends Module {
   val s4noc = Module(new S4noc(nrNodes, txFifo, rxFifo))
   // This is almost Chisel 3 syntax.
   val io = IO(new Bundle {
-    val data = Output(UInt(width = 32))
+    val data = Output(UInt(32.W))
   })
 
   val outReg = RegInit(VecInit(Seq.fill(nrNodes)(0.U(32.W))))
@@ -24,7 +24,7 @@ class S4nocTrafficGen(nrNodes: Int, txFifo: Int, rxFifo: Int) extends Module {
 
   for (i <- 0 until nrNodes) {
 
-    val cntReg = RegInit(UInt(i*7+5, width = 40))
+    val cntReg = RegInit((i*7+5).U(40.W))
     cntReg := cntReg + 1.U
 
     // addresses are in words

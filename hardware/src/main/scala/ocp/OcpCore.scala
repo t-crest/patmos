@@ -12,7 +12,7 @@ import Chisel._
 // Masters include a byte-enable signal
 class OcpCoreMasterSignals(override val addrWidth : Int, override val dataWidth : Int)
   extends OcpMasterSignals(addrWidth, dataWidth) {
-  val ByteEn = UInt(width = dataWidth/8)
+  val ByteEn = UInt((dataWidth/8).W)
 }
 
 // Master port

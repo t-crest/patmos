@@ -153,7 +153,7 @@ class MpuSensor() extends CoreDevice() {
             // Reading from readdata_6 register
             is(Bits("b0110")) {
               ocpDataReg := bb.io.readdata_6
-              //ocpDataReg := UInt(101)
+              //ocpDataReg := 101.U
             }
 
             // Reading from readdata_7 register

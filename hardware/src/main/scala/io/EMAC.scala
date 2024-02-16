@@ -13,49 +13,49 @@ import ocp._
 
 class EMACPins extends Bundle {
   // asynchronous reset
-  val glbl_rst = Bool(INPUT)
+  val glbl_rst = Input(Bool())
   
   // Clock inputs
-  val gtx_clk_bufg = Bool(INPUT) // 125 MHz 
-  val cpu_clk = Bool(INPUT) // 66.666 MHz 
-  val refclk_bufg = Bool(INPUT) // 200 MHz
-  val dcm_lck = Bool(INPUT)
+  val gtx_clk_bufg = Input(Bool()) // 125 MHz
+  val cpu_clk = Input(Bool()) // 66.666 MHz
+  val refclk_bufg = Input(Bool()) // 200 MHz
+  val dcm_lck = Input(Bool())
   
-  val phy_resetn = Bool(OUTPUT)
+  val phy_resetn = Output(Bool())
   
   // GMII Interface
   //---------------
   
-  val gmii_txd = UInt(OUTPUT,8)
-  val gmii_tx_en = Bool(OUTPUT)
-  val gmii_tx_er = Bool(OUTPUT)
-  val gmii_tx_clk = Bool(OUTPUT)
+  val gmii_txd = Output(UInt(8.W))
+  val gmii_tx_en = Output(Bool())
+  val gmii_tx_er = Output(Bool())
+  val gmii_tx_clk = Output(Bool())
   
-  val gmii_rxd = UInt(INPUT,8)
-  val gmii_rx_dv = Bool(INPUT)
-  val gmii_rx_er = Bool(INPUT)
-  val gmii_rx_clk = Bool(INPUT)
+  val gmii_rxd = Input(UInt(8.W))
+  val gmii_rx_dv = Input(Bool())
+  val gmii_rx_er = Input(Bool())
+  val gmii_rx_clk = Input(Bool())
   
-  val gmii_col = Bool(INPUT)
-  val gmii_crs = Bool(INPUT)
-  val mii_tx_clk = Bool(INPUT)
+  val gmii_col = Input(Bool())
+  val gmii_crs = Input(Bool())
+  val mii_tx_clk = Input(Bool())
 }
 
 class EMACIO extends EMACPins {
 
   // Receiver (AXI-S) Interface
   //----------------------------------------
-  val rx_axis_fifo_tdata = UInt(OUTPUT,8)
-  val rx_axis_fifo_tvalid = Bool(OUTPUT)
-  val rx_axis_fifo_tready = Bool(INPUT)
-  val rx_axis_fifo_tlast = Bool(OUTPUT)
+  val rx_axis_fifo_tdata = Output(UInt(8.W))
+  val rx_axis_fifo_tvalid = Output(Bool())
+  val rx_axis_fifo_tready = Input(Bool())
+  val rx_axis_fifo_tlast = Output(Bool())
   
   // Transmitter (AXI-S) Interface
   //-------------------------------------------
-  val tx_axis_fifo_tdata = UInt(INPUT,8)
-  val tx_axis_fifo_tvalid = Bool(INPUT)
-  val tx_axis_fifo_tready = Bool(OUTPUT)
-  val tx_axis_fifo_tlast = Bool(INPUT)
+  val tx_axis_fifo_tdata = Input(UInt(8.W))
+  val tx_axis_fifo_tvalid = Input(Bool())
+  val tx_axis_fifo_tready = Output(Bool())
+  val tx_axis_fifo_tlast = Input(Bool())
 }
 
 class v6_emac_v2_3_wrapper extends BlackBox {
@@ -89,12 +89,12 @@ class EMAC() extends CoreDevice() {
   val bb = Module(new v6_emac_v2_3_wrapper())
   io.pins <> bb.io
 
-  val rx_axis_fifo_tready_Reg = Reg(init = Bool(false))
-  rx_axis_fifo_tready_Reg := Bool(false)
+  val rx_axis_fifo_tready_Reg = Reg(init = false.B)
+  rx_axis_fifo_tready_Reg := false.B
   bb.io.rx_axis_fifo_tready := rx_axis_fifo_tready_Reg
 
-  val tx_axis_fifo_tvalid_Reg = Reg(init = Bool(false))
-  tx_axis_fifo_tvalid_Reg := Bool(false)
+  val tx_axis_fifo_tvalid_Reg = Reg(init = false.B)
+  tx_axis_fifo_tvalid_Reg := false.B
   bb.io.tx_axis_fifo_tvalid := tx_axis_fifo_tvalid_Reg
 
   // Default response
@@ -115,15 +115,15 @@ class EMAC() extends CoreDevice() {
   
   when(io.ocp.M.Cmd === OcpCmd.WR) {
     respReg := OcpResp.DVA
-    tx_axis_fifo_tvalid_Reg := Bool(true)
+    tx_axis_fifo_tvalid_Reg := true.B
     dataWrReg := io.ocp.M.Data
   }
   
   when(state === sIdle) {
     when(io.ocp.M.Cmd === OcpCmd.RD) {
-      when(io.ocp.M.Addr(0) === Bool(false)) {
+      when(io.ocp.M.Addr(0) === false.B) {
         state := sWait
-        rx_axis_fifo_tready_Reg := Bool(true)
+        rx_axis_fifo_tready_Reg := true.B
       }
       .otherwise {
         respReg := OcpResp.DVA

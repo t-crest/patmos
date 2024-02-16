@@ -19,8 +19,8 @@ import ocp._
 
 class DirectMappedCache(size: Int, lineSize: Int) extends DCacheType(lineSize/4) {
 
-  io.perf.hit := Bool(false)
-  io.perf.miss := Bool(false)
+  io.perf.hit := false.B
+  io.perf.miss := false.B
 
   val addrBits = log2Up(size / BYTES_PER_WORD)
   val lineBits = log2Up(lineSize)
@@ -71,8 +71,8 @@ class DirectMappedCache(size: Int, lineSize: Int) extends DCacheType(lineSize/4)
   val idle :: hold :: fill :: respond :: Nil = Enum(UInt(), 4)
   val stateReg = Reg(init = idle)
 
-  val burstCntReg = Reg(init = UInt(0, lineBits-2))
-  val missIndexReg = Reg(UInt(lineBits-2))
+  val burstCntReg = Reg(init = 0.U((lineBits-2).W))
+  val missIndexReg = Reg((lineBits-2).U)
 
   // Register to delay response
   val slaveReg = Reg(io.master.S)
@@ -85,16 +85,16 @@ class DirectMappedCache(size: Int, lineSize: Int) extends DCacheType(lineSize/4)
   io.slave.M.DataValid := Bits(0)
   io.slave.M.DataByteEn := Bits(0)
 
-  fillReg := Bool(false)
+  fillReg := false.B
 
   // Record a hit
   when(tagValid && masterReg.Cmd === OcpCmd.RD) {
-    io.perf.hit := Bool(true)
+    io.perf.hit := true.B
   }
 
   // Start handling a miss
   when(!tagValid && masterReg.Cmd === OcpCmd.RD) {
-    tagVMem(masterReg.Addr(addrBits + 1, lineBits)) := Bool(true)
+    tagVMem(masterReg.Addr(addrBits + 1, lineBits)) := true.B
     missIndexReg := masterReg.Addr(lineBits-1, 2).asUInt
     io.slave.M.Cmd := OcpCmd.RD
     when(io.slave.S.CmdAccept === Bits(1)) {
@@ -104,7 +104,7 @@ class DirectMappedCache(size: Int, lineSize: Int) extends DCacheType(lineSize/4)
       stateReg := hold
     }
     masterReg.Addr := masterReg.Addr
-    io.perf.miss := Bool(true)
+    io.perf.miss := true.B
   }
   tagMem.io <= (!tagValid && masterReg.Cmd === OcpCmd.RD,
                 masterReg.Addr(addrBits + 1, lineBits),
@@ -126,18 +126,18 @@ class DirectMappedCache(size: Int, lineSize: Int) extends DCacheType(lineSize/4)
     wrAddrReg := Cat(masterReg.Addr(addrBits + 1, lineBits), burstCntReg)
 
     when(io.slave.S.Resp =/= OcpResp.NULL) {
-      fillReg := Bool(true)
+      fillReg := true.B
       wrDataReg := io.slave.S.Data
       when(burstCntReg === missIndexReg) {
         slaveReg := io.slave.S
       }
-      when(burstCntReg === UInt(lineSize/4-1)) {
+      when(burstCntReg === (lineSize/4-1).U) {
         stateReg := respond
       }
-      burstCntReg := burstCntReg + UInt(1)
+      burstCntReg := burstCntReg + 1.U
     }
     when(io.slave.S.Resp === OcpResp.ERR) {
-      tagVMem(masterReg.Addr(addrBits + 1, lineBits)) := Bool(false)
+      tagVMem(masterReg.Addr(addrBits + 1, lineBits)) := false.B
     }
     masterReg.Addr := masterReg.Addr
   }
@@ -149,7 +149,7 @@ class DirectMappedCache(size: Int, lineSize: Int) extends DCacheType(lineSize/4)
 
   // reset valid bits
   when (io.invalidate) {
-    tagVMem.map(_ := Bool(false))
+    tagVMem.map(_ := false.B)
   }
 }
 

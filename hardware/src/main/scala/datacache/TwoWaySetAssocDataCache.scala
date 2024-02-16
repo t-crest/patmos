@@ -20,8 +20,8 @@ import ocp._
 
 class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends DCacheType(lineSize/4) {
 
-  io.perf.hit := Bool(false)
-  io.perf.miss := Bool(false)
+  io.perf.hit := false.B
+  io.perf.miss := false.B
 
   val addrBits = log2Up((size / 2) / BYTES_PER_WORD)
   val lineBits = log2Up(lineSize)
@@ -86,8 +86,8 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends DCacheType(lin
                           OcpResp.DVA, OcpResp.NULL)
                           
   // Update lru on hit
-  when ((masterReg.Cmd === OcpCmd.WR || masterReg.Cmd === OcpCmd.RD) && (tagValid1 || tagValid2) && fillReg === Bool(false)) { 
-	  lruMem(masterReg.Addr(addrBits + 1, 2)) := Mux(tagValid1, Bool(true), Bool(false))
+  when ((masterReg.Cmd === OcpCmd.WR || masterReg.Cmd === OcpCmd.RD) && (tagValid1 || tagValid2) && fillReg === false.B) {
+	  lruMem(masterReg.Addr(addrBits + 1, 2)) := Mux(tagValid1, true.B, false.B)
   }
 
 
@@ -95,8 +95,8 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends DCacheType(lin
   val idle :: hold :: fill :: respond :: Nil = Enum(UInt(), 4)
   val stateReg = Reg(init = idle)
 
-  val burstCntReg = Reg(init = UInt(0, lineBits-2))
-  val missIndexReg = Reg(UInt(lineBits-2))
+  val burstCntReg = Reg(init = 0.U((lineBits-2).W))
+  val missIndexReg = Reg((lineBits-2).U)
 
   // Register to delay response
   val slaveReg = Reg(io.master.S)
@@ -109,21 +109,21 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends DCacheType(lin
   io.slave.M.DataValid := Bits(0)
   io.slave.M.DataByteEn := Bits(0)
 
-  fillReg := Bool(false)
+  fillReg := false.B
 
   // Record a hit
   when((tagValid1 || tagValid2) && masterReg.Cmd === OcpCmd.RD) {
-    io.perf.hit := Bool(true)
+    io.perf.hit := true.B
   }
 
   // Start handling a miss
   when((!tagValid1 && !tagValid2) && masterReg.Cmd === OcpCmd.RD) {
     lruReg := lru
-    when (lru === Bool(false)) {
-      tagVMem1(masterReg.Addr(addrBits + 1, lineBits)) := Bool(true)
+    when (lru === false.B) {
+      tagVMem1(masterReg.Addr(addrBits + 1, lineBits)) := true.B
     }
     .otherwise {
-      tagVMem2(masterReg.Addr(addrBits + 1, lineBits)) := Bool(true)
+      tagVMem2(masterReg.Addr(addrBits + 1, lineBits)) := true.B
     }
 
     missIndexReg := masterReg.Addr(lineBits-1, 2).asUInt
@@ -136,7 +136,7 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends DCacheType(lin
       stateReg := hold
     }
     masterReg.Addr := masterReg.Addr
-    io.perf.miss := Bool(true)
+    io.perf.miss := true.B
   }
   
   tagMem1.io <= (!tagValid1 && !tagValid2 && !lru && masterReg.Cmd === OcpCmd.RD,
@@ -163,22 +163,22 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends DCacheType(lin
     wrAddrReg := Cat(masterReg.Addr(addrBits + 1, lineBits), burstCntReg)    
     
     when(io.slave.S.Resp =/= OcpResp.NULL) {
-      fillReg := Bool(true)
+      fillReg := true.B
       wrDataReg := io.slave.S.Data
       when(burstCntReg === missIndexReg) {
         slaveReg := io.slave.S
       }
-      when(burstCntReg === UInt(lineSize/4-1)) {
+      when(burstCntReg === (lineSize/4-1).U) {
         stateReg := respond
       }
-      burstCntReg := burstCntReg + UInt(1)
+      burstCntReg := burstCntReg + 1.U
     }
     when(io.slave.S.Resp === OcpResp.ERR) {
-      when (lru === Bool(false)) {
-        tagVMem1(masterReg.Addr(addrBits + 1, lineBits)) := Bool(false)
+      when (lru === false.B) {
+        tagVMem1(masterReg.Addr(addrBits + 1, lineBits)) := false.B
       }
       .otherwise {
-        tagVMem2(masterReg.Addr(addrBits + 1, lineBits)) := Bool(false)
+        tagVMem2(masterReg.Addr(addrBits + 1, lineBits)) := false.B
       }
     }
     masterReg.Addr := masterReg.Addr
@@ -191,7 +191,7 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends DCacheType(lin
 
   // reset valid bits
   when (io.invalidate) {
-    tagVMem1.map(_ := Bool(false))
-    tagVMem2.map(_ := Bool(false))
+    tagVMem1.map(_ := false.B)
+    tagVMem2.map(_ := false.B)
   }
 }

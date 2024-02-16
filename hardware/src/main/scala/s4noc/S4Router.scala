@@ -45,21 +45,21 @@ class RouterPorts[T <: Data](dt: T) extends Bundle {
 class S4Router[T <: Data](schedule: Array[Array[Int]], dt: T) extends Module {
   val io = new RouterPorts(dt)
 
-  val regCounter = RegInit(UInt(0, log2Up(schedule.length)))
-  val end = regCounter === UInt(schedule.length - 1)
-  regCounter := Mux(end, UInt(0), regCounter + UInt(1))
+  val regCounter = RegInit(0.U(log2Up(schedule.length).W))
+  val end = regCounter === (schedule.length - 1).U
+  regCounter := Mux(end, 0.U, regCounter + 1.U)
 
 
   // Convert schedule table to a Chisel type table
-  val sched = Wire(Vec(schedule.length, Vec(Const.NR_OF_PORTS, UInt(width = 3))))
+  val sched = Wire(Vec(schedule.length, Vec(Const.NR_OF_PORTS, UInt(3.W))))
   for (i <- 0 until schedule.length) {
     for (j <- 0 until Const.NR_OF_PORTS) {
-      sched(i)(j) := UInt(schedule(i)(j), 3)
+      sched(i)(j) := schedule(i)(j).U(3.W)
     }
   }
 
   // TDM schedule starts one cycles later for read data delay
-  val regDelay = RegNext(regCounter, init=UInt(0))
+  val regDelay = RegNext(regCounter, init=0.U)
   val currentSched = sched(regDelay)
 
   // We assume that on reset the valid signal is false.
@@ -72,5 +72,5 @@ class S4Router[T <: Data](schedule: Array[Array[Int]], dt: T) extends Module {
 object S4Router extends App {
 
   chiselMain(Array("--backend", "v", "--targetDir", "generated"),
-    () => Module(new S4Router(Schedule.genRandomSchedule(7), UInt(width = 32))))
+    () => Module(new S4Router(Schedule.genRandomSchedule(7), UInt(32.W))))
 }

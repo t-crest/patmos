@@ -26,7 +26,7 @@ class TwoWayMem(n: Int, memSize: Int) extends Module {
 
 
   // Dummy output keep hardware generated
-  val dout = Reg(next = Vec(n * n, UInt(width = 32)))
+  val dout = Reg(next = Vec(n * n, UInt(32.W)))
 
   val writeNetWidth = log2Down(memSize) - log2Down(n*n)
 
@@ -49,7 +49,7 @@ class TwoWayMem(n: Int, memSize: Int) extends Module {
     NIs(i).io.memReq.in <>  io.nodearray(i).out
     NIs(i).io.memReq.out <>  io.nodearray(i).in
     
-    //NIs(i).io.memReq.out.rw := Bool(true)//nodearray(i).local.out.rw
+    //NIs(i).io.memReq.out.rw := true.B//nodearray(i).local.out.rw
     
     NIs(i).io.writeChannel.in := writeNetwork.io.local(i).out
     writeNetwork.io.local(i).in := NIs(i).io.writeChannel.out

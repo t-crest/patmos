@@ -32,20 +32,20 @@ class Adder() extends CoprocessorMemoryAccess() {
   // scalar state machine for ADD and ADD_STALL (saturating)
   val scalarIdle :: scalarAdd :: Nil = Enum(2)
   val scalarStateReg = Reg(init = scalarIdle)
-  val scalarIntermediateResult = Wire(UInt(width = DATA_WIDTH + 1))
+  val scalarIntermediateResult = Wire(UInt((DATA_WIDTH + 1).W))
   
   // vector state machine for VECTOR_ADD
   val vectorIdle :: vectorRead1Req :: vectorRead1 :: vectorRead2Req :: vectorRead2 :: vectorWriteReq :: vectorWrite :: vectorDone :: Nil = Enum(8)
   val vectorStateReg = Reg(init = vectorIdle)
-  val vectorSrcReg = Reg(UInt(width = DATA_WIDTH))
-  val vectorDstReg = Reg(UInt(width = DATA_WIDTH))
-  val vectorAccReg = Reg(Vec(BURST_LENGTH, UInt(width = DATA_WIDTH)))
-  val vectorCntReg = Reg(UInt(width = log2Ceil(BURST_LENGTH)))
+  val vectorSrcReg = Reg(UInt(DATA_WIDTH.W))
+  val vectorDstReg = Reg(UInt(DATA_WIDTH.W))
+  val vectorAccReg = Reg(Vec(BURST_LENGTH, UInt(DATA_WIDTH.W)))
+  val vectorCntReg = Reg(UInt(log2Ceil(BURST_LENGTH).W))
 
   // default values
   scalarIntermediateResult := io.copIn.opData(0) +& io.copIn.opData(1)
-  io.copOut.result := UInt(0)
-  io.copOut.ena_out := Bool(false)
+  io.copOut.result := 0.U
+  io.copOut.ena_out := false.B
 
   // start operation
   when(io.copIn.trigger & io.copIn.ena_in) {
@@ -53,8 +53,8 @@ class Adder() extends CoprocessorMemoryAccess() {
     when(io.copIn.read) {
       switch(io.copIn.funcId) {
         is(FUNC_ADD) {
-          io.copOut.ena_out := Bool(true)
-          when(scalarIntermediateResult(DATA_WIDTH) === UInt(1, 1)) {
+          io.copOut.ena_out := true.B
+          when(scalarIntermediateResult(DATA_WIDTH) === 1.U(1.W)) {
             io.copOut.result := Fill(DATA_WIDTH, 1.U)
           }.otherwise {
             io.copOut.result := scalarIntermediateResult(DATA_WIDTH - 1, 0)
@@ -67,9 +67,9 @@ class Adder() extends CoprocessorMemoryAccess() {
     }.elsewhen(io.copIn.isCustom) {
       switch(io.copIn.funcId) {
         is(FUNC_VECTOR_ADD) {
-          io.copOut.ena_out := Bool(true)
+          io.copOut.ena_out := true.B
           when(vectorStateReg === vectorDone) {
-            io.copOut.result := UInt(1, DATA_WIDTH.W)
+            io.copOut.result := 1.U(DATA_WIDTH.W)
             vectorStateReg := vectorIdle
           }
         }
@@ -77,18 +77,18 @@ class Adder() extends CoprocessorMemoryAccess() {
     }.otherwise {
       switch(io.copIn.funcId) {
         is(FUNC_ADD) {
-          io.copOut.ena_out := Bool(true)
+          io.copOut.ena_out := true.B
         }
         is(FUNC_ADD_STALL) {
-          io.copOut.ena_out := Bool(true)
+          io.copOut.ena_out := true.B
         }
         is(FUNC_VECTOR_ADD) {
-          io.copOut.ena_out := Bool(true)
+          io.copOut.ena_out := true.B
           when(vectorStateReg === vectorIdle) {
             vectorSrcReg := io.copIn.opData(0)
             vectorDstReg := io.copIn.opData(1)
             vectorStateReg := vectorRead1Req
-            io.copOut.ena_out := Bool(true)
+            io.copOut.ena_out := true.B
           }
         }
       }
@@ -97,8 +97,8 @@ class Adder() extends CoprocessorMemoryAccess() {
   
   // logic for ADD_STALL
   when(io.copIn.ena_in & scalarStateReg === scalarAdd) {
-    io.copOut.ena_out := Bool(true)
-    when(scalarIntermediateResult(DATA_WIDTH) === UInt(1, 1)) {
+    io.copOut.ena_out := true.B
+    when(scalarIntermediateResult(DATA_WIDTH) === 1.U(1.W)) {
       io.copOut.result := Fill(DATA_WIDTH, 1.U)
     }.otherwise {
       io.copOut.result := scalarIntermediateResult(DATA_WIDTH - 1, 0)
@@ -108,24 +108,24 @@ class Adder() extends CoprocessorMemoryAccess() {
   
   // logic for VECTOR_ADD
   io.memPort.M.Cmd := OcpCmd.IDLE
-  io.memPort.M.Addr := UInt(0)
-  io.memPort.M.Data := UInt(0)
-  io.memPort.M.DataValid := UInt(0)
+  io.memPort.M.Addr := 0.U
+  io.memPort.M.Data := 0.U
+  io.memPort.M.DataValid := 0.U
   io.memPort.M.DataByteEn := "b1111".U
   switch(vectorStateReg) {
     is(vectorRead1Req) {
       io.memPort.M.Cmd := OcpCmd.RD
       io.memPort.M.Addr := vectorSrcReg
-      when(io.memPort.S.CmdAccept === UInt(1)) {
-        vectorCntReg := UInt(0)
+      when(io.memPort.S.CmdAccept === 1.U) {
+        vectorCntReg := 0.U
         vectorStateReg := vectorRead1
       }
     }
     is(vectorRead1) {
       vectorAccReg(vectorCntReg) := io.memPort.S.Data
       when(io.memPort.S.Resp === OcpResp.DVA) {
-        when(vectorCntReg < UInt(BURST_LENGTH - 1)) {
-          vectorCntReg := vectorCntReg + UInt(1)
+        when(vectorCntReg < (BURST_LENGTH - 1).U) {
+          vectorCntReg := vectorCntReg + 1.U
         }.otherwise {
           vectorStateReg := vectorRead2Req
         }
@@ -133,17 +133,17 @@ class Adder() extends CoprocessorMemoryAccess() {
     }
     is(vectorRead2Req) {
       io.memPort.M.Cmd := OcpCmd.RD
-      io.memPort.M.Addr := vectorSrcReg + UInt(BURST_LENGTH * DATA_WIDTH / BYTE_WIDTH)
-      when(io.memPort.S.CmdAccept === UInt(1)) {
-        vectorCntReg := UInt(0)
+      io.memPort.M.Addr := vectorSrcReg + (BURST_LENGTH * DATA_WIDTH / BYTE_WIDTH).U
+      when(io.memPort.S.CmdAccept === 1.U) {
+        vectorCntReg := 0.U
         vectorStateReg := vectorRead2
       }
     }
     is(vectorRead2) {
       vectorAccReg(vectorCntReg) := vectorAccReg(vectorCntReg) + io.memPort.S.Data
       when(io.memPort.S.Resp === OcpResp.DVA) {
-        when(vectorCntReg < UInt(BURST_LENGTH - 1)) {
-          vectorCntReg := vectorCntReg + UInt(1)
+        when(vectorCntReg < (BURST_LENGTH - 1).U) {
+          vectorCntReg := vectorCntReg + 1.U
         }.otherwise {
           vectorStateReg := vectorWriteReq
         }
@@ -153,18 +153,18 @@ class Adder() extends CoprocessorMemoryAccess() {
       io.memPort.M.Cmd := OcpCmd.WR
       io.memPort.M.Addr := vectorDstReg
       io.memPort.M.Data := vectorAccReg(0)
-      io.memPort.M.DataValid := UInt(1)
-      when(io.memPort.S.CmdAccept === UInt(1) && io.memPort.S.DataAccept === UInt(1)) {
-        vectorCntReg := UInt(1)
+      io.memPort.M.DataValid := 1.U
+      when(io.memPort.S.CmdAccept === 1.U && io.memPort.S.DataAccept === 1.U) {
+        vectorCntReg := 1.U
         vectorStateReg := vectorWrite
       }
     }
     is(vectorWrite) {
       io.memPort.M.Data := vectorAccReg(vectorCntReg)
-      io.memPort.M.DataValid := UInt(1)
-      when(io.memPort.S.DataAccept === UInt(1)) {
-        when(vectorCntReg < UInt(BURST_LENGTH - 1)) {
-          vectorCntReg := vectorCntReg + UInt(1)
+      io.memPort.M.DataValid := 1.U
+      when(io.memPort.S.DataAccept === 1.U) {
+        when(vectorCntReg < (BURST_LENGTH - 1).U) {
+          vectorCntReg := vectorCntReg + 1.U
         }.otherwise {
           vectorStateReg := vectorDone
         }

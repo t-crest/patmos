@@ -35,16 +35,16 @@ class NodeSPM(id: Int, nrCores: Int) extends Module {
 
   val idle :: rd :: wr :: Nil = Enum(UInt(), 3)
   val state = RegInit(idle)
-  val cnt = RegInit(UInt(0, log2Up(nrCores)))
+  val cnt = RegInit(0.U(log2Up(nrCores).W))
 
   // TODO: how to reset with a harmless IDLE command?
   val masterReg = Reg(io.fromCore.M)
 
-  cnt := Mux(cnt === UInt(nrCores - 1), UInt(0), cnt + UInt(1))
-  val enable = cnt === UInt(id)
+  cnt := Mux(cnt === (nrCores - 1).U, 0.U, cnt + 1.U)
+  val enable = cnt === id.U
   
   // this is not super nice to define the type this way
-  val dvaRepl = Wire(UInt(width = 2))
+  val dvaRepl = Wire(UInt(2.W))
   dvaRepl := OcpResp.NULL
 
   when(state === idle) {
@@ -78,10 +78,10 @@ class NodeSPM(id: Int, nrCores: Int) extends Module {
     io.toMem.M := masterReg
   }.otherwise {
     // a simple way to assign all 0?
-    io.toMem.M.Addr := UInt(0)
-    io.toMem.M.Data := UInt(0)
-    io.toMem.M.Cmd := UInt(0)
-    io.toMem.M.ByteEn := UInt(0)
+    io.toMem.M.Addr := 0.U
+    io.toMem.M.Data := 0.U
+    io.toMem.M.Cmd := 0.U
+    io.toMem.M.ByteEn := 0.U
   }
 }
 

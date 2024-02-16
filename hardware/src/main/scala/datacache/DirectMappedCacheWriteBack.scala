@@ -47,8 +47,8 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends DCacheType(li
   val idle :: write :: writeWaitForResp :: hold :: fill :: respond :: Nil = Enum(UInt(), 6)
   val stateReg = Reg(init = idle)
 
-  val burstCntReg = Reg(init = UInt(0, lineBits-2))
-  val missIndexReg = Reg(UInt(lineBits-2))
+  val burstCntReg = Reg(init = 0.U((lineBits-2).W))
+  val missIndexReg = Reg((lineBits-2).U)
 
   // Generate memories
   val tagMem = MemBlock(tagCount, tagWidth)
@@ -80,15 +80,15 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends DCacheType(li
   }
   // Update dirty bit when writing
   when(tagValid && (stmsk =/= "b0000".U(4.W))) {
-    dirtyMem(masterReg.Addr(addrBits + 1, lineBits)) := Bool(true)
+    dirtyMem(masterReg.Addr(addrBits + 1, lineBits)) := true.B
     when(io.master.M.Addr(addrBits + 1, lineBits) === masterReg.Addr(addrBits + 1, lineBits)) {
-      dirty := Bool(true);
+      dirty := true.B;
     }
   }
 
 
   // Count register used to index reads for write-back
-  val rdAddrCntReg = Reg(init = UInt(0, lineBits-2))
+  val rdAddrCntReg = Reg(init = 0.U((lineBits-2).W))
   // Read from cache
   val selWrBack = Bool()
   val rdAddr = Mux(selWrBack, Cat(masterReg.Addr(addrBits + 1, lineBits), rdAddrCntReg), io.master.M.Addr(addrBits + 1, 2)) // helper signal
@@ -114,22 +114,22 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends DCacheType(li
   io.slave.M.DataValid := Bits(0)
   io.slave.M.DataByteEn := Bits(0)
 
-  fillReg := Bool(false)
+  fillReg := false.B
   doingRead := doingRead 
-  selWrBack := Bool(false)
+  selWrBack := false.B
 
 
   // Start handling a miss
   when(!tagValid && (masterReg.Cmd === OcpCmd.RD || masterReg.Cmd === OcpCmd.WR)) {
-    tagVMem(masterReg.Addr(addrBits + 1, lineBits)) := Bool(true)
+    tagVMem(masterReg.Addr(addrBits + 1, lineBits)) := true.B
     missIndexReg := masterReg.Addr(lineBits-1, 2).asUInt
     memWrAddrReg := Cat(tag, masterReg.Addr(addrBits + 1, lineBits), Fill(lineBits, Bits(0)))
 
     // start writing back if block is dirty
     when(dirty) {
       stateReg := write
-      selWrBack := Bool(true)
-      rdAddrCntReg := rdAddrCntReg + UInt(1)
+      selWrBack := true.B
+      rdAddrCntReg := rdAddrCntReg + 1.U
     }
     // or skip writeback if block is not dirty
     .otherwise {
@@ -144,14 +144,14 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends DCacheType(li
     masterReg.Addr := masterReg.Addr
 
     when(masterReg.Cmd === OcpCmd.WR) {
-      doingRead := Bool(false)
+      doingRead := false.B
       coreWrDataReg := masterReg.Data
       coreByteEnReg := masterReg.ByteEn
-      dirtyMem(masterReg.Addr(addrBits + 1, lineBits)) := Bool(true)
+      dirtyMem(masterReg.Addr(addrBits + 1, lineBits)) := true.B
     }
     when(masterReg.Cmd === OcpCmd.RD) {
-      doingRead := Bool(true)
-      dirtyMem(masterReg.Addr(addrBits + 1, lineBits)) := Bool(false)
+      doingRead := true.B
+      dirtyMem(masterReg.Addr(addrBits + 1, lineBits)) := false.B
     }
   }
   tagMem.io <= (!tagValid && (masterReg.Cmd === OcpCmd.RD || masterReg.Cmd === OcpCmd.WR),
@@ -160,7 +160,7 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends DCacheType(li
 
   // writeback state
   when(stateReg === write) {
-    selWrBack := Bool(true)
+    selWrBack := true.B
     io.slave.M.Addr := Cat(memWrAddrReg(addrWidth-1, burstAddrBits+byteAddrBits),
                            Fill(burstAddrBits+byteAddrBits, Bits(0)))
     when(burstCntReg === Bits(0)) {
@@ -170,10 +170,10 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends DCacheType(li
     io.slave.M.Data := rdData
     io.slave.M.DataByteEn := "b1111".U(4.W)
     when(io.slave.S.DataAccept === Bits(1)) {
-      burstCntReg := burstCntReg + UInt(1)
-      rdAddrCntReg := rdAddrCntReg + UInt(1)
+      burstCntReg := burstCntReg + 1.U
+      rdAddrCntReg := rdAddrCntReg + 1.U
     }
-    when(burstCntReg === UInt(burstLength - 1)) {
+    when(burstCntReg === (burstLength - 1).U) {
       when(io.slave.S.Resp === OcpResp.DVA) {
         stateReg := hold
       }
@@ -218,7 +218,7 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends DCacheType(li
     wrAddrReg := Cat(masterReg.Addr(addrBits + 1, lineBits), burstCntReg)
     
     when(io.slave.S.Resp =/= OcpResp.NULL) { 
-      fillReg := Bool(true)
+      fillReg := true.B
       wrDataReg := io.slave.S.Data
       when(burstCntReg === missIndexReg) {
         slaveReg := io.slave.S
@@ -232,13 +232,13 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends DCacheType(li
           wrDataReg := comb.reduceLeft((x,y) => y##x)
         }
       }
-      when(burstCntReg === UInt(lineSize/4-1)) {
+      when(burstCntReg === (lineSize/4-1).U) {
         stateReg := respond
       }
-      burstCntReg := burstCntReg + UInt(1)
+      burstCntReg := burstCntReg + 1.U
     }
     when(io.slave.S.Resp === OcpResp.ERR) {
-      tagVMem(masterReg.Addr(addrBits + 1, lineBits)) := Bool(false)
+      tagVMem(masterReg.Addr(addrBits + 1, lineBits)) := false.B
     }
     masterReg.Addr := masterReg.Addr
   }
@@ -250,6 +250,6 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends DCacheType(li
 
   // reset valid bits
   when (io.invalidate) {
-    tagVMem.map(_ := Bool(false))
+    tagVMem.map(_ := false.B)
   }
 }

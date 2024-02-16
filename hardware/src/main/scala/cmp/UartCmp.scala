@@ -51,16 +51,16 @@ class UartCmp(corecnt: Int, clk_freq: Int, baud_rate: Int, fifoDepth: Int) exten
   uart.io.ocp.M := PriorityMux(io.cores.map(e => (e.M.Cmd =/= OcpCmd.IDLE, e.M)))
   
   for (i <- 0 until corecnt) {
-    val cmdReg = Reg(init = Bool(false))
+    val cmdReg = Reg(init = false.B)
     when(io.cores(i).M.Cmd =/= OcpCmd.IDLE) {
-      cmdReg := Bool(true)
+      cmdReg := true.B
     }.elsewhen(uart.io.ocp.S.Resp === OcpResp.DVA) {
-      cmdReg := Bool(false)
+      cmdReg := false.B
     }
     
     io.cores(i).S.Data := uart.io.ocp.S.Data
     io.cores(i).S.Resp := uart.io.ocp.S.Resp
-    when(cmdReg =/= Bool(true)) {
+    when(cmdReg =/= true.B) {
       io.cores(i).S.Resp := OcpResp.NULL
     }
   }
