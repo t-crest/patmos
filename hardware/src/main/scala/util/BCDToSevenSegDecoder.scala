@@ -3,10 +3,15 @@ package util
 import chisel3._
 import chisel3.util._
 
-class BCDToSevenSegDecoder extends Module{
+object BCDToSevenSegDecoder {
+  sealed trait Polarity
+  case object ActiveHigh extends Polarity
+  case object ActiveLow extends Polarity
+}
+
+class BCDToSevenSegDecoder(polarity: BCDToSevenSegDecoder.Polarity) extends Module{
   val io = IO(new Bundle{
     val bcdData = Input(UInt(4.W))
-    val segPolarity = Input(Bool())
     val segData = Output(UInt(7.W))
   })
 
@@ -64,10 +69,9 @@ class BCDToSevenSegDecoder extends Module{
     }
   }
 
-  when (!io.segPolarity) {
-    io.segData := result
-  }.otherwise {
-    io.segData := ~result
+  polarity match {
+    case BCDToSevenSegDecoder.ActiveHigh => io.segData := ~result
+    case BCDToSevenSegDecoder.ActiveLow => io.segData := result
   }
 
 }

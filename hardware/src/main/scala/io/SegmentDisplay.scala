@@ -49,9 +49,8 @@ class SegmentDisplay(displayCount : Int, segmentPolarity: Int) extends CoreDevic
 
     // Decoded master data
     val decodedMData = Wire(Bits(width = 7))
-    val decoder = Module(new BCDToSevenSegDecoder).io
+    val decoder = Module(new BCDToSevenSegDecoder(BCDToSevenSegDecoder.ActiveLow)).io
     decoder.bcdData := masterReg.Data(3, 0)
-    decoder.segPolarity := false.B
     decodedMData := decoder.segData
 
     // Read/Write seven segment displays

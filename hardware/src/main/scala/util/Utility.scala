@@ -10,7 +10,9 @@ package util
 
 import java.nio.file.{ Files, Paths }
 
-import Chisel._
+import util._
+
+import chisel3._
 import scala.math._
 
 import patmos.Constants._
@@ -86,7 +88,7 @@ object Utility {
     val arr = new Array[Bits](math.max(1, byteArray.length / bytesPerWord))
 
     if (byteArray.length == 0) {
-      arr(0) = Bits(0, width = width)
+      arr(0) = 0.U(width.W)
     }
 
     for (i <- 0 until byteArray.length / bytesPerWord) {
@@ -96,13 +98,13 @@ object Utility {
         word += byteArray(i * bytesPerWord + j).toInt & 0xff
       }
       // printf("%08x\n", Bits(word))
-      arr(i) = Bits(word, width = width)
+      arr(i) = word.U(width.W)
 
 
     }
 
     // use vector to represent ROM
-    Vec[Bits](arr)
+    VecInit[Bits](arr)
   }
 
   def sizeToStr(size: Long): String = {
@@ -119,7 +121,7 @@ object Utility {
 
   def printConfig(configFile: String): Unit = {
     var tempStr = ""
-    println("\nPatmos configuration \"" + util.Config.getConfig.description + "\"")
+    println("\nPatmos configuration \"" + Config.getConfig.description + "\"")
     println("\tFrequency: "+ (CLOCK_FREQ/1000000).toString +" MHz")
     println("\tPipelines: "+ PIPE_COUNT.toString)
     println("\tCores: "+ Config.getConfig.coreCount.toString)
@@ -148,9 +150,9 @@ object Utility {
     println("\tStack cache: "+ sizeToStr(SCACHE_SIZE))
     println("\tInstruction SPM: "+ sizeToStr(ISPM_SIZE))
     println("\tData SPM: "+ sizeToStr(DSPM_SIZE))
-    println("\tAddressable external memory: "+ sizeToStr(util.Config.getConfig.ExtMem.size))
+    println("\tAddressable external memory: "+ sizeToStr(Config.getConfig.ExtMem.size))
     println("\tMMU: "+HAS_MMU)
-    println("\tBurst length: "+ util.Config.getConfig.burstLength)
+    println("\tBurst length: "+ Config.getConfig.burstLength)
     println("")
   }
 }

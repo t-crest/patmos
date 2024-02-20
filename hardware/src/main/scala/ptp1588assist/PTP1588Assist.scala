@@ -77,9 +77,8 @@ class PTP1588Assist(addrWidth: Int = ADDR_WIDTH, dataWidth: Int = DATA_WIDTH, cl
   // Led connections
   val dispRegVec = RegInit(VecInit(Seq.fill(8)(0.U(7.W))))
   for (i <- 0 until 7) {
-    val decoder = Module(new BCDToSevenSegDecoder).io
+    val decoder = Module(new BCDToSevenSegDecoder(BCDToSevenSegDecoder.ActiveLow)).io
     decoder.bcdData := rtc.io.ptpTimestamp(39 + i * 4, 32 + i * 4)
-    decoder.segPolarity := false.B
     dispRegVec(i) := decoder.segData
   }
   io.rtcHexDisp := dispRegVec

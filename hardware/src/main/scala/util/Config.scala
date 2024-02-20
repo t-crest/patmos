@@ -34,7 +34,6 @@ package util
 
 import java.io._
 
-import Chisel._
 import patmos._
 import io.CoreDevice
 import io.Device
