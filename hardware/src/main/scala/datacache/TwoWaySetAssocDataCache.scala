@@ -8,8 +8,8 @@
 
 package datacache
 
-import Chisel._
-import chisel3.VecInit
+import chisel3._
+import chisel3.util._
 
 import patmos.Constants._
 import patmos.DataCachePerf
@@ -30,7 +30,7 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends DCacheType(lin
   val tagCount = (size / 2) / lineSize
 
   // Register signals from master
-  val masterReg = Reg(io.master.M)
+  val masterReg = Reg(chiselTypeOf(io.master.M))
   masterReg := io.master.M
 
   // Generate memories
@@ -48,16 +48,16 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends DCacheType(lin
 
   val tag1 = tagMem1.io(io.master.M.Addr(addrBits + 1, lineBits))
   val tag2 = tagMem2.io(io.master.M.Addr(addrBits + 1, lineBits))
-  val tagV1 = Reg(next = tagVMem1(io.master.M.Addr(addrBits + 1, lineBits)))
-  val tagV2 = Reg(next = tagVMem2(io.master.M.Addr(addrBits + 1, lineBits)))
+  val tagV1 = RegNext(next = tagVMem1(io.master.M.Addr(addrBits + 1, lineBits)))
+  val tagV2 = RegNext(next = tagVMem2(io.master.M.Addr(addrBits + 1, lineBits)))
   val tagValid1 = tagV1 && tag1 === Cat(masterReg.Addr(ADDR_WIDTH - 1, addrBits + 2))
   val tagValid2 = tagV2 && tag2 === Cat(masterReg.Addr(ADDR_WIDTH - 1, addrBits + 2))
-  val lru = Reg(next = lruMem(io.master.M.Addr(addrBits + 1, lineBits)))
+  val lru = RegNext(next = lruMem(io.master.M.Addr(addrBits + 1, lineBits)))
 
   val fillReg = Reg(Bool())
 
-  val wrAddrReg = Reg(Bits(width = addrBits))
-  val wrDataReg = Reg(Bits(width = DATA_WIDTH))
+  val wrAddrReg = Reg(UInt(addrBits.W))
+  val wrDataReg = Reg(UInt(DATA_WIDTH.W))
   val lruReg = Reg(Bool())
 
   wrAddrReg := io.master.M.Addr(addrBits + 1, 2)
@@ -92,22 +92,22 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends DCacheType(lin
 
 
   // State machine for misses
-  val idle :: hold :: fill :: respond :: Nil = Enum(UInt(), 4)
-  val stateReg = Reg(init = idle)
+  val idle :: hold :: fill :: respond :: Nil = Enum(4)
+  val stateReg = RegInit(init = idle)
 
-  val burstCntReg = Reg(init = 0.U((lineBits-2).W))
-  val missIndexReg = Reg((lineBits-2).U)
+  val burstCntReg = RegInit(init = 0.U((lineBits-2).W))
+  val missIndexReg = Reg(chiselTypeOf((lineBits-2).U))
 
   // Register to delay response
-  val slaveReg = Reg(io.master.S)
+  val slaveReg = Reg(chiselTypeOf(io.master.S))
 
   // Default values
   io.slave.M.Cmd := OcpCmd.IDLE
   io.slave.M.Addr := Cat(masterReg.Addr(ADDR_WIDTH-1, lineBits),
-                         Fill(lineBits, Bits(0)))
-  io.slave.M.Data := Bits(0)
-  io.slave.M.DataValid := Bits(0)
-  io.slave.M.DataByteEn := Bits(0)
+                         Fill(lineBits, 0.B))
+  io.slave.M.Data := 0.U
+  io.slave.M.DataValid := 0.U
+  io.slave.M.DataByteEn := 0.U
 
   fillReg := false.B
 
@@ -128,7 +128,7 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends DCacheType(lin
 
     missIndexReg := masterReg.Addr(lineBits-1, 2).asUInt
     io.slave.M.Cmd := OcpCmd.RD
-    when(io.slave.S.CmdAccept === Bits(1)) {
+    when(io.slave.S.CmdAccept === 1.U) {
       stateReg := fill
       lruMem(masterReg.Addr(addrBits + 1, 2)) := !lru
     }
@@ -150,7 +150,7 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends DCacheType(lin
   // Hold read command
   when(stateReg === hold) {
     io.slave.M.Cmd := OcpCmd.RD
-    when(io.slave.S.CmdAccept === Bits(1)) {
+    when(io.slave.S.CmdAccept === 1.U) {
       stateReg := fill
     }
     .otherwise {

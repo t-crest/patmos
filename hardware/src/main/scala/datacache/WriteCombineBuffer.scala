@@ -38,8 +38,8 @@
 
 package datacache
 
-import Chisel._
-import chisel3.VecInit
+import chisel3._
+import chisel3.util._
 
 import patmos.Constants._
 import patmos.WriteCombinePerf
@@ -60,26 +60,26 @@ class WriteCombineBuffer() extends WriteBufferType {
   val tagWidth = addrWidth - burstAddrBits - byteAddrBits
 
   // State of transmission
-  val idle :: read :: write :: writeResp :: writeComb :: writeSnoop :: Nil = Enum(Bits(), 6)
-  val state = Reg(init = idle)
-  val cntReg = Reg(init = 0.U(burstAddrBits.W))
+  val idle :: read :: write :: writeResp :: writeComb :: writeSnoop :: Nil = Enum(6)
+  val state = RegInit(init = idle)
+  val cntReg = RegInit(init = 0.U(burstAddrBits.W))
 
   // Register signals that come from write master
-  val writeMasterReg = Reg(io.writeMaster.M)
+  val writeMasterReg = Reg(chiselTypeOf(io.writeMaster.M))
 
   // Register signals that come from read master
-  val readMasterReg = Reg(next = io.readMaster.M)
+  val readMasterReg = RegNext(next = io.readMaster.M)
 
   // Registers for write combining
-  val tagReg = Reg(init = Bits(0, width = tagWidth))
-  val dataBuffer = Reg(Vec(burstLength, Bits(width = dataWidth)))
-  val byteEnBuffer = RegInit(VecInit(Seq.fill(burstLength)(Bits(0, width = byteEnWidth))))
+  val tagReg = RegInit(init = 0.U(tagWidth.W))
+  val dataBuffer = Reg(Vec(burstLength, UInt(dataWidth.W)))
+  val byteEnBuffer = RegInit(VecInit(Seq.fill(burstLength)(0.U(byteEnWidth.W))))
   val hitReg = Reg(Bool())
 
   // Temporary vector for combining
-  val comb = VecInit(Seq.fill(byteEnWidth)(Bits(width = 8)))
+  val comb = Wire(Vec(byteEnWidth, UInt(8.W)))
   for (i <- 0 until byteEnWidth) {
-    comb(i) := Bits(0)
+    comb(i) := 0.U
   }
 
   // Default responses
@@ -95,7 +95,7 @@ class WriteCombineBuffer() extends WriteBufferType {
     io.readMaster.S.Resp := io.slave.S.Resp
     when(hitReg) {
       for (i <- 0 until byteEnWidth) {
-        comb(i) := Mux(byteEnBuffer(cntReg)(i) === Bits(1),
+        comb(i) := Mux(byteEnBuffer(cntReg)(i) === 1.U,
                        dataBuffer(cntReg)(8*i+7, 8*i),
                        io.slave.S.Data(8*i+7, 8*i))
       }
@@ -114,17 +114,17 @@ class WriteCombineBuffer() extends WriteBufferType {
   // Write burst
   when(state === write) {
     io.readMaster.S.Resp := OcpResp.NULL
-    when(cntReg === Bits(0)) {
+    when(cntReg === 0.U) {
       io.slave.M.Cmd := OcpCmd.WR
-      io.slave.M.Addr := Cat(tagReg, Fill(burstAddrBits+byteAddrBits, Bits(0)))
+      io.slave.M.Addr := Cat(tagReg, Fill(burstAddrBits+byteAddrBits, 0.U))
     }
-    io.slave.M.DataValid := Bits(1)
+    io.slave.M.DataValid := 1.U
     io.slave.M.Data := dataBuffer(cntReg)
     io.slave.M.DataByteEn := byteEnBuffer(cntReg)
 
-    when(io.slave.S.DataAccept === Bits(1)) {
+    when(io.slave.S.DataAccept === 1.U) {
       tagReg := writeMasterReg.Addr(addrWidth-1, burstAddrBits+byteAddrBits)
-      byteEnBuffer(cntReg) := Bits(0)
+      byteEnBuffer(cntReg) := 0.U
       when(cntReg === wrPos) {
         dataBuffer(cntReg) := writeMasterReg.Data
         byteEnBuffer(cntReg) := writeMasterReg.ByteEn
@@ -147,7 +147,7 @@ class WriteCombineBuffer() extends WriteBufferType {
   when(state === writeComb) {
     io.writeMaster.S.Resp := OcpResp.DVA
     for (i <- 0 until byteEnWidth) {
-      comb(i) := Mux(writeMasterReg.ByteEn(i) === Bits(1),
+      comb(i) := Mux(writeMasterReg.ByteEn(i) === 1.U,
                      writeMasterReg.Data(8*i+7, 8*i),
                      dataBuffer(wrPos)(8*i+7, 8*i))
     }
@@ -157,12 +157,12 @@ class WriteCombineBuffer() extends WriteBufferType {
   }
 
   // Snoop writes from readMaster
-  val dataAcceptReg = Reg(next = io.slave.S.DataAccept)
+  val dataAcceptReg = RegNext(next = io.slave.S.DataAccept)
   when(state === writeSnoop) {
-    when(dataAcceptReg === Bits(1)) {
+    when(dataAcceptReg === 1.U) {
       when (hitReg) {
         for (i <- 0 until byteEnWidth) {
-          comb(i) := Mux(readMasterReg.DataByteEn(i) === Bits(1),
+          comb(i) := Mux(readMasterReg.DataByteEn(i) === 1.U,
                          readMasterReg.Data(8*i+7, 8*i),
                          dataBuffer(cntReg)(8*i+7, 8*i))
         }

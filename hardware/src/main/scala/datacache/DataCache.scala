@@ -6,8 +6,8 @@
 
 package datacache
 
-import Chisel._
-
+import chisel3._
+import chisel3.util._
 
 import stackcache._
 import patmos._
@@ -27,7 +27,7 @@ class DataCache extends Module {
   })
 
   // Register selects
-  val selDC = Bool(DCACHE_SIZE > 0) && io.master.M.AddrSpace === OcpCache.DATA_CACHE
+  val selDC = (DCACHE_SIZE > 0).B && io.master.M.AddrSpace === OcpCache.DATA_CACHE
   val selDCReg = Reg(Bool())
   val selSC = io.master.M.AddrSpace === OcpCache.STACK_CACHE
   val selSCReg = Reg(Bool())
@@ -56,7 +56,7 @@ class DataCache extends Module {
 
   dm.io.master.M := io.master.M
   dm.io.master.M.Cmd := Mux(selDC ||
-                            (Bool(DCACHE_WRITETHROUGH) && Bool(DCACHE_SIZE > 0) &&
+                            (DCACHE_WRITETHROUGH.B && (DCACHE_SIZE > 0).B &&
                              io.master.M.Cmd === OcpCmd.WR),
                             io.master.M.Cmd, OcpCmd.IDLE)
   dm.io.invalidate := io.invalDCache
@@ -64,7 +64,11 @@ class DataCache extends Module {
 
   // Instantiate stack cache
   val sc = Module(if (SCACHE_SIZE <= 0) new NullStackCache() else new StackCache())
-  io.scIO <> sc.io
+  sc.io.ena_in := io.scIO.ena_in
+  sc.io.exsc <> io.scIO.exsc
+  sc.io.scex <> io.scIO.scex
+  io.scIO.illMem := sc.io.illMem
+  io.scIO.stall := sc.io.stall
 
   // connect the stack cache to the Patmos core
   sc.io.fromCPU.M := io.master.M
@@ -73,6 +77,7 @@ class DataCache extends Module {
 
   // Instantiate bridge for bypasses and writes
   val bp = Module(new NullCache())
+  bp.io.invalidate := 0.B
   bp.io.master.M := io.master.M
   bp.io.master.M.Cmd := Mux(!selDC && !selSC, io.master.M.Cmd, OcpCmd.IDLE)
   val bpS = bp.io.master.S
@@ -89,7 +94,7 @@ class DataCache extends Module {
   wc.io.readMaster.M <> burstReadBus2.io.master.M
   burstReadBus2.io.master.S <> wc.io.readMaster.S
   wc.io.writeMaster.M := io.master.M
-  wc.io.writeMaster.M.Cmd := Mux(!selSC && (Bool(DCACHE_WRITETHROUGH) || !selDC),
+  wc.io.writeMaster.M.Cmd := Mux(!selSC && (DCACHE_WRITETHROUGH.B || !selDC),
                                  io.master.M.Cmd, OcpCmd.IDLE)
   val wcWriteS = wc.io.writeMaster.S
   io.slave <> wc.io.slave

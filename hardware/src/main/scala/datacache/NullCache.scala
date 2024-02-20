@@ -6,7 +6,8 @@
 
 package datacache
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 
 import patmos.Constants._
 import patmos.DataCachePerf
@@ -22,34 +23,34 @@ class NullCache() extends DCacheType(BURST_LENGTH) {
   val byteAddrBits = log2Up(DATA_WIDTH/8)
 
   // State machine for read bursts
-  val idle :: read :: readResp :: Nil = Enum(UInt(), 3)
-  val stateReg = Reg(init = idle)
-  val burstCntReg = Reg(init = 0.U(burstAddrBits.W))
-  val posReg = Reg(Bits(width = burstAddrBits))
+  val idle :: read :: readResp :: Nil = Enum(3)
+  val stateReg = RegInit(init = idle)
+  val burstCntReg = RegInit(init = 0.U(burstAddrBits.W))
+  val posReg = Reg(UInt(burstAddrBits.W))
 
   // Register for master signals
-  val masterReg = Reg(io.master.M)
+  val masterReg = Reg(chiselTypeOf(io.master.M))
 
   // Register to delay response
-  val slaveReg = Reg(io.master.S)
+  val slaveReg = Reg(chiselTypeOf(io.master.S))
 
-  when(masterReg.Cmd =/= OcpCmd.RD || io.slave.S.CmdAccept === Bits(1)) {
+  when(masterReg.Cmd =/= OcpCmd.RD || io.slave.S.CmdAccept === 1.U) {
     masterReg := io.master.M
   }
-  when(reset) {
+  when(reset.asBool) {
     masterReg.Cmd := OcpCmd.IDLE;
   }
 
   // Default values
   io.slave.M.Cmd := OcpCmd.IDLE
   io.slave.M.Addr := Cat(masterReg.Addr(ADDR_WIDTH-1, burstAddrBits+byteAddrBits),
-                         Fill(burstAddrBits+byteAddrBits, Bits(0)))
-  io.slave.M.Data := Bits(0)
-  io.slave.M.DataValid := Bits(0)
-  io.slave.M.DataByteEn := Bits(0)
+                         Fill(burstAddrBits+byteAddrBits, 0.B))
+  io.slave.M.Data := 0.U
+  io.slave.M.DataValid := 0.U
+  io.slave.M.DataByteEn := 0.U
 
   io.master.S.Resp := OcpResp.NULL
-  io.master.S.Data := Bits(0)
+  io.master.S.Data := 0.U
 
   // Wait for response
   when(stateReg === read) {
@@ -72,7 +73,7 @@ class NullCache() extends DCacheType(BURST_LENGTH) {
   // Start a read burst
   when(masterReg.Cmd === OcpCmd.RD) {
     io.slave.M.Cmd := OcpCmd.RD
-    when(io.slave.S.CmdAccept === Bits(1)) {
+    when(io.slave.S.CmdAccept === 1.U) {
       stateReg := read
       posReg := masterReg.Addr(burstAddrBits+byteAddrBits-1, byteAddrBits)
       io.perf.miss := true.B

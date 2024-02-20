@@ -1,6 +1,6 @@
 package datacache
 
-import Chisel._
+import chisel3._
 import ocp._
 import patmos.Constants._
 import patmos.WriteCombinePerf

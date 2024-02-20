@@ -38,7 +38,8 @@
 
 package datacache
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 
 import patmos.Constants._
 import patmos.WriteCombinePerf
@@ -58,12 +59,12 @@ class WriteNoBuffer() extends WriteBufferType {
   val byteAddrBits = log2Up(dataWidth/8)
 
   // State of transmission
-  val idle :: write :: writeResp :: writeComb :: Nil = Enum(Bits(), 4)
-  val state = Reg(init = idle)
-  val cntReg = Reg(init = 0.U(burstAddrBits.W))
+  val idle :: write :: writeResp :: writeComb :: Nil = Enum(4)
+  val state = RegInit(init = idle)
+  val cntReg = RegInit(init = 0.U(burstAddrBits.W))
 
   // Register signals that come from write master
-  val writeMasterReg = Reg(io.writeMaster.M)
+  val writeMasterReg = Reg(chiselTypeOf(io.writeMaster.M))
 
   // Default responses
   io.readMaster.S := io.slave.S
@@ -78,18 +79,18 @@ class WriteNoBuffer() extends WriteBufferType {
   // Write burst
   when(state === write) {
     io.readMaster.S.Resp := OcpResp.NULL
-    when(cntReg === Bits(0)) {
+    when(cntReg === 0.U) {
       io.slave.M.Cmd := OcpCmd.WR
       io.slave.M.Addr := Cat(writeMasterReg.Addr(addrWidth-1, burstAddrBits+byteAddrBits),
-                             Fill(burstAddrBits+byteAddrBits, Bits(0)))
+                             Fill(burstAddrBits+byteAddrBits, 0.B))
     }
-    io.slave.M.DataValid := Bits(1)
+    io.slave.M.DataValid := 1.U
     io.slave.M.Data := writeMasterReg.Data
-    io.slave.M.DataByteEn := Bits(0)
+    io.slave.M.DataByteEn := 0.U
     when(cntReg === wrPos) {
       io.slave.M.DataByteEn := writeMasterReg.ByteEn
     }
-    when(io.slave.S.DataAccept === Bits(1)) {
+    when(io.slave.S.DataAccept === 1.U) {
       cntReg := cntReg + 1.U
     }
     when(cntReg === (burstLength - 1).U) {

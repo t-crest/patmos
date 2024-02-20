@@ -7,8 +7,8 @@
 
 package datacache
 
-import Chisel._
-import chisel3.VecInit
+import chisel3._
+import chisel3.util._
 
 import patmos.Constants._
 import patmos.DataCachePerf
@@ -29,8 +29,7 @@ class DirectMappedCache(size: Int, lineSize: Int) extends DCacheType(lineSize/4)
   val tagCount = size / lineSize
 
   // Register signals from master
-  val masterReg = Reg(io.master.M)
-  masterReg := io.master.M
+  val masterReg = RegNext(io.master.M)
 
   // Generate memories
   val tagMem = MemBlock(tagCount, tagWidth)
@@ -41,13 +40,13 @@ class DirectMappedCache(size: Int, lineSize: Int) extends DCacheType(lineSize/4)
   }
 
   val tag = tagMem.io(io.master.M.Addr(addrBits + 1, lineBits))
-  val tagV = Reg(next = tagVMem(io.master.M.Addr(addrBits + 1, lineBits)))
+  val tagV = RegNext(next = tagVMem(io.master.M.Addr(addrBits + 1, lineBits)))
   val tagValid = tagV && tag === Cat(masterReg.Addr(ADDR_WIDTH-1, addrBits+2))
 
   val fillReg = Reg(Bool())
 
-  val wrAddrReg = Reg(Bits(width = addrBits))
-  val wrDataReg = Reg(Bits(width = DATA_WIDTH))
+  val wrAddrReg = Reg(UInt(addrBits.W))
+  val wrDataReg = Reg(UInt(DATA_WIDTH.W))
 
   wrAddrReg := io.master.M.Addr(addrBits + 1, 2)
   wrDataReg := io.master.M.Data
@@ -68,22 +67,22 @@ class DirectMappedCache(size: Int, lineSize: Int) extends DCacheType(lineSize/4)
                           OcpResp.DVA, OcpResp.NULL)
 
   // State machine for misses
-  val idle :: hold :: fill :: respond :: Nil = Enum(UInt(), 4)
-  val stateReg = Reg(init = idle)
+  val idle :: hold :: fill :: respond :: Nil = Enum(4)
+  val stateReg = RegInit(init = idle)
 
-  val burstCntReg = Reg(init = 0.U((lineBits-2).W))
-  val missIndexReg = Reg((lineBits-2).U)
+  val burstCntReg = RegInit(init = 0.U((lineBits-2).W))
+  val missIndexReg = Reg(chiselTypeOf((lineBits-2).U))
 
   // Register to delay response
-  val slaveReg = Reg(io.master.S)
+  val slaveReg = Reg(chiselTypeOf(io.master.S))
 
   // Default values
   io.slave.M.Cmd := OcpCmd.IDLE
   io.slave.M.Addr := Cat(masterReg.Addr(ADDR_WIDTH-1, lineBits),
-                         Fill(lineBits, Bits(0)))
-  io.slave.M.Data := Bits(0)
-  io.slave.M.DataValid := Bits(0)
-  io.slave.M.DataByteEn := Bits(0)
+                         Fill(lineBits, 0.B))
+  io.slave.M.Data := 0.U
+  io.slave.M.DataValid := 0.U
+  io.slave.M.DataByteEn := 0.U
 
   fillReg := false.B
 
@@ -97,7 +96,7 @@ class DirectMappedCache(size: Int, lineSize: Int) extends DCacheType(lineSize/4)
     tagVMem(masterReg.Addr(addrBits + 1, lineBits)) := true.B
     missIndexReg := masterReg.Addr(lineBits-1, 2).asUInt
     io.slave.M.Cmd := OcpCmd.RD
-    when(io.slave.S.CmdAccept === Bits(1)) {
+    when(io.slave.S.CmdAccept === 1.U) {
       stateReg := fill
     }
     .otherwise {
@@ -113,7 +112,7 @@ class DirectMappedCache(size: Int, lineSize: Int) extends DCacheType(lineSize/4)
   // Hold read command
   when(stateReg === hold) {
     io.slave.M.Cmd := OcpCmd.RD
-    when(io.slave.S.CmdAccept === Bits(1)) {
+    when(io.slave.S.CmdAccept === 1.U) {
       stateReg := fill
     }
     .otherwise {
