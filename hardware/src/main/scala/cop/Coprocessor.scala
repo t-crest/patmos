@@ -28,15 +28,15 @@ abstract class Coprocessor() extends Module() {
 
 abstract class BaseCoprocessor() extends Coprocessor(){
     val io = IO(new Bundle() {
-      val copIn = new PatmosToCoprocessor().asInput
-      val copOut = new CoprocessorToPatmos().asOutput  
+      val copIn = Input(new PatmosToCoprocessor())
+      val copOut = Output(new CoprocessorToPatmos())
     })
 }
 
 abstract class CoprocessorMemoryAccess() extends Coprocessor(){
     val io = IO(new Bundle() {
-        val copIn = new PatmosToCoprocessor().asInput
-        val copOut = new CoprocessorToPatmos().asOutput
+        val copIn = Input(new PatmosToCoprocessor())
+        val copOut = Output(new CoprocessorToPatmos())
         val memPort = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)  
     })
 }

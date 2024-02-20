@@ -6,10 +6,8 @@
 
 package patmos
 
-import Chisel._
-import chisel3.VecInit
-
-import chisel3.dontTouch
+import chisel3._
+import chisel3.util._
 import MConstants._
 import Constants._
 import ocp._
@@ -30,10 +28,10 @@ object MConstants {
 class MCacheCtrlIO extends Bundle() {
   val ena_in = Input(Bool())
   val fetchEna = Output(Bool())
-  val ctrlrepl = new MCacheCtrlRepl().asOutput
-  val replctrl = new MCacheReplCtrl().asInput
-  val femcache = new FeICache().asInput
-  val exmcache = new ExICache().asInput
+  val ctrlrepl = Output(new MCacheCtrlRepl())
+  val replctrl = Input(new MCacheReplCtrl())
+  val femcache = Input(new FeICache())
+  val exmcache = Input(new ExICache())
   val ocp_port = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
   val illMem = Output(Bool())
   val forceHit = Output(Bool())
@@ -54,12 +52,12 @@ class MCacheReplIO extends Bundle() {
   val ena_in = Input(Bool())
   val invalidate = Input(Bool())
   val hitEna = Output(Bool())
-  val exmcache = new ExICache().asInput
-  val mcachefe = new ICacheFe().asOutput
-  val ctrlrepl = new MCacheCtrlRepl().asInput
-  val replctrl = new MCacheReplCtrl().asOutput
-  val memIn = new MCacheMemIn().asOutput
-  val memOut = new MCacheMemOut().asInput
+  val exmcache = Input(new ExICache())
+  val mcachefe = Output(new ICacheFe())
+  val ctrlrepl = Input(new MCacheCtrlRepl())
+  val replctrl = Output(new MCacheReplCtrl())
+  val memIn = Output(new MCacheMemIn())
+  val memOut = Input(new MCacheMemOut())
   val perf = new InstructionCachePerf()
 }
 
@@ -76,8 +74,8 @@ class MCacheMemOut extends Bundle() {
   val instrOdd = UInt(INSTR_WIDTH.W)
 }
 class MCacheMemIO extends Bundle() {
-  val memIn = new MCacheMemIn().asInput
-  val memOut = new MCacheMemOut().asOutput
+  val memIn = Input(new MCacheMemIn())
+  val memOut = Output(new MCacheMemOut())
 }
 
 /*
@@ -144,21 +142,21 @@ class MCacheReplFifo() extends Module {
   val validVec = RegInit(VecInit(Seq.fill(METHOD_COUNT)(false.B)))
   val posVec = RegInit(VecInit(Seq.fill(METHOD_COUNT)(0.U(MCACHE_SIZE_WIDTH.W))))
   //registers to save current replacement status
-  val nextIndexReg = Reg(init = 0.U(log2Up(METHOD_COUNT).W))
-  val nextTagReg = Reg(init = 0.U(log2Up(METHOD_COUNT).W))
-  val nextPosReg = Reg(init = 0.U(MCACHE_SIZE_WIDTH.W))
-  val freeSpaceReg = Reg(init = SInt(MCACHE_WORD_SIZE, width = MCACHE_SIZE_WIDTH+2))
+  val nextIndexReg = RegInit(init = 0.U(log2Up(METHOD_COUNT).W))
+  val nextTagReg = RegInit(init = 0.U(log2Up(METHOD_COUNT).W))
+  val nextPosReg = RegInit(init = 0.U(MCACHE_SIZE_WIDTH.W))
+  val freeSpaceReg = RegInit(init = MCACHE_WORD_SIZE.S((MCACHE_SIZE_WIDTH+2).W))
   //variables when call/return occurs to check tag field
-  val posReg = Reg(init = 0.U(MCACHE_SIZE_WIDTH.W))
-  val hitReg = Reg(init = true.B)
+  val posReg = RegInit(init = 0.U(MCACHE_SIZE_WIDTH.W))
+  val hitReg = RegInit(init = true.B)
   val hitNext = dontTouch(Wire(Bool())) //For emulator
-  val wrPosReg = Reg(init = 0.U(MCACHE_SIZE_WIDTH.W))
-  val callRetBaseReg = Reg(init = 1.U(DATA_WIDTH.W))
+  val wrPosReg = RegInit(init = 0.U(MCACHE_SIZE_WIDTH.W))
+  val callRetBaseReg = RegInit(init = 1.U(DATA_WIDTH.W))
   val callRetBaseNext = dontTouch(Wire(UInt(DATA_WIDTH.W))) // emulator
-  val callAddrReg = Reg(init = 1.U(DATA_WIDTH.W))
-  val selSpmReg = Reg(init = false.B)
+  val callAddrReg = RegInit(init = 1.U(DATA_WIDTH.W))
+  val selSpmReg = RegInit(init = false.B)
   val selSpmNext = dontTouch(Wire(Bool())) //for emulator
-  val selCacheReg = Reg(init = false.B)
+  val selCacheReg = RegInit(init = false.B)
   val selCacheNext = dontTouch(Wire(Bool())) //for emulator
 
   io.perf.hit := false.B
@@ -236,7 +234,7 @@ class MCacheReplFifo() extends Module {
     }
   }
   //free new space if still needed -> invalidate next method
-  when (freeSpaceReg < SInt(0)) {
+  when (freeSpaceReg < 0.S) {
     freeSpaceReg := freeSpaceReg + sizeVec(nextTagReg).asSInt
     sizeVec(nextTagReg) := 0.U
     validVec(nextTagReg) := false.B
@@ -290,8 +288,8 @@ class MCacheCtrl() extends Module {
   val io = IO(new MCacheCtrlIO())
 
   //fsm state variables
-  val idleState :: sizeState :: transferState :: errorState :: errorDecState :: errorExeState :: errorMemState :: Nil = Enum(UInt(), 7)
-  val stateReg = Reg(init = idleState)
+  val idleState :: sizeState :: transferState :: errorState :: errorDecState :: errorExeState :: errorMemState :: Nil = Enum(7)
+  val stateReg = RegInit(init = idleState)
   //signals for method cache memory (repl)
   val addrEven = Wire(UInt(ADDR_WIDTH.W))
   val addrOdd = Wire(UInt(ADDR_WIDTH.W))
@@ -300,7 +298,7 @@ class MCacheCtrl() extends Module {
   val wAddr = Wire(UInt(ADDR_WIDTH.W))
   val wEna = Wire(Bool())
   //signals for external memory
-  val ocpCmdReg = Reg(init = OcpCmd.IDLE)
+  val ocpCmdReg = RegInit(init = OcpCmd.IDLE)
   val ocpAddrReg = Reg(UInt(ADDR_WIDTH.W))
   val fetchEna = Wire(Bool())
   val transferSizeReg = Reg(UInt(MCACHE_SIZE_WIDTH.W))
@@ -313,7 +311,7 @@ class MCacheCtrl() extends Module {
   val addrEvenReg = Reg(UInt())
   val addrOddReg = Reg(UInt())
 
-  val ocpSlaveReg = Reg(next = io.ocp_port.S)
+  val ocpSlaveReg = RegNext(next = io.ocp_port.S)
 
   //init signals
   addrEven := addrEvenReg

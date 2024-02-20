@@ -6,9 +6,8 @@
 
 package patmos
 
-import Chisel._
-import chisel3.VecInit
-import chisel3.dontTouch
+import chisel3._
+import chisel3.util._
 import IConstants._
 import Constants._
 import ocp._
@@ -42,10 +41,10 @@ object IConstants {
 class ICacheCtrlIO extends Bundle() {
   val ena_in = Input(Bool())
   val fetchEna = Output(Bool())
-  val ctrlrepl = new ICacheCtrlRepl().asOutput
-  val replctrl = new ICacheReplCtrl().asInput
-  val feicache = new FeICache().asInput
-  val exicache = new ExICache().asInput
+  val ctrlrepl = Output(new ICacheCtrlRepl())
+  val replctrl = Input(new ICacheReplCtrl())
+  val feicache = Input(new FeICache())
+  val exicache = Input(new ExICache())
   val ocp_port = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
   val perf = new InstructionCachePerf()
   val illMem = Output(Bool())
@@ -64,13 +63,13 @@ class ICacheReplCtrl extends Bundle() {
 class ICacheReplIO extends Bundle() {
   val ena_in = Input(Bool())
   val invalidate = Input(Bool())
-  val exicache = new ExICache().asInput
-  val feicache = new FeICache().asInput
-  val icachefe = new ICacheFe().asOutput
-  val ctrlrepl = new ICacheCtrlRepl().asInput
-  val replctrl = new ICacheReplCtrl().asOutput
-  val memIn = new ICacheMemIn().asOutput
-  val memOut = new ICacheMemOut().asInput
+  val exicache = Input(new ExICache())
+  val feicache = Input(new FeICache())
+  val icachefe = Output(new ICacheFe())
+  val ctrlrepl = Input(new ICacheCtrlRepl())
+  val replctrl = Output(new ICacheReplCtrl())
+  val memIn = Output(new ICacheMemIn())
+  val memOut = Input(new ICacheMemOut())
 }
 
 class ICacheMemIn extends Bundle() {
@@ -86,8 +85,8 @@ class ICacheMemOut extends Bundle() {
   val instrOdd = UInt(INSTR_WIDTH.W)
 }
 class ICacheMemIO extends Bundle() {
-  val memIn = new ICacheMemIn().asInput
-  val memOut = new ICacheMemOut().asOutput
+  val memIn = Input(new ICacheMemIn())
+  val memOut = Output(new ICacheMemOut())
 }
 
 
@@ -277,7 +276,7 @@ class ICacheCtrl() extends Module {
   val io = IO(new ICacheCtrlIO())
 
   // States of the state machine
-  val initState :: idleState :: transferState :: waitState :: errorState :: Nil = Enum(UInt(), 5)
+  val initState :: idleState :: transferState :: waitState :: errorState :: Nil = Enum(5)
   val stateReg = RegInit(initState)
   // Signal for replacement unit
   val wData = Wire(UInt(DATA_WIDTH.W))

@@ -61,7 +61,7 @@ class SSRam32Ctrl (
   override val io = new BurstDeviceIO(addrBits) with patmos.HasPins {
     override val pins = new Bundle() {
       val ramOut = new RamOutType(addrBits-2).asOutput
-      val ramIn = new RamInType().asInput
+      val ramIn = Input(new RamInType())
     }
   }
 
@@ -230,7 +230,7 @@ object SSRam32Main {
 class ExtSsram(addrBits : Int, fileName : String) extends Module {
   val io = new Bundle() {
     val ramOut = new RamOutType(addrBits).asInput
-    val ramIn = new RamInType().asOutput
+    val ramIn = Output(new RamInType())
   }
 
   //on chip memory instance

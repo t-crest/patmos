@@ -7,7 +7,8 @@
 
 package patmos
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import Constants._
 import ocp._
 

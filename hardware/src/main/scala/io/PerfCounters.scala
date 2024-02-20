@@ -28,7 +28,7 @@ object PerfCounters extends DeviceObject {
 class PerfCounters() extends CoreDevice() {
 
   override val io = new CoreDeviceIO() with patmos.HasPerfCounter {
-    override val perf = new PerfCounterIO().asInput
+    override val perf = Input(new PerfCounterIO())
   }
 
   val masterReg = Reg(next = io.ocp.M)

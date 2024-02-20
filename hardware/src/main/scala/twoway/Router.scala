@@ -37,8 +37,8 @@ class SingleChannel extends Bundle {
 }
  
 class Channel extends Bundle {
-  val out = new SingleChannel().asOutput
-  val in = new SingleChannel().asInput
+  val out = Output(new SingleChannel())
+  val in = Input(new SingleChannel())
 }
 
 class RwChannel(w: Int) extends Bundle {
