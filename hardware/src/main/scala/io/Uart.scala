@@ -174,7 +174,7 @@ class Uart(clk_freq: Int, baud_rate: Int, fifoDepth: Int) extends CoreDevice() {
     when (rx_state === rx_idle) {
         when (rxd_reg2 === 0.U){
            rx_state         := rx_start
-           rx_baud_counter  := (clk_freq/baud_rate).U / 2.U
+           rx_baud_counter  := ((clk_freq/baud_rate) / 2).U
            rx_enable        := true.B
         }
     }
