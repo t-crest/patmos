@@ -9,10 +9,10 @@
 
 package cop
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 
 import patmos.Constants._
-import util._
 import ocp._
 
 object Adder extends CoprocessorObject {
@@ -31,12 +31,12 @@ class Adder() extends CoprocessorMemoryAccess() {
 
   // scalar state machine for ADD and ADD_STALL (saturating)
   val scalarIdle :: scalarAdd :: Nil = Enum(2)
-  val scalarStateReg = Reg(init = scalarIdle)
+  val scalarStateReg = RegInit(init = scalarIdle)
   val scalarIntermediateResult = Wire(UInt((DATA_WIDTH + 1).W))
   
   // vector state machine for VECTOR_ADD
   val vectorIdle :: vectorRead1Req :: vectorRead1 :: vectorRead2Req :: vectorRead2 :: vectorWriteReq :: vectorWrite :: vectorDone :: Nil = Enum(8)
-  val vectorStateReg = Reg(init = vectorIdle)
+  val vectorStateReg = RegInit(init = vectorIdle)
   val vectorSrcReg = Reg(UInt(DATA_WIDTH.W))
   val vectorDstReg = Reg(UInt(DATA_WIDTH.W))
   val vectorAccReg = Reg(Vec(BURST_LENGTH, UInt(DATA_WIDTH.W)))

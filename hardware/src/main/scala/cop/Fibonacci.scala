@@ -9,10 +9,10 @@
 
 package cop
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 
 import patmos.Constants._
-import util._
 import ocp._
 
 object Fibonacci extends CoprocessorObject {
@@ -28,9 +28,9 @@ class Fibonacci() extends BaseCoprocessor() {
 
     //some coprocessor registers
     val idle :: fibonacciRunning :: Nil = Enum(2)
-    val opStateReg = Reg(init = idle)
+    val opStateReg = RegInit(init = idle)
     val readIdle :: fibonacciReadRequest :: Nil = Enum(2) 
-    val readStateReg = Reg(init = readIdle)
+    val readStateReg = RegInit(init = readIdle)
     val currentValueReg = Reg(UInt(32.W))
     val lastValueReg = Reg(UInt(32.W))
     val nextValue = Wire(UInt(32.W))

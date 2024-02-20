@@ -9,11 +9,11 @@
 
 package cop
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 
 import patmos._
 import patmos.Constants._
-import util._
 import ocp._
 
 abstract class CoprocessorObject() {

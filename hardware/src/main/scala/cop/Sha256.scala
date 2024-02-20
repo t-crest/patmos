@@ -8,10 +8,10 @@
 
 package cop
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 
 import patmos.Constants._
-import util._
 import ocp._
 
 object Sha256 extends CoprocessorObject {
@@ -28,14 +28,14 @@ class Sha256() extends CoprocessorMemoryAccess() {
   val HASH_WORD_COUNT = 8
   val MSG_WORD_COUNT = 16
   
-  val hashDefaults = Vec(Seq(
+  val hashDefaults = VecInit(Seq(
     "h6a09e667".U(DATA_WIDTH.W), "hbb67ae85".U,
     "h3c6ef372".U, "ha54ff53a".U,
     "h510e527f".U, "h9b05688c".U,
     "h1f83d9ab".U, "h5be0cd19".U
   ))
 
-  val roundConsts = Vec(Seq(
+  val roundConsts = VecInit(Seq(
     "h428a2f98".U(DATA_WIDTH.W), "h71374491".U,
     "hb5c0fbcf".U, "he9b5dba5".U,
     "h3956c25b".U, "h59f111f1".U,
@@ -90,8 +90,8 @@ class Sha256() extends CoprocessorMemoryAccess() {
   
   /*------------------------------------------------shared variables-------------------------------------------------*/
   val isIdle = Wire(Bool())
-  val memBufferReg = RegInit(0.U(1))
-  val ShaBufferReg = RegInit(0.U(1))
+  val memBufferReg = RegInit(0.U(1.W))
+  val ShaBufferReg = RegInit(0.U(1.W))
   
   /*---------------------------------------------sha256 state variables----------------------------------------------*/
   // the hash value
@@ -108,17 +108,17 @@ class Sha256() extends CoprocessorMemoryAccess() {
   val h = Reg(UInt(DATA_WIDTH.W))
 
   // index
-  val idxReg = Reg(init = 0.U((log2Ceil(ROUND_COUNT)+1).W))
+  val idxReg = RegInit(init = 0.U((log2Ceil(ROUND_COUNT)+1).W))
 
   // message memory (Note: has been extended to enable double-buffering)
-  val msg = Mem(UInt(DATA_WIDTH.W), MSG_WORD_COUNT * 2)
+  val msg = Mem(MSG_WORD_COUNT * 2, UInt(DATA_WIDTH.W))
 
   // read data from message memory
   val msgRdData = msg(Cat(ShaBufferReg, idxReg(log2Ceil(MSG_WORD_COUNT)-1, 0)))
 
   // states
-  val idle :: restart :: start :: compress :: update :: waiting :: Nil = Enum(UInt(), 6)
-  val stateReg = Reg(init = restart)
+  val idle :: restart :: start :: compress :: update :: waiting :: Nil = Enum(6)
+  val stateReg = RegInit(init = restart)
 
   /*------------------------------------------coprocessor state variables--------------------------------------------*/
   // state machine for memory reads/writes
@@ -140,10 +140,10 @@ class Sha256() extends CoprocessorMemoryAccess() {
     data(amt-1, 0) ## data(DATA_WIDTH-1, amt)
   }
   def s0(data : UInt) = {
-    rotateRight(data, 7) ^ rotateRight(data, 18) ^ (data.asUInt >> 3.U)
+    rotateRight(data, 7) ^ rotateRight(data, 18) ^ (data.asUInt >> 3.U).asUInt
   }
   def s1(data : UInt) = {
-    rotateRight(data, 17) ^ rotateRight(data, 19) ^ (data.asUInt >> 10.U)
+    rotateRight(data, 17) ^ rotateRight(data, 19) ^ (data.asUInt >> 10.U).asUInt
   }
   def e0(data : UInt) = {
     rotateRight(data, 2) ^ rotateRight(data, 13) ^ rotateRight(data, 22)
@@ -152,7 +152,7 @@ class Sha256() extends CoprocessorMemoryAccess() {
     rotateRight(data, 6) ^ rotateRight(data, 11) ^ rotateRight(data, 25)
   }
   def ch(x : UInt, y : UInt, z : UInt) = {
-    (x & y) ^ (~x & z)
+    (x & y) ^ ((~x).asUInt & z)
   }
   def maj(x : UInt, y : UInt, z : UInt) = {
     (x & y) ^ (x & z) ^ (y & z)
@@ -181,7 +181,7 @@ class Sha256() extends CoprocessorMemoryAccess() {
   wt(0) := w0
 
   // compression
-  val pipeReg = Reg(next = w0 + roundConsts(idxReg(log2Ceil(ROUND_COUNT)-1, 0)))
+  val pipeReg = RegNext(next = w0 + roundConsts(idxReg(log2Ceil(ROUND_COUNT)-1, 0)))
   val temp1 = h + e1(e) + ch(e, f, g) + pipeReg
   val temp2 = e0(a) + maj(a, b, c)
 
