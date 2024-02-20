@@ -1,6 +1,6 @@
 target C
 {    
-    threading:false, 
+    single-threaded:true,
 }
 
 main reactor {
@@ -36,7 +36,7 @@ reactor Counter(stride:int(1)) {
 reactor Printer {
     input in:int
     reaction(in) {=
-       lf_print("Time Is %02d:%02d:%02d", in->value/3600, (in->value/60)%60, in->value%60);
+      lf_print("%02d:%02d:%02d", in->value/3600, (in->value/60)%60, in->value%60);
     =}
 }
 

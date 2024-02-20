@@ -11,11 +11,13 @@ INCS  := -I"$(LF_PROJECT_ROOT)/include" \
 	-I"$(LF_PROJECT_ROOT)/include/core/modal_models" \
 	-I"$(LF_PROJECT_ROOT)/include/core/utils" 
 CC := patmos-clang 
-CFLAGS := $(INCS) -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10 -DLF_UNTHREADED=1 -DLF_REACTION_GRAPH_BREADTH=1
+CFLAGS := $(INCS) -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10 -DLF_SINGLE_THREADED=0 -DLF_REACTION_GRAPH_BREADTH=1
 SRC_FILES := _$(LF_MAIN_TARGET_LC)_main.c $(LF_MAIN_TARGET).c lib/schedule.c _counter.c _multiplier.c _printer.c
-SRC_FILES += core/reactor_common.c core/lf_token.c core/reactor.c core/tag.c core/environment.c
-SRC_FILES += core/utils/util.c core/utils/vector.c core/utils/pqueue.c 
+SRC_FILES += core/reactor_common.c core/lf_token.c core/reactor.c core/tag.c core/environment.c 
+SRC_FILES += core/utils/util.c core/utils/vector.c  
+SRC_FILES += core/utils/pqueue.c core/utils/pqueue_tag.c core/utils/pqueue_base.c
 SRC_FILES += core/utils/hashset/hashset_itr.c core/utils/hashset/hashset.c 
+SRC_FILES += core/clock.c core/platform/lf_atomic_patmos.c core/platform/lf_atomic_irq.c 
 SRC_FILES += core/platform/lf_patmos_support.c
 
 OBJ_FILES := $(patsubst %.c,%.o,$(SRC_FILES))
