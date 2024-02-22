@@ -1,3 +1,4 @@
+#include "lf_atomic.h"
 #include <time.h>
 #include <errno.h>
 #include <assert.h>
@@ -18,14 +19,14 @@
 int _lf_interruptable_sleep_until_locked(environment_t* env, instant_t wakeup) {
     instant_t now;
     _lf_async_event = false;
-    lf_disable_interrupts_nested();
+    lf_enable_interrupts_nested();
 
     // Do busy sleep
     do {
-        _lf_clock_now(&now);
+        _lf_clock_gettime(&now);
     } while ((now < wakeup) && !_lf_async_event);
 
-    lf_enable_interrupts_nested();
+    lf_disable_interrupts_nested();
 
     if (_lf_async_event) {
         _lf_async_event = false;
@@ -49,7 +50,7 @@ void _lf_initialize_clock() {
  * TODO: This is only addressable by setting up interrupts on a timer peripheral to occur at wrap.
  */
 
-int _lf_clock_now(instant_t* t) {
+int _lf_clock_gettime(instant_t* t) {
 
     assert(t != NULL);
 
@@ -58,7 +59,7 @@ int _lf_clock_now(instant_t* t) {
     return 0;
 }
 
-#if defined(LF_UNTHREADED)
+#if defined(LF_SINGLE_THREADED)
 
 int lf_enable_interrupts_nested() {
     // unmask interrupts
@@ -78,7 +79,7 @@ int lf_disable_interrupts_nested() {
 // Overwrite print functions with NoOp.
 int puts(const char *str) {}
 
-#if LF_PRINT_ENABLE == 1
+#if 0
 
 int printf(const char *format, ...) {}
 int sprintf(char *str, const char *format, ...) {}

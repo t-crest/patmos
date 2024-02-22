@@ -36,17 +36,13 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef PLATFORM_H
 #define PLATFORM_H
 
-#if defined(LF_THREADED) && defined(LF_UNTHREADED)
-#error LF_UNTHREADED and LF_THREADED runtime requested
-#endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #include "tag.h"
 #include <assert.h>
-
+#include "lf_atomic.h"
 // Forward declarations
 typedef struct environment_t environment_t;
 
@@ -76,7 +72,7 @@ int lf_critical_section_exit(environment_t* env);
 
 // To support the unthreaded runtime, we need the following functions. They
 //  are not required by the threaded runtime and is thus hidden behind a #ifdef.
-#if defined (LF_UNTHREADED)
+#if defined (LF_SINGLE_THREADED)
     /**
      * @brief Disable interrupts with support for nested calls
      * 
@@ -101,7 +97,7 @@ int lf_critical_section_exit(environment_t* env);
 
 // For platforms with threading support, the following functions
 // abstract the API so that the LF runtime remains portable.
-#if defined LF_THREADED
+#if !defined(LF_SINGLE_THREADED)
 
 
 /**
@@ -260,7 +256,7 @@ int lf_cond_timedwait(lf_cond_t* cond, instant_t absolute_time_ns);
 #error "Compiler not supported"
 #endif
 
-#endif
+#endif // !LF_SINGLE_THREADED
 
 /**
  * Initialize the LF clock. Must be called before using other clock-related APIs.
@@ -276,8 +272,8 @@ void _lf_initialize_clock(void);
  *
  * @return 0 for success, or -1 for failure
  */
-//int _lf_clock_now(instant_t* t);
-int _lf_clock_now(instant_t* t) __attribute__((noinline));
+//int _lf_clock_gettime(instant_t* t);
+int _lf_clock_gettime(instant_t* t) __attribute__((noinline));
 /**
  * Pause execution for a given duration.
  * 

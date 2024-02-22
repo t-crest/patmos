@@ -38,7 +38,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef LF_PATMOS_SUPPORT_H
 #define LF_PATMOS_SUPPORT_H
 
-#define LOG_LEVEL 0
+#define LOG_LEVEL 2
 // This embedded platform has no TTY suport
 #define NO_TTY 
 
