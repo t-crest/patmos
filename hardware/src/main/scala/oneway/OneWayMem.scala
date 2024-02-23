@@ -6,7 +6,7 @@
 
 package oneway
 
-import Chisel._
+import chisel3._
 import s4noc._
 
 /**
@@ -19,7 +19,7 @@ class OneWayMem(n: Int, memSize: Int) extends Module {
   })
 
   // Dummy output keep hardware generated
-  val dout = RegNext(Vec(n * n, UInt(32.W)))
+  val dout = Reg(Vec(n * n, UInt(32.W)))
 
   val net = Module(new Network(n, UInt(32.W)))
 
@@ -39,7 +39,5 @@ class OneWayMem(n: Int, memSize: Int) extends Module {
 }
 
 object OneWayMem extends App {
-
-  chiselMain(Array("--backend", "v", "--targetDir", "generated"),
-    () => Module(new OneWayMem(2, 1024)))
+  emitVerilog(new OneWayMem(2, 1024), Array("-td", "generated"))
 }

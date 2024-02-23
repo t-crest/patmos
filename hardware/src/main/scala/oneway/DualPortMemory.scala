@@ -6,7 +6,8 @@
 
 package oneway
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 
 class Port(size: Int) extends Bundle {
   val addr = Input(UInt(log2Up(size).W))
@@ -28,9 +29,9 @@ class DualPortMemory(size: Int) extends Module {
     val port = new DualPort(size)
   })
 
-  val mem = Mem(UInt(32.W), size)
+  val mem = Mem(size, UInt(32.W))
 
-  io.port.rdData := mem(Reg(next = io.port.rdAddr))
+  io.port.rdData := mem(RegNext(next = io.port.rdAddr))
   when(io.port.wrEna) {
     mem(io.port.wrAddr) := io.port.wrData
   }
@@ -46,9 +47,9 @@ class TrueDualPortMemory(size: Int) extends Module {
     val portB = new Port(size)
   })
 
-  val mem = Mem(UInt(32.W), size)
+  val mem = Mem(size, UInt(32.W))
 
-  val regAddrA = Reg(io.portA.addr)
+  val regAddrA = Reg(chiselTypeOf(io.portA.addr))
   when(io.portA.wren) {
     mem(io.portA.addr) := io.portA.wrData
   }.otherwise {
@@ -58,7 +59,7 @@ class TrueDualPortMemory(size: Int) extends Module {
 
   // This does not generate a true dual-ported memory,
   // but a register based implementation
-  val regAddrB = Reg(io.portB.addr)
+  val regAddrB = Reg(chiselTypeOf(io.portB.addr))
   when(io.portB.wren) {
     mem(io.portB.addr) := io.portB.wrData
   }.otherwise {

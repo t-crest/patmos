@@ -6,7 +6,8 @@
 
 package oneway
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import s4noc._
 
 /**
@@ -21,9 +22,9 @@ class Node(n: Int, size: Int) extends Module {
 
   val st = Schedule.getSchedule(n)
   val scheduleLength = st._1.length
-  val validTab = Vec(st._2.map(Bool(_)))
+  val validTab = VecInit(st._2.map(_.B))
 
-  val regTdmCounter = Reg(init = 0.U(log2Up(scheduleLength).W))
+  val regTdmCounter = RegInit(init = 0.U(log2Up(scheduleLength).W))
   val end = regTdmCounter === (scheduleLength - 1).U
   regTdmCounter := Mux(end, 0.U, regTdmCounter + 1.U)
 
