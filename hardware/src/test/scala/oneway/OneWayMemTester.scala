@@ -6,7 +6,7 @@
 
 package oneway
 
-import Chisel._
+import chisel3._
 
 /**
  * Test a 2x2 Network.

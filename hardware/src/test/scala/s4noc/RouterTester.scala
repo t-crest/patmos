@@ -6,7 +6,7 @@
 
 package s4noc
 
-import Chisel._
+import chisel3._
 
 /**
  * Test the router by printing out the value at each clock cycle

@@ -1,6 +1,6 @@
 package ptp1588assist
 
-import Chisel._
+import chisel3._
 import ocp.{OcpCmd, OcpResp}
 import sys.process._
 import scala.language.postfixOps

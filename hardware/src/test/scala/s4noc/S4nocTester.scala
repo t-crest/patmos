@@ -7,7 +7,7 @@
 
 package s4noc
 
-import Chisel._
+import chisel3._
 /*commented out Chisel3 tester has changed see https://github.com/schoeberl/chisel-examples/blob/master/TowardsChisel3.md 
 class S4nocTester (dut: S4noc) extends Tester(dut) {
 

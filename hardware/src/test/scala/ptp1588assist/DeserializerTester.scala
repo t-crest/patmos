@@ -1,6 +1,6 @@
 package ptp1588assist
 
-import Chisel._
+import chisel3._
 import sys.process._
 import scala.language.postfixOps
 /*commented out Chisel3 tester has changed see https://github.com/schoeberl/chisel-examples/blob/master/TowardsChisel3.md 

@@ -6,7 +6,7 @@
 
 package cmp
 
-import Chisel._
+import chisel3._
 
 import patmos.Constants._
 import ocp._

@@ -8,7 +8,7 @@
 
 package s4noc
 
-import Chisel._
+import chisel3._
 
 import Const._
 

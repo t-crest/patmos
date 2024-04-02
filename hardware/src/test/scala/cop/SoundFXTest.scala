@@ -2,9 +2,6 @@ package cop.test
 
 import chisel3._
 import chiseltest._
-import chiseltest.experimental.TestOptionBuilder._
-import chiseltest.internal.WriteVcdAnnotation
-import chiseltest.internal.VerilatorBackendAnnotation
 import org.scalatest.FlatSpec
 
 import cop._
