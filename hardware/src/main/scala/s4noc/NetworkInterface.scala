@@ -6,20 +6,21 @@
  */
 package s4noc
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 
 class CpuPort() extends Bundle {
-  val addr = UInt(8.W).asInput
-  val rdData = UInt(32.W).asOutput
-  val wrData = UInt(32.W).asInput
-  val rd = Bool().asInput
-  val wr = Bool().asInput
+  val addr = Input(UInt(8.W))
+  val rdData = Output(UInt(32.W))
+  val wrData = Input(UInt(32.W))
+  val rd = Input(Bool())
+  val wr = Input(Bool())
 }
 
 // This should be a generic for the FIFO
 class Entry extends Bundle {
-  val data = UInt(32.W).asOutput
-  val time = UInt(8.W).asInput
+  val data = Output(UInt(32.W))
+  val time = Input(UInt(8.W))
 }
 
 class NetworkInterface[T <: Data](dim: Int, txFifo: Int, rxFifo: Int, dt: T) extends Module {
@@ -34,7 +35,7 @@ class NetworkInterface[T <: Data](dim: Int, txFifo: Int, rxFifo: Int, dt: T) ext
   // Why duplicating it? Does it matter?
   val len = Schedule.getSchedule(dim)._1.length
 
-  val regCnt = Reg(init = 0.U(log2Up(len).W))
+  val regCnt = RegInit(init = 0.U(log2Up(len).W))
   regCnt := Mux(regCnt === (len - 1).U, 0.U, regCnt + 1.U)
   // TDM schedule starts one cycles later for read data delay of OneWayMemory
   // Maybe we can use that delay here as well for something good

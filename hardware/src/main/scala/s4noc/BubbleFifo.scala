@@ -10,7 +10,8 @@
 
 package s4noc
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 
 /*
  * On signal naming:
@@ -47,8 +48,8 @@ class FifoRegister() extends Module {
     val deq = new ReaderIO()
   }
 
-  val empty :: full :: Nil = Enum(UInt(), 2)
-  val stateReg = Reg(init = empty)
+  val empty :: full :: Nil = Enum(2)
+  val stateReg = RegInit(init = empty)
   val dataReg = Reg(new Entry())
 
   when(stateReg === empty) {

@@ -6,8 +6,8 @@
  */
 package s4noc
 
-import Chisel._
-import chisel3.VecInit
+import chisel3._
+import chisel3.util._
 import ocp._
 import patmos.Constants._
 
@@ -47,6 +47,5 @@ class S4nocTrafficGen(nrNodes: Int, txFifo: Int, rxFifo: Int) extends Module {
 
 object S4nocTrafficGen extends App {
     println("Generating the S4NoC hardware")
-    chiselMain(Array("--backend", "v", "--targetDir", "generated"),
-      () => Module(new S4nocTrafficGen(args(0).toInt, 4, 4)))
+    emitVerilog(new S4nocTrafficGen(args(0).toInt, 4, 4), Array("-td", "generated"))
 }

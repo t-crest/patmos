@@ -9,7 +9,8 @@
 
 package s4noc
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 
 
 /**
@@ -71,6 +72,5 @@ class S4Router[T <: Data](schedule: Array[Array[Int]], dt: T) extends Module {
 
 object S4Router extends App {
 
-  chiselMain(Array("--backend", "v", "--targetDir", "generated"),
-    () => Module(new S4Router(Schedule.genRandomSchedule(7), UInt(32.W))))
+  emitVerilog(new S4Router(Schedule.genRandomSchedule(7), UInt(32.W)), Array("-td", "generated"))
 }

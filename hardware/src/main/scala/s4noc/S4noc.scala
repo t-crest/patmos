@@ -7,7 +7,7 @@
 
 package s4noc
 
-import Chisel._
+import chisel3._
 
 class S4noc(n: Int, txFifo: Int, rxFifo: Int) extends Module  {
   val io = new Bundle {
