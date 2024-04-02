@@ -41,7 +41,8 @@
 
 package stackcache
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 
 import ocp._
 import patmos._
@@ -62,8 +63,8 @@ class StackCache() extends StackCacheType {
   val scSizeBits = Chisel.log2Up(SCACHE_SIZE / BYTES_PER_WORD)
 
   // stateReg machine to manage spilling and filling
-  val idleState :: fillState :: waitFillState :: spillState :: holdSpillState :: waitSpillState :: errorState :: Nil = Enum(UInt(), 7)
-  val stateReg = Reg(init = idleState)
+  val idleState :: fillState :: waitFillState :: spillState :: holdSpillState :: waitSpillState :: errorState :: Nil = Enum(7)
+  val stateReg = RegInit(init = idleState)
 
   // chose between sres and sspill
   val isReserveReg = Reg(Bool())
@@ -93,10 +94,10 @@ class StackCache() extends StackCacheType {
   val mb_wrData = Wire(UInt(DATA_WIDTH.W))
 
   // register addr for MemBlock
-  val rdAddrReg = Reg(next = memoryBlock(0).rdAddr)
+  val rdAddrReg = RegNext(next = memoryBlock(0).rdAddr)
 
   // response to CPU for read/write requests
-  val responseToCPUReg = Reg(init = OcpResp.NULL)
+  val responseToCPUReg = RegInit(init = OcpResp.NULL)
 
   // write enable for data that actually needs spilling
   val writeEnable = Mux(isReserveReg,
@@ -218,7 +219,7 @@ class StackCache() extends StackCacheType {
       io.toMemory.M.DataValid := 1.U
 
       // check if command has been accepted
-      val accepted = io.toMemory.S.CmdAccept === Bits(1)
+      val accepted = io.toMemory.S.CmdAccept === 1.U
 
       // read next data element once accepted, otherwise hold
       mb_rdAddr := Mux(accepted, nextTransferAddr(scSizeBits + wordBits - 1, wordBits), rdAddrReg)
@@ -281,7 +282,7 @@ class StackCache() extends StackCacheType {
       io.toMemory.M.Cmd := OcpCmd.RD
 
       // check if command has been accepted
-      val accepted = io.toMemory.S.CmdAccept === Bits(1)
+      val accepted = io.toMemory.S.CmdAccept === 1.U
 
       // go to next stateReg
       stateReg := Mux(accepted, waitFillState, fillState)

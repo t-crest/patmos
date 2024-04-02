@@ -40,19 +40,19 @@
 
 package stackcache
 
-import Chisel._
+import chisel3._
 import datacache.{NullCache, WriteNoBuffer}
 import ocp._
 import patmos.Constants._
 import patmos._
 
 abstract class StackCacheType() extends Module {
-  val io = new StackCacheIO() {
+  val io = IO(new StackCacheIO() {
     // slave to cpu
     val fromCPU = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
     // master to memory
     val toMemory = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
 
     val perf = new StackCachePerf()
-  }
+  })
 }

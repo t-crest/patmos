@@ -40,7 +40,8 @@
 
 package stackcache
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 
 import patmos._
 import patmos.Constants._
