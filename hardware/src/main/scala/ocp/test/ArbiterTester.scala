@@ -26,27 +26,27 @@ class Master(nr: Int, burstLength: Int) extends Module {
   //debug(cntRead) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
 
   io.port.M.Cmd := OcpCmd.IDLE
-  io.port.M.DataValid := Bits(0)
-  io.port.M.DataByteEn := Bits(15)
+  io.port.M.DataValid := 0.U
+  io.port.M.DataByteEn := 15.U
 
   cntReg := cntReg + 1.U
   switch(cntReg) {
     is(1.U) {
       io.port.M.Cmd := OcpCmd.WR
-      io.port.M.DataValid := Bits(1)
-      when (io.port.S.CmdAccept === Bits(0)) {
+      io.port.M.DataValid := 1.U
+      when (io.port.S.CmdAccept === 0.U) {
         cntReg := cntReg
       }
     }
     is(2.U) {
-      io.port.M.DataValid := Bits(1)
+      io.port.M.DataValid := 1.U
     }
     is(3.U) {
-      io.port.M.DataValid := Bits(1)
+      io.port.M.DataValid := 1.U
     }
     // now we should be on our last word - wait for DVA
     is(4.U) {
-      io.port.M.DataValid := Bits(1)
+      io.port.M.DataValid := 1.U
       when (io.port.S.Resp =/= OcpResp.DVA) {
         cntReg := cntReg
       }
@@ -55,7 +55,7 @@ class Master(nr: Int, burstLength: Int) extends Module {
     is(5.U) { io.port.M.Cmd := OcpCmd.IDLE }
     is(6.U) {
       io.port.M.Cmd := OcpCmd.RD
-      when (io.port.S.CmdAccept === Bits(0)) {
+      when (io.port.S.CmdAccept === 0.U) {
         cntReg := cntReg
       }
     }

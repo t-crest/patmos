@@ -111,10 +111,10 @@ class I2CMaster(clkFreq : Int, bitRate : Int) extends CoreDevice() {
 
   override val io = IO(new CoreDeviceIO() with patmos.HasPins {
     override val pins = new Bundle {
-      val sdaI = Bits(INPUT, 1)
-      val sdaO = Bits(OUTPUT, 1) // '0' when low, 'Z' when high
-      val sclI = Bits(INPUT, 1)
-      val sclO = Bits(OUTPUT, 1) // '0' when low, 'Z' when high
+      val sdaI = Input(UInt(1.W))
+      val sdaO = Output(UInt(1.W)) // '0' when low, 'Z' when high
+      val sclI = Input(UInt(1.W))
+      val sclO = Output(UInt(1.W)) // '0' when low, 'Z' when high
     }
   })
 
@@ -141,7 +141,7 @@ class I2CMaster(clkFreq : Int, bitRate : Int) extends CoreDevice() {
   val respReg = Reg(init = OcpResp.NULL)
   val readReg = Reg(init = Bits(0, width = 8))
   respReg := OcpResp.NULL
-  readReg := Bits(0)
+  readReg := 0.U
 
   // Read a register
   when(io.ocp.M.Cmd === OcpCmd.RD) {
@@ -157,7 +157,7 @@ class I2CMaster(clkFreq : Int, bitRate : Int) extends CoreDevice() {
       }
       // data register
       is(Bits("b11")) {
-        when(busyReg === Bits(0) && rwReg === Bits(1)) {
+        when(busyReg === 0.U && rwReg === 1.U) {
           readReg := readBuf
           busyReg := connReg // read the next byte if the bus is still connected
         }
@@ -171,28 +171,28 @@ class I2CMaster(clkFreq : Int, bitRate : Int) extends CoreDevice() {
     switch(io.ocp.M.Addr(3,2)){
       // control register
       is(Bits("b00")) {
-        when (busyReg === Bits(0)) {
+        when (busyReg === 0.U) {
           ackBehavReg := io.ocp.M.Data(0)
           enClkStrReg := io.ocp.M.Data(2)
-          when (io.ocp.M.Data(1) === Bits(1) && connReg === Bits(1) && rwReg === Bits(0)) {
-            stopReg := Bits(1) // request to stop transmission
-            busyReg := Bits(1)
+          when (io.ocp.M.Data(1) === 1.U && connReg === 1.U && rwReg === 0.U) {
+            stopReg := 1.U // request to stop transmission
+            busyReg := 1.U
           }
         }
       }
       // address register
       is(Bits("b10")) {
-        when (busyReg === Bits(0) && (connReg === Bits(0) || rwReg === Bits(0))) {
+        when (busyReg === 0.U && (connReg === 0.U || rwReg === 0.U)) {
           writeBuf := io.ocp.M.Data(7,0)
           restartReg := connReg // restart if there is already a connection
-          busyReg := Bits(1)
+          busyReg := 1.U
         }
       }
       // data register
       is(Bits("b11")) {
-        when (busyReg === Bits(0) && connReg === Bits(1) && rwReg === Bits(0)) {
+        when (busyReg === 0.U && connReg === 1.U && rwReg === 0.U) {
           writeBuf := io.ocp.M.Data(7,0)
-          busyReg := Bits(1)
+          busyReg := 1.U
         }
       }
     }
@@ -216,27 +216,27 @@ class I2CMaster(clkFreq : Int, bitRate : Int) extends CoreDevice() {
   val busRWCounter = Reg(init = 0.U(4.W))
 
   //val sdaTick = Reg(init = Bits(0, 1))
-  //sdaTick := Bits(0)
+  //sdaTick := 0.U
 
-  when (busState === busIdle && busyReg === Bits(1)) {
-    when (connReg === Bits(0)) {
+  when (busState === busIdle && busyReg === 1.U) {
+    when (connReg === 0.U) {
       busState := busWriting
       rwReg := writeBuf(0)
-      sdaOReg := Bits(0) // issue start condition
+      sdaOReg := 0.U // issue start condition
       sclRateCounter := 0.U
       busRWCounter := 0.U
     }
-    .elsewhen (restartReg === Bits(1)) {
+    .elsewhen (restartReg === 1.U) {
       busState := busStopping
       sclRateCounter := 0.U
     }
-    .elsewhen (stopReg === Bits(1)) {
+    .elsewhen (stopReg === 1.U) {
       busState := busStopping
-      sdaOReg := Bits(0) // pull SDA low to prepare for stop condition
+      sdaOReg := 0.U // pull SDA low to prepare for stop condition
       sclRateCounter := 0.U
     }
     .otherwise {
-      busState := Mux(rwReg === Bits(0), busWriting, busReading)
+      busState := Mux(rwReg === 0.U, busWriting, busReading)
       busRWCounter := 0.U
     }
   }
@@ -244,32 +244,32 @@ class I2CMaster(clkFreq : Int, bitRate : Int) extends CoreDevice() {
   when (sclRateCounter === (clkFreq / bitRate).U) {
     when (busState === busWriting) {
       // shift bits and fill up with 1 (to leave SDA high after sending)
-      writeBuf := Cat(writeBuf(6,0), Bits(1))
+      writeBuf := Cat(writeBuf(6,0), 1.U)
       sdaOReg := writeBuf(7)
       busRWCounter := busRWCounter + 1.U
 
       when (busRWCounter === 9.U) {
-        when (ackReg === Bits(0)) {
-          abrtReg := Bits(0)
-          when (rwReg === Bits(0)) {
+        when (ackReg === 0.U) {
+          abrtReg := 0.U
+          when (rwReg === 0.U) {
             busState := busIdle
-            busyReg := Bits(0)
-            connReg := Bits(1)
+            busyReg := 0.U
+            connReg := 1.U
           } .otherwise {
             busState := busReading
-            busyReg := Bits(1)
-            connReg := Bits(1)
+            busyReg := 1.U
+            connReg := 1.U
             busRWCounter := 0.U
           }
         } .otherwise {
           //busState := busIdle
-          //busyReg := Bits(0)
-          //connReg := Bits(0)
+          //busyReg := 0.U
+          //connReg := 0.U
           // missing acknowledge, aborting by issuing stop condition
-          abrtReg := Bits(1)
-          stopReg := Bits(1)
+          abrtReg := 1.U
+          stopReg := 1.U
           busState := busStopping
-          sdaOReg := Bits(0) // pull SDA low to prepare for stop condition
+          sdaOReg := 0.U // pull SDA low to prepare for stop condition
           sclRateCounter := 0.U
         }
       } .otherwise {
@@ -285,16 +285,16 @@ class I2CMaster(clkFreq : Int, bitRate : Int) extends CoreDevice() {
       }
 
       when (busRWCounter === 9.U) {
-        when (ackBehavReg === Bits(0)) {
-          sdaOReg := Bits(1)
+        when (ackBehavReg === 0.U) {
+          sdaOReg := 1.U
           busState := busIdle
-          busyReg := Bits(0)
-          connReg := Bits(1)
+          busyReg := 0.U
+          connReg := 1.U
         } .otherwise {
           // we just sent a NACK, issue stop condition
-          stopReg := Bits(1)
+          stopReg := 1.U
           busState := busStopping
-          sdaOReg := Bits(0) // pull SDA low to prepare for stop condition
+          sdaOReg := 0.U // pull SDA low to prepare for stop condition
           sclRateCounter := 0.U
         }
       }
@@ -305,37 +305,37 @@ class I2CMaster(clkFreq : Int, bitRate : Int) extends CoreDevice() {
 
     when (busState === busStopping) {
       busState := busIdle
-      busyReg := Bits(0)
-      connReg := Bits(0)
+      busyReg := 0.U
+      connReg := 0.U
     }
   }
   .otherwise {
     // clock stretching (counter stops if sclOReg high but sclIReg still low)
-    when (enClkStrReg === Bits(0) || sclOReg === Bits(0) || sclIReg === Bits(1)) {
+    when (enClkStrReg === 0.U || sclOReg === 0.U || sclIReg === 1.U) {
       sclRateCounter := sclRateCounter + 1.U
     }
 
     when (sclRateCounter === (clkFreq / (bitRate * 4)).U) {
-      sclOReg := Bits(1)
+      sclOReg := 1.U
     }
     .elsewhen (sclRateCounter === ((clkFreq * 3) / (bitRate * 4)).U) {
       when (busState === busStopping) {
-        when (restartReg === Bits(1)) {
-          restartReg := Bits(0)
-          connReg := Bits(0)
+        when (restartReg === 1.U) {
+          restartReg := 0.U
+          connReg := 0.U
           busState := busWriting
           rwReg := writeBuf(0)
-          sdaOReg := Bits(0) // issue start condition
+          sdaOReg := 0.U // issue start condition
           sclRateCounter := 0.U
           busRWCounter := 0.U
         }
-        .elsewhen (stopReg === Bits(1)) {
-          stopReg := Bits(0)
-          sdaOReg := Bits(1) // issue stop condition
+        .elsewhen (stopReg === 1.U) {
+          stopReg := 0.U
+          sdaOReg := 1.U // issue stop condition
           sclRateCounter := 0.U // wait at least one cycle before next start
         }
       } .otherwise {
-        sclOReg := Bits(0)
+        sclOReg := 0.U
       }
 
       when (busState === busWriting) {

@@ -20,8 +20,8 @@ class UartCmp(corecnt: Int, clk_freq: Int, baud_rate: Int, fifoDepth: Int) exten
 /*
   override val io = IO(new CmpIO(corecnt) with patmos.HasPins {
     override val pins = new Bundle {
-      val tx = Bits(OUTPUT, 1)
-      val rx = Bits(INPUT, 1)
+      val tx = Output(UInt(1.W))
+      val rx = Input(UInt(1.W))
     }
   })
 
@@ -29,16 +29,16 @@ class UartCmp(corecnt: Int, clk_freq: Int, baud_rate: Int, fifoDepth: Int) exten
 
 /*
   val abc = IO(new Bundle {
-    val tx = Bits(OUTPUT, 1)
-    val rx = Bits(INPUT, 1)
+    val tx = Output(UInt(1.W))
+    val rx = Input(UInt(1.W))
   })
 
  */
   /*
   val pins = IO(new Bundle() with HasPins {
     override val pins: Bundle = new Bundle {
-      val tx = Bits(OUTPUT, 1)
-      val rx = Bits(INPUT, 1)
+      val tx = Output(UInt(1.W))
+      val rx = Input(UInt(1.W))
     }
   })
 

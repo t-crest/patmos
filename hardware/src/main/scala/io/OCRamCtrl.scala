@@ -81,7 +81,7 @@ class OCRamCtrl(addrWidth : Int, ocpBurstLen : Int=4) extends BurstDevice(addrWi
   }
 
   // store
-  val stmsk = Mux(wrEn, io.ocp.M.DataByteEn, Bits(0))
+  val stmsk = Mux(wrEn, io.ocp.M.DataByteEn, 0.U)
   for (i <- 0 until BYTES_PER_WORD) {
     mem(i) <= (stmsk(i), addr, io.ocp.M.Data(BYTE_WIDTH*(i+1)-1, BYTE_WIDTH*i))
   }
@@ -97,8 +97,8 @@ class OCRamCtrl(addrWidth : Int, ocpBurstLen : Int=4) extends BurstDevice(addrWi
   }
 
   // always accept
-  io.ocp.S.CmdAccept := Bits(1)
-  io.ocp.S.DataAccept := Bits(1)
+  io.ocp.S.CmdAccept := 1.U
+  io.ocp.S.DataAccept := 1.U
 }
 
 /*

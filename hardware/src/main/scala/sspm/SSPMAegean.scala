@@ -8,8 +8,8 @@
 
 package sspm
 
-import Chisel._
-import chisel3.VecInit
+import chisel3._
+import chisel3.util._
 
 import patmos.Constants._
 
@@ -32,11 +32,11 @@ class SSPMAegean(val nCores: Int,
 
   // Generate modules
   val mem = Module(new memSPM(16384))
-  val connectors = VecInit(Seq.fill(nCores)(Module(new SSPMConnector()).io)) // MS: shall this be really a Vec and not a Seq?
+  val connectors = VecInit(Seq.fill(nCores)(Module(new SSPMConnector()).io)) // MS: shall this be really a Vec and not a Seq? | tjark: Yes, it is indexed with a UInt in line 52-55
 
   val firstCore = 0
-  val nextCore = Reg(init = (firstCore + 1).U(log2Up(nCores).W))
-  val currentCore = Reg(init = firstCore.U(log2Up(nCores).W))
+  val nextCore = RegInit(init = (firstCore + 1).U(log2Up(nCores).W))
+  val currentCore = RegInit(init = firstCore.U(log2Up(nCores).W))
   val decoder = UIntToOH(currentCore, nCores)
 
   // Connect the SSPMConnector with the SSPMAegean
@@ -46,7 +46,7 @@ class SSPMAegean(val nCores: Int,
       connectors(j).connectorSignals.S.Data := mem.io.S.Data
 
     // Enable connectors based upon one-hot coding of scheduler
-    connectors(j).connectorSignals.enable := Bits(0)
+    connectors(j).connectorSignals.enable := 0.U
   }
 
   mem.io.M.Data := connectors(currentCore).connectorSignals.M.Data
@@ -56,22 +56,22 @@ class SSPMAegean(val nCores: Int,
 
   // Synchronization state machine
 
-  val s_idle :: s_sync :: Nil = Enum(UInt(), 2)
+  val s_idle :: s_sync :: Nil = Enum(2)
 
-  val state = Reg(init = s_idle)
-  val syncCounter = Reg(init = 0.U)
+  val state = RegInit(init = s_idle)
+  val syncCounter = RegInit(init = 0.U)
   syncCounter := syncCounter
 
-  val syncUsed = Reg(init = false.B)
-  val syncCore = Reg(init = 0.U)
+  val syncUsed = RegInit(init = false.B)
+  val syncCore = RegInit(init = 0.U)
 
   when(state === s_idle) {
     state := s_idle
     nextCore := nextCore + 1.U
     currentCore := nextCore
-    connectors(currentCore).connectorSignals.enable := Bits(1)
+    connectors(currentCore).connectorSignals.enable := 1.U
 
-    when(connectors(currentCore).connectorSignals.syncReq === Bits(1)) {
+    when(connectors(currentCore).connectorSignals.syncReq === 1.U) {
       if(singleExtendedSlot) {
         when(!syncUsed) {
           syncCounter := (extendedSlotSize - 1).U
@@ -79,7 +79,7 @@ class SSPMAegean(val nCores: Int,
           currentCore := currentCore
           state := s_sync
         }.otherwise {
-          connectors(currentCore).connectorSignals.enable := Bits(0)
+          connectors(currentCore).connectorSignals.enable := 0.U
         }
       } else {
         syncCounter := (extendedSlotSize - 1).U
@@ -107,7 +107,7 @@ class SSPMAegean(val nCores: Int,
       syncUsed := true.B
       syncCore := currentCore
     }
-    connectors(currentCore).connectorSignals.enable := Bits(1)
+    connectors(currentCore).connectorSignals.enable := 1.U
 
     state := s_sync
 
@@ -132,10 +132,10 @@ object SSPMAegeanMain {
     val singleExtendedSlot = "true" // args(2)
     chiselArgs.foreach(println)
 
-    chiselMain(chiselArgs, () => Module(new SSPMAegean(
-        nCores.toInt,
-        extendedSlotSize.toInt,
-        Try(singleExtendedSlot.toBoolean).getOrElse(false))))
+    emitVerilog(new SSPMAegean(
+      nCores.toInt,
+      extendedSlotSize.toInt,
+      Try(singleExtendedSlot.toBoolean).getOrElse(false)), chiselArgs)
   }
 }
 

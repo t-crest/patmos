@@ -104,33 +104,33 @@ class BldcCtrl(clkFreq : Int, pwmFreq : Int, motorCount : Int) extends CoreDevic
   when (counterReg === 0.U) {
     // all outputs high:
     //pwmOutReg := ~Bits(0, motorCount)
-    pwmOut0Reg := Bits(1)
-    pwmOut1Reg := Bits(1)
-    pwmOut2Reg := Bits(1)
-    pwmOut3Reg := Bits(1)
+    pwmOut0Reg := 1.U
+    pwmOut1Reg := 1.U
+    pwmOut2Reg := 1.U
+    pwmOut3Reg := 1.U
   }
   when (counterReg === motor0Reg) {
     //pwmOutReg := pwmOutReg & (~Bits(1, motorCount))
-    pwmOut0Reg := Bits(0)
+    pwmOut0Reg := 0.U
   }
   when (counterReg === motor1Reg) {
     //pwmOutReg := pwmOutReg & (~Bits(2, motorCount))
-    pwmOut1Reg := Bits(0)
+    pwmOut1Reg := 0.U
   }
   when (counterReg === motor2Reg) {
     //pwmOutReg := pwmOutReg & (~Bits(4, motorCount))
-    pwmOut2Reg := Bits(0)
+    pwmOut2Reg := 0.U
   }
   when (counterReg === motor3Reg) {
     //pwmOutReg := pwmOutReg & (~Bits(8, motorCount))
-    pwmOut3Reg := Bits(0)
+    pwmOut3Reg := 0.U
   }
 
   // Default response
   val respReg = Reg(init = OcpResp.NULL)
   val readReg = Reg(init = Bits(0, counterWidth))
   respReg := OcpResp.NULL
-  readReg := Bits(0)
+  readReg := 0.U
 
   // Read a register
   when(io.ocp.M.Cmd === OcpCmd.RD) {

@@ -78,7 +78,7 @@ class WishboneBridge(extAddrWidth : Int = 32,
   }
 
   // Transaltion of the WB's ack into OCP's DVA
-  when(io.pins.wb_ack_i === Bits(1)) {
+  when(io.pins.wb_ack_i === 1.U) {
   we_o_Reg := false.B
   stb_o_Reg := false.B
   cyc_o_Reg := false.B

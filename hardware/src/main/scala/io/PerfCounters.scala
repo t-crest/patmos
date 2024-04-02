@@ -37,7 +37,7 @@ class PerfCounters() extends CoreDevice() {
   val resp = Bits()
   val data = Bits(width = DATA_WIDTH)
   resp := OcpResp.NULL
-  data := Bits(0)
+  data := 0.U
 
   // Ignore writes
   when(masterReg.Cmd === OcpCmd.WR) {

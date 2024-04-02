@@ -36,8 +36,8 @@ class Uart(clk_freq: Int, baud_rate: Int, fifoDepth: Int) extends CoreDevice() {
 
     override val io = IO(new CoreDeviceIO() with patmos.HasPins {
       override val pins = new Bundle {
-        val tx = Bits(OUTPUT, 1)
-        val rx = Bits(INPUT, 1)
+        val tx = Output(UInt(1.W))
+        val rx = Input(UInt(1.W))
       }
     })
     //Forcing signals availability in emulator
@@ -83,7 +83,7 @@ class Uart(clk_freq: Int, baud_rate: Int, fifoDepth: Int) extends CoreDevice() {
     respReg := OcpResp.NULL
 
     val rdDataReg = Reg(init = Bits(0, width = 8))
-    rdDataReg := Mux(io.ocp.M.Addr(2) === Bits(0),
+    rdDataReg := Mux(io.ocp.M.Addr(2) === 0.U,
                      Cat(Bits(0, width = 6), rxQueue.io.deq.valid, txQueue.io.enq.ready),
                      rxQueue.io.deq.bits)
 
@@ -97,7 +97,7 @@ class Uart(clk_freq: Int, baud_rate: Int, fifoDepth: Int) extends CoreDevice() {
     // Read data
     when(io.ocp.M.Cmd === OcpCmd.RD) {
         respReg := OcpResp.DVA
-        rxQueue.io.deq.ready := io.ocp.M.Addr(2) =/= Bits(0)
+        rxQueue.io.deq.ready := io.ocp.M.Addr(2) =/= 0.U
     }
 
     // Connections to master
@@ -119,7 +119,7 @@ class Uart(clk_freq: Int, baud_rate: Int, fifoDepth: Int) extends CoreDevice() {
     when (tx_state === tx_idle) {
         when (txQueue.io.deq.valid) {
           txQueue.io.deq.ready := true.B
-          tx_buff              := Cat(Bits(1), txQueue.io.deq.bits, Bits(0))
+          tx_buff              := Cat(1.U, txQueue.io.deq.bits, 0.U)
           tx_state             := tx_send
         }
     }
@@ -133,7 +133,7 @@ class Uart(clk_freq: Int, baud_rate: Int, fifoDepth: Int) extends CoreDevice() {
             when (tx_counter === 10.U) {
               when (txQueue.io.deq.valid) {
                 txQueue.io.deq.ready := true.B
-                tx_buff              := Cat(Bits(1), txQueue.io.deq.bits)
+                tx_buff              := Cat(1.U, txQueue.io.deq.bits)
                 tx_reg               := 0.U
                 tx_counter           := 1.U
               }

@@ -29,7 +29,7 @@ class CpuInfo(datFile: String, cpucnt: Int) extends CoreDevice() {
   val resp = Wire(Bits())
   val data = Wire(Bits(width = DATA_WIDTH))
   resp := OcpResp.NULL
-  data := Bits(0)
+  data := 0.U
 
   // Ignore writes
   when(masterReg.Cmd === OcpCmd.WR) {

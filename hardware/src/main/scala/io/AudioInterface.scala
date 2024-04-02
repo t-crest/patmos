@@ -104,7 +104,7 @@ class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int
   // Read information
   val masterReg = Reg(next = io.ocp.M)
   val data = Wire(Bits(DATA_WIDTH.W))
-  data := Bits(0) //Default Data
+  data := 0.U //Default Data
 
   switch(masterReg.Addr(9,4))
   {

@@ -39,9 +39,9 @@ class SPIMaster(clkFreq : Int, slaveCount : Int, sclkHz : Int, fifoDepth : Int, 
     
     override val io = new CoreDeviceIO() with patmos.HasPins {
         override val pins = new Bundle() {
-            val sclk = Bits(OUTPUT, 1)
-            val mosi = Bits(OUTPUT, 1) 
-            val miso = Bits(INPUT, 1)
+            val sclk = Output(UInt(1.W))
+            val mosi = Output(UInt(1.W))
+            val miso = Input(UInt(1.W))
             val nSS = Bits(OUTPUT, slaveCount)
             }
         }
@@ -142,9 +142,9 @@ class SPIMaster(clkFreq : Int, slaveCount : Int, sclkHz : Int, fifoDepth : Int, 
 
     when (state === idle)
     {
-      nSSReg := Bits(1)
-      wordCounterReg := Bits(0)
-      mosiReg := Bits(0)
+      nSSReg := 1.U
+      wordCounterReg := 0.U
+      mosiReg := 0.U
       sclkReg := false.B
       //When TX queue has data send
       when (txQueue.io.count > 0.U )
@@ -175,7 +175,7 @@ class SPIMaster(clkFreq : Int, slaveCount : Int, sclkHz : Int, fifoDepth : Int, 
       }
 
       // Pull slave select low TODO:multiple slaves?
-      nSSReg := Bits(0)
+      nSSReg := 0.U
 
       
       // When a word length is sent close the transmission 

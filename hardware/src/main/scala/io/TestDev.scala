@@ -69,8 +69,8 @@ class TestDev(obj : TestDevObject) extends CoreDevice() {
   // Get the actual pins, depending on who is doing the instantiation
   override val io = obj.getPins()
 
-  val dataOutReg = Reg(init = Bits(0))
-  val dataInReg = Reg(init = Bits(0))
+  val dataOutReg = Reg(init = 0.U)
+  val dataInReg = Reg(init = 0.U)
 
   // Default response
   val respReg = Reg(init = OcpResp.NULL)

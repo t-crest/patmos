@@ -79,13 +79,13 @@ class AvalonMMBridge(extAddrWidth : Int = 32,
   val ReadWriteInactive = false.B
   // Default values in case of ILDE command
   //respReg := OcpResp.NULL
-  //dataReg := Bits(0)
+  //dataReg := 0.U
   io.pins.avs_write := ReadWriteInactive
   io.pins.avs_read := ReadWriteInactive
 
   ioBus.io.master.S.Resp := OcpResp.NULL
-  ioBus.io.master.S.CmdAccept := Bits(0)
-  ioBus.io.master.S.Data := Bits(0)
+  ioBus.io.master.S.CmdAccept := 0.U
+  ioBus.io.master.S.Data := 0.U
 
   // Constant connections
   io.pins.avs_burstcount := Bits("b1")

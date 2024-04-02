@@ -44,7 +44,8 @@
 
 package sspm
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 
 import patmos.Constants._
 
@@ -59,14 +60,14 @@ import io._
 
 trait SSPMConnectorSignals {
   val connectorSignals = new Bundle() {
-    val enable = Bits(INPUT, 1)
-    val syncReq = Bits(OUTPUT, 1)
+    val enable = Input(UInt(1.W))
+    val syncReq = Output(UInt(1.W))
 
     val M = new Bundle() {
-       val Data = Bits(OUTPUT, DATA_WIDTH)
-       val Addr = Bits(OUTPUT, ADDR_WIDTH)
-       val ByteEn = Bits(OUTPUT, 4)
-       val We = Bits(OUTPUT, 1)
+       val Data = Output(UInt(DATA_WIDTH.W))
+       val Addr = Output(UInt(ADDR_WIDTH.W))
+       val ByteEn = Output(UInt(4.W))
+       val We = Output(UInt(1.W))
     }
 
     val S = new Bundle() {
@@ -84,15 +85,15 @@ class SSPMConnector extends CoreDevice() {
   // OCP pins and SSPMBackbone pins
   override val io = new CoreDeviceIO() with SSPMConnectorSignals
 
-  val respReg = Reg(init=OcpResp.NULL)
-  val writeEnableReg = Reg(init=io.ocp.M.Cmd(0))
-  val MAddrReg = Reg(init=io.ocp.M.Addr)
-  val MDataReg = Reg(init=io.ocp.M.Data)
-  val MByteEnReg = Reg(init=io.ocp.M.ByteEn)
-  val SDataReg = Reg(init=io.connectorSignals.S.Data)
-  val prevConnectorEnable1 = Reg(init=io.connectorSignals.enable,
+  val respReg = RegInit(init=OcpResp.NULL)
+  val writeEnableReg = RegInit(init=io.ocp.M.Cmd(0))
+  val MAddrReg = RegInit(init=io.ocp.M.Addr)
+  val MDataReg = RegInit(init=io.ocp.M.Data)
+  val MByteEnReg = RegInit(init=io.ocp.M.ByteEn)
+  val SDataReg = RegInit(init=io.connectorSignals.S.Data)
+  val prevConnectorEnable1 = RegNext(init=io.connectorSignals.enable,
     next=io.connectorSignals.enable)
-  val prevConnectorEnable = Reg(init=prevConnectorEnable1,
+  val prevConnectorEnable = RegNext(init=prevConnectorEnable1,
     next=prevConnectorEnable1)
 
   respReg := OcpResp.NULL
@@ -109,16 +110,16 @@ class SSPMConnector extends CoreDevice() {
   io.ocp.S.Resp := respReg
   io.ocp.S.Data := io.connectorSignals.S.Data
 
-  val s_idle :: s_waiting :: Nil = Enum(UInt(), 2)
+  val s_idle :: s_waiting :: Nil = Enum(2)
 
-  val state = Reg(init = s_idle)
+  val state = RegInit(init = s_idle)
   state := state
 
-  val syncReqReg = Reg(init = Bits(0))
+  val syncReqReg = RegInit(init = 0.U)
   io.connectorSignals.syncReq := syncReqReg
 
-  when(io.ocp.M.Cmd =/= OcpCmd.IDLE && io.ocp.M.Addr(15, 2) === Fill(14, Bits(1))) {
-    syncReqReg := Bits(1)
+  when(io.ocp.M.Cmd =/= OcpCmd.IDLE && io.ocp.M.Addr(15, 2) === Fill(14, 1.B)) {
+    syncReqReg := 1.U
   }.otherwise {
     syncReqReg := syncReqReg
   }
@@ -131,17 +132,17 @@ class SSPMConnector extends CoreDevice() {
 
   when(state === s_waiting) {
 
-    when(io.connectorSignals.enable === Bits(1)
-    && syncReqReg === Bits(0)) {
+    when(io.connectorSignals.enable === 1.U
+    && syncReqReg === 0.U) {
 
       respReg := OcpResp.DVA
       state := s_idle
 
-    }.elsewhen(io.connectorSignals.enable === Bits(1)
-    && prevConnectorEnable === Bits(0)
-    && syncReqReg === Bits(1)) {
+    }.elsewhen(io.connectorSignals.enable === 1.U
+    && prevConnectorEnable === 0.U
+    && syncReqReg === 1.U) {
 
-      syncReqReg := Bits(0)
+      syncReqReg := 0.U
       respReg := OcpResp.DVA
       state := s_idle
 
@@ -161,8 +162,7 @@ class SSPMConnector extends CoreDevice() {
 object SSPMConnectorMain {
   def main(args: Array[String]): Unit = {
     println("Generating the SSPM hardware")
-    chiselMain(Array("--backend", "v", "--targetDir", "generated"),
-      () => Module(new SSPMConnector()))
+    emitVerilog(new SSPMConnector(), Array("-td", "generated"))
   }
 }
 

@@ -46,7 +46,7 @@ class Mixer(dataWidth: Int = 16, mixWidth: Int = 6, fullControl: Boolean = false
     is (idle) {
       when(io.in.valid) {
         regMul := (signalDiff * mix) >> mixWidth
-        regInVal := io.in.bits(0)         
+        regInVal := io.in.bits(0)
         regState := hasValue
       }
     }

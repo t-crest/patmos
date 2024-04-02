@@ -22,11 +22,11 @@ object SDHostCtrl extends DeviceObject {
 class SDHostCtrl() extends CoreDevice() {
   override val io = new CoreDeviceIO() with patmos.HasPins {
     override val pins = new Bundle() {
-      val sdClk = Bits(OUTPUT, 1);
-      val sdCs = Bits(OUTPUT, 1);
-      val sdDatOut = Bits(INPUT, 1); // Data Out on the card
-      val sdDatIn = Bits(OUTPUT, 1); // Data In on the card
-      val sdWp = Bits(INPUT, 1);
+      val sdClk = Output(UInt(1.W));
+      val sdCs = Output(UInt(1.W));
+      val sdDatOut = Input(UInt(1.W)); // Data Out on the card
+      val sdDatIn = Output(UInt(1.W)); // Data In on the card
+      val sdWp = Input(UInt(1.W));
     }
   }
 

@@ -98,21 +98,21 @@ class SRamCtrl( ocpAddrWidth    : Int,
 
   // Default values for ocp io.ocp.S port
   io.ocp.S.Resp := OcpResp.NULL
-  io.ocp.S.CmdAccept := Bits(1)
-  io.ocp.S.DataAccept := Bits(1)
+  io.ocp.S.CmdAccept := 1.U
+  io.ocp.S.DataAccept := 1.U
   val data = for(i <- 0 until TRANSPERWORD)
              yield rdBufferReg(wordCountReg ## i.U)
   io.ocp.S.Data := data.reduceLeft((x,y) => y ## x)
 
   // Default values for sRamCtrlPins.ramOut port
   addrReg := mAddrReg
-  doutEnaReg := Bits(0)
+  doutEnaReg := 0.U
   doutReg := wrBufferReg(0).data
-  nceReg := Bits(0)
-  noeReg := Bits(1)
-  nweReg := Bits(1)
-  nlbReg := Bits(1)
-  nubReg := Bits(1)
+  nceReg := 0.U
+  noeReg := 1.U
+  nweReg := 1.U
+  nlbReg := 1.U
+  nubReg := 1.U
 
   waitCountReg := 0.U
 
@@ -134,10 +134,10 @@ class SRamCtrl( ocpAddrWidth    : Int,
     }
   }
   when(stateReg === sReadExe) {
-    noeReg := Bits(0)
-    nceReg := Bits(0)
-    nubReg := Bits(0)
-    nlbReg := Bits(0)
+    noeReg := 0.U
+    nceReg := 0.U
+    nubReg := 0.U
+    nlbReg := 0.U
     if (singleCycleRead){
       addrReg := mAddrReg + 1.U
       mAddrReg := mAddrReg + 1.U
@@ -154,10 +154,10 @@ class SRamCtrl( ocpAddrWidth    : Int,
     }
   }
   when(stateReg === sReadExe2) {
-    noeReg := Bits(0)
-    nceReg := Bits(0)
-    nubReg := Bits(0)
-    nlbReg := Bits(0)
+    noeReg := 0.U
+    nceReg := 0.U
+    nubReg := 0.U
+    nlbReg := 0.U
     addrReg := mAddrReg + 1.U
     mAddrReg := mAddrReg + 1.U
     for (i <- 0 until TRANSPERCMD-1) { rdBufferReg(i) := rdBufferReg(i+1) }
@@ -185,8 +185,8 @@ class SRamCtrl( ocpAddrWidth    : Int,
         io.ocp.M.Data((i+1)*sramDataWidth-1,i*sramDataWidth)
     }
     doutReg := wrBufferReg(0).data
-    doutEnaReg := Bits(1)
-    when(io.ocp.M.DataValid === Bits(1)){
+    doutEnaReg := 1.U
+    when(io.ocp.M.DataValid === 1.U){
       wordCountReg := wordCountReg + 1.U
       when(wordCountReg === (ocpBurstLen-1).U){
         stateReg := sWriteExe
@@ -197,17 +197,17 @@ class SRamCtrl( ocpAddrWidth    : Int,
       stateReg := sWriteRec
     }
     when(wordCountReg === (ocpBurstLen-1).U){
-      nceReg := Bits(0)
-      nweReg := Bits(0)
+      nceReg := 0.U
+      nweReg := 0.U
       nubReg := !wrBufferReg(0).byteEna(1)
       nlbReg := !wrBufferReg(0).byteEna(0)
     }
   }
   when(stateReg === sWriteExe) {
-    nceReg := Bits(0)
-    nweReg := Bits(0)
+    nceReg := 0.U
+    nweReg := 0.U
     doutReg := wrBufferReg(transCountReg).data
-    doutEnaReg := Bits(1)
+    doutEnaReg := 1.U
     when(waitCountReg < writeWaitCycles.U){
       waitCountReg := waitCountReg + 1.U
       nubReg := !wrBufferReg(transCountReg).byteEna(1)
@@ -215,19 +215,19 @@ class SRamCtrl( ocpAddrWidth    : Int,
       stateReg := sWriteExe
     } otherwise {
       waitCountReg := 0.U
-      nubReg := Bits(1)
-      nlbReg := Bits(1)
+      nubReg := 1.U
+      nlbReg := 1.U
       stateReg := sWriteExe2
     }
   }
   when(stateReg === sWriteExe2) {
     when(transCountReg < (TRANSPERCMD-1).U){
-      nceReg := Bits(0)
-      nweReg := Bits(0)
+      nceReg := 0.U
+      nweReg := 0.U
       nubReg := !wrBufferReg(transCountReg+1.U).byteEna(1)
       nlbReg := !wrBufferReg(transCountReg+1.U).byteEna(0)
       doutReg := wrBufferReg(transCountReg+1.U).data
-      doutEnaReg := Bits(1)
+      doutEnaReg := 1.U
       addrReg := mAddrReg + 1.U
       mAddrReg := mAddrReg + 1.U
       transCountReg := transCountReg + 1.U

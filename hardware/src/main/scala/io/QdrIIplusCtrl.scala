@@ -98,8 +98,8 @@ class QdrIIplusCtrl(ocpAddrWidth   : Int,
 
   // Default values for ocp io.ocp.S port
   io.ocp.S.Resp := OcpResp.NULL
-  io.ocp.S.CmdAccept := Bits(0)
-  io.ocp.S.DataAccept := Bits(0)
+  io.ocp.S.CmdAccept := 0.U
+  io.ocp.S.DataAccept := 0.U
   val data = for(i <- 0 until TRANSPERWORD)
              yield rdBufferReg(wordCountReg ## i.U)
   io.ocp.S.Data := data.reduceLeft((x,y) => y ## x)
@@ -108,8 +108,8 @@ class QdrIIplusCtrl(ocpAddrWidth   : Int,
   addrReg := mAddrReg
   doutReg(0) := wrBufferReg(0).data
   doutReg(1) := wrBufferReg(1).data
-  nrpsReg := Bits(1)
-  nwpsReg := Bits(1)
+  nrpsReg := 1.U
+  nwpsReg := 1.U
   nbwsReg(0) := ~wrBufferReg(0).byteEna
   nbwsReg(1) := ~wrBufferReg(1).byteEna
 
@@ -121,19 +121,19 @@ class QdrIIplusCtrl(ocpAddrWidth   : Int,
     when(io.ocp.M.Cmd =/= OcpCmd.IDLE) {
       mAddrReg := io.ocp.M.Addr(ramAddrWidth + log2upNew(BYTESPERSEL) - 1,
                                 log2upNew(BYTESPERSEL))
-      io.ocp.S.CmdAccept := Bits(1)
+      io.ocp.S.CmdAccept := 1.U
       when(io.ocp.M.Cmd === OcpCmd.RD) {
         stateReg := sReadSel
       }
       when(io.ocp.M.Cmd === OcpCmd.WR) {
-        io.ocp.S.DataAccept := Bits(1)
+        io.ocp.S.DataAccept := 1.U
         wordCountReg := 1.U // The first ocp data word is already in wrBufferReg
         stateReg := sWriteRec
       }
     }
   }
   when(stateReg === sReadSel) {
-    nrpsReg := Bits(0)
+    nrpsReg := 0.U
     if (readWaitCycles == 0) {
       stateReg := sReadExe
     } else {
@@ -177,19 +177,19 @@ class QdrIIplusCtrl(ocpAddrWidth   : Int,
       wrBufferReg(wordCountReg ## i.U).data :=
         io.ocp.M.Data((i+1)*ramDataWidth-1,i*ramDataWidth)
     }
-    when(io.ocp.M.DataValid === Bits(1)){
-      io.ocp.S.DataAccept := Bits(1)
+    when(io.ocp.M.DataValid === 1.U){
+      io.ocp.S.DataAccept := 1.U
       wordCountReg := wordCountReg + 1.U
       when(wordCountReg === (ocpBurstLen-1).U){
         stateReg := sWriteExe
         wordCountReg := 0.U
-        nwpsReg := Bits(0)
+        nwpsReg := 0.U
       }
     }
   }
   when(stateReg === sWriteSel) {
     stateReg := sWriteExe
-    nwpsReg := Bits(0)
+    nwpsReg := 0.U
   }
   when(stateReg === sWriteExe) {
     doutReg(0) := wrBufferReg(transCountReg ## 0.U).data
@@ -218,7 +218,7 @@ class QdrIIplusCtrl(ocpAddrWidth   : Int,
   io.pins.nbws := nbwsReg
 
   // Hard-wired pins
-  io.pins.ndoff := Bits(1)
+  io.pins.ndoff := 1.U
 
   class Trans(bytesEnaWidth: Int, dataWidth: Int) extends Bundle {
     val byteEna = Bits(width = bytesEnaWidth)

@@ -53,7 +53,7 @@ class Timer(clk_freq: Int) extends CoreDevice() {
   val resp = Wire(Bits())
   val data = Wire(Bits(width = DATA_WIDTH))
   resp := OcpResp.NULL
-  data := Bits(0)
+  data := 0.U
 
   // Read current state of timer
   when(masterReg.Cmd === OcpCmd.RD) {
