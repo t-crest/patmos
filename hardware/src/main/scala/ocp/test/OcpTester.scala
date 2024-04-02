@@ -9,7 +9,7 @@
 
 package ocp.test
 
-import Chisel._
+import chisel3._
 
 import ocp._
 
@@ -35,7 +35,7 @@ class OcpTester(dut: AModule) extends Tester(dut) {
 
 object OcpTester {
   def main(args: Array[String]): Unit = {
-    chiselMain(args, () => Module(new AModule()))
+    emitVerilog(new AModule(), args)
 
   }
 }

@@ -8,7 +8,7 @@
 
 package ocp.test
 
-import Chisel._
+import chisel3._
 import ocp._
 import io.SSRam32Ctrl
 

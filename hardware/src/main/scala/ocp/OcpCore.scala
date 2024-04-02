@@ -7,7 +7,7 @@
 
 package ocp
 
-import Chisel._
+import chisel3._
 
 // Masters include a byte-enable signal
 class OcpCoreMasterSignals(override val addrWidth : Int, override val dataWidth : Int)

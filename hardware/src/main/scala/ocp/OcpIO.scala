@@ -7,7 +7,7 @@
 
 package ocp
 
-import Chisel._
+import chisel3._
 
 // Masters include a RespAccept signal
 class OcpIOMasterSignals(addrWidth: Int, dataWidth: Int)
@@ -36,21 +36,21 @@ class OcpIOSlaveSignals(dataWidth: Int)
 // Master port
 class OcpIOMasterPort(val addrWidth: Int, val dataWidth: Int) extends Bundle() {
   // Clk is implicit in Chisel
-  val M = new OcpIOMasterSignals(addrWidth, dataWidth).asOutput
-  val S = new OcpIOSlaveSignals(dataWidth).asInput
+  val M = Output(new OcpIOMasterSignals(addrWidth, dataWidth))
+  val S = Input(new OcpIOSlaveSignals(dataWidth))
 }
 
 // Slave port is reverse of master port
 class OcpIOSlavePort(val addrWidth: Int, val dataWidth: Int) extends Bundle() {
   // Clk is implicit in Chisel
-  val M = new OcpIOMasterSignals(addrWidth, dataWidth).asInput
-  val S = new OcpIOSlaveSignals(dataWidth).asOutput
+  val M = Input(new OcpIOMasterSignals(addrWidth, dataWidth))
+  val S = Output(new OcpIOSlaveSignals(dataWidth))
 }
 
 // Bridge between ports that do/do not support CmdAccept
 class OcpIOBridge(master: OcpCoreMasterPort, slave: OcpIOSlavePort) {
   // Register signals that come from master
-  val masterReg = Reg(init = master.M)
+  val masterReg = RegInit(init = master.M)
   when(masterReg.Cmd === OcpCmd.IDLE || slave.S.CmdAccept === 1.U) {
     masterReg := master.M
   }
@@ -69,8 +69,8 @@ class OcpIOBridge(master: OcpCoreMasterPort, slave: OcpIOSlavePort) {
 //   adds than combinational paths
 class OcpIOBridgeAlt(master: OcpCoreMasterPort, slave: OcpIOSlavePort) {
   
-  val masterReg = Reg(init = master.M) // What is the reset value of this bundle?
-  val busyReg = Reg(init = false.B)
+  val masterReg = RegInit(init = master.M) // What is the reset value of this bundle?
+  val busyReg = RegInit(init = false.B)
 
   when(!busyReg) {
     masterReg := master.M

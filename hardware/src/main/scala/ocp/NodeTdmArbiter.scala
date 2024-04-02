@@ -9,8 +9,8 @@
 
 package ocp
 
-import Chisel._
-import chisel3.VecInit
+import chisel3._
+import chisel3.util._
 
 class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int, ctrlDelay: Int) extends Module {
   // MS: I'm always confused from which direction the name shall be
@@ -26,25 +26,25 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
   
   // MS: have all generated constants at one place
 
-  val cntReg = Reg(init = 0.U(log2Up(cnt*(burstLen + ctrlDelay + 1)).W))
+  val cntReg = RegInit(init = 0.U(log2Up(cnt*(burstLen + ctrlDelay + 1)).W))
   // slot length = burst size + 1 
-  val burstCntReg = Reg(init = 0.U(log2Up(burstLen).W))
+  val burstCntReg = RegInit(init = 0.U(log2Up(burstLen).W))
   val period = cnt * (burstLen + ctrlDelay + 1)
   val slotLen = burstLen + ctrlDelay + 1
   val numPipe = 3 
   
   val wrPipeDelay = burstLen + ctrlDelay + numPipe 
-  val wrCntReg = Reg(init = 0.U(log2Up(wrPipeDelay).W))
+  val wrCntReg = RegInit(init = 0.U(log2Up(wrPipeDelay).W))
 
   val rdPipeDelay = burstLen + ctrlDelay + numPipe 
-  val rdCntReg = Reg(init = 0.U(log2Up(rdPipeDelay).W))
+  val rdCntReg = RegInit(init = 0.U(log2Up(rdPipeDelay).W))
   
   // MS: merge rdCntReg and wrCntReg and let it count till slot length
  
   val cpuSlot = RegInit(VecInit(Seq.fill(cnt)(0.U(1.W))))
 
-  val sIdle :: sRead :: sWrite :: Nil = Enum(UInt(), 3)
-  val stateReg = Reg(init = sIdle)
+  val sIdle :: sRead :: sWrite :: Nil = Enum(3)
+  val stateReg = RegInit(init = sIdle)
 
   /*debug(cntReg) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
   for(i <- (0 until cnt))
@@ -190,7 +190,7 @@ class MemMuxIntf(nr: Int, addrWidth : Int, dataWidth : Int, burstLen: Int) exten
     // 2st stage pipeline registers for inputs
     // MS: what about using the whole bundle as a single signal?
     // val mMasterReg = Reg(init=OcpBurstMasterSignals(...))
-    val mCmd_p2_Reg         = Reg(init=0.U(3.W))
+    val mCmd_p2_Reg         = RegInit(init=0.U(3.W))
     val mAddr_p2_Reg        = Reg(UInt(addrWidth.W))
     val mData_p2_Reg        = Reg(UInt(dataWidth.W))
     val mDataByteEn_p2_Reg  = Reg(UInt((dataWidth/8).W))
@@ -242,8 +242,8 @@ class MemMuxIntf(nr: Int, addrWidth : Int, dataWidth : Int, burstLen: Int) exten
     io.slave.M.Data       := mData_p2_Reg
    
     // 1st stage pipeline registers for output
-    val sResp_p1_Reg        = Reg(next=io.slave.S.Resp)
-    val sData_p1_Reg        = Reg(next=io.slave.S.Data)
+    val sResp_p1_Reg        = RegNext(next=io.slave.S.Resp)
+    val sData_p1_Reg        = RegNext(next=io.slave.S.Data)
 
     
     // Forward response to all arbiters  
@@ -264,7 +264,7 @@ object NodeTdmArbiterMain {
     val burstLen = args(3)
     val ctrlDelay = args(4)
 
-    chiselMain(chiselArgs, () => Module(new NodeTdmArbiter(cnt.toInt,addrWidth.toInt,dataWidth.toInt,burstLen.toInt, ctrlDelay.toInt)))
+    emitVerilog(new NodeTdmArbiter(cnt.toInt,addrWidth.toInt,dataWidth.toInt,burstLen.toInt, ctrlDelay.toInt), chiselArgs)
   }
 }
 

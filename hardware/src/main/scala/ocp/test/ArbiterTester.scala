@@ -8,7 +8,8 @@
 
 package ocp.test
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import ocp._
 import io.SSRam32Ctrl
 
@@ -19,9 +20,9 @@ class Master(nr: Int, burstLength: Int) extends Module {
     val port = new OcpBurstMasterPort(32, 32, burstLength)
   })
 
-  val cntReg = Reg(init = 0.U(32.W))
-  val dataReg = Reg(init = 0.U(32.W))
-  val cntRead = Reg(init = 0.U(3.W))
+  val cntReg = RegInit(init = 0.U(32.W))
+  val dataReg = RegInit(init = 0.U(32.W))
+  val cntRead = RegInit(init = 0.U(3.W))
   
   //debug(cntRead) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
 

@@ -13,7 +13,7 @@
 
 package ocp
 
-import Chisel._
+import chisel3._
 
 class TdmArbiterWrapper(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen: Int) extends ArbiterType(cnt, dataWidth, dataWidth, burstLen) {
 

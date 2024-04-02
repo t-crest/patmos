@@ -8,8 +8,9 @@
 
 package ocp
 
-import Chisel._
-import chisel3.VecInit
+
+import chisel3._
+import chisel3.util._
 
 // Burst masters provide handshake signals
 class OcpBurstMasterSignals(addrWidth : Int, dataWidth : Int)
@@ -68,13 +69,13 @@ class OcpBurstBridge(master : OcpCacheMasterPort, slave : OcpBurstSlavePort) {
   val burstAddrUInt = log2Up(burstLength)
 
   // State of transmission
-  val idle :: read :: readResp :: write :: Nil = Enum(UInt(), 4)
-  val state = Reg(init = idle)
-  val burstCnt = Reg(init = 0.U(burstAddrUInt.W))
+  val idle :: read :: readResp :: write :: Nil = Enum(4)
+  val state = RegInit(init = idle)
+  val burstCnt = RegInit(init = 0.U(burstAddrUInt.W))
   val cmdPos = Reg(UInt(burstAddrUInt.W))
 
   // Register signals that come from master
-  val masterReg = Reg(init = master.M)
+  val masterReg = RegInit(init = master.M)
 
   // Register to delay response
   val slaveReg = Reg(master.S)
@@ -176,10 +177,10 @@ class OcpBurstPriorityJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort
   val selLeft = left.M.Cmd =/= OcpCmd.IDLE
   val selRight = right.M.Cmd =/= OcpCmd.IDLE
 
-  val leftPendingReg = Reg(init = false.B)
-  val rightPendingReg = Reg(init = false.B)
+  val leftPendingReg = RegInit(init = false.B)
+  val rightPendingReg = RegInit(init = false.B)
 
-  val pendingRespReg = Reg(init = 0.U)
+  val pendingRespReg = RegInit(init = 0.U)
 
   // default port forwarding
   joined.M := Mux(rightPendingReg, right.M, left.M)
@@ -260,7 +261,7 @@ class OcpBurstBuffer(master : OcpBurstMasterPort, slave : OcpBurstSlavePort) {
   }
   slave.M := MBuffer(0)
 
-  val SBuffer = Reg(next = slave.S)
+  val SBuffer = RegNext(next = slave.S)
   master.S := SBuffer
 
   master.S.CmdAccept := free

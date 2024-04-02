@@ -8,7 +8,7 @@
 
 package ocp
 
-import Chisel._
+import chisel3._
 
 // Constants for MCmd
 object OcpCmd {
