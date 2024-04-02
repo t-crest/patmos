@@ -9,8 +9,8 @@
 
 package s4noc_twoway
 
-import Chisel._
-
+import chisel3._
+import chisel3.util._
 
 /**
  * Channel directions
@@ -43,8 +43,8 @@ class Channel extends Bundle {
 
 class RwChannel(w: Int) extends Bundle {
   // Channel with arbitrary address width, used in the two-way shared memory interface
-  val out = new SingleRwChannel(w).asOutput
-  val in = new SingleRwChannel(w).asInput
+  val out = Output(new SingleRwChannel(w))
+  val in = Input(new SingleRwChannel(w))
 }
 
 class RouterPorts(w : Int) extends Bundle {
@@ -85,7 +85,5 @@ class Router(schedule: Array[Array[Int]], validTab: Array[Boolean], inverted : B
 
 
 object Router extends App {
-
-  chiselMain(Array("--backend", "v", "--targetDir", "generated"),
-    () => Module(new Router(Schedule.genRandomSchedule(7), null, false, 8, 0)))
+  emitVerilog(new Router(Schedule.genRandomSchedule(7), null, false, 8, 0), Array("-td", "generated"))
 }

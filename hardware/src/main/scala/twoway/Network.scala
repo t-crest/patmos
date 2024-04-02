@@ -6,7 +6,7 @@
 
 package s4noc_twoway
 
-import Chisel._
+import chisel3._
 import Const._
 
 /**

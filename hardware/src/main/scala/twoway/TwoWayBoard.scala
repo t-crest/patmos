@@ -1,21 +1,21 @@
 package twoway
 
-import Chisel._
+import chisel3._
 import s4noc_twoway._
 
 class TwoWayBoard(n: Int, memSize: Int) extends Module {
 
 
     val io = new Bundle{
-        val led = Vec(n*n,Bool()).asOutput
+        val led = Output(Vec(n*n,Bool()))
     }
 
     //Generate network
     val network = Module(new TwoWayMem(n, memSize))
 
     //Generate processing nodes
-    val nodearray = Vec{for (i <- 0 until n*n) yield
-      {
+    val nodearray = VecInit {
+      for (i <- 0 until n * n) yield {
         val node = Module(new NodeRead(n, i, memSize))
         // any wiring or other logic can go here
         node.io
@@ -38,8 +38,7 @@ class TwoWayBoard(n: Int, memSize: Int) extends Module {
 
 object TwoWayBoard {
   def main(args: Array[String]): Unit = {
-    chiselMain(Array("--compile","--vcd","--backend", "v", "--targetDir", "generated"),
-      () => Module(new TwoWayBoard(2, 1024)))
+    emitVerilog(new TwoWayBoard(2, 1024), Array("-td", "generated"))
   }
 }
 

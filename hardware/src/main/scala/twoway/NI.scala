@@ -1,6 +1,7 @@
 package twoway
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import s4noc_twoway._
 
 /**
@@ -27,7 +28,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
     // Port B: External requests
     val memPort = Module(new TrueDualPortMemory(Math.pow(2,blockAddrWidth).toInt)) //adding module fixed a compile error. It should just make a mudule as you would in VHDL. Dont know why uou dont need ot for the channels for instance 
   
-    val testSignal = UInt(32.W).asOutput
+    val testSignal = Output(UInt(32.W))
     
   }
  
@@ -38,18 +39,18 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   // Write NOC
   val st = Schedule.getSchedule(n, false, nodeIndex)
   val scheduleLength = st._1.length
-  val timeslotToNode = Vec(st._3.map(_.U)) //Converts scala generated array to ROM
+  val timeslotToNode = VecInit(st._3.map(_.U)) //Converts scala generated array to ROM
   
 
   // TDM counter - same counter is used for both NoCs
-  val regTdmCounter = Reg(init = 0.U(log2Up(scheduleLength).W))
+  val regTdmCounter = RegInit(init = 0.U(log2Up(scheduleLength).W))
   val end = regTdmCounter === (scheduleLength - 1).U
   regTdmCounter := Mux(end, 0.U, regTdmCounter + 1.U)
 
   // Readback NOC:
   val stback = Schedule.getSchedule(n, false, nodeIndex)
   val scheduleLengthback = st._1.length
-  val readBackValid = Vec(stback._2.map(Bool(_)))
+  val readBackValid = VecInit(stback._2.map(_.B))
 
 
   // Decode memory request from LOCAL Node - use memory port A
@@ -86,17 +87,17 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   io.memPort.io.portA.wrEna := false.B
   io.memPort.io.portB.wrEna := false.B
 
-  val delayValid = Reg(init = false.B, next = false.B)
+  val delayValid = RegNext(init = false.B, next = false.B)
 
   io.memReq.out.valid := delayValid  //Changed to register
 
 
   //Delay data is used to choose between ports.
-  val delayData = Reg(init = 0.U);
+  val delayData = RegInit(init = 0.U);
 
 
   //Register unsuring only having valid high to write network for one cycle.
-  val transmitted = Reg(init = false.B)
+  val transmitted = RegInit(init = false.B)
   transmitted := transmitted
 
   when(delayData === 1.U){
@@ -114,15 +115,15 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
 
       delayData := 0.U
   //Registers for requests that takes multiple cycles, where the data is only valid one cycle.
-  val notProcessed = Reg(init = false.B)
-  val inDataReg = Reg(init = 0.U)
-  val inAddressReg = Reg(init = 0.U)
-  val inRwReg = Reg(init = false.B)
+  val notProcessed = RegInit(init = false.B)
+  val inDataReg = RegInit(init = 0.U)
+  val inAddressReg = RegInit(init = 0.U)
+  val inRwReg = RegInit(init = false.B)
 
 
 
   val valid = Bool()
-  valid := (timeslotToNode(Mux(notProcessed,inAddressReg >> blockAddrWidth, upperAddr)) === regDelay)
+  valid := (timeslotToNode(Mux(notProcessed, (inAddressReg >> blockAddrWidth).asUInt, upperAddr)) === regDelay)
 
  
   //This when handles requests if they are immediate.
@@ -247,19 +248,19 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
 
 
   // ReadBack NoC variables
-  val gotValue = Reg(init = false.B)
-  val readbackValueDelayed = Reg(init= 0.U(32.W))  // a 1-cycle buffer is needed on the read value for transmitting readback requests when a blank in the cycle has occured
+  val gotValue = RegInit(init = false.B)
+  val readbackValueDelayed = RegInit(init= 0.U(32.W))  // a 1-cycle buffer is needed on the read value for transmitting readback requests when a blank in the cycle has occured
   readbackValueDelayed := io.memPort.io.portB.rdData
 
   val rbDelayArray = st._5
-  val rbDelayROM = Vec(rbDelayArray.map(SInt(_)))
+  val rbDelayROM = VecInit(rbDelayArray.map(_.S))
   val nrOfFIFORegs = rbDelayArray.reduceLeft(_ max _) // finds the greates number in the array which corrosponds to the number of registers needed.
-  val rbFIFO = RegInit(Vec(Seq.fill(nrOfFIFORegs)(new SingleChannel()))) // generate the rbFIFO
-  val localValidTable = Vec(st._6.map(Bool(_)))//used to check wether an insertion should be preformed
+  val rbFIFO = RegInit(VecInit(Seq.fill(nrOfFIFORegs)(new SingleChannel()))) // generate the rbFIFO
+  val localValidTable = VecInit(st._6.map(_.B))//used to check wether an insertion should be preformed
   
 
   // TDM counter - 1 clk cycle delayed, such that the 1 cycle read time is accounded for, one cycle for the router to NI and one unknown...
-  val FIFOTdmCounter = Reg(init = (scheduleLength - 2).U(log2Up(scheduleLength).W))
+  val FIFOTdmCounter = RegInit(init = (scheduleLength - 2).U(log2Up(scheduleLength).W))
   val endTDMFIFO = FIFOTdmCounter === (scheduleLength - 1).U
   FIFOTdmCounter := Mux(endTDMFIFO, 0.U, FIFOTdmCounter + 1.U)
   
@@ -290,7 +291,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
 
 
   // TDM counter - 1
-  val shiftedTdmCounter = Reg(init = st._4.U(log2Up(scheduleLength).W))
+  val shiftedTdmCounter = RegInit(init = st._4.U(log2Up(scheduleLength).W))
   val end2 = shiftedTdmCounter === (scheduleLength - 1).U
   shiftedTdmCounter := Mux(end2, 0.U, shiftedTdmCounter + 1.U)
   val regShiftedTdmCounter = RegNext(shiftedTdmCounter, init=0.U)//This works for all route 2x2 and 3x3 and all route except the 4'th indexed ass 3 in 4x4
@@ -330,16 +331,16 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   muxReadDataChannel.data := 0.U
   muxReadDataChannel.valid := false.B
 
-  when(lookupvalue === SInt(0)){
+  when(lookupvalue === 0.S){
     muxReadDataChannel.data := io.memPort.io.portB.rdData
     muxReadDataChannel.valid := gotValue
-  }.elsewhen(lookupvalue === SInt(-1)){
+  }.elsewhen(lookupvalue === -1.S){
     muxReadDataChannel.data := io.memPort.io.portB.rdData
     muxReadDataChannel.valid := false.B
     //gotValueRb := false.B
   }.otherwise{
 
-    muxReadDataChannel := rbFIFO(lookupvalue.asUInt() - 1.U )
+    muxReadDataChannel := rbFIFO(lookupvalue.asUInt - 1.U )
 
   }
 

@@ -6,7 +6,8 @@
 
 package twoway
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import s4noc_twoway._
 
 /**
@@ -19,14 +20,14 @@ class TwoWayMem(n: Int, memSize: Int) extends Module {
   val io = new Bundle {
     //val testSignal = new RwChannel(log2Down(memSize)).flip.asInput
 
-    val nodearray = Vec(n*n, new RwChannel(memoryWidth)).flip
+    val nodearray = Flipped(Vec(n*n, new RwChannel(memoryWidth)))
 
   }
 
 
 
   // Dummy output keep hardware generated
-  val dout = Reg(next = Vec(n * n, UInt(32.W)))
+  val dout = RegNext(next = Vec(n * n, UInt(32.W)))
 
   val writeNetWidth = log2Down(memSize) - log2Down(n*n)
 
@@ -64,7 +65,6 @@ class TwoWayMem(n: Int, memSize: Int) extends Module {
 
 object TwoWayMem {
   def main(args: Array[String]): Unit = {
-    chiselMain(Array("--backend", "v", "--targetDir", "generated"),
-      () => Module(new TwoWayMem(4, 1024)))
+    emitVerilog(new TwoWayMem(4, 1024), Array("-td", "generated"))
   }
 }
