@@ -1,7 +1,8 @@
 package ptp1588assist
 
 import scala.math._
-import Chisel._
+import chisel3._
+import chisel3.util._
 import io.CoreDeviceIO
 import ocp.{OcpCmd, OcpCoreSlavePort, OcpResp}
 import patmos.Constants._
@@ -106,19 +107,19 @@ import patmos.Constants._
    when(masterReg.Cmd === OcpCmd.WR) {
      respReg := OcpResp.DVA
      switch(masterReg.Addr(5, 0)) {
-       is(Bits("h00")) {
+       is("h00".U) {
          updateNsReg := true.B
          timeReg := Cat(secTickReg, masterReg.Data(DATA_WIDTH-1,0))
        }
-       is(Bits("h04")) {
+       is("h04".U) {
          updateSecReg := true.B
          timeReg := Cat(Cat( timeReg(3*DATA_WIDTH - 1, 2*DATA_WIDTH), masterReg.Data(DATA_WIDTH-1,0)), timeReg(DATA_WIDTH - 1, 0))
        }
-       is(Bits("h08")) {
+       is("h08".U) {
          updateSecReg := true.B
          timeReg := Cat(masterReg.Data(DATA_WIDTH-1,0), timeReg(2*DATA_WIDTH - 1, 0))
        }
-       is(Bits("h20")) {
+       is("h20".U) {
          nsOffsetReg := masterReg.Data.asSInt()
        }
      }
@@ -128,16 +129,16 @@ import patmos.Constants._
    when(masterReg.Cmd === OcpCmd.RD) {
      respReg := OcpResp.DVA
      switch(masterReg.Addr(5, 0)) {
-       is(Bits("h00")) {
+       is("h00".U) {
          dataReg := timeReg(DATA_WIDTH - 1, 0)
        }
-       is(Bits("h04")) {
+       is("h04".U) {
          dataReg := timeReg(2 * DATA_WIDTH - 1, DATA_WIDTH)
        }
-       is(Bits("h08")) {
+       is("h08".U) {
          dataReg := timeReg(3 * DATA_WIDTH - 1, 2* DATA_WIDTH)
        }
-       is(Bits("h20")) {
+       is("h20".U) {
          dataReg := nsOffsetReg(32, 1)
        }
      }
@@ -319,7 +320,6 @@ import patmos.Constants._
 
 object RTC {
   def main(args: Array[String]): Unit = {
-    chiselMain(Array[String]("--backend", "v", "--targetDir", "generated/RTC"),
-      () => Module(new RTC(80000000, 32, 32, 0x5ac385dcL, 10)))
+    emitVerilog(new RTC(80000000, 32, 32, 0x5ac385dcL, 10), Array[String]("-td", "generated/RTC"))
   }
 }
