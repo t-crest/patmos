@@ -1,7 +1,7 @@
 
 package cmp
 
-import Chisel._
+import chisel3._
 import io._
 import ocp.OcpCoreSlavePort
 import patmos.Constants.{ADDR_WIDTH, DATA_WIDTH}
@@ -25,6 +25,7 @@ class LedsCmp(nrCores: Int, nrLedPerCore: Int) extends CmpDevice(nrCores) {
   for (i <- 0 until nrCores) {
     ledDevs(i).ocp.M := io.cores(i).M
     io.cores(i).S := ledDevs(i).ocp.S
+    ledDevs(i).superMode := false.B
   }
   io.pins.led := ledDevs.map(_.pins.led).reduceLeft((l, h) => h ## l)
 
