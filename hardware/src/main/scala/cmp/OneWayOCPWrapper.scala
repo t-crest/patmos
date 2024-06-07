@@ -7,12 +7,14 @@
  */
 package cmp
 
-import Chisel._
-
+import chisel3._
+import chisel3.util._
 import patmos.Constants._
 import ocp._
 
 class OneWayOCPWrapper(nrCores: Int) extends CmpDevice(nrCores) {
+
+  val io = IO(new CmpIO(nrCores))
 
   val dim = math.sqrt(nrCores).toInt
   if (dim * dim != nrCores) throw new Error("Number of cores must be quadratic")
@@ -38,6 +40,6 @@ class OneWayOCPWrapper(nrCores: Int) extends CmpDevice(nrCores) {
     onewaymem.io.memPorts(i).wrEna := io.cores(i).M.Cmd === OcpCmd.WR
     // Memory has one cycle latency (read address is in register)
     io.cores(i).S.Data := onewaymem.io.memPorts(i).rdData
-    io.cores(i).S.Resp := Reg(init = OcpResp.NULL, next = resp)
+    io.cores(i).S.Resp := RegNext(init = OcpResp.NULL, next = resp)
   }
 }

@@ -12,8 +12,8 @@
 
 package cmp
 
-import Chisel._
-import chisel3.VecInit
+import chisel3._
+import chisel3.util._
 
 import patmos._
 import patmos.Constants._
@@ -21,10 +21,13 @@ import ocp._
 
 class OwnSPM(nrCores: Int, nrSPMs: Int, size: Int) extends CmpDevice(nrCores) {
 
+  val io = IO(new CmpIO(nrCores))
+
   val bits = log2Up(nrSPMs)
   println("OwnSPM: cnt = " + nrSPMs + " bits = " + bits)
 
   val masters = Wire(Vec(nrSPMs, Vec(nrCores, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))))
+  masters := DontCare
   val spms = (0 until nrSPMs).map(i => Module(new Spm(size)))
   val cmdOutReg = RegInit(VecInit(Seq.fill(nrCores)(false.B)))
 
@@ -38,6 +41,7 @@ class OwnSPM(nrCores: Int, nrSPMs: Int, size: Int) extends CmpDevice(nrCores) {
       when(io.cores(i).M.Cmd =/= OcpCmd.IDLE && io.cores(i).M.Addr(12 + bits - 1, 12) === s.U) {
         masters(s)(i).M := io.cores(i).M
       }
+      masters(s)(i).S.Resp := DontCare
     }
 
     // Or the master signals
@@ -56,7 +60,8 @@ class OwnSPM(nrCores: Int, nrSPMs: Int, size: Int) extends CmpDevice(nrCores) {
   }
   
   // Connect SPM out to output muxes and muxes to slave responses
-  val muxes = Vec(nrSPMs, Vec(nrSPMs, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)))
+  val muxes = Wire(Vec(nrSPMs, Vec(nrSPMs, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))))
+  muxes := DontCare
   for (i <- 0 until nrCores) {
     // val mux = Vec(nrSPMs, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))
     for (j <- 0 until nrSPMs) {

@@ -7,7 +7,8 @@
  */
 package cmp
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 
 import patmos._
 import patmos.Constants._
@@ -27,6 +28,8 @@ class XXXIO(lckCnt: Int) extends Bundle {
 
 // TODO: is this dead code? If so, just delete it.
 class TwoWayOCPWrapper(nrCores: Int, memSizePrNI : Int) extends CmpDevice(nrCores) {
+
+  val io = IO(new CmpIO(nrCores))
 
   val dim = math.sqrt(nrCores).toInt
   if (dim * dim != nrCores) throw new Error("Number of cores must be quadratic")

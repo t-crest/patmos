@@ -44,7 +44,7 @@ class NoCNodeDummy(val argoConf: ArgoConfig, master: Boolean) extends Module {
   val respReg = RegInit(OcpResp.NULL)
   val acceptReg = RegInit(false.B)
 
-  acceptReg := (io.proc.M.Cmd === OcpCmd.WR) && ~acceptReg
+  acceptReg := (io.proc.M.Cmd === OcpCmd.WR) && !acceptReg
 
   when (io.proc.M.Cmd===OcpCmd.WR && acceptReg) {
     when(io.proc.M.Addr(15, 12) === 0.U){

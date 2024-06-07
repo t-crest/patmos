@@ -7,7 +7,8 @@
  */
 package cmp
 
-import Chisel._
+import chisel3._
+import chisel3.util.HasBlackBoxResource
 
 class AsyncArbiterIO extends Bundle
 {
@@ -19,45 +20,29 @@ class AsyncArbiterIO extends Bundle
 
 class AsyncArbiterTreeIO(cnt: Int) extends AsyncArbiterIO
 {
-  val cores = Vec(cnt, new AsyncArbiterIO().flip)
+  val cores = Vec(cnt, Flipped(new AsyncArbiterIO()))
 
   override def clone = new AsyncArbiterTreeIO(cnt).asInstanceOf[this.type]
 }
 
-class AsyncArbiterBB() extends BlackBox {
-  val io = new AsyncArbiterIO()
-  {
+class AsyncArbiter extends BlackBox {
+  val io = IO(new AsyncArbiterIO() {
     val req1 = Input(Bool())
     val req2 = Input(Bool())
     val ack1 = Output(Bool())
     val ack2 = Output(Bool())
-  }
-  //throw new Error("BlackBox wrapper for AsyncArbiter needs update for Chisel 3")
-
-  // should be commented out to compile for chisel3
-  // rename component
-  /*setModuleName("AsyncArbiter")
-
-  renameClock(clock, "clk")
-  renameReset("rst")
-
-  io.req.setName("req")
-  io.req1.setName("req1")
-  io.req2.setName("req2")
-  io.ack.setName("ack")
-  io.ack1.setName("ack1")
-  io.ack2.setName("ack2")*/
+  })
 }
 
 abstract class AsyncArbiterBase(corecnt: Int) extends Module {
-  val io = new AsyncArbiterTreeIO(corecnt)
+  val io = IO(new AsyncArbiterTreeIO(corecnt))
 }
 
 class AsyncArbiterTree(corecnt : Int) extends AsyncArbiterBase(corecnt) {
 
   val leafarbiters = (0 until math.ceil(corecnt/2).toInt).map(i =>
   {
-    val arbiter = Module(new AsyncArbiterBB())
+    val arbiter = Module(new AsyncArbiter())
     val idx = i*2
     arbiter.io.req1 := io.cores(idx).req
     io.cores(idx).ack := arbiter.io.ack1
@@ -71,8 +56,8 @@ class AsyncArbiterTree(corecnt : Int) extends AsyncArbiterBase(corecnt) {
 
 
 
-  val genarbiter = new ((IndexedSeq[AsyncArbiterBB]) => AsyncArbiterBB){
-    def apply(children:IndexedSeq[AsyncArbiterBB]):AsyncArbiterBB =
+  val genarbiter = new ((IndexedSeq[AsyncArbiter]) => AsyncArbiter){
+    def apply(children:IndexedSeq[AsyncArbiter]):AsyncArbiter =
     {
       val len = children.count(e => true)
       println(len)
@@ -90,7 +75,7 @@ class AsyncArbiterTree(corecnt : Int) extends AsyncArbiterBase(corecnt) {
       val child1 = _children._1
       val child2 = _children._2
 
-      val parent = Module(new AsyncArbiterBB())
+      val parent = Module(new AsyncArbiter())
 
       parent.io.req1 := child1.io.req
       child1.io.ack := parent.io.ack1

@@ -9,33 +9,30 @@
  */
 package cmp
 
-import Chisel._
-import chisel3.VecInit
+import chisel3._
+import chisel3.util._
 
 import patmos._
 import patmos.Constants._
 import ocp._
 
 class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, pipeline: Boolean = true) extends CmpDevice(corecnt) {
+
+  val io = IO(new CmpIO(corecnt))
   
   val datawidth = DATA_WIDTH
   val memaddrwidth = log2Up(memsize)
   val corecur = Counter(corecnt)
   
-  val sharedmem = Mem(UInt(datawidth.W), memsize)
-  val sharedmemwr = Bool()
-  sharedmemwr := false.B
-  val sharedmemwrfin = Bool()
-  sharedmemwrfin := false.B
+  val sharedmem = Mem(memsize, UInt(datawidth.W))
+  val sharedmemwr = WireDefault(false.B)
+  val sharedmemwrfin = WireDefault(false.B)
   val sharedmemrdaddrReg = Reg(UInt(memaddrwidth.W))
-  val sharedmemwraddr = UInt(memaddrwidth.W)
-  sharedmemwraddr := 0.U
+  val sharedmemwraddr = WireDefault(0.U(memaddrwidth.W))
   val sharedmemrddata = sharedmem(sharedmemrdaddrReg)
-  val sharedmemwrdata = UInt(datawidth.W)
-  sharedmemwrdata := 0.U
+  val sharedmemwrdata = WireDefault(0.U(datawidth.W))
   
-  val _bufwr = Bool()
-  _bufwr := false.B
+  val _bufwr = WireDefault(false.B)
   
   when(sharedmemwr) {
     when(_bufwr) {
@@ -49,7 +46,7 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
     corecur.inc
   }
 
-  val sIdle::sRead::sPreSharedRead::sSharedRead::sPreCommit::sCommit::Nil = Enum(UInt(),6)
+  val sIdle::sRead::sPreSharedRead::sSharedRead::sPreCommit::sCommit::Nil = Enum(6)
   
   for(i <- 0 until corecnt)  
   {
@@ -66,27 +63,24 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
     val bufwrs = RegInit(VecInit(Seq.fill(bufsize)(false.B)))
     val bufnxt = Counter(bufsize+1)
     
-    val bufmem = Mem(UInt(datawidth.W), bufsize)
-    val bufmemwr = Bool()
+    val bufmem = Mem(bufsize, UInt(datawidth.W))
+    val bufmemwr = Wire(Bool())
     val bufmemrdaddrReg = RegInit(0.U(bufaddrwidth.W))
     bufmemrdaddrReg := 0.U
-    val bufmemwraddr = UInt(bufaddrwidth.W)
-    bufmemwraddr := 0.U
+    val bufmemwraddr = WireDefault(0.U(bufaddrwidth.W))
     val bufmemrddata = bufmem(bufmemrdaddrReg)
-    val bufmemwrdata = UInt(datawidth.W)
-    bufmemwrdata := 0.U
+    val bufmemwrdata = WireDefault(0.U(datawidth.W))
     
     when(bufmemwr) {
       bufmem(bufmemwraddr) := bufmemwrdata
     }
     
-    val bufmatches = UInt(bufsize.W)
-    bufmatches := 0.U
+    val bufmatches = WireDefault(VecInit.fill(bufsize)(false.B))
     for(j <- 0 until bufsize) {
       bufmatches(j) := (bufaddrs(j) === bufaddr) && (bufrds(j) || bufwrs(j))
     }
     val bufmatch = OHToUInt(bufmatches);
-    val bufmatched = bufmatches.orR
+    val bufmatched = bufmatches.reduceTree(_ || _)
     
     val bufconflict = RegInit(false.B)
     
@@ -110,7 +104,7 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
       sharedmemrdaddrReg := memrdaddrReg
     }
    
-    val slaveReg = Reg(ioS)
+    val slaveReg = Reg(chiselTypeOf(ioS))
     
     ioS.Data := slaveReg.Data
     ioS.Resp := slaveReg.Resp
@@ -146,7 +140,7 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
             when(bufnxt.value === 0.U || bufconflict || overflowReg) {
               // rd/wr conflict or nothing to commit, return failure
               slaveReg.Resp := OcpResp.DVA
-              slaveReg.Data := -1.S
+              slaveReg.Data := Fill(slaveReg.Data.getWidth, true.B)
               
               overflowReg := false.B
               bufnxt.value := 0.U
@@ -200,7 +194,7 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
           when((bufmemrdaddrReg === bufnxt.value) || bufconflict) {
             // Finish here
             slaveReg.Resp := OcpResp.DVA
-            slaveReg.Data := Mux(bufconflict, -1.S, 0.S)
+            slaveReg.Data := Mux(bufconflict, Fill(slaveReg.Data.getWidth, true.B), 0.U)
             
             overflowReg := false.B
             bufnxt.value := 0.U
