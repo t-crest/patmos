@@ -24,7 +24,7 @@ class CmpArgoIO(corecnt : Int, val argoConf: ArgoConfig) extends CmpIO(corecnt :
   override val cores = Vec(corecnt, new OcpArgoSlavePort(ADDR_WIDTH, DATA_WIDTH, argoConf)).asInstanceOf[Vec[OcpCoreSlavePort]]
 }
 
-class Argo(nrCores: Int, wrapped: Boolean = false, emulateBB: Boolean = false) extends Module {
+class Argo(nrCores: Int, wrapped: Boolean = false, emulateBB: Boolean = false) extends CmpDevice(nrCores) {
   ArgoConfig.setCores(nrCores)
   val argoConf = ArgoConfig.getConfig
   val io = IO(new CmpArgoIO(argoConf.CORES, argoConf))

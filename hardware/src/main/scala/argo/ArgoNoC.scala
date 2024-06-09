@@ -28,6 +28,19 @@ class ArgoNoC(val argoConf: ArgoConfig, wrapped: Boolean = false, emulateBB: Boo
     val argoNodes = (0 until argoConf.M).map(j =>
       (0 until argoConf.N).map(i =>
         if (emulateBB) Module(new NoCNodeDummy(argoConf, i == 0 && j == 0)) else Module(new NoCNodeWrapper(argoConf, i == 0 && j == 0))))
+
+    if (!emulateBB) {
+      argoNodes.flatten.foreach(n => {
+        val node = n.asInstanceOf[NoCNodeWrapper]
+        Seq(node.io.north_in, node.io.east_in, node.io.south_in, node.io.west_in).foreach(p => {
+          p.f.req := false.B
+        })
+        Seq(node.io.north_out, node.io.east_out, node.io.south_out, node.io.west_out).foreach(p => {
+          p.b.ack := false.B
+        })
+      })
+    }
+
     val argoMesh = Wire(Vec(argoConf.M, Vec(argoConf.N, new NodeInterconnection(argoConf))))
     /*
     * Nodes Port Interconnect

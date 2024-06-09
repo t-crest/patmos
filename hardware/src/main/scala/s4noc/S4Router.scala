@@ -44,7 +44,7 @@ class RouterPorts[T <: Data](dt: T) extends Bundle {
 }
 
 class S4Router[T <: Data](schedule: Array[Array[Int]], dt: T) extends Module {
-  val io = new RouterPorts(dt)
+  val io = IO(new RouterPorts(dt))
 
   val regCounter = RegInit(0.U(log2Up(schedule.length).W))
   val end = regCounter === (schedule.length - 1).U

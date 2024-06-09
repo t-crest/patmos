@@ -9,8 +9,8 @@
  */
 package cmp
  
-import Chisel._
-import chisel3.VecInit
+import chisel3._
+import chisel3.util._
 import patmos.Constants._
 import ocp._
 
@@ -75,15 +75,14 @@ class Hardlock(coreCnt : Int,lckCnt : Int) extends AbstractHardlock(coreCnt, lck
 }
 
 class HardlockOCPWrapper(nrCores: Int, hardlockgen: () => AbstractHardlock) extends CmpDevice(nrCores) {
+  val io = IO(new CmpIO(nrCores))
+
   
   val hardlock = Module(hardlockgen())
 
-  // TODO: workaround:
-  io.pins.tx := 0.U
-
   // Mapping between internal io and OCP here
   
-  val reqReg = Reg(init = Bits(0,hardlock.CoreCount))
+  val reqReg = RegInit(init = 0.U(hardlock.CoreCount.W))
   val reqBools = Wire(Vec(hardlock.CoreCount, Bool()))
 
   reqBools := reqReg.asBools
@@ -98,11 +97,11 @@ class HardlockOCPWrapper(nrCores: Int, hardlockgen: () => AbstractHardlock) exte
 
     when(io.cores(i).M.Cmd =/= OcpCmd.IDLE) {
       reqBools(i) := true.B
-      reqReg := reqBools.asUInt()
+      reqReg := reqBools.asUInt
     }
     .elsewhen(reqReg(i) === true.B && hardlock.io.cores(i).blck === false.B) {
       reqBools(i) := false.B
-      reqReg := reqBools.asUInt()
+      reqReg := reqBools.asUInt
     }
     
     io.cores(i).S.Resp := OcpResp.NULL

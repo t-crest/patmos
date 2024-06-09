@@ -6,7 +6,8 @@
 
 package cmp
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 
 import patmos._
 import patmos.Constants._
@@ -28,17 +29,17 @@ import ocp._
  */
 class NodeSPM(id: Int, nrCores: Int) extends Module {
 
-  val io = new Bundle() {
+  val io = IO(new Bundle() {
     val fromCore = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
     val toMem = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
-  }
+  })
 
-  val idle :: rd :: wr :: Nil = Enum(UInt(), 3)
+  val idle :: rd :: wr :: Nil = Enum(3)
   val state = RegInit(idle)
   val cnt = RegInit(0.U(log2Up(nrCores).W))
 
   // TODO: how to reset with a harmless IDLE command?
-  val masterReg = Reg(io.fromCore.M)
+  val masterReg = Reg(chiselTypeOf(io.fromCore.M))
 
   cnt := Mux(cnt === (nrCores - 1).U, 0.U, cnt + 1.U)
   val enable = cnt === id.U
@@ -86,6 +87,8 @@ class NodeSPM(id: Int, nrCores: Int) extends Module {
 }
 
 class SharedSPM(nrCores: Int, size: Int) extends CmpDevice(nrCores) {
+
+  val io = IO(new CmpIO(nrCores))
 
   val spm = Module(new Spm(size))
 

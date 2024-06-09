@@ -8,5 +8,5 @@ import chisel3._
   * @param cnt
   */
 abstract class CmpDevice(cnt: Int) extends Module {
-  val io = IO(new CmpIO(cnt))
+  val io: CmpIO
 }

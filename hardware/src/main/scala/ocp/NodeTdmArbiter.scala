@@ -244,12 +244,13 @@ class MemMuxIntf(nr: Int, addrWidth : Int, dataWidth : Int, burstLen: Int) exten
     // 1st stage pipeline registers for output
     val sResp_p1_Reg        = RegNext(next=io.slave.S.Resp)
     val sData_p1_Reg        = RegNext(next=io.slave.S.Data)
-
     
     // Forward response to all arbiters  
     for (i <- 0 until nr) {
       io.master(i).S.Data := sData_p1_Reg
-      io.master(i).S.Resp := sResp_p1_Reg 
+      io.master(i).S.Resp := sResp_p1_Reg
+      io.master(i).S.CmdAccept := 0.B
+      io.master(i).S.DataAccept := 0.B
     }
     
 }

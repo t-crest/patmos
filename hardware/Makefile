@@ -97,6 +97,8 @@ view:
 verilog: $(HWBUILDDIR)/$(HWMODULEPREFIX)Patmos.v
 	cd ../../argo && sbt "runMain argo.Argo"
 	cp ../../argo/argo_build/*.v $(HWBUILDDIR)
+	cp verilog/AsyncArbiter.v $(HWBUILDDIR)
+	cp verilog/AsyncMutex.v $(HWBUILDDIR)
 
 modules: \
 	$(HWBUILDDIR)/$(HWMODULEPREFIX)PatmosCore.v \

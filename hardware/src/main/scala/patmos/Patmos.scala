@@ -260,23 +260,22 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   val cmpdevios = config.cmpDevices.map(e => {
     println(s"CMP device: $e")
     val (off, width, dev) = e match {
-      // CMP devices need to be update for Chisel 3
-      // case "Argo" =>  (0x1C, 5, Module(new argo.Argo(nrCores, wrapped=false, emulateBB=false)))
+      case "Argo" =>  (0x1C, 5, Module(new argo.Argo(nrCores, wrapped=false, emulateBB=false)))
       case "Hardlock" => (0xE801, IO_DEVICE_ADDR_WIDTH, Module(new cmp.HardlockOCPWrapper(nrCores, () => new cmp.Hardlock(nrCores, 1))))
       case "SharedSPM" => (0xE802, IO_DEVICE_ADDR_WIDTH, Module(new cmp.SharedSPM(nrCores, (nrCores-1)*2*1024)))
-      // case "OneWay" => (0xE803, IO_DEVICE_ADDR_WIDTH, Module(new cmp.OneWayOCPWrapper(nrCores)))
+      case "OneWay" => (0xE803, IO_DEVICE_ADDR_WIDTH, Module(new cmp.OneWayOCPWrapper(nrCores)))
       // removed as it was never used, address is free
       // TODO: remove constants from patmos.h
       // case "TdmArbiter" => (0xE804, IO_DEVICE_ADDR_WIDTH, Module(new cmp.TdmArbiter(nrCores)))
-      // case "OwnSPM" => (0xE805, IO_DEVICE_ADDR_WIDTH, Module(new cmp.OwnSPM(nrCores, (nrCores-1)*2, 1024)))
-      // case "SPMPool" => (0xE806, IO_DEVICE_ADDR_WIDTH, Module(new cmp.SPMPool(nrCores, (nrCores-1)*2, 1024)))
+      case "OwnSPM" => (0xE805, IO_DEVICE_ADDR_WIDTH, Module(new cmp.OwnSPM(nrCores, (nrCores-1)*2, 1024)))
+      case "SPMPool" => (0xE806, IO_DEVICE_ADDR_WIDTH, Module(new cmp.SPMPool(nrCores, (nrCores-1)*2, 1024)))
       // case "S4noc" => (0xE807, IO_DEVICE_ADDR_WIDTH, Module(new cmp.S4nocOCPWrapper(nrCores, 4, 4)))
-      // case "CASPM" => (0xE808, IO_DEVICE_ADDR_WIDTH, Module(new cmp.CASPM(nrCores, nrCores * 8)))
-      // case "AsyncLock" => (0xE809, IO_DEVICE_ADDR_WIDTH, Module(new cmp.AsyncLock(nrCores, nrCores * 2)))
+      case "CASPM" => (0xE808, IO_DEVICE_ADDR_WIDTH, Module(new cmp.CASPM(nrCores, nrCores * 8)))
+      case "AsyncLock" => (0xE809, IO_DEVICE_ADDR_WIDTH, Module(new cmp.AsyncLock(nrCores, nrCores * 2)))
       case "UartCmp" => (0xF008, IO_DEVICE_ADDR_WIDTH, Module(new cmp.UartCmp(nrCores,CLOCK_FREQ,UART_BAUD,16)))
-      // case "TwoWay" => (0xE80B, IO_DEVICE_ADDR_WIDTH, Module(new cmp.TwoWayOCPWrapper(nrCores, 1024)))
-      // case "TransactionalMemory" => (0xE80C, IO_DEVICE_ADDR_WIDTH, Module(new cmp.TransactionalMemory(nrCores, 512)))
-      // case "LedsCmp" => (0xE80D, IO_DEVICE_ADDR_WIDTH, Module(new cmp.LedsCmp(nrCores, 1)))
+      case "TwoWay" => (0xE80B, IO_DEVICE_ADDR_WIDTH, Module(new cmp.TwoWayOCPWrapper(nrCores, 1024)))
+      case "TransactionalMemory" => (0xE80C, IO_DEVICE_ADDR_WIDTH, Module(new cmp.TransactionalMemory(nrCores, 512)))
+      case "LedsCmp" => (0xE80D, IO_DEVICE_ADDR_WIDTH, Module(new cmp.LedsCmp(nrCores, 1)))
       case _ => throw new Error("Unknown device " + e)
     }
 

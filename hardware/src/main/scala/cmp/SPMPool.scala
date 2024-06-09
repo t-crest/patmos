@@ -1,7 +1,7 @@
 package cmp
 
-import Chisel._
-import chisel3.VecInit
+import chisel3._
+import chisel3.util._
 
 import patmos.Constants._
 import ocp._
@@ -18,18 +18,16 @@ object SPMPool {
 
     val curReg = Reg(UInt(log2Up(reqs.getWidth).W))
 
-    val hi = UInt(reqs.getWidth.W)
-    val lo = UInt(reqs.getWidth.W)
+    val hi = WireDefault(VecInit.fill(reqs.getWidth)(false.B))
+    val lo = WireDefault(VecInit.fill(reqs.getWidth)(false.B))
 
-    lo := 0.U
-    hi := 0.U
     for (i <- 0 until reqs.getWidth) {
       lo(i) := reqs(i) && (curReg >= i.U)
       hi(i) := reqs(i) && (curReg < i.U)
     }
 
     when(!reqs(curReg) || continue) {
-      when(hi.orR) {
+      when(hi.reduceTree(_ || _)) {
         curReg := PriorityEncoder(hi)
       }.otherwise {
         curReg := PriorityEncoder(lo)
@@ -41,11 +39,11 @@ object SPMPool {
 
   class TDMSPM(corecnt:Int, spmsize:Int) extends Module {
 
-    val io = new Bundle()
+    val io = IO(new Bundle()
     {
       val sched = Input(UInt(corecnt.W))
       val cores = Vec(corecnt, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))
-    }
+    })
 
     val spm = Module(new patmos.Spm(spmsize))
     val cur = SPMPool.roundRobinArbiter(io.sched, true.B)
@@ -61,7 +59,7 @@ object SPMPool {
   }
 }
 
-class SPMPool(corecnt:Int, spmcnt:Int, spmsize:Int, spmcntmax:Int = 15, spmsizemax:Int = 4096) extends Module {
+class SPMPool(corecnt:Int, spmcnt:Int, spmsize:Int, spmcntmax:Int = 15, spmsizemax:Int = 4096) extends CmpDevice(corecnt) {
 
   if(spmcnt > spmcntmax)
     throw new IllegalArgumentException("SPM count is greater than SPM maximum count")
@@ -71,13 +69,13 @@ class SPMPool(corecnt:Int, spmcnt:Int, spmsize:Int, spmcntmax:Int = 15, spmsizem
 
   val io = IO(new CmpIO(corecnt))  //Vec(corecnt, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH))
 
-  val spms = (0 until spmcnt).map(e => Module(new SPMPool.TDMSPM(corecnt, spmsize)))
+  val spms = Seq.fill(spmcnt)(Module(new SPMPool.TDMSPM(corecnt, spmsize)))
 
   // remove empty fields
 
-  val spmios = Wire(Vec(spms.map(e => e.io.cores)))
+  val spmios = VecInit(spms.map(_.io.cores))
 
-  val spmscheds = Reg(Vec(spms.map(e => UInt(corecnt.W))))
+  val spmscheds = Reg(Vec(spmcnt, UInt(corecnt.W)))
 
   for(i <- 0 until spms.length)
     spms(i).io.sched := spmscheds(i)
@@ -91,13 +89,13 @@ class SPMPool(corecnt:Int, spmcnt:Int, spmsize:Int, spmcntmax:Int = 15, spmsizem
   val anyavail = avails.orR
 
   val respRegs = RegInit(VecInit(Seq.fill(corecnt)(OcpResp.NULL)))
-  val dataRegs = Reg(Vec(corecnt, io.cores(0).S.Data))
+  val dataRegs = Reg(Vec(corecnt, chiselTypeOf(io.cores(0).S.Data)))
 
   val dumio = Wire(Vec(corecnt, new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)))
 
   for(i <- 0 until corecnt)
   {
-    val mReg = Reg(io.cores(i).M)
+    val mReg = Reg(chiselTypeOf(io.cores(i).M))
 
 
 

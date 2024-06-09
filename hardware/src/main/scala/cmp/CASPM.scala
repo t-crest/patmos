@@ -6,30 +6,32 @@
 
 package cmp
 
-import Chisel._
-import chisel3.VecInit
+import chisel3._
+import chisel3.util._
 import ocp._
 import patmos.Constants._
 import patmos._
 
 class CASPM(corecnt: Int, size: Int) extends CmpDevice(corecnt) {
 
+  val io = IO(new CmpIO(corecnt))
+
   val spm = Module(new Spm(size))
 
   val cntmax = 2.U
-  val precnt = Reg(init = 0.U(cntmax.getWidth.W))
+  val precnt = RegInit(init = 0.U(cntmax.getWidth.W))
   precnt := Mux(precnt === cntmax, 0.U, precnt + 1.U)
-  val cnt = Reg(init = 0.U(log2Up(corecnt).W))
+  val cnt = RegInit(init = 0.U(log2Up(corecnt).W))
   cnt := Mux(precnt =/= cntmax, cnt, Mux(cnt === (corecnt-1).U, 0.U, cnt + 1.U))
 
   val cmdRegs = RegInit(VecInit(Seq.fill(corecnt)(OcpCmd.RD)))
-  val addrRegs = Reg(Vec(corecnt, spm.io.M.Addr))
-  val newvalRegs = Reg(Vec(corecnt, spm.io.M.Data))
-  val bytenRegs = Reg(Vec(corecnt, spm.io.M.ByteEn))
+  val addrRegs = Reg(Vec(corecnt, chiselTypeOf(spm.io.M.Addr)))
+  val newvalRegs = Reg(Vec(corecnt, chiselTypeOf(spm.io.M.Data)))
+  val bytenRegs = Reg(Vec(corecnt, chiselTypeOf(spm.io.M.ByteEn)))
 
-  val expvalRegs = Reg(Vec(corecnt, spm.io.S.Data))
+  val expvalRegs = Reg(Vec(corecnt, chiselTypeOf(spm.io.S.Data)))
 
-  val sIdle :: sRead :: sWrite :: Nil = Enum(UInt(),3)
+  val sIdle :: sRead :: sWrite :: Nil = Enum(3)
   val states = RegInit(VecInit(Seq.fill(corecnt)(sIdle)))
 
   spm.io.M.Cmd := cmdRegs(cnt)
@@ -39,7 +41,7 @@ class CASPM(corecnt: Int, size: Int) extends CmpDevice(corecnt) {
 
   for (i <- 0 until corecnt) {
 
-    val respReg = Reg(io.cores(i).S.Resp, OcpResp.NULL)
+    val respReg = Reg(chiselTypeOf(io.cores(i).S.Resp))
     io.cores(i).S.Resp := respReg
     io.cores(i).S.Data := spm.io.S.Data
 
