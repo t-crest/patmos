@@ -12,7 +12,7 @@ package patmos
 // MS: maybe avoid a utiel package with chisel3? A shame.
 import util._
 
-import Chisel._
+import chisel3._
 import java.io.File
 import chisel3.experimental._
 import chisel3.dontTouch
@@ -233,7 +233,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
   val pinids = scala.collection.mutable.ListMap[String, Int]()
   val pins = scala.collection.mutable.ListMap[String, Data]()
-  val registerPins = (name: String, _io: Data) =>  {
+  def registerPins(name: String, _io: Data) = {
     _io match {
       case haspins: HasPins => {
         println(name + " has pins")
@@ -248,7 +248,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
         }
 
         for((pinid, pin) <- haspins.pins.elements) {
-          var _pinid = name + postfix + "_" + pinid
+          val _pinid = name + postfix + "_" + pinid
           pins(_pinid) = pin
         }
       }
@@ -257,9 +257,11 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
   val IO_DEVICE_ADDR_WIDTH = 16
 
-  val cmpdevios = config.cmpDevices.map(e => {
-    println(s"CMP device: $e")
-    val (off, width, dev) = e match {
+  case class Device(name: String, io: Data, addr: Int, addrWidth: Int)
+
+  val cmpdevios = config.cmpDevices.map(device => {
+    println(s"CMP device: $device")
+    val (off, width, dev) = device match {
       case "Argo" =>  (0x1C, 5, Module(new argo.Argo(nrCores, wrapped=false, emulateBB=false)))
       case "Hardlock" => (0xE801, IO_DEVICE_ADDR_WIDTH, Module(new cmp.HardlockOCPWrapper(nrCores, () => new cmp.Hardlock(nrCores, 1))))
       case "SharedSPM" => (0xE802, IO_DEVICE_ADDR_WIDTH, Module(new cmp.SharedSPM(nrCores, (nrCores-1)*2*1024)))
@@ -276,81 +278,69 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       case "TwoWay" => (0xE80B, IO_DEVICE_ADDR_WIDTH, Module(new cmp.TwoWayOCPWrapper(nrCores, 1024)))
       case "TransactionalMemory" => (0xE80C, IO_DEVICE_ADDR_WIDTH, Module(new cmp.TransactionalMemory(nrCores, 512)))
       case "LedsCmp" => (0xE80D, IO_DEVICE_ADDR_WIDTH, Module(new cmp.LedsCmp(nrCores, 1)))
-      case _ => throw new Error("Unknown device " + e)
+      case _ => throw new Error("Unknown device " + device)
     }
 
-    registerPins(dev.getClass.getSimpleName, dev.io)
+    registerPins(dev.getClass.getSimpleName, dev.io) // all devices have their pins registered in line 409
 
-    new {
-      val addr = off
-      val addrwidth = width
-      val io = dev.io
-      val name = dev.getClass.getSimpleName
-    }
+    Device(dev.getClass.getSimpleName, dev.io, off, width)
   })
 
   val cops = Array.ofDim[Coprocessor](nrCores,COP_COUNT)
   var memAccessCount = 0
 
-  for (i <- (0 until nrCores)) {
+  for (i <- 0 until nrCores) {
 
     println(s"Config core $i:")
     // Default values for interrupt pins
-      cores(i).io.interrupts := VecInit(Seq.fill(INTR_COUNT)(false.B))
+    cores(i).io.interrupts := VecInit(Seq.fill(INTR_COUNT)(false.B))
+    cores(i).io.mmuInOut := DontCare
 
     // Creation of IO devices
     val cpuinfo = Module(new CpuInfo(Config.datFile, nrCores))
     cpuinfo.io.nr := i.U
     cpuinfo.io.cnt := nrCores.U
+    cpuinfo.io.superMode := cores(i).io.superMode
 
-    val singledevios = 
-     (config.Devs
+    val configDevs = config.Devs
       .filter(e => e.allcores || e.core == i)
       .map(e => (e,Config.createDevice(e).asInstanceOf[CoreDevice]))
-      .map{case (conf,dev) => 
-      {
-          println(s"device: ${conf.ref}")
-          if(dev.io.isInstanceOf[HasSuperMode]) {
-            dev.io.asInstanceOf[HasSuperMode].superMode <> cores(i).io.superMode
+      .map { case (conf,dev) =>
+          dev.io match {
+            case io: HasSuperMode => io.superMode := cores(i).io.superMode
+            case _ =>
           }
-          if(dev.io.isInstanceOf[HasPerfCounter]) {
-            dev.io.asInstanceOf[HasPerfCounter].perf <> cores(i).io.perf
+          dev.io match {
+            case io: HasPerfCounter => io.perf := cores(i).io.perf
+            case _ =>
           }
-          if(dev.io.isInstanceOf[HasInterrupts]) {
-            val intio = dev.io.asInstanceOf[HasInterrupts]
-            if (intio.interrupts.length != conf.intrs.length) {
-              throw new Error("Inconsistent interrupt counts for IO device "+name)
+          dev.io match {
+            case io: HasInterrupts => {
+              if (io.interrupts.length != conf.intrs.length) {
+                throw new Error("Inconsistent interrupt counts for IO device "+name)
+              }
+              for (j <- conf.intrs.indices) {
+                cores(i).io.interrupts(conf.intrs(j)) := io.interrupts(j)
+              }
             }
-            for (j <- 0 until conf.intrs.length) {
-              cores(i).io.interrupts(conf.intrs(j)) := intio.interrupts(j)
-            }
+            case _ =>
           }
-          new {
-            val off = conf.offset
-            val io = dev.io.asInstanceOf[Bundle]
-            val name = conf.ref
-          }
-      }} ++ List(new {
-        val off = CPUINFO_OFFSET
-        val io = cpuinfo.io.asInstanceOf[Bundle]
-        val name = cpuinfo.getClass.getSimpleName
-      }, new {
-        val off = EXC_IO_OFFSET
-        val io = cores(i).io.excInOut
-        val name = "ExceptionUnit"
-      }, if(HAS_MMU) new {
-        val off = MMU_IO_OFFSET;
-        val io = cores(i).io.mmuInOut
-        val name = "mmu"
-      } else null).filter(e => e != null))
-      .map(e => {
-        new {
-          val addr = (0xF0 << 8) + e.off
-          val addrwidth = IO_DEVICE_ADDR_WIDTH
-          val io = e.io
-          val name = e.name
-        }
-      })
+        (conf.offset, dev.io.asInstanceOf[Bundle], conf.ref) // (offset, io, name)
+      }
+
+    val cpuInfoDev = (CPUINFO_OFFSET, cpuinfo.io.asInstanceOf[Bundle], cpuinfo.getClass.getSimpleName)
+    val exceptionUnitDev = (EXC_IO_OFFSET, cores(i).io.excInOut, "ExceptionUnit")
+    val mmuDev = (MMU_IO_OFFSET, cores(i).io.mmuInOut, "MMU") // only included if HAS_MMU
+
+    val allDevs = if (HAS_MMU) {
+      cpuInfoDev :: exceptionUnitDev :: mmuDev :: configDevs
+    } else {
+      cpuInfoDev :: exceptionUnitDev :: configDevs
+    }
+
+    val singledevios = allDevs.map { case (offset, io, name) =>
+      Device(name, io, (0xF0 << 8) + offset, IO_DEVICE_ADDR_WIDTH)
+    }
 
     // The SPM
     val spm = Module(new Spm(DSPM_SIZE))
@@ -360,28 +350,15 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     ispmio.S.Data := 0.U
     ispmio.S.Resp := RegNext(Mux(ispmio.M.Cmd === OcpCmd.IDLE, OcpResp.NULL, OcpResp.DVA))
 
-    val devios = (singledevios ++ cmpdevios) ++ List(
-      new {
-          val addr = 0x0
-          val addrwidth = 4
-          val io = spm.io
-          val name = "spm"
-        },
-      new {
-          val addr = 0x0001
-          val addrwidth = 16
-          val io = ispmio
-          val name = "ispm"
-        }
+    val devios = singledevios ++ cmpdevios ++ List(
+      Device("spm", spm.io, 0x0, 4),
+      Device("ispm", ispmio, 0x0001, 16)
     )
-    
-    for(dupldev <- devios
-                    .groupBy(e => e.addr)
-                    .collect { case (addr,e) if e.lengthCompare(1) > 0 => e}
-                    .flatten) {
-      throw new Error("Can't assign multiple devices to the same address. " +
-        "Device " + dupldev.name + " conflicting on address " +
-        dupldev.addr + ". ")
+
+    devios.groupBy(_.addr).foreach { case (addr, devs) =>
+      if (devs.length > 1) {
+        throw new Error(s"Can't assign multiple devices to the same address. Devices: ${devs.map(_.name).mkString(", ")} conflicting on address $addr.")
+      }
     }
 
     val getIO = (_io: Any, _i: Int) =>
@@ -403,7 +380,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       val _io = getIO(dev.io, i)
       val ocp = getSlavePort(_io)
 
-      val sel = cores(i).io.memInOut.M.Addr(ADDR_WIDTH-1, ADDR_WIDTH-dev.addrwidth) === dev.addr.U && 
+      val sel = cores(i).io.memInOut.M.Addr(ADDR_WIDTH-1, ADDR_WIDTH-dev.addrWidth) === dev.addr.U &&
         (if(dev.name == "spm") !cores(i).io.memInOut.M.Addr(ISPM_ONE_BIT) 
          else true.B)
       ocp.M := cores(i).io.memInOut.M
@@ -422,15 +399,17 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
       // TODO: maybe a better way is for all interfaces to have the bits 'superMode' and 'flags'
       // e.g., all IO devices should be possible to have interrupts
-      if(ocp.isInstanceOf[OcpArgoSlavePort]){
-        val argoslaveport = ocp.asInstanceOf[OcpArgoSlavePort]
-        when(cores(i).io.superMode === true.B) {
-          argoslaveport.superMode := (1.U(nrCores.W) << i)
-        }
+      ocp match {
+        case argoSlavePort: OcpArgoSlavePort =>
+          argoSlavePort.superMode := 0.U
+          when(cores(i).io.superMode === true.B) {
+            argoSlavePort.superMode := (1.U(nrCores.W) << i)
+          }
 
-        // Hard-wire the sideband flags from the NI to interrupt pins
-        cores(i).io.interrupts(NI_MSG_INTR) := argoslaveport.flags(2*i)
-        cores(i).io.interrupts(NI_EXT_INTR) := argoslaveport.flags(2*i+1)
+          // Hard-wire the sideband flags from the NI to interrupt pins
+          cores(i).io.interrupts(NI_MSG_INTR) := argoSlavePort.flags(2*i)
+          cores(i).io.interrupts(NI_EXT_INTR) := argoSlavePort.flags(2*i+1)
+        case _ =>
       }
 
       registerPins(dev.name, _io)
@@ -451,17 +430,14 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       val copConf = config.Coprocessors(k)
       val id = copConf.CoprocessorID;
 
-      if(copConf.requiresMemoryAccess)
-      {
+      if(copConf.requiresMemoryAccess) {
         val copMem = Config.createCoprocessor(copConf).asInstanceOf[CoprocessorMemoryAccess]
         copMem.io.copIn <> cores(i).io.copInOut(k).patmosCop
         cores(i).io.copInOut(k).copPatmos <> copMem.io.copOut
-        memAccessCount = memAccessCount+1;
+        memAccessCount = memAccessCount + 1;
         cops(i)(id) = copMem
         
-      }
-      else
-      {
+      } else {
         val copNoMem = Config.createCoprocessor(copConf).asInstanceOf[BaseCoprocessor]
         copNoMem.io.copIn <> cores(i).io.copInOut(k).patmosCop
         cores(i).io.copInOut(k).copPatmos <> copNoMem.io.copOut
@@ -487,14 +463,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   } else {
     
     // memAccessCount stores the totale number of required memory access ports
-    val memarbiterCount = if(memAccessCount>0)
-    {
-      memAccessCount +nrCores
-    }
-    else
-    {
-      nrCores
-    } 
+    val memarbiterCount = if(memAccessCount > 0) memAccessCount + nrCores else nrCores
 
     val memarbiter =
       if(ramCtrl.isInstanceOf[DDR3Bridge] || ramCtrl.isInstanceOf[OCRamCtrl] || config.roundRobinArbiter) {
@@ -504,18 +473,17 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       }
       
     var arbiterEntry = 0
-    for (i <- (0 until cores.length)) {
+    for (i <- cores.indices) {
       memarbiter.io.master(arbiterEntry).M <> cores(i).io.memPort.M
       cores(i).io.memPort.S <> memarbiter.io.master(arbiterEntry).S
 
       arbiterEntry = arbiterEntry +1
       
-      for(j <- (0 until COP_COUNT)) {
+      for(j <- 0 until COP_COUNT) {
         val copConf = config.Coprocessors(j)
         val id = copConf.CoprocessorID;
 
-        if(copConf.requiresMemoryAccess)
-        {
+        if(copConf.requiresMemoryAccess) {
           // as memory access is required object is actually of CoprocessorMemory
           val copMem = cops(i)(id).asInstanceOf[CoprocessorMemoryAccess]
           memarbiter.io.master(arbiterEntry).M <> copMem.io.memPort.M
@@ -530,7 +498,9 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     ramCtrl.io.superMode := false.B
   }
 
-  val io = IO(new PatmosBundle(pins.map{case (pinid, devicepin) => pinid -> DataMirror.internal.chiselTypeClone(devicepin)}.toSeq: _*))
+  val io = IO(new PatmosBundle(pins.map {
+    case (pinid, devicepin) => pinid -> DataMirror.internal.chiselTypeClone(devicepin)
+  }.toSeq: _*))
 
   for((pinid, devicepin) <- pins) {
     val patmospin = io.elements(pinid)
