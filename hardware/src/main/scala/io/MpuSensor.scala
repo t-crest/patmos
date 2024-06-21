@@ -10,7 +10,8 @@
 
 package io
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import ocp._
 
 object MpuSensor extends DeviceObject {
@@ -25,23 +26,23 @@ object MpuSensor extends DeviceObject {
 //bundle for the blackbox
 class MpuSensorIO() extends Bundle {
       //outputs
-      val readdata_0  = Bits(OUTPUT, width = 32)
-      val readdata_1  = Bits(OUTPUT, width = 32)
-      val readdata_2  = Bits(OUTPUT, width = 32)
-      val readdata_3  = Bits(OUTPUT, width = 32)
-      val readdata_4  = Bits(OUTPUT, width = 32)
-      val readdata_5  = Bits(OUTPUT, width = 32)
-      val readdata_6  = Bits(OUTPUT, width = 32)  //For future
-      val readdata_7  = Bits(OUTPUT, width = 32)  //For future
-      val readdata_8  = Bits(OUTPUT, width = 32)  //For future
-      val readdata_9  = Bits(OUTPUT, width = 32)  //For future
+      val readdata_0  = Output(UInt(32.W))
+      val readdata_1  = Output(UInt(32.W))
+      val readdata_2  = Output(UInt(32.W))
+      val readdata_3  = Output(UInt(32.W))
+      val readdata_4  = Output(UInt(32.W))
+      val readdata_5  = Output(UInt(32.W))
+      val readdata_6  = Output(UInt(32.W))  //For future
+      val readdata_7  = Output(UInt(32.W))  //For future
+      val readdata_8  = Output(UInt(32.W))  //For future
+      val readdata_9  = Output(UInt(32.W))  //For future
       // I2C pins
-      val scl_out  = Bits(OUTPUT, width = 1)
-      // val sda_inout  = Bits(OUTPUT, width = 1)  // this is an inout pin
-      //val sda_inout  = Bits(INPUT, width = 1)
-      val sda_out  = Bits(OUTPUT, width = 1)
-      val sda_in  = Bits(INPUT, width = 1)
-      val we_out  = Bits(OUTPUT, width = 1)
+      val scl_out  = Output(UInt(1.W))
+      // val sda_inout  = Output(UInt(1.W))  // this is an inout pin
+      //val sda_inout  = Input(UInt(1.W))
+      val sda_out  = Output(UInt(1.W))
+      val sda_in  = Input(UInt(1.W))
+      val we_out  = Output(UInt(1.W))
       //val reset = Bits(INPUT,1)
 
 }
@@ -86,12 +87,12 @@ class MpuSensor() extends CoreDevice() {
       override val io = new CoreDeviceIO() with patmos.HasPins {
         override val pins = new Bundle() {
           // I2C pins
-          val scl_out  = Bits(OUTPUT, width = 1)
-          // val sda_inout  = Bits(OUTPUT, width = 1)  // this is an inout pin
-          //val sda_inout  = Bits(INPUT, width = 1)
-          val sda_out  = Bits(OUTPUT, width = 1)
-          val sda_in  = Bits(INPUT, width = 1)
-          val we_out = Bits (OUTPUT, 1)
+          val scl_out  = Output(UInt(1.W))
+          // val sda_inout  = Output(UInt(1.W))  // this is an inout pin
+          //val sda_inout  = Input(UInt(1.W))
+          val sda_out  = Output(UInt(1.W))
+          val sda_in  = Input(UInt(1.W))
+          val we_out = Output(UInt(1.W))
           //val reset = Bits (INPUT,1)
         }
       }
@@ -99,8 +100,8 @@ class MpuSensor() extends CoreDevice() {
       val bb = Module(new MpuSensorBB())
 
       // OCP Registers
-      val ocpDataReg = Reg(Bits(width = 32))
-      val ocpRespReg = Reg(Bits(width = 2))
+      val ocpDataReg = Reg(UInt(32.W))
+      val ocpRespReg = Reg(UInt(2.W))
       ocpRespReg := OcpResp.NULL
 
       // Connections to OCP master
@@ -121,53 +122,53 @@ class MpuSensor() extends CoreDevice() {
           // address decoding
           switch(io.ocp.M.Addr(5,2)) {
             // Reading from readdata_0 register
-            is(Bits("b0000")) {
+            is("b0000".U) {
               ocpDataReg := bb.io.readdata_0
             }
 
             // Reading from readdata_1 register
-            is(Bits("b0001")) {
+            is("b0001".U) {
               ocpDataReg := bb.io.readdata_1
             }
 
             // Reading from readdata_2 register
-            is(Bits("b0010")) {
+            is("b0010".U) {
               ocpDataReg := bb.io.readdata_2
             }
 
             // Reading from readdata_3 register
-            is(Bits("b0011")) {
+            is("b0011".U) {
               ocpDataReg := bb.io.readdata_3
             }
 
             // Reading from readdata_4 register
-            is(Bits("b0100")) {
+            is("b0100".U) {
               ocpDataReg := bb.io.readdata_4
             }
 
             // Reading from readdata_5 register
-            is(Bits("b0101")) {
+            is("b0101".U) {
               ocpDataReg := bb.io.readdata_5
             }
 
             // Reading from readdata_6 register
-            is(Bits("b0110")) {
+            is("b0110".U) {
               ocpDataReg := bb.io.readdata_6
               //ocpDataReg := 101.U
             }
 
             // Reading from readdata_7 register
-            is(Bits("b0111")) {
+            is("b0111".U) {
               ocpDataReg := bb.io.readdata_7
             }
 
             // Reading from readdata_8 register
-            is(Bits("b1000")) {
+            is("b1000".U) {
               ocpDataReg := bb.io.readdata_8
             }
 
             // Reading from readdata_9 register
-            is(Bits("b1001")) {
+            is("b1001".U) {
               ocpDataReg := bb.io.readdata_9
             }
 

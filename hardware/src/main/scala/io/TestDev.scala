@@ -7,14 +7,14 @@
 
 package io
 
-import Chisel._
+import chisel3._
 
 import ocp._
 
 // The pins of the device
 class TestDevPins(width : Int) extends Bundle() {
-  val dataIn = Bits(INPUT, width)
-  val dataOut = Bits(OUTPUT, width)
+  val dataIn = Input(UInt(width.W))
+  val dataOut = Output(UInt(width.W))
 }
 
 // A common pin trait for all instances
@@ -69,11 +69,11 @@ class TestDev(obj : TestDevObject) extends CoreDevice() {
   // Get the actual pins, depending on who is doing the instantiation
   override val io = obj.getPins()
 
-  val dataOutReg = Reg(init = 0.U)
-  val dataInReg = Reg(init = 0.U)
+  val dataOutReg = RegInit(init = 0.U)
+  val dataInReg = RegInit(init = 0.U)
 
   // Default response
-  val respReg = Reg(init = OcpResp.NULL)
+  val respReg = RegInit(init = OcpResp.NULL)
   respReg := OcpResp.NULL
 
   // Write to device

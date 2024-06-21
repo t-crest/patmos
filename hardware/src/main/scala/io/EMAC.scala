@@ -7,7 +7,8 @@
  */
 
 package io
-import Chisel._
+import chisel3._
+import chisel3.util._
 
 import ocp._
 
@@ -89,29 +90,29 @@ class EMAC() extends CoreDevice() {
   val bb = Module(new v6_emac_v2_3_wrapper())
   io.pins <> bb.io
 
-  val rx_axis_fifo_tready_Reg = Reg(init = false.B)
+  val rx_axis_fifo_tready_Reg = RegInit(init = false.B)
   rx_axis_fifo_tready_Reg := false.B
   bb.io.rx_axis_fifo_tready := rx_axis_fifo_tready_Reg
 
-  val tx_axis_fifo_tvalid_Reg = Reg(init = false.B)
+  val tx_axis_fifo_tvalid_Reg = RegInit(init = false.B)
   tx_axis_fifo_tvalid_Reg := false.B
   bb.io.tx_axis_fifo_tvalid := tx_axis_fifo_tvalid_Reg
 
   // Default response
-  val respReg = Reg(init = OcpResp.NULL)
+  val respReg = RegInit(init = OcpResp.NULL)
   respReg := OcpResp.NULL
 
   // Data from EMAC
-  val dataRdReg = Reg(init = Bits(0,32))
+  val dataRdReg = RegInit(init = 0.U(32.W))
  
 
   // Data to EMAC
-  val dataWrReg = Reg(init = Bits(0,32))
+  val dataWrReg = RegInit(init = 0.U(32.W))
   bb.io.tx_axis_fifo_tlast := dataWrReg(30)
   bb.io.tx_axis_fifo_tdata := dataWrReg(7,0)
 
-  val sIdle :: sWait :: sRead :: Nil = Enum(UInt(), 3)
-  val state = Reg(init = sIdle)
+  val sIdle :: sWait :: sRead :: Nil = Enum(3)
+  val state = RegInit(init = sIdle)
   
   when(io.ocp.M.Cmd === OcpCmd.WR) {
     respReg := OcpResp.DVA
@@ -127,7 +128,7 @@ class EMAC() extends CoreDevice() {
       }
       .otherwise {
         respReg := OcpResp.DVA
-        dataRdReg := Cat(bb.io.tx_axis_fifo_tready,Bits(0,31))
+        dataRdReg := Cat(bb.io.tx_axis_fifo_tready,0.U(31.W))
       }
     }
   }
@@ -137,7 +138,7 @@ class EMAC() extends CoreDevice() {
   when(state === sRead) {
     state := sIdle
     respReg := OcpResp.DVA
-    dataRdReg := Cat(bb.io.rx_axis_fifo_tvalid,Cat(bb.io.rx_axis_fifo_tlast,Cat(Bits(0,22),bb.io.rx_axis_fifo_tdata)))
+    dataRdReg := Cat(bb.io.rx_axis_fifo_tvalid,Cat(bb.io.rx_axis_fifo_tlast,Cat(0.U(22.W),bb.io.rx_axis_fifo_tdata)))
   }
 
   // Connections to master

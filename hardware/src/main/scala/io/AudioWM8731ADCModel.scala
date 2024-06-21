@@ -3,7 +3,8 @@
 
 package io
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 
 class AudioWM8731ADCModel(AUDIOBITLENGTH: Int) extends Module {
 
@@ -15,20 +16,20 @@ class AudioWM8731ADCModel(AUDIOBITLENGTH: Int) extends Module {
   }
 
   // audio data registers
-  val audioLReg = Reg(init = 1024.U(AUDIOBITLENGTH.W))
-  val audioRReg = Reg(init = 1025.U(AUDIOBITLENGTH.W))
+  val audioLReg = RegInit(init = 1024.U(AUDIOBITLENGTH.W))
+  val audioRReg = RegInit(init = 1025.U(AUDIOBITLENGTH.W))
 
   //register for output data bit
-  val adcDatReg = Reg(init = 0.U(1.W))
+  val adcDatReg = RegInit(init = 0.U(1.W))
   io.adcDat := adcDatReg
 
   //Counter
   val CNTLIMIT = (AUDIOBITLENGTH - 1).U
-  val CntReg = Reg(init = 0.U(5.W))
+  val CntReg = RegInit(init = 0.U(5.W))
 
   //state machine
-  val sIdle :: sReady :: sLeftLo :: sLeftHi :: sRightLo :: sRightHi :: Nil = Enum(UInt(), 6)
-  val state = Reg(init = sIdle)
+  val sIdle :: sReady :: sLeftLo :: sLeftHi :: sRightLo :: sRightHi :: Nil = Enum(6)
+  val state = RegInit(init = sIdle)
 
   switch (state) {
     is (sIdle) {

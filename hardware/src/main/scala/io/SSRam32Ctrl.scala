@@ -7,7 +7,8 @@
 
 package io
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import patmos.Constants._
 import ocp._
 
@@ -17,22 +18,22 @@ import scala.collection.mutable.HashMap
  Connections to the SRAM
 */
 class RamInType extends Bundle() {
-  val din = Bits(width = 32)
+  val din = UInt(32.W)
 }
 class RamOutType(addrBits: Int) extends Bundle() {
-  val addr = Bits(width = addrBits)
-  val doutEna = Bits(width = 1) //needed to drive tristate in top level
-  val nadsc = Bits(width = 1)
-  val noe = Bits(width = 1)
-  val nbwe = Bits(width = 1)
-  val nbw = Bits(width = 4)
-  val ngw = Bits(width = 1)
-  val nce1 = Bits(width = 1)
-  val ce2 = Bits(width = 1)
-  val nce3 = Bits(width = 1)
-  val nadsp = Bits(width = 1)
-  val nadv = Bits(width = 1)
-  val dout = Bits(width = 32)
+  val addr = UInt(addrBits.W)
+  val doutEna = UInt(1.W) //needed to drive tristate in top level
+  val nadsc = UInt(1.W)
+  val noe = UInt(1.W)
+  val nbwe = UInt(1.W)
+  val nbw = UInt(4.W)
+  val ngw = UInt(1.W)
+  val nce1 = UInt(1.W)
+  val ce2 = UInt(1.W)
+  val nce3 = UInt(1.W)
+  val nadsp = UInt(1.W)
+  val nadv = UInt(1.W)
+  val dout = UInt(32.W)
 }
 
 object SSRam32Ctrl extends DeviceObject {
@@ -60,28 +61,28 @@ class SSRam32Ctrl (
 ) extends BurstDevice(addrBits) {
   override val io = new BurstDeviceIO(addrBits) with patmos.HasPins {
     override val pins = new Bundle() {
-      val ramOut = new RamOutType(addrBits-2).asOutput
+      val ramOut = Output(new RamOutType(addrBits-2))
       val ramIn = Input(new RamInType())
     }
   }
 
-  val idle :: rd1 :: wr1 :: Nil = Enum(UInt(), 3)
-  val ssramState = Reg(init = idle)
+  val idle :: rd1 :: wr1 :: Nil = Enum(3)
+  val ssramState = RegInit(init = idle)
   val waitState = Reg(UInt(4.W))
   val burstCnt = Reg(UInt(log2Up(burstLen).W))
-  val rdDataEna = Reg(Bits(width = 1))
-  val rdData = Reg(Bits(width = 32))
-  val resp = Reg(Bits(width = 2))
-  val ramDout = Reg(Bits(width = 32))
-  val address = Reg(Bits(width = addrBits-2))
-  val doutEna = Reg(Bits(width = 1))
-  val nadsc = Reg(Bits(width = 1))
-  val noe = Reg(Bits(width = 1))
-  val nbwe = Reg(Bits(width = 1))
-  val nbw = Reg(Bits(width = 4))
-  val nadv = Reg(Bits(width = 1))
-  val cmdAccept = Bits(width = 1)
-  val dataAccept = Bits(width = 1)
+  val rdDataEna = Reg(UInt(1.W))
+  val rdData = Reg(UInt(32.W))
+  val resp = Reg(UInt(2.W))
+  val ramDout = Reg(UInt(32.W))
+  val address = Reg(UInt((addrBits-2).W))
+  val doutEna = Reg(UInt(1.W))
+  val nadsc = Reg(UInt(1.W))
+  val noe = Reg(UInt(1.W))
+  val nbwe = Reg(UInt(1.W))
+  val nbw = Reg(UInt(4.W))
+  val nadv = Reg(UInt(1.W))
+  val cmdAccept = UInt(1.W)
+  val dataAccept = UInt(1.W)
 
   //init default register values
   rdDataEna := 0.U
@@ -89,7 +90,7 @@ class SSRam32Ctrl (
   nadsc := 1.U
   noe := 1.U
   nbwe := 1.U
-  nbw := Bits("b1111")
+  nbw := "b1111".U
   nadv := 1.U
   resp := OcpResp.NULL
   ramDout := io.ocp.M.Data
@@ -217,7 +218,7 @@ object SSRam32Main {
     val chiselArgs = args.slice(1, args.length)
     val addrBits = args(0).toInt
 
-    chiselMain(chiselArgs, () => Module(new SSRam32Ctrl(addrBits)))
+    emitVerilog(new SSRam32Ctrl(addrBits), chiselArgs)
   }
 }
 
@@ -229,12 +230,12 @@ object SSRam32Main {
 */
 class ExtSsram(addrBits : Int, fileName : String) extends Module {
   val io = new Bundle() {
-    val ramOut = new RamOutType(addrBits).asInput
+    val ramOut = Input(new RamOutType(addrBits))
     val ramIn = Output(new RamInType())
   }
 
   //on chip memory instance
-  val ssram_extmem = Mem(Bits(width = 32), 2 * ICACHE_SIZE) //bus width = 32
+  val ssram_extmem = Mem(2 * ICACHE_SIZE, UInt(32.W)) //bus width = 32
 
   def initSsram(fileName: String): Mem[UInt] = {
     println("Reading " + fileName)
@@ -248,20 +249,20 @@ class ExtSsram(addrBits : Int, fileName : String) extends Module {
         word <<= 8
         word += byteArray(i * 4 + j).toInt & 0xff
       }
-      printf("%08x\n", Bits(word))
+      printf("%08x\n", word.U)
       // mmh, width is needed to keep bit 31
-      ssram_extmem(Bits(i)) := Bits(word, width=32)
+      ssram_extmem(i) := word.U(32.W)
     }
     // generate some dummy data to fill the table and make Bit 31 test happy
     for (x <- byteArray.length / 4 until ICACHE_SIZE * 2)
-      ssram_extmem(Bits(x)) := Bits("h80000000")
+      ssram_extmem(x) := "h80000000".U
     ssram_extmem
   }
 
   //initSsram(fileName)
-  val address = Reg(init = Bits(0, width = 19))
-  val dout = Reg(init = Bits(0, width = 32))
-  val nadv = Reg(init = Bits(0, width = 1))
+  val address = RegInit(init = 0.U(19.W))
+  val dout = RegInit(init = 0.U(32.W))
+  val nadv = RegInit(init = 0.U(1.W))
 
   nadv := io.ramOut.nadv
   when (io.ramOut.nadsc === 0.U) {

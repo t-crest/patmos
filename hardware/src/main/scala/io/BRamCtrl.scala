@@ -7,7 +7,7 @@
 
 package io
 
-import Chisel._
+import chisel3._
 
 object BRamCtrl extends DeviceObject {
   var extAddrWidth = 32
@@ -25,8 +25,8 @@ object BRamCtrl extends DeviceObject {
 
 class BRamCtrl(extAddrWidth : Int = 32,
                      dataWidth : Int = 32) extends CoreDevice() {
-  override val io = new CoreDeviceIO() with patmos.HasPins {
-    override val pins = new Bundle() {
+  val io = new CoreDeviceIO() with patmos.HasPins {
+    val pins = new Bundle() {
       val MCmd = Output(UInt(3.W))
       val MAddr = Output(UInt(extAddrWidth.W))
       val MData = Output(UInt(dataWidth.W))

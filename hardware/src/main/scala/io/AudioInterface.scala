@@ -7,16 +7,16 @@
 
 package io
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 
 import patmos.Constants._
 
 import ocp._
 
-object AudioInterface extends DeviceObject
-{
+object AudioInterface extends DeviceObject {
   //Audio Register length: can be 16 or 24
-  var AUDIOLENGTH  = -1
+  var AUDIOLENGTH = -1
   //Audio Frequency divider
   var AUDIOFSDIVIDER = -1
   //Clock divider for the audio interface
@@ -27,130 +27,176 @@ object AudioInterface extends DeviceObject
   var MAXADCBUFFERPOWER = -1
 
 
-  def init(params: Map[String, String]) =
-  {
-    AUDIOLENGTH	      = getPosIntParam(params, "audioLength")
-    AUDIOFSDIVIDER    = getPosIntParam(params, "audioFsDivider")
-    AUDIOCLKDIVIDER   = getPosIntParam(params, "audioClkDivider")
+  def init(params: Map[String, String]) = {
+    AUDIOLENGTH = getPosIntParam(params, "audioLength")
+    AUDIOFSDIVIDER = getPosIntParam(params, "audioFsDivider")
+    AUDIOCLKDIVIDER = getPosIntParam(params, "audioClkDivider")
     MAXDACBUFFERPOWER = getPosIntParam(params, "maxDacBufferPower")
     MAXADCBUFFERPOWER = getPosIntParam(params, "maxAdcBufferPower")
   }
 
-  def create(params: Map[String, String]) : AudioInterface =
-  {
-    Module(new AudioInterface (AUDIOLENGTH, AUDIOFSDIVIDER, AUDIOCLKDIVIDER, MAXDACBUFFERPOWER, MAXADCBUFFERPOWER))
+  def create(params: Map[String, String]): AudioInterface = {
+    Module(new AudioInterface(AUDIOLENGTH, AUDIOFSDIVIDER, AUDIOCLKDIVIDER, MAXDACBUFFERPOWER, MAXADCBUFFERPOWER))
   }
-
 
 
 }
 
 class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int, MAXDACBUFFERPOWER: Int, MAXADCBUFFERPOWER: Int) extends CoreDevice() {
   override val io = new CoreDeviceIO() with patmos.HasPins {
-    override val pins = new Bundle()
-    {
+    override val pins = new Bundle() {
       // Digital Audio Interface
-      val dacDat = Bits (OUTPUT, 1)
-      val dacLrc = Bits (OUTPUT, 1)
-      val adcDat = Bits (INPUT, 1)
-      val adcLrc = Bits (OUTPUT, 1)
+      val dacDat = Output(UInt(1.W))
+      val dacLrc = Output(UInt(1.W))
+      val adcDat = Input(UInt(1.W))
+      val adcLrc = Output(UInt(1.W))
 
       // I2C - Control Interface
-      val sdIn = Bits (INPUT, 1)
-      val sdOut = Bits (OUTPUT, 1)
-      val we = Bits (OUTPUT, 1)
-      val sclkOut = Bits (OUTPUT, 1)
+      val sdIn = Input(UInt(1.W))
+      val sdOut = Output(UInt(1.W))
+      val we = Output(UInt(1.W))
+      val sclkOut = Output(UInt(1.W))
 
-      val xclk = Bits (OUTPUT,1)
-      val bclk = Bits (OUTPUT,1)
+      val xclk = Output(UInt(1.W))
+      val bclk = Output(UInt(1.W))
     }
   }
 
-  val AUDIOFSDIVIDERReg	 = Reg(init = Bits(AUDIOFSDIVIDER,9))
-  val AUDIOCLKDIVIDERReg = Reg(init = Bits(AUDIOCLKDIVIDER,5))
-  val AUDIOLENGTHReg     = Reg(init = Bits(AUDIOLENGTH,5))
+  val AUDIOFSDIVIDERReg = RegInit(init = AUDIOFSDIVIDER.U(9.W))
+  val AUDIOCLKDIVIDERReg = RegInit(init = AUDIOCLKDIVIDER.U(5.W))
+  val AUDIOLENGTHReg = RegInit(init = AUDIOLENGTH.U(5.W))
 
-  val audioDacLReg   = Reg(init = Bits(0, AUDIOLENGTH))
-  val audioDacRReg   = Reg(init = Bits(0, AUDIOLENGTH))
-  val audioDacEnReg  = Reg(init = Bits(0, 1)) //enable
+  val audioDacLReg = RegInit(init = 0.U(AUDIOLENGTH.W))
+  val audioDacRReg = RegInit(init = 0.U(AUDIOLENGTH.W))
+  val audioDacEnReg = RegInit(init = 0.U(1.W)) //enable
 
-  val audioDacBufferSizeReg        = Reg(init = Bits(0, (MAXDACBUFFERPOWER+1)))
-  val audioDacBufferWritePulseReg  = Reg(init = Bits(0, 1))
-  val audioDacBufferFullReg        = Reg(init = Bits(0, 1))
+  val audioDacBufferSizeReg = RegInit(init = 0.U((MAXDACBUFFERPOWER + 1).W))
+  val audioDacBufferWritePulseReg = RegInit(init = 0.U(1.W))
+  val audioDacBufferFullReg = RegInit(init = 0.U(1.W))
 
-  val audioAdcLReg   = Reg(init = Bits(0, AUDIOLENGTH))
-  val audioAdcRReg   = Reg(init = Bits(0, AUDIOLENGTH))
-  val audioAdcEnReg  = Reg(init = Bits(0, 1)) //enable
+  val audioAdcLReg = RegInit(init = 0.U(AUDIOLENGTH.W))
+  val audioAdcRReg = RegInit(init = 0.U(AUDIOLENGTH.W))
+  val audioAdcEnReg = RegInit(init = 0.U(1.W)) //enable
 
-  val audioAdcBufferSizeReg      = Reg(init = Bits(0, (MAXADCBUFFERPOWER+1)))
-  val audioAdcBufferReadPulseReg = Reg(init = Bits(0, 1))
-  val audioAdcBufferEmptyReg     = Reg(init = Bits(0, 1))
+  val audioAdcBufferSizeReg = RegInit(init = 0.U((MAXADCBUFFERPOWER + 1).W))
+  val audioAdcBufferReadPulseReg = RegInit(init = 0.U(1.W))
+  val audioAdcBufferEmptyReg = RegInit(init = 0.U(1.W))
 
-  val i2cDataReg = Reg(init = Bits(0,9)) //9 Bit I2C data
-  val i2cAdrReg	 = Reg(init = Bits(0, 7)) //7 Bit I2C address
-  val i2cAckReg	 = Reg(init = Bits(0, 1)) //1 Bit acknowledge signal
-  val i2cReqReg  = Reg(init = Bits(0, 1)) //1 Bit request signal
+  val i2cDataReg = RegInit(init = 0.U(9.W)) //9 Bit I2C data
+  val i2cAdrReg = RegInit(init = 0.U(7.W)) //7 Bit I2C address
+  val i2cAckReg = RegInit(init = 0.U(1.W)) //1 Bit acknowledge signal
+  val i2cReqReg = RegInit(init = 0.U(1.W)) //1 Bit request signal
 
   // Default response
-  val respReg = Reg(init = OcpResp.NULL)
+  val respReg = RegInit(init = OcpResp.NULL)
   respReg := OcpResp.NULL
 
   // Read Audio IN
-  when(io.ocp.M.Cmd === OcpCmd.RD)
-  {
+  when(io.ocp.M.Cmd === OcpCmd.RD) {
     respReg := OcpResp.DVA
   }
 
   // Read information
-  val masterReg = Reg(next = io.ocp.M)
+  val masterReg = RegNext(next = io.ocp.M)
   val data = Wire(Bits(DATA_WIDTH.W))
   data := 0.U //Default Data
 
-  switch(masterReg.Addr(9,4))
-  {
-    is(Bits("b00000")) { data := audioDacLReg }
-    is(Bits("b00001")) { data := audioDacRReg }
-    is(Bits("b00010")) { data := audioDacEnReg }
+  switch(masterReg.Addr(9, 4)) {
+    is("b00000".U) {
+      data := audioDacLReg
+    }
+    is("b00001".U) {
+      data := audioDacRReg
+    }
+    is("b00010".U) {
+      data := audioDacEnReg
+    }
 
-    is(Bits("b00100")) { data := audioDacBufferSizeReg }
-    is(Bits("b00101")) { data := audioDacBufferWritePulseReg }
-    is(Bits("b00110")) { data := audioDacBufferFullReg }
+    is("b00100".U) {
+      data := audioDacBufferSizeReg
+    }
+    is("b00101".U) {
+      data := audioDacBufferWritePulseReg
+    }
+    is("b00110".U) {
+      data := audioDacBufferFullReg
+    }
 
-    is(Bits("b01000")) { data := audioAdcLReg }
-    is(Bits("b01001")) { data := audioAdcRReg }
-    is(Bits("b01010")) { data := audioAdcEnReg }
+    is("b01000".U) {
+      data := audioAdcLReg
+    }
+    is("b01001".U) {
+      data := audioAdcRReg
+    }
+    is("b01010".U) {
+      data := audioAdcEnReg
+    }
 
-    is(Bits("b01011")) { data := audioAdcBufferSizeReg }
-    is(Bits("b01100")) { data := audioAdcBufferReadPulseReg }
-    is(Bits("b01101")) { data := audioAdcBufferEmptyReg }
+    is("b01011".U) {
+      data := audioAdcBufferSizeReg
+    }
+    is("b01100".U) {
+      data := audioAdcBufferReadPulseReg
+    }
+    is("b01101".U) {
+      data := audioAdcBufferEmptyReg
+    }
 
-    is(Bits("b01110")) { data := i2cDataReg }
-    is(Bits("b01111")) { data := i2cAdrReg }
-    is(Bits("b10000")) { data := i2cAckReg }
-    is(Bits("b10001")) { data := i2cReqReg }
+    is("b01110".U) {
+      data := i2cDataReg
+    }
+    is("b01111".U) {
+      data := i2cAdrReg
+    }
+    is("b10000".U) {
+      data := i2cAckReg
+    }
+    is("b10001".U) {
+      data := i2cReqReg
+    }
   }
 
   // Write Information
-  when(io.ocp.M.Cmd === OcpCmd.WR)
-  {
+  when(io.ocp.M.Cmd === OcpCmd.WR) {
     respReg := OcpResp.DVA
-    switch(io.ocp.M.Addr(9,4))
-    {
-      is(Bits("b00000")) { audioDacLReg := io.ocp.M.Data(AUDIOLENGTH-1,0) }
-      is(Bits("b00001")) { audioDacRReg := io.ocp.M.Data(AUDIOLENGTH-1,0) }
-      is(Bits("b00010")) { audioDacEnReg := io.ocp.M.Data(0) }
+    switch(io.ocp.M.Addr(9, 4)) {
+      is("b00000".U) {
+        audioDacLReg := io.ocp.M.Data(AUDIOLENGTH - 1, 0)
+      }
+      is("b00001".U) {
+        audioDacRReg := io.ocp.M.Data(AUDIOLENGTH - 1, 0)
+      }
+      is("b00010".U) {
+        audioDacEnReg := io.ocp.M.Data(0)
+      }
 
-      is(Bits("b00100")) { audioDacBufferSizeReg := io.ocp.M.Data(MAXDACBUFFERPOWER,0) }
-      is(Bits("b00101")) { audioDacBufferWritePulseReg := io.ocp.M.Data(0) }
+      is("b00100".U) {
+        audioDacBufferSizeReg := io.ocp.M.Data(MAXDACBUFFERPOWER, 0)
+      }
+      is("b00101".U) {
+        audioDacBufferWritePulseReg := io.ocp.M.Data(0)
+      }
 
-      is(Bits("b01010")) { audioAdcEnReg := io.ocp.M.Data(0) }
+      is("b01010".U) {
+        audioAdcEnReg := io.ocp.M.Data(0)
+      }
 
-      is(Bits("b01011")) { audioAdcBufferSizeReg := io.ocp.M.Data(MAXADCBUFFERPOWER, 0) }
-      is(Bits("b01100")) { audioAdcBufferReadPulseReg := io.ocp.M.Data(0) }
+      is("b01011".U) {
+        audioAdcBufferSizeReg := io.ocp.M.Data(MAXADCBUFFERPOWER, 0)
+      }
+      is("b01100".U) {
+        audioAdcBufferReadPulseReg := io.ocp.M.Data(0)
+      }
 
-      is(Bits("b01110")) { i2cDataReg := io.ocp.M.Data(8,0) }
-      is(Bits("b01111")) { i2cAdrReg := io.ocp.M.Data(6,0) }
-      is(Bits("b10001")) { i2cReqReg := io.ocp.M.Data(0) }
+      is("b01110".U) {
+        i2cDataReg := io.ocp.M.Data(8, 0)
+      }
+      is("b01111".U) {
+        i2cAdrReg := io.ocp.M.Data(6, 0)
+      }
+      is("b10001".U) {
+        i2cReqReg := io.ocp.M.Data(0)
+      }
     }
   }
 
@@ -173,18 +219,18 @@ class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int
   //Patmos to DAC Buffer:
   mAudioDacBuffer.io.audioLIPatmos := audioDacLReg
   mAudioDacBuffer.io.audioRIPatmos := audioDacRReg
-  mAudioDacBuffer.io.enDacI        := audioDacEnReg
-  mAudioDacBuffer.io.bufferSizeI   := audioDacBufferSizeReg
-  mAudioDacBuffer.io.writePulseI   := audioDacBufferWritePulseReg
-  audioDacBufferFullReg            := mAudioDacBuffer.io.fullO
+  mAudioDacBuffer.io.enDacI := audioDacEnReg
+  mAudioDacBuffer.io.bufferSizeI := audioDacBufferSizeReg
+  mAudioDacBuffer.io.writePulseI := audioDacBufferWritePulseReg
+  audioDacBufferFullReg := mAudioDacBuffer.io.fullO
 
   //DAC:
   val mAudioDac = Module(new AudioDAC(AUDIOLENGTH, AUDIOFSDIVIDER))
 
   //DAC Buffer To DAC:
-  mAudioDac.io.audioLI       := mAudioDacBuffer.io.audioLIDAC
-  mAudioDac.io.audioRI       := mAudioDacBuffer.io.audioRIDAC
-  mAudioDac.io.enDacI        := mAudioDacBuffer.io.enDacO
+  mAudioDac.io.audioLI := mAudioDacBuffer.io.audioLIDAC
+  mAudioDac.io.audioRI := mAudioDacBuffer.io.audioRIDAC
+  mAudioDac.io.enDacI := mAudioDacBuffer.io.enDacO
   mAudioDacBuffer.io.writeEnDacI := mAudioDac.io.writeEnDacO
   mAudioDacBuffer.io.convEndI := mAudioDac.io.convEndO
 

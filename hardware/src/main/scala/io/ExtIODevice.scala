@@ -7,7 +7,7 @@
 
 package io
 
-import Chisel._
+import chisel3._
 import ocp._
 
 object ExtIODevice extends DeviceObject {

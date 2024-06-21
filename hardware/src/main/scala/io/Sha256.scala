@@ -7,7 +7,8 @@
 
 package io
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 
 import patmos.Constants._
 
@@ -28,7 +29,7 @@ class Sha256() extends CoreDevice() {
   override val io = IO(new CoreDeviceIO())
   
   // Register for requests from OCP master
-  val masterReg = Reg(next = io.ocp.M)
+  val masterReg = RegNext(next = io.ocp.M)
 
   // Constants for SHA256
   val DATA_WIDTH = 32
@@ -36,14 +37,14 @@ class Sha256() extends CoreDevice() {
   val HASH_WORD_COUNT = 8
   val MSG_WORD_COUNT = 16
 
-  val hashDefaults = Vec(Seq(
+  val hashDefaults = VecInit(Seq(
     "h6a09e667".U(DATA_WIDTH.W), "hbb67ae85".U,
     "h3c6ef372".U, "ha54ff53a".U,
     "h510e527f".U, "h9b05688c".U,
     "h1f83d9ab".U, "h5be0cd19".U
   ))
 
-  val roundConsts = Vec(Seq(
+  val roundConsts = VecInit(Seq(
     "h428a2f98".U(DATA_WIDTH.W), "h71374491".U,
     "hb5c0fbcf".U, "he9b5dba5".U,
     "h3956c25b".U, "h59f111f1".U,
@@ -92,11 +93,11 @@ class Sha256() extends CoreDevice() {
   val h = Reg(UInt(DATA_WIDTH.W))
 
   // Index
-  val idxReg = Reg(init = 0.U((log2Up(ROUND_COUNT)+1).W))
+  val idxReg = RegInit(init = 0.U((log2Up(ROUND_COUNT)+1).W))
   idxReg := io.ocp.M.Addr(log2Up(MSG_WORD_COUNT)+1, 2)
 
   // Message memory
-  val msg = Mem(UInt(DATA_WIDTH.W), MSG_WORD_COUNT)
+  val msg = Mem(MSG_WORD_COUNT, UInt(DATA_WIDTH.W))
 
   // Read data from message memory
   val msgRdData = msg(idxReg(log2Up(MSG_WORD_COUNT)-1, 0))
@@ -108,18 +109,18 @@ class Sha256() extends CoreDevice() {
   }
 
   // States
-  val idle :: restart :: start :: compress :: update :: Nil = Enum(UInt(), 5)
-  val stateReg = Reg(init = restart)
+  val idle :: restart :: start :: compress :: update :: Nil = Enum(5)
+  val stateReg = RegInit(init = restart)
 
   // Transformation functions
   def rotateRight(data : UInt, amt : Int) = {
     data(amt-1, 0) ## data(DATA_WIDTH-1, amt)
   }
   def s0(data : UInt) = {
-    rotateRight(data, 7) ^ rotateRight(data, 18) ^ (data.asUInt >> 3.U)
+    rotateRight(data, 7) ^ rotateRight(data, 18) ^ (data.asUInt >> 3.U).asUInt
   }
   def s1(data : UInt) = {
-    rotateRight(data, 17) ^ rotateRight(data, 19) ^ (data.asUInt >> 10.U)
+    rotateRight(data, 17) ^ rotateRight(data, 19) ^ (data.asUInt >> 10.U).asUInt
   }
   def e0(data : UInt) = {
     rotateRight(data, 2) ^ rotateRight(data, 13) ^ rotateRight(data, 22)
@@ -128,7 +129,7 @@ class Sha256() extends CoreDevice() {
     rotateRight(data, 6) ^ rotateRight(data, 11) ^ rotateRight(data, 25)
   }
   def ch(x : UInt, y : UInt, z : UInt) = {
-    (x & y) ^ (~x & z)
+    (x & y) ^ ((~x).asUInt & z)
   }
   def maj(x : UInt, y : UInt, z : UInt) = {
     (x & y) ^ (x & z) ^ (y & z)
@@ -157,7 +158,7 @@ class Sha256() extends CoreDevice() {
   wt(0) := w0
 
   // Compression
-  val pipeReg = Reg(next = w0 + roundConsts(idxReg(log2Up(ROUND_COUNT)-1, 0)))
+  val pipeReg = RegNext(next = w0 + roundConsts(idxReg(log2Up(ROUND_COUNT)-1, 0)))
   val temp1 = h + e1(e) + ch(e, f, g) + pipeReg
   val temp2 = e0(a) + maj(a, b, c)
 

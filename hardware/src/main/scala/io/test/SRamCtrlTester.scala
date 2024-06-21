@@ -7,7 +7,7 @@
 
 package io.test
 
-import Chisel._
+import chisel3._
 import ocp._
 import io._
 
@@ -58,7 +58,7 @@ class SRamCtrlTop() extends Module {
 
   val io = new Bundle {
     //val port = new OcpBurstMasterPort(32, 32, 4)
-    val addr = Bits(OUTPUT, width=32)
+    val addr = Output(UInt(32.W))
   }
 
   val mem = Module(new SRamCtrl(21))

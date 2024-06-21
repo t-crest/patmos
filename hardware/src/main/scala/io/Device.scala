@@ -7,7 +7,7 @@
 
 package io
 
-import Chisel._
+import chisel3._
 
 import ocp._
 
@@ -63,24 +63,24 @@ abstract class Device() extends Module() {
 
 class InternalIO() extends Bundle() with patmos.HasSuperMode
 
-class CoreDevice() extends Device() {
-   val io = new CoreDeviceIO()
+abstract class CoreDevice() extends Device() {
+  val io: CoreDeviceIO
 }
 
 class CoreDeviceIO() extends InternalIO() {
   val ocp = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
 }
 
-class IODevice() extends Device() {
-  val io = IO(new IODeviceIO())
+abstract class IODevice() extends Device() {
+  val io: IODeviceIO
 }
 
 class IODeviceIO() extends InternalIO() {
   val ocp = new OcpIOSlavePort(ADDR_WIDTH, DATA_WIDTH)
 }
 
-class BurstDevice(addrBits: Int) extends Device() {
-  val io = new BurstDeviceIO(addrBits)
+abstract class BurstDevice(addrBits: Int) extends Device() {
+  val io: BurstDeviceIO
 }
 
 class BurstDeviceIO(val addrBits: Int) extends InternalIO() {

@@ -7,7 +7,7 @@
 
 package io
 
-import Chisel._
+import chisel3._
 
 import patmos.Constants._
 
@@ -32,7 +32,7 @@ class AauMpu() extends CoreDevice() {
   // following clock cycle
   val dataReg = RegNext(io.pins.data(io.ocp.M.Addr(5,2)))
   
-  val respReg = Reg(init = OcpResp.NULL)
+  val respReg = RegInit(init = OcpResp.NULL)
   respReg := OcpResp.NULL
 
   // Set DVA on a read or write

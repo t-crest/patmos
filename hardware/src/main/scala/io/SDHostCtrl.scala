@@ -7,7 +7,8 @@
 
 package io
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import ocp._
 
 object SDHostCtrl extends DeviceObject {
@@ -42,15 +43,15 @@ class SDHostCtrl() extends CoreDevice() {
   val clkReg = Reg(true.B)
 
   // Buffer
-  val bufOutReg = Reg(Bits(width = 8))
-  val bufInReg = Reg(Bits(width = 8))
+  val bufOutReg = Reg(UInt(8.W))
+  val bufInReg = Reg(UInt(8.W))
 
   // Settings register
   val csReg = Reg(false.B) // CS pin
 
   // OCP
-  val ocpDataReg = Reg(Bits(width = 32))
-  val ocpRespReg = Reg(Bits(width = 2))
+  val ocpDataReg = Reg(UInt(32.W))
+  val ocpRespReg = Reg(UInt(2.W))
   ocpRespReg := OcpResp.NULL
 
   // Write to registers
@@ -60,7 +61,7 @@ class SDHostCtrl() extends CoreDevice() {
 
     switch(io.ocp.M.Addr(5,2)) {
       // Data is written
-      is(Bits("b0000")) {
+      is("b0000".U) {
         bufOutReg := io.ocp.M.Data
         bufInReg := 0.U
 
@@ -71,12 +72,12 @@ class SDHostCtrl() extends CoreDevice() {
       }
 
       // Write to CS register
-      is(Bits("b0001")) {
+      is("b0001".U) {
         csReg := io.ocp.M.Data =/= 0.U
       }
 
       // Write to CKLDIV register
-      is(Bits("b0011")) {
+      is("b0011".U) {
         clkDivReg := io.ocp.M.Data
       }
     }
@@ -88,12 +89,12 @@ class SDHostCtrl() extends CoreDevice() {
 
     switch(io.ocp.M.Addr(5,2)) {
       // Reading data. Doesn't trigger enable.
-      is(Bits("b0000")) {
+      is("b0000".U) {
         ocpDataReg := bufInReg
       }
 
       // Allow reading enReg
-      is(Bits("b0010")) {
+      is("b0010".U) {
         ocpDataReg := enReg
       }
     }

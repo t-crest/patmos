@@ -7,10 +7,12 @@
 
 package io
 
-import Chisel._
+import util.BCDToSevenSegDecoder
+
+import chisel3._
 import patmos.Constants._
 import ocp._
-import util.BCDToSevenSegDecoder
+
 
 object SegmentDisplay extends DeviceObject {
   var displayCount = -1
@@ -31,30 +33,30 @@ class SegmentDisplay(displayCount : Int, segmentPolarity: Int) extends CoreDevic
     // Override
     override val io = IO(new CoreDeviceIO() with patmos.HasPins {
       override val pins = new Bundle() {
-        val hexDisp = Output(Vec(displayCount, Bits(width = 7)))
+        val hexDisp = Output(Vec(displayCount, UInt(7.W)))
       }
     })
 
     // Master register
-    val masterReg = Reg(next = io.ocp.M)
+    val masterReg = RegNext(next = io.ocp.M)
     
     // Default response
-    val respReg = Reg(init = OcpResp.NULL)
+    val respReg = RegInit(init = OcpResp.NULL)
     respReg := OcpResp.NULL
 
-    val dataReg = Reg(init = Bits(0, width = DATA_WIDTH))
+    val dataReg = RegInit(init = 0.U(DATA_WIDTH.W))
 
     // Display register
-    val dispRegVec = Reg(Vec(displayCount, Bits(segmentPolarity, width = 7)))
+    val dispRegVec = Reg(Vec(displayCount, segmentPolarity.U(7.W)))
 
     // Decoded master data
-    val decodedMData = Wire(Bits(width = 7))
+    val decodedMData = Wire(UInt(7.W))
     val decoder = Module(new BCDToSevenSegDecoder(BCDToSevenSegDecoder.ActiveLow)).io
     decoder.bcdData := masterReg.Data(3, 0)
     decodedMData := decoder.segData
 
     // Read/Write seven segment displays
-    for(i <- 0 to displayCount-1 by 1){
+    for(i <- 0 until displayCount by 1){
         when(masterReg.Addr(4,2) === i.U){
             when(masterReg.Cmd === OcpCmd.WR){
                 when(masterReg.Data(7)){

@@ -7,7 +7,7 @@
 
 package io
 
-import Chisel._
+import chisel3._
 
 object I2CInterface extends DeviceObject {
   var extAddrWidth = 32

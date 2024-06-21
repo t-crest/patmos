@@ -9,7 +9,8 @@
 
 package io
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 
 import patmos.Constants._
 
@@ -41,50 +42,50 @@ class Uart(clk_freq: Int, baud_rate: Int, fifoDepth: Int) extends CoreDevice() {
       }
     })
     //Forcing signals availability in emulator
-    val uartOcpEmu = Wire(new OcpMasterSignals(ADDR_WIDTH, DATA_WIDTH))
+    val uartOcpEmu = Wire(new OcpCoreMasterSignals(ADDR_WIDTH, DATA_WIDTH))
     dontTouch(uartOcpEmu)
     uartOcpEmu <> io.ocp.M
 
     val c_tx_divider_val    = clk_freq/baud_rate
-    val tx_baud_counter     = Reg(init = 0.U(log2Up(clk_freq/baud_rate).W))
-    val tx_baud_tick        = Reg(init = 0.U(1.W))
+    val tx_baud_counter     = RegInit(init = 0.U(log2Up(clk_freq/baud_rate).W))
+    val tx_baud_tick        = RegInit(init = 0.U(1.W))
 
-    val tx_idle :: tx_send :: Nil  = Enum(UInt(), 2)
-    val tx_state            = Reg(init = tx_idle)
-    val tx_buff             = Reg(init = Bits(0, 10))
-    val tx_reg              = Reg(init = Bits(1, 1))
-    val tx_counter          = Reg(init = 0.U(4.W))
+    val tx_idle :: tx_send :: Nil  = Enum(2)
+    val tx_state            = RegInit(init = tx_idle)
+    val tx_buff             = RegInit(init = 0.U(10.W))
+    val tx_reg              = RegInit(init = true.B)
+    val tx_counter          = RegInit(init = 0.U(4.W))
 
-    val txQueue = Module(new Queue(Bits(width = 8), fifoDepth))
+    val txQueue = Module(new Queue(UInt(8.W), fifoDepth))
     txQueue.io.enq.bits     := io.ocp.M.Data(7, 0)
     txQueue.io.enq.valid    := false.B
     txQueue.io.deq.ready    := false.B
 
-    val rxd_reg0            = Reg(init = Bits(1, 1))
-    val rxd_reg1            = Reg(init = Bits(1, 1))
-    val rxd_reg2            = Reg(init = Bits(1, 1))
+    val rxd_reg0            = RegInit(init = true.B)
+    val rxd_reg1            = RegInit(init = true.B)
+    val rxd_reg2            = RegInit(init = true.B)
 
-    val rx_baud_counter     = Reg(init = 0.U(log2Up(clk_freq/baud_rate).W))
-    val rx_baud_tick        = Reg(init = 0.U(1.W))
-    val rx_enable           = Reg(init = false.B)
+    val rx_baud_counter     = RegInit(init = 0.U(log2Up(clk_freq/baud_rate).W))
+    val rx_baud_tick        = RegInit(init = 0.U(1.W))
+    val rx_enable           = RegInit(init = false.B)
 
-    val rx_buff             = Reg(init = Bits(0, 8))
-    val rx_counter          = Reg(init = 0.U(3.W))
-    val rx_idle  :: rx_start :: rx_receive_data :: rx_stop_bit :: Nil  = Enum(UInt(), 4)
-    val rx_state            = Reg(init = rx_idle)
+    val rx_buff             = RegInit(init = 0.U(8.W))
+    val rx_counter          = RegInit(init = 0.U(3.W))
+    val rx_idle  :: rx_start :: rx_receive_data :: rx_stop_bit :: Nil  = Enum(4)
+    val rx_state            = RegInit(init = rx_idle)
 
-    val rxQueue = Module(new Queue(Bits(width = 8), fifoDepth))
+    val rxQueue = Module(new Queue(UInt(8.W), fifoDepth))
     rxQueue.io.enq.bits     := rx_buff
     rxQueue.io.enq.valid    := false.B
     rxQueue.io.deq.ready    := false.B
 
     // Default response and data
-    val respReg = Reg(init = OcpResp.NULL)
+    val respReg = RegInit(init = OcpResp.NULL)
     respReg := OcpResp.NULL
 
-    val rdDataReg = Reg(init = Bits(0, width = 8))
+    val rdDataReg = RegInit(init = 0.U(8.W))
     rdDataReg := Mux(io.ocp.M.Addr(2) === 0.U,
-                     Cat(Bits(0, width = 6), rxQueue.io.deq.valid, txQueue.io.enq.ready),
+                     Cat(0.U(6.W), rxQueue.io.deq.valid, txQueue.io.enq.ready),
                      rxQueue.io.deq.bits)
 
     // Write to UART

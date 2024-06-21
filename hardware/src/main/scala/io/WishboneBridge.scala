@@ -7,7 +7,7 @@
 
 package io
 
-import Chisel._
+import chisel3._
 import ocp._
 
 object WishboneBridge extends DeviceObject {
@@ -40,20 +40,20 @@ class WishboneBridge(extAddrWidth : Int = 32,
     }
   }
   // Registers
-  val we_o_Reg = Reg(init = Bits(0,width=1))
-  val stb_o_Reg = Reg(init = Bits(0,width=1))
-  val cyc_o_Reg = Reg(init = Bits(0,width=1))
-  val addr_o_Reg = Reg(init = Bits(0,width=extAddrWidth))
-  val data_o_Reg = Reg(init = Bits(0,width=dataWidth))
+  val we_o_Reg = RegInit(init = 0.U(1.W))
+  val stb_o_Reg = RegInit(init = 0.U(1.W))
+  val cyc_o_Reg = RegInit(init = 0.U(1.W))
+  val addr_o_Reg = RegInit(init = 0.U(extAddrWidth.W))
+  val data_o_Reg = RegInit(init = 0.U(dataWidth.W))
   
-  val ocp_S_data_Reg = Reg(init = Bits(0,width=dataWidth))
-  val ocp_S_resp_Reg = Reg(init = OcpResp.NULL)
+  val ocp_S_data_Reg = RegInit(init = 0.U(dataWidth.W))
+  val ocp_S_resp_Reg = RegInit(init = OcpResp.NULL)
 
   // Default values and assigments of outputs
   ocp_S_resp_Reg := OcpResp.NULL
   io.ocp.S.Resp := ocp_S_resp_Reg
   io.ocp.S.Data := ocp_S_data_Reg
-  io.pins.wb_sel_o := Bits("b1111")
+  io.pins.wb_sel_o := "b1111".U
   io.pins.wb_we_o := we_o_Reg 
   io.pins.wb_stb_o := stb_o_Reg
   io.pins.wb_cyc_o := cyc_o_Reg

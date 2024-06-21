@@ -14,8 +14,8 @@ package io
 
 import scala.math._
 
-import Chisel._
-import chisel3.VecInit
+import chisel3._
+import chisel3.util._
 
 import ocp._
 
@@ -48,23 +48,23 @@ class QdrIIplusCtrl(ocpAddrWidth   : Int,
 
   override val io = new BurstDeviceIO(ocpAddrWidth) with patmos.HasPins {
     override val pins = new Bundle {
-      val addr  = Bits(OUTPUT, width = ramAddrWidth)
+      val addr  = Output(UInt(ramAddrWidth.W))
 
-      val nrps  = Bits(OUTPUT, width = 1)
-      val nwps  = Bits(OUTPUT, width = 1)
-      val nbws  = Output(VecInit(Seq.fill(2)(Bits(width = ramDataWidth / 8))))
+      val nrps  = Output(UInt(1.W))
+      val nwps  = Output(UInt(1.W))
+      val nbws  = Output(Vec(2, UInt((ramDataWidth / 8).W)))
 
-      val din   = VecInit(Seq.fill(2)(Bits(INPUT, width = ramDataWidth)))
-      val dout  = VecInit(Seq.fill(2)(Bits(OUTPUT, width = ramDataWidth)))
+      val din   = Input(Vec(2, UInt(ramDataWidth.W)))
+      val dout  = Output(Vec(2, UInt(ramDataWidth.W)))
 
-      val ndoff = Bits(OUTPUT, width = 1)
+      val ndoff = Output(UInt(1.W))
     }
   }
 
   // Checks for input parameters
-  assert(Bool(DATA_WIDTH % ramDataWidth == 0),"DATA_WIDTH is not a multiple of ramDataWidth ")
-  assert(Bool(ramAddrWidth <= ocpAddrWidth),"ocpAddrWidth cannot access the full RAM")
-  assert(Bool(isPow2(ramDataWidth/8)),"number of bytes per transaction to RAM is not a power of 2")
+  require(DATA_WIDTH % ramDataWidth == 0,"DATA_WIDTH is not a multiple of ramDataWidth ")
+  require(ramAddrWidth <= ocpAddrWidth, "ocpAddrWidth cannot access the full RAM")
+  require(isPow2(ramDataWidth/8),"number of bytes per transaction to RAM is not a power of 2")
 
   // Helper functions
   // log2up is a standard function but log2up(1)=1 and it should be 0
@@ -77,24 +77,24 @@ class QdrIIplusCtrl(ocpAddrWidth   : Int,
   val BYTESPERSEL  = BYTESPERTRAN * TRANSPERSEL
 
   // State type and variable
-  val sReady :: sReadSel :: sReadWait :: sReadExe :: sReadRet :: sWriteRec  :: sWriteSel :: sWriteExe:: sWriteRet :: Nil = Enum(UInt(), 9)
-  val stateReg = Reg(init = sReady)
+  val sReady :: sReadSel :: sReadWait :: sReadExe :: sReadRet :: sWriteRec  :: sWriteSel :: sWriteExe:: sWriteRet :: Nil = Enum(9)
+  val stateReg = RegInit(init = sReady)
 
   // Internal Registers
-  val mAddrReg         = Reg(Bits(width = ramAddrWidth))
-  val rdBufferReg      = Reg(Vec(TRANSPERCMD, Bits(width = ramDataWidth)))
+  val mAddrReg         = Reg(UInt(ramAddrWidth.W))
+  val rdBufferReg      = Reg(Vec(TRANSPERCMD, UInt(ramDataWidth.W)))
   val wrBufferReg      = Reg(Vec(TRANSPERCMD, new Trans(BYTESPERTRAN, ramDataWidth)))
-  val transCountReg    = Reg(init = 0.U(log2upNew(TRANSPERCMD).W))
-  val subTransCountReg = Reg(init = 0.U(log2upNew(TRANSPERSEL).W))
-  val wordCountReg     = Reg(init = 0.U(log2upNew(ocpBurstLen).W))
-  val waitCountReg     = Reg(init = 0.U(log2upNew(readWaitCycles).W))
+  val transCountReg    = RegInit(init = 0.U(log2upNew(TRANSPERCMD).W))
+  val subTransCountReg = RegInit(init = 0.U(log2upNew(TRANSPERSEL).W))
+  val wordCountReg     = RegInit(init = 0.U(log2upNew(ocpBurstLen).W))
+  val waitCountReg     = RegInit(init = 0.U(log2upNew(readWaitCycles).W))
 
   // Output Registers
-  val addrReg = Reg(Bits(width = ramAddrWidth))
-  val nrpsReg = Reg(Bits(width = 1))
-  val nwpsReg = Reg(Bits(width = 1))
-  val nbwsReg = Reg(Vec(2, Bits(width = BYTESPERTRAN)))
-  val doutReg = Reg(Vec(2, Bits(width = ramDataWidth)))
+  val addrReg = Reg(UInt(ramAddrWidth.W))
+  val nrpsReg = Reg(UInt(1.W))
+  val nwpsReg = Reg(UInt(1.W))
+  val nbwsReg = Reg(Vec(2, UInt(BYTESPERTRAN.W)))
+  val doutReg = Reg(Vec(2, UInt(ramDataWidth.W)))
 
   // Default values for ocp io.ocp.S port
   io.ocp.S.Resp := OcpResp.NULL
@@ -221,8 +221,8 @@ class QdrIIplusCtrl(ocpAddrWidth   : Int,
   io.pins.ndoff := 1.U
 
   class Trans(bytesEnaWidth: Int, dataWidth: Int) extends Bundle {
-    val byteEna = Bits(width = bytesEnaWidth)
-    val data = Bits(width = dataWidth)
+    val byteEna = UInt(bytesEnaWidth.W)
+    val data = UInt(dataWidth.W)
 
     // This does not really clone, but Data.clone doesn't either
     override def cloneType() = {
@@ -239,6 +239,6 @@ object QdrIIplusCtrlMain {
   def main(args: Array[String]): Unit = {
     val chiselArgs = args.slice(1,args.length)
     val ocpAddrWidth = args(0).toInt
-    chiselMain(chiselArgs, () => Module(new QdrIIplusCtrl(ocpAddrWidth)))
+    emitVerilog(new QdrIIplusCtrl(ocpAddrWidth), chiselArgs)
   }
 }

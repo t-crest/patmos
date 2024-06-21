@@ -40,7 +40,7 @@
 
 package io
 
-import Chisel._
+import chisel3._
 
 import patmos.Constants._
 
@@ -61,8 +61,10 @@ object Deadline extends DeviceObject {
 
 class Deadline() extends CoreDevice() {
 
-  val freeRunningReg = Reg(init = 0.U(32.W))
-  val downCountReg = Reg(init = 0.U(32.W))
+  val io = IO(new CoreDeviceIO())
+
+  val freeRunningReg = RegInit(init = 0.U(32.W))
+  val downCountReg = RegInit(init = 0.U(32.W))
   
   freeRunningReg := freeRunningReg + 1.U
   val downDone = downCountReg === 0.U
@@ -75,12 +77,12 @@ class Deadline() extends CoreDevice() {
   }
   
   val timeOver = downDone
-  val stallReg = Reg(init = false.B)
+  val stallReg = RegInit(init = false.B)
   
   // read data shall be in a register as used in the
   // following clock cycle
   
-  val respReg = Reg(init = OcpResp.NULL)
+  val respReg = RegInit(init = OcpResp.NULL)
   respReg := OcpResp.NULL
   
   when((io.ocp.M.Cmd === OcpCmd.RD && timeOver) || io.ocp.M.Cmd === OcpCmd.WR) {

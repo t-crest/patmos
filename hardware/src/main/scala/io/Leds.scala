@@ -7,7 +7,7 @@
 
 package io
 
-import Chisel._
+import chisel3._
 
 import ocp._
 
@@ -25,16 +25,16 @@ object Leds extends DeviceObject {
 
 class Leds(ledCount : Int) extends CoreDevice() {
 
-  override val io = new CoreDeviceIO() with patmos.HasPins {
-    override val pins = new Bundle() {
-      val led = Bits(OUTPUT, ledCount)
+  val io = IO(new CoreDeviceIO() with patmos.HasPins {
+    val pins = new Bundle() {
+      val led = Output(UInt(ledCount.W))
     }
-  }
+  })
 
-  val ledReg = Reg(init = Bits(0, ledCount))
+  val ledReg = RegInit(init = 0.U(ledCount.W))
 
   // Default response
-  val respReg = Reg(init = OcpResp.NULL)
+  val respReg = RegInit(init = OcpResp.NULL)
   respReg := OcpResp.NULL
 
   // Write to LEDs
@@ -53,5 +53,5 @@ class Leds(ledCount : Int) extends CoreDevice() {
   io.ocp.S.Data := ledReg
 
   // Connection to pins
-  io.pins.led := Reg(next = ledReg)
+  io.pins.led := RegNext(next = ledReg)
 }

@@ -8,8 +8,7 @@
 
 package io
 
-import Chisel._
-import chisel3.VecInit
+import chisel3._
 
 import patmos.Constants._
 import patmos.PerfCounterIO
@@ -31,11 +30,11 @@ class PerfCounters() extends CoreDevice() {
     override val perf = Input(new PerfCounterIO())
   }
 
-  val masterReg = Reg(next = io.ocp.M)
+  val masterReg = RegNext(next = io.ocp.M)
 
   // Default response
-  val resp = Bits()
-  val data = Bits(width = DATA_WIDTH)
+  val resp = UInt()
+  val data = UInt(DATA_WIDTH.W)
   resp := OcpResp.NULL
   data := 0.U
 

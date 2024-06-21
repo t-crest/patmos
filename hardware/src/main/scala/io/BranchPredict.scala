@@ -8,7 +8,7 @@
 
 package io
 
-import Chisel._
+import chisel3._
 
 
 class BranchPredict() extends Module {

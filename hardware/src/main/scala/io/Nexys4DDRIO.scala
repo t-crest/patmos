@@ -7,7 +7,7 @@
 
 package io
 
-import Chisel._
+import chisel3._
 
 object Nexys4DDRIO extends DeviceObject {
   var extAddrWidth = 32

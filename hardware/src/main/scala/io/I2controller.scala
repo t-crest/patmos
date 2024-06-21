@@ -8,7 +8,8 @@
  */
 package io
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import ocp._
 
 object I2Controller extends DeviceObject {
@@ -61,7 +62,7 @@ class I2Controller(sclFreq: Int, respectStretch: Boolean) extends CoreDevice() {
 	val sdaClk = RegInit(false.B) //Internal clock ena/disabling sda
 	val sdaClkPrev = RegNext(sdaClk) //Previous value, used to detect rising/falling edge
 	val clkCnt = RegInit(0.U(32.W))  //Counter used to generate sda/sclClk
-	val stretch = Wire(init=false.B) //Is the slave device clock stretching
+	val stretch = WireDefault(false.B) //Is the slave device clock stretching
 	val sdaRising = sdaClk && !sdaClkPrev //Rising edge of sdaClk
 	val sdaFalling = !sdaClk && sdaClkPrev //Falling edge of sdaClk
 
@@ -73,7 +74,7 @@ class I2Controller(sclFreq: Int, respectStretch: Boolean) extends CoreDevice() {
 	
 
 	//i2c process State machine
-	val ready::start::command::slv_ack1::wr::rd::slv_ack2::mstr_ack::stop::Nil = Enum(UInt(), 9) //States
+	val ready::start::command::slv_ack1::wr::rd::slv_ack2::mstr_ack::stop::Nil = Enum(9) //States
 	val i2cState = RegInit(ready) //State register
 	when(i2cState === ready) {
 		i2cEn := false.B
@@ -336,7 +337,7 @@ class I2Controller(sclFreq: Int, respectStretch: Boolean) extends CoreDevice() {
 	*/
 	val ocpM = io.ocp.M //Shortcut to access master register
 	val ocpS = io.ocp.S //Shortcut to access slave output register
-	val ocpIdle :: ocpLoad :: ocpListen :: ocpMore :: ocpReadWaiter :: Nil = Enum(UInt(), 5)
+	val ocpIdle :: ocpLoad :: ocpListen :: ocpMore :: ocpReadWaiter :: Nil = Enum(5)
 
 	val ocpState = RegInit(ocpIdle) //The current state of the ocp/i2c transaction interface
 	val ocpCmd = (ocpM.Cmd === OcpCmd.RD || ocpM.Cmd === OcpCmd.WR) //If a command has been received
@@ -398,7 +399,7 @@ class I2Controller(sclFreq: Int, respectStretch: Boolean) extends CoreDevice() {
 	when(ocpCmd) {
 		switch(ocpM.Addr(5,2)) {
 			//Load new command
-			is(Bits("b0000")) {
+			is("b0000".U) {
 				when(ocpAvailable) {
 					ocp.addrRW := ocpM.Data(15,8) //Address of the slave device + rw bit
 					ocp.dataWr := ocpM.Data(7,0) //Data to write to slave
@@ -407,12 +408,12 @@ class I2Controller(sclFreq: Int, respectStretch: Boolean) extends CoreDevice() {
 				}
 			}
 			//Read ocpAvailable flag
-			is(Bits("b0001")) {
+			is("b0001".U) {
 				dataReg := ocpAvailable
 				// dataReg := Cat(0.U(31.W), ocpAvailable)
 			}
 			//Retrieve read data and reset readVals
-			is(Bits("b0010")){
+			is("b0010".U){
 				dataReg := Cat(readVals(3),readVals(2),readVals(1),readVals(0))
 				readCount := 0.U
 				readVals(0) := 0.U
@@ -422,7 +423,7 @@ class I2Controller(sclFreq: Int, respectStretch: Boolean) extends CoreDevice() {
 				readFlag := false.B
 			}
 			//Retrieve readFlag from system
-			is(Bits("b0100")){
+			is("b0100".U){
 				dataReg := readFlag 
 			}
 		}

@@ -8,7 +8,8 @@
 
 package io
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 
 import patmos.Constants._
 
@@ -29,29 +30,29 @@ class Timer(clk_freq: Int) extends CoreDevice() {
     override val interrupts = Vec(2, Output(Bool()) )
   })
 
-  val masterReg = Reg(next = io.ocp.M)
+  val masterReg = RegNext(next = io.ocp.M)
 
   // Register for cycle counter
-  val cycleReg     = Reg(init = 0.U((2*DATA_WIDTH).W))
-  val cycleIntrReg = Reg(init = 0.U((2*DATA_WIDTH).W))
+  val cycleReg     = RegInit(init = 0.U((2*DATA_WIDTH).W))
+  val cycleIntrReg = RegInit(init = 0.U((2*DATA_WIDTH).W))
 
   // Registers for usec counter
   val cycPerUSec  = (clk_freq/1000000).U
-  val usecSubReg  = Reg(init = 0.U(log2Up(clk_freq/1000000).W))
-  val usecReg     = Reg(init = 0.U((2*DATA_WIDTH).W))
-  val usecIntrReg = Reg(init = 0.U((2*DATA_WIDTH).W))
+  val usecSubReg  = RegInit(init = 0.U(log2Up(clk_freq/1000000).W))
+  val usecReg     = RegInit(init = 0.U((2*DATA_WIDTH).W))
+  val usecIntrReg = RegInit(init = 0.U((2*DATA_WIDTH).W))
 
   // Registers for data to read
-  val cycleHiReg  = Reg(Bits(width = DATA_WIDTH))
-  val usecHiReg   = Reg(Bits(width = DATA_WIDTH))
+  val cycleHiReg  = Reg(UInt(DATA_WIDTH.W))
+  val usecHiReg   = Reg(UInt(DATA_WIDTH.W))
 
   // Registers for writing data
-  val cycleLoReg  = Reg(Bits(width = DATA_WIDTH))
-  val usecLoReg   = Reg(Bits(width = DATA_WIDTH))
+  val cycleLoReg  = Reg(UInt(DATA_WIDTH.W))
+  val usecLoReg   = Reg(UInt(DATA_WIDTH.W))
 
   // Default response
   val resp = Wire(Bits())
-  val data = Wire(Bits(width = DATA_WIDTH))
+  val data = Wire(UInt(DATA_WIDTH.W))
   resp := OcpResp.NULL
   data := 0.U
 
@@ -61,21 +62,21 @@ class Timer(clk_freq: Int) extends CoreDevice() {
 
     // Read cycle counter
     // Must read word at higher address first!
-    when(masterReg.Addr(3, 2) === Bits("b01")) {
+    when(masterReg.Addr(3, 2) === "b01".U) {
       data := cycleReg(DATA_WIDTH-1, 0)
       cycleHiReg := cycleReg(2*DATA_WIDTH-1, DATA_WIDTH)
     }
-    when(masterReg.Addr(3, 2) === Bits("b00")) {
+    when(masterReg.Addr(3, 2) === "b00".U) {
       data := cycleHiReg
     }
 
     // Read usec counter
     // Must read word at higher address first!
-    when(masterReg.Addr(3, 2) === Bits("b11")) {
+    when(masterReg.Addr(3, 2) === "b11".U) {
       data := usecReg(DATA_WIDTH-1, 0)
       usecHiReg := usecReg(2*DATA_WIDTH-1, DATA_WIDTH)
     }
-    when(masterReg.Addr(3, 2) === Bits("b10")) {
+    when(masterReg.Addr(3, 2) === "b10".U) {
       data := usecHiReg
     }
   }
@@ -86,19 +87,19 @@ class Timer(clk_freq: Int) extends CoreDevice() {
 
     // Write cycle counter interrupt time
     // Must write word at higher address first!
-    when(masterReg.Addr(3, 2) === Bits("b01")) {
+    when(masterReg.Addr(3, 2) === "b01".U) {
       cycleLoReg := masterReg.Data
     }
-    when(masterReg.Addr(3, 2) === Bits("b00")) {
+    when(masterReg.Addr(3, 2) === "b00".U) {
       cycleIntrReg := masterReg.Data ## cycleLoReg
     }
 
     // Write usec counter interrupt time
     // Must write word at higher address first!
-    when(masterReg.Addr(3, 2) === Bits("b11")) {
+    when(masterReg.Addr(3, 2) === "b11".U) {
       usecLoReg := masterReg.Data
     }
-    when(masterReg.Addr(3, 2) === Bits("b10")) {
+    when(masterReg.Addr(3, 2) === "b10".U) {
       usecIntrReg := masterReg.Data ## usecLoReg
     }
   }

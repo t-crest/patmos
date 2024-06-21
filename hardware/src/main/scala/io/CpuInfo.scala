@@ -9,10 +9,12 @@
 
 package io
 
-import Chisel._
+import util.Utility
+
+import chisel3._
+import chisel3.util._
 
 import patmos.Constants._
-import util.Utility
 
 import ocp._
 
@@ -23,11 +25,11 @@ class CpuInfo(datFile: String, cpucnt: Int) extends CoreDevice() {
     val cnt = Input(UInt((log2Floor(cpucnt) + 1).W))
   })
 
-  val masterReg = Reg(next = io.ocp.M)
+  val masterReg = RegNext(next = io.ocp.M)
 
   // Default response
   val resp = Wire(Bits())
-  val data = Wire(Bits(width = DATA_WIDTH))
+  val data = Wire(UInt(DATA_WIDTH.W))
   resp := OcpResp.NULL
   data := 0.U
 
@@ -42,38 +44,38 @@ class CpuInfo(datFile: String, cpucnt: Int) extends CoreDevice() {
 
   // Read information
   switch(masterReg.Addr(5,2)) {
-    is(Bits("b0000")) { data := io.nr }
-    is(Bits("b0001")) { data := Bits(CLOCK_FREQ) }
-    is(Bits("b0010")) { data := io.cnt }
-    is(Bits("b0011")) { data := Bits(PIPE_COUNT) }
+    is("b0000".U) { data := io.nr }
+    is("b0001".U) { data := CLOCK_FREQ.U }
+    is("b0010".U) { data := io.cnt }
+    is("b0011".U) { data := PIPE_COUNT.U }
     // ExtMEM
     // Size (32 bit)
-    is(Bits("b0100")) { data := Bits(EXTMEM_SIZE) } 
+    is("b0100".U) { data := EXTMEM_SIZE.U } 
     // Burst length (8 bit ) & Write combine (8 bit)
-    is(Bits("b0101")) { data := Bits(BURST_LENGTH, width = 8) ## Bits(0, width = 7) ## Bool(WRITE_COMBINE) }
+    is("b0101".U) { data := BURST_LENGTH.U(8.W) ## 0.U(7.W) ## WRITE_COMBINE.B }
     // ICache
     // Size (32 bit)
-    is(Bits("b0110")) { data := Bits(ICACHE_SIZE) }
+    is("b0110".U) { data := ICACHE_SIZE.U }
     // Type (8 bit) & Replacement policy (8 bit) & Associativity (16 bit)
-    is(Bits("b0111")) { data := Bits(iCacheType2Int(ICACHE_TYPE), width = 8) ## Bits(cacheRepl2Int(ICACHE_REPL), width = 8) ## Bits(ICACHE_ASSOC, width = 16) }
+    is("b0111".U) { data := iCacheType2Int(ICACHE_TYPE).U(8.W) ## cacheRepl2Int(ICACHE_REPL).U(8.W) ## ICACHE_ASSOC.U(16.W) }
     // DCache
     // Size (32 bit)
-    is(Bits("b1000")) { data := Bits(DCACHE_SIZE) }
+    is("b1000".U) { data := DCACHE_SIZE.U }
     // Type (8 bit) & Replacement policy (8 bit) & Associativity (16 bit)
-    is(Bits("b1001")) { data := Bits(0, width = 7) ## Bool(DCACHE_WRITETHROUGH) ## Bits(cacheRepl2Int(DCACHE_REPL), width = 8) ## Bits(DCACHE_ASSOC, width = 16) }
+    is("b1001".U) { data := 0.U(7.W) ## DCACHE_WRITETHROUGH.B ## cacheRepl2Int(DCACHE_REPL).U(8.W) ## DCACHE_ASSOC.U(16.W) }
     // SCache
     // Size (32 bit)
-    is(Bits("b1010")) { data := Bits(SCACHE_SIZE) }
+    is("b1010".U) { data := SCACHE_SIZE.U }
     // Reserved
-    is(Bits("b1011")) { data := Bits("b0") }
+    is("b1011".U) { data := "b0".U }
     // ISPM
     // Size (32 bit)
-    is(Bits("b1100")) { data := Bits(ISPM_SIZE) }
+    is("b1100".U) { data := ISPM_SIZE.U }
     // DSPM
     // Size (32 bit)
-    is(Bits("b1101")) { data := Bits(DSPM_SIZE) }
+    is("b1101".U) { data := DSPM_SIZE.U }
   }
-  when (masterReg.Addr(15) === Bits("b1")) {
+  when (masterReg.Addr(15) === "b1".U) {
     data := romData
   }
 

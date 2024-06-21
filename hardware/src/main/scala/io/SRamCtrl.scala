@@ -13,7 +13,8 @@ package io
 
 import scala.math._
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 
 import ocp._
 
@@ -37,17 +38,17 @@ object SRamCtrl extends DeviceObject {
   trait Pins extends patmos.HasPins {
     override val pins = new Bundle {
       val ramOut = Output(new Bundle {
-        val addr = Bits(width = sramAddrWidth)
-        val doutEna = Bits(width = 1)
-        val dout = Bits(width = sramDataWidth)
-        val nce = Bits(width = 1)
-        val noe = Bits(width = 1)
-        val nwe = Bits(width = 1)
-        val nlb = Bits(width = 1)
-        val nub = Bits(width = 1)
+        val addr = UInt(sramAddrWidth.W)
+        val doutEna = UInt(1.W)
+        val dout = UInt(sramDataWidth.W)
+        val nce = UInt(1.W)
+        val noe = UInt(1.W)
+        val nwe = UInt(1.W)
+        val nlb = UInt(1.W)
+        val nub = UInt(1.W)
       })
       val ramIn = Input(new Bundle {
-        val din = Bits(width = sramDataWidth)
+        val din = UInt(sramDataWidth.W)
       })
     }
   }
@@ -60,12 +61,12 @@ class SRamCtrl( ocpAddrWidth    : Int,
                 singleCycleRead : Boolean=false,
                 writeWaitCycles : Int=1) extends BurstDevice(ocpAddrWidth) {
 
-  override val io = new BurstDeviceIO(ocpAddrWidth) with SRamCtrl.Pins
+  override val io = IO(new BurstDeviceIO(ocpAddrWidth) with SRamCtrl.Pins)
 
   // Checks for input parameters
-  assert(Bool(DATA_WIDTH % sramDataWidth == 0),"DATA_WIDTH is not a multiple of sramDataWidth")
-  assert(Bool(sramAddrWidth <= ocpAddrWidth),"ocpAddrWidth cannot access the full sram")
-  assert(Bool(isPow2(sramDataWidth/8)),"number of bytes per transaction to sram is not a power of 2")
+  require((DATA_WIDTH % sramDataWidth == 0),"DATA_WIDTH is not a multiple of sramDataWidth")
+  require((sramAddrWidth <= ocpAddrWidth),"ocpAddrWidth cannot access the full sram")
+  require(isPow2(sramDataWidth/8),"number of bytes per transaction to sram is not a power of 2")
 
   // Helper functions
   // log2up is a standard function but log2up(1)=1 and it should be 0
@@ -76,20 +77,20 @@ class SRamCtrl( ocpAddrWidth    : Int,
   val BYTESPERTRAN = sramDataWidth/8
 
   // State type and variable
-  val sReady :: sReadExe :: sReadExe2 :: sReadRet :: sWriteRec :: sWriteExe :: sWriteExe2 :: sWriteRet :: Nil = Enum(UInt(), 8)
-  val stateReg = Reg(init = sReady)
+  val sReady :: sReadExe :: sReadExe2 :: sReadRet :: sWriteRec :: sWriteExe :: sWriteExe2 :: sWriteRet :: Nil = Enum(8)
+  val stateReg = RegInit(init = sReady)
 
   // Internal Registers
-  val mAddrReg = Reg(Bits(width = sramAddrWidth))
-  val rdBufferReg = Reg(Vec(TRANSPERCMD, Bits(width=sramDataWidth)))
+  val mAddrReg = Reg(UInt(sramAddrWidth.W))
+  val rdBufferReg = Reg(Vec(TRANSPERCMD, UInt(sramDataWidth.W)))
   val wrBufferReg = Reg(Vec(TRANSPERCMD, new Trans(BYTESPERTRAN,sramDataWidth)))
-  val transCountReg = Reg(init = 0.U(log2upNew(TRANSPERCMD).W))
-  val wordCountReg = Reg(init = 0.U(log2upNew(ocpBurstLen).W))
-  val waitCountReg = Reg(init = 0.U(log2upNew(writeWaitCycles+1).W))
+  val transCountReg = RegInit(init = 0.U(log2upNew(TRANSPERCMD).W))
+  val wordCountReg = RegInit(init = 0.U(log2upNew(ocpBurstLen).W))
+  val waitCountReg = RegInit(init = 0.U(log2upNew(writeWaitCycles+1).W))
   // Output Registers
-  val addrReg = Reg(Bits(width = sramAddrWidth))
+  val addrReg = Reg(UInt(sramAddrWidth.W))
   val doutEnaReg = Reg(Bits())
-  val doutReg = Reg(Bits(width = DATA_WIDTH))
+  val doutReg = Reg(UInt(DATA_WIDTH.W))
   val nceReg = Reg(Bits())
   val noeReg = Reg(Bits())
   val nweReg = Reg(Bits())
@@ -256,8 +257,8 @@ class SRamCtrl( ocpAddrWidth    : Int,
 
 
   class Trans(bytesEnaWidth: Int, dataWidth: Int) extends Bundle {
-    val byteEna = Bits(width=bytesEnaWidth)
-    val data = Bits(width=dataWidth)
+    val byteEna = UInt(bytesEnaWidth.W)
+    val data = UInt(dataWidth.W)
 
     // This does not really clone, but Data.clone doesn't either
     override def cloneType() = {
@@ -274,6 +275,6 @@ object SRamMain {
   def main(args: Array[String]): Unit = {
     val chiselArgs = args.slice(1,args.length)
     val ocpAddrWidth = args(0).toInt
-    chiselMain(chiselArgs, () => Module(new SRamCtrl(ocpAddrWidth)))
+    emitVerilog(new SRamCtrl(ocpAddrWidth), chiselArgs)
   }
 }

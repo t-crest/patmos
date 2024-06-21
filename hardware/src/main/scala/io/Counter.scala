@@ -40,7 +40,7 @@
 
 package io
 
-import Chisel._
+import chisel3._
 
 import patmos.Constants._
 
@@ -55,13 +55,15 @@ object Counter extends DeviceObject {
 
 class Counter() extends CoreDevice() {
 
-  val countReg = Reg(init = 0.U(32.W))
+  val io = IO(new CoreDeviceIO())
+
+  val countReg = RegInit(init = 0.U(32.W))
   countReg := countReg + 1.U
   when (io.ocp.M.Cmd === OcpCmd.WR) {
     countReg := io.ocp.M.Data 
   }
   
-  val respReg = Reg(init = OcpResp.NULL)
+  val respReg = RegInit(init = OcpResp.NULL)
   respReg := OcpResp.NULL
   when(io.ocp.M.Cmd === OcpCmd.RD || io.ocp.M.Cmd === OcpCmd.WR) {
     respReg := OcpResp.DVA

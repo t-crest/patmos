@@ -8,7 +8,8 @@
 
 package io
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 
 import patmos.Constants._
 
@@ -42,14 +43,14 @@ class SPIMaster(clkFreq : Int, slaveCount : Int, sclkHz : Int, fifoDepth : Int, 
             val sclk = Output(UInt(1.W))
             val mosi = Output(UInt(1.W))
             val miso = Input(UInt(1.W))
-            val nSS = Bits(OUTPUT, slaveCount)
+            val nSS = Output(UInt(slaveCount.W))
             }
         }
 
     //Sclk generation
     var sclkCounterN = log2Up(CLOCK_FREQ/sclkHz)
 
-    val sclkCounterReg = Reg(init = 0.U(32.W))
+    val sclkCounterReg = RegInit(init = 0.U(32.W))
     val tick = sclkCounterReg === (sclkCounterN-1).U
 
     sclkCounterReg := sclkCounterReg + 1.U
@@ -58,15 +59,15 @@ class SPIMaster(clkFreq : Int, slaveCount : Int, sclkHz : Int, fifoDepth : Int, 
     }
 
     // send sm
-    val idle :: send :: waitOne :: Nil  = Enum(UInt(), 3)
-    val state = Reg(init = idle)
+    val idle :: send :: waitOne :: Nil  = Enum(3)
+    val state = RegInit(init = idle)
 
     // Tx duration count
-    val wordCounterReg = Reg(init = 0.U(32.W))
+    val wordCounterReg = RegInit(init = 0.U(32.W))
     val wordDone = wordCounterReg === wordLen.U
 
     // IO Signal registers
-    val sclkReg = Reg(init = false.B)
+    val sclkReg = RegInit(init = false.B)
 
     //val prevSclkReg = Reg(init = 0.U(1.W))
 
@@ -74,11 +75,11 @@ class SPIMaster(clkFreq : Int, slaveCount : Int, sclkHz : Int, fifoDepth : Int, 
     val sclkEdge = sclkReg && !RegNext(sclkReg)
     val sclkFall = !sclkReg && RegNext(sclkReg)
 
-    val mosiReg = Reg(init = 0.U(1.W))
+    val mosiReg = RegInit(init = 0.U(1.W))
     
 
-    val misoReg = Reg(init = 0.U(1.W))
-    val nSSReg = Reg(init = 0.U(1.W))
+    val misoReg = RegInit(init = 0.U(1.W))
+    val nSSReg = RegInit(init = 0.U(1.W))
 
 
     //Serial-in parallel out register for miso
@@ -86,21 +87,21 @@ class SPIMaster(clkFreq : Int, slaveCount : Int, sclkHz : Int, fifoDepth : Int, 
     val misoRxReg = Reg(Vec(wordLen, 0.U(1.W)))
 
     // Queue of received messages 
-    val rxQueue = Module(new Queue(Bits(width = wordLen), fifoDepth))
+    val rxQueue = Module(new Queue(UInt(wordLen.W), fifoDepth))
     rxQueue.io.enq.bits     := misoRxReg.asUInt
     rxQueue.io.enq.valid    := false.B
     rxQueue.io.deq.ready    := false.B
 
     // Queue of messages to be sent
-    val txQueue = Module(new Queue(Bits(width = wordLen), fifoDepth))
+    val txQueue = Module(new Queue(UInt(wordLen.W), fifoDepth))
     txQueue.io.enq.bits     := io.ocp.M.Data(wordLen-1, 0)
     txQueue.io.enq.valid    := false.B
     txQueue.io.deq.ready    := false.B
 
     //Serial-out register for mosi
-    val loadToSend = Reg(init = false.B)
+    val loadToSend = RegInit(init = false.B)
     loadToSend := false.B //Default value
-    val mosiTxReg = Reg(init = 0.U(wordLen.W))
+    val mosiTxReg = RegInit(init = 0.U(wordLen.W))
     when (loadToSend) {
       txQueue.io.deq.ready := true.B
       mosiTxReg := txQueue.io.deq.bits
@@ -109,11 +110,11 @@ class SPIMaster(clkFreq : Int, slaveCount : Int, sclkHz : Int, fifoDepth : Int, 
     }
 
     // Default response
-    val respReg = Reg(init = OcpResp.NULL)
+    val respReg = RegInit(init = OcpResp.NULL)
     respReg := OcpResp.NULL
 
     //Read response data register
-    val rdDataReg = Reg(init = Bits(0, width = wordLen))
+    val rdDataReg = RegInit(init = 0.U(wordLen.W))
   
     // Connections to master
     io.ocp.S.Resp := respReg

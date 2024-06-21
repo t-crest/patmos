@@ -7,7 +7,8 @@
 
 package io
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 
 import patmos.Constants._
 import ocp._
@@ -36,13 +37,13 @@ class OCRamCtrl(addrWidth : Int, ocpBurstLen : Int=4) extends BurstDevice(addrWi
 
   val size = 1 << addrWidth
 
-  val idle :: read :: write :: Nil = Enum(UInt(), 3)
-  val stateReg = Reg(init = idle)
+  val idle :: read :: write :: Nil = Enum(3)
+  val stateReg = RegInit(init = idle)
 
   val ramAddrWidth = addrWidth - log2Up(BYTES_PER_WORD)
-  val addrReg = Reg(init = 0.U((ramAddrWidth - log2Up(ocpBurstLen)).W))
+  val addrReg = RegInit(init = 0.U((ramAddrWidth - log2Up(ocpBurstLen)).W))
 
-  val burstCntReg = Reg(init = 0.U(log2Up(ocpBurstLen).W))
+  val burstCntReg = RegInit(init = 0.U(log2Up(ocpBurstLen).W))
   val burstCntNext = burstCntReg + 1.U;
 
   val addr = Wire(UInt())
@@ -108,6 +109,6 @@ object OCRamMain {
   def main(args: Array[String]): Unit = {
     val chiselArgs = args.slice(1,args.length)
     val addrWidth = args(0).toInt
-    chiselMain(chiselArgs, () => Module(new OCRamCtrl(addrWidth)))
+    emitVerilog(new OCRamCtrl(addrWidth), chiselArgs)
   }
 }

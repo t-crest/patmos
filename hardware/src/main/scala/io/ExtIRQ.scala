@@ -7,7 +7,7 @@
 
 package io
 
-import Chisel._
+import chisel3._
 import chisel3.VecInit
 
 import ocp._
@@ -28,18 +28,18 @@ class ExtIRQ(IRQCount : Int) extends CoreDevice() {
 
   override val io = new CoreDeviceIO() with patmos.HasPins with patmos.HasInterrupts {
     override val pins = new Bundle() {
-      val irq = Bits(INPUT, IRQCount)
+      val irq = Input(UInt(IRQCount.W))
     }
     override val interrupts = Output(VecInit(Seq.fill(IRQCount)(Bool())))
   }
 
-  val IRQSyncReg = Reg(Bits(width = IRQCount))
-  val IRQSyncedReg = Reg(Bits(width = IRQCount))
+  val IRQSyncReg = Reg(UInt(IRQCount.W))
+  val IRQSyncedReg = Reg(UInt(IRQCount.W))
 
-  val IRQReg = Reg(Bits(width = IRQCount))
+  val IRQReg = Reg(UInt(IRQCount.W))
 
   // Default response
-  val respReg = Reg(init = OcpResp.NULL)
+  val respReg = RegInit(init = OcpResp.NULL)
   respReg := OcpResp.NULL
 
   // Connections to master
