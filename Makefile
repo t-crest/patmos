@@ -50,6 +50,15 @@ INSTALLDIR?=$(CURDIR)/../local
 HWINSTALLDIR?=$(INSTALLDIR)
 export LF_PROJECT_ROOT:=$(CURDIR)/c/apps/lf-workspace/hello
 export LF_MAIN_TARGET:=$(APP)
+
+# Quick fix for Mac OS X
+# How are include paths handled these days in *nix? CMake?
+#ifeq ($(TERM_PROGRAM),$(filter $(TERM_PROGRAM), Apple_Terminal iTerm.app))
+	INC_EXTRA=-I /opt/homebrew/include -I /opt/homebrew/include/libelf -L /opt/homebrew/lib
+#else
+#	INC_EXTRA=
+#endif
+
 all: tools emulator patmos
 
 
@@ -58,10 +67,7 @@ tools: elf2bin javatools scripttools
 # Build tool to transform elf to binary
 elf2bin:
 	-mkdir -p $(CTOOLSBUILDDIR)
-	cd $(CTOOLSBUILDDIR) && cmake ..
-	cd $(CTOOLSBUILDDIR) && make
-	-mkdir -p $(INSTALLDIR)/bin
-	cp $(CTOOLSBUILDDIR)/src/elf2bin $(INSTALLDIR)/bin
+	gcc $(INC_EXTRA) -lelf -o $(INSTALLDIR)/elf2bin tools/c/src/elf2bin.c
 
 # Target for dependencies: build elf2bin only if it does not exist.
 $(INSTALLDIR)/bin/elf2bin:
