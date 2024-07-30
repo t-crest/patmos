@@ -67,7 +67,7 @@ tools: elf2bin javatools scripttools
 # Build tool to transform elf to binary
 elf2bin:
 	-mkdir -p $(CTOOLSBUILDDIR)
-	gcc $(INC_EXTRA) -lelf -o $(INSTALLDIR)/elf2bin tools/c/src/elf2bin.c
+	gcc $(INC_EXTRA) -o $(INSTALLDIR)/elf2bin tools/c/src/elf2bin.c -lelf 
 
 # Target for dependencies: build elf2bin only if it does not exist.
 $(INSTALLDIR)/bin/elf2bin:
