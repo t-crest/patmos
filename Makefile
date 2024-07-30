@@ -113,7 +113,7 @@ CORECNTT:=$(shell lscpu | grep 'Core(s) per socket:')
 emulator:
 	-mkdir -p $(HWBUILDDIR)
 	$(MAKE) -C hardware verilog BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
-	-cd $(HWBUILDDIR) && verilator --cc ../harnessConfig.vlt Patmos.v --top-module Patmos +define+TOP_TYPE=VPatmos --threads 1 -CFLAGS "-I /opt/homebrew/include/libelf -I /opt/homebrew/include -L /opt/homebrew/lib -Wno-undefined-bool-conversion -O1 -DTOP_TYPE=VPatmos -DVL_USER_FINISH -include VPatmos.h" -Wno-MULTIDRIVEN -Mdir $(HWBUILDDIR) --exe ../Patmos-harness.cpp -LDFLAGS -lelf --trace-fst
+	-cd $(HWBUILDDIR) && verilator --cc ../harnessConfig.vlt Patmos.v --top-module Patmos +define+TOP_TYPE=VPatmos --threads 1 -CFLAGS "-I /opt/homebrew/include/libelf -I /opt/homebrew/include -Wno-undefined-bool-conversion -O1 -DTOP_TYPE=VPatmos -DVL_USER_FINISH -include VPatmos.h" -Wno-MULTIDRIVEN -Mdir $(HWBUILDDIR) --exe ../Patmos-harness.cpp -LDFLAGS "-L /opt/homebrew/lib -lelf" --trace-fst
 	-cd $(HWBUILDDIR) && make -j -f VPatmos.mk
 	-cp $(HWBUILDDIR)/VPatmos $(HWBUILDDIR)/emulator
 	-mkdir -p $(HWINSTALLDIR)/bin
