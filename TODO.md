@@ -3,7 +3,7 @@
  - [ ] Boot loading in FPGA
  - [ ] Switch to llvm 12
  - [ ] Scala 2.13 (Tjark)
- - [ ] Improve nightly build (include make synth)
+ - [x] Improve nightly build (include make synth)
  - [ ] Get CI with Github Actions started
  - [ ] Merge and cleanup Makefiles
  - [ ] move src into root
