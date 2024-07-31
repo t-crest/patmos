@@ -41,8 +41,6 @@ architecture rtl of patmos_top is
       io_Keys_key : in  std_logic_vector(3 downto 0);
       io_UartCmp_tx  : out std_logic;
       io_UartCmp_rx  : in  std_logic;
-      io_HardlockOCPWrapper_tx  : out std_logic;
-      io_HardlockOCPWrapper_rx  : in  std_logic;
 
       io_SramCtrl_ramOut_addr : out std_logic_vector(19 downto 0);
       io_SramCtrl_ramOut_doutEna : out std_logic;
@@ -123,7 +121,6 @@ begin
            oLedsPins_led,
            iKeysPins_key,
            oUartPins_txd, iUartPins_rxd,
-           dummy, '1',
            oSRAM_A, sram_out_dout_ena, SRAM_DQ, sram_out_dout, oSRAM_CE_N, oSRAM_OE_N, oSRAM_WE_N, oSRAM_LB_N, oSRAM_UB_N);
 
 end architecture rtl;
