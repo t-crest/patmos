@@ -10,6 +10,14 @@
     - [ ] Remove the old S4NOC
     - [ ] Do the OCP/PipeCon connector
 
+## Reorg Order
+
+ 1. [ ] Boot loading in FPGA
+ 2. [ ] Switch to llvm 12
+ 3. [ ] Merge Makefiles
+ 4. [ ] Cleanup Makefiles
+ 5. [ ] move src into root 
+
 ## Later
 
  - [ ] Reorganize Getting Started (do not start with bootable)
