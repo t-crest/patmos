@@ -3,6 +3,8 @@
  - [ ] Boot loading in FPGA
  - [ ] Switch to llvm 12
  - [ ] Scala 2.13 (Tjark)
+ - [ ] Improve nightly build (include make synth)
+ - [ ] Get CI with Github Actions started
  - [ ] Merge and cleanup Makefiles
  - [ ] move src into root
  - [ ] Connect the new S4NOC
@@ -24,7 +26,7 @@
 
 ## Later
 
- - [ ] Reorganize Getting Started (do not start with bootable)
+ - [x] Reorganize Getting Started (do not start with bootable)
  - [ ] elf2bin could be Java/Scala
  - [ ] Make the Patmos handbook a real publication
     - [ ] Check about co-authors

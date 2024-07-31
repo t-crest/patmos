@@ -72,17 +72,17 @@
 \newcommand{\rasmus}[1]{\comment{Rasmus}{#1}{Mahogany}}
 
 % uncomment to get rid of comments
-\renewcommand{\tommy}[1]{}
-\renewcommand{\wolf}[1]{}
-\renewcommand{\martin}[1]{}
-\renewcommand{\stefan}[1]{}
-\renewcommand{\daniel}[1]{}
-\renewcommand{\cullmann}[1]{}
-\renewcommand{\gebhard}[1]{}
-\renewcommand{\fb}[1]{}
-\renewcommand{\jack}[1]{}
-\renewcommand{\sahar}[1]{}
-\renewcommand{\rasmus}[1]{}
+%\renewcommand{\tommy}[1]{}
+%\renewcommand{\wolf}[1]{}
+%\renewcommand{\martin}[1]{}
+%\renewcommand{\stefan}[1]{}
+%\renewcommand{\daniel}[1]{}
+%\renewcommand{\cullmann}[1]{}
+%\renewcommand{\gebhard}[1]{}
+%\renewcommand{\fb}[1]{}
+%\renewcommand{\jack}[1]{}
+%\renewcommand{\sahar}[1]{}
+%\renewcommand{\rasmus}[1]{}
 
 %
 % custom colors
@@ -233,6 +233,12 @@ patmos-clang hello.c
 pasim a.out
 \end{verbatim}
 
+Or with the Patmos hardware emulator as follows:
+
+\begin{verbatim}
+patemu a.out
+\end{verbatim}
+
 However, this innocent example is quite challenging for an embedded system. We will be needing:
 \begin{itemize}
 	\item A C compiler.
@@ -273,8 +279,7 @@ On a Linux box with the installed LLVM compiler and Quartus in your PATH,
 the complete build processes for a Hello World is as follows:
 
 \begin{verbatim}
-make BOOTAPP=bootable-bootloader APP=hello_puts \
-   tools comp gen synth config download
+make APP=hello_puts tools comp gen synth config download
 \end{verbatim}
 
 However, this involves quite many steps. Therefore, we suggest doing some \emph{manual}
@@ -359,73 +364,6 @@ wloop:	subi	r1 = r1, 1
 	br	loop
 \end{lstlisting}
 
-\subsection{A C Based Blinking LED}
-\label{sec:c_blinking_led}
-
-As a first real example we build the embedded version of Hello World, the
-blinking LED, from a C program. You can find the C source in \code{c/blinking.c}.
-
-\begin{verbatim}
-make BOOTAPP=bootable-blinking comp gen synth config
-\end{verbatim}
-
-Additionally to blinking an LED this program also writes alternating `0' and `1'
-to the serial port. Connect the FPGA board to your serial port,
-open a terminal of your choice (e.g., \code{gtkterm}), connect to the serial port,
-set the baud rate to 115200, no parity, and no handshaking.
-You should see alternating `0' and `1' sent out synchronous to the blinking.
-
-Note that the program name (\code{blink}) is prefixed by \code{bootable-}.
-The marker selects the right compiler settings for a program that ends up in
-the Patmos on-chip ROM. As the on-chip memory is limited, only tiny programs
-are supported in this execution mode.
-
-Figure~\ref{fig:blink} shows the code for the embedded Hello World
-C program. Two constants (0xF0090000 and 0xF0080004) are the addresses
-of the IO devices LED and serial port. IO devices connected to Patmos are
-connected to the local, uncached memory area. This is the same memory
-area where data SPM and NoC SPM are connected. Therefore, to access them
-one needs to use the local load/store instructions. With the attribute \code{\_SPM}
-the compiler is instructed to emit the correct load and store instructions.
-
-\begin{lstlisting}[float,caption={A blinking LED\label{fig:blink}}]
-/*
-    This is a minimal C program executed on the FPGA version of Patmos.
-    An embedded Hello World program: a blinking LED.
-
-    Additional to the blinking LED we write to the UART '0' and '1' (if available).
-
-    Author: Martin Schoeberl
-    Copyright: DTU, BSD License
-*/
-
-#include "include/bootable.h"
-#include <machine/spm.h>
-
-int main() {
-
-    volatile _SPM int *led_ptr  = (volatile _SPM int *) 0xF0090000;
-    volatile _SPM int *uart_ptr = (volatile _SPM int *) 0xF0080004;
-    int i, j;
-
-    for (;;) {
-        *uart_ptr = '1';
-        for (i=2000; i!=0; --i)
-            for (j=2000; j!=0; --j)
-                *led_ptr = 1;
-
-
-        *uart_ptr = '0';
-        for (i=2000; i!=0; --i)
-            for (j=2000; j!=0; --j)
-                *led_ptr = 0;
-
-    }
-}
-\end{lstlisting}
-
-\martin{TODO: we need to streamline the make process a little bit.
-The targets might be a little bit confusing. Patmos is compiled two times.}
 
 
 \subsection{Make Targets}
@@ -459,8 +397,7 @@ the complete build processes for the Hello World is as follows:
 
 % make BOOTAPP=bootable-bootloader APP=hello_puts tools synth comp config download
 \begin{verbatim}
-make BOOTAPP=bootable-bootloader APP=hello_puts \
-   tools comp gen synth config download
+make APP=hello_puts tools comp gen synth config download
 \end{verbatim}
 
 
@@ -567,6 +504,75 @@ make app config download APP=hello
 
 A more interesting multicore example, which also uses \code{libcorethread} code
 without building a library, can be found in \code{c/apps/bench}.
+
+\subsection{A C Based Blinking LED as Bootable}
+\label{sec:c_blinking_led}
+
+As a first real example we build the embedded version of Hello World, the
+blinking LED, from a C program. You can find the C source in \code{c/blinking.c}.
+
+\begin{verbatim}
+make BOOTAPP=bootable-blinking comp gen synth config
+\end{verbatim}
+
+Additionally to blinking an LED this program also writes alternating `0' and `1'
+to the serial port. Connect the FPGA board to your serial port,
+open a terminal of your choice (e.g., \code{gtkterm}), connect to the serial port,
+set the baud rate to 115200, no parity, and no handshaking.
+You should see alternating `0' and `1' sent out synchronous to the blinking.
+
+Note that the program name (\code{blink}) is prefixed by \code{bootable-}.
+The marker selects the right compiler settings for a program that ends up in
+the Patmos on-chip ROM. As the on-chip memory is limited, only tiny programs
+are supported in this execution mode.
+
+Figure~\ref{fig:blink} shows the code for the embedded Hello World
+C program. Two constants (0xF0090000 and 0xF0080004) are the addresses
+of the IO devices LED and serial port. IO devices connected to Patmos are
+connected to the local, uncached memory area. This is the same memory
+area where data SPM and NoC SPM are connected. Therefore, to access them
+one needs to use the local load/store instructions. With the attribute \code{\_SPM}
+the compiler is instructed to emit the correct load and store instructions.
+
+\begin{lstlisting}[float,caption={A blinking LED\label{fig:blink}}]
+/*
+    This is a minimal C program executed on the FPGA version of Patmos.
+    An embedded Hello World program: a blinking LED.
+
+    Additional to the blinking LED we write to the UART '0' and '1' (if available).
+
+    Author: Martin Schoeberl
+    Copyright: DTU, BSD License
+*/
+
+#include "include/bootable.h"
+#include <machine/spm.h>
+
+int main() {
+
+    volatile _SPM int *led_ptr  = (volatile _SPM int *) 0xF0090000;
+    volatile _SPM int *uart_ptr = (volatile _SPM int *) 0xF0080004;
+    int i, j;
+
+    for (;;) {
+        *uart_ptr = '1';
+        for (i=2000; i!=0; --i)
+            for (j=2000; j!=0; --j)
+                *led_ptr = 1;
+
+
+        *uart_ptr = '0';
+        for (i=2000; i!=0; --i)
+            for (j=2000; j!=0; --j)
+                *led_ptr = 0;
+
+    }
+}
+\end{lstlisting}
+
+\martin{TODO: we need to streamline the make process a little bit.
+The targets might be a little bit confusing. Patmos is compiled two times.}
+
 
 \subsection{Supported FPGA Boards}
 
