@@ -50,6 +50,15 @@ INSTALLDIR?=$(CURDIR)/../local
 HWINSTALLDIR?=$(INSTALLDIR)
 export LF_PROJECT_ROOT:=$(CURDIR)/c/apps/lf-workspace/hello
 export LF_MAIN_TARGET:=$(APP)
+
+# Quick fix for Mac OS X
+# How are include paths handled these days in *nix? CMake?
+#ifeq ($(TERM_PROGRAM),$(filter $(TERM_PROGRAM), Apple_Terminal iTerm.app))
+	INC_EXTRA=-I /opt/homebrew/include -I /opt/homebrew/include/libelf -L /opt/homebrew/lib
+#else
+#	INC_EXTRA=
+#endif
+
 all: tools emulator patmos
 
 
@@ -58,10 +67,7 @@ tools: elf2bin javatools scripttools
 # Build tool to transform elf to binary
 elf2bin:
 	-mkdir -p $(CTOOLSBUILDDIR)
-	cd $(CTOOLSBUILDDIR) && cmake ..
-	cd $(CTOOLSBUILDDIR) && make
-	-mkdir -p $(INSTALLDIR)/bin
-	cp $(CTOOLSBUILDDIR)/src/elf2bin $(INSTALLDIR)/bin
+	gcc $(INC_EXTRA) -o $(INSTALLDIR)/elf2bin tools/c/src/elf2bin.c -lelf 
 
 # Target for dependencies: build elf2bin only if it does not exist.
 $(INSTALLDIR)/bin/elf2bin:
@@ -113,7 +119,7 @@ CORECNTT:=$(shell lscpu | grep 'Core(s) per socket:')
 emulator:
 	-mkdir -p $(HWBUILDDIR)
 	$(MAKE) -C hardware verilog BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
-	-cd $(HWBUILDDIR) && verilator --cc ../harnessConfig.vlt Patmos.v --top-module Patmos +define+TOP_TYPE=VPatmos --threads 1 -CFLAGS "-Wno-undefined-bool-conversion -O1 -DTOP_TYPE=VPatmos -DVL_USER_FINISH -include VPatmos.h" -Wno-MULTIDRIVEN -Mdir $(HWBUILDDIR) --exe ../Patmos-harness.cpp -LDFLAGS -lelf --trace-fst
+	-cd $(HWBUILDDIR) && verilator --cc ../harnessConfig.vlt Patmos.v --top-module Patmos +define+TOP_TYPE=VPatmos --threads 1 -CFLAGS "-I /opt/homebrew/include/libelf -I /opt/homebrew/include -Wno-undefined-bool-conversion -O1 -DTOP_TYPE=VPatmos -DVL_USER_FINISH -include VPatmos.h" -Wno-MULTIDRIVEN -Mdir $(HWBUILDDIR) --exe ../Patmos-harness.cpp -LDFLAGS "-L /opt/homebrew/lib -lelf" --trace-fst
 	-cd $(HWBUILDDIR) && make -j -f VPatmos.mk
 	-cp $(HWBUILDDIR)/VPatmos $(HWBUILDDIR)/emulator
 	-mkdir -p $(HWINSTALLDIR)/bin
