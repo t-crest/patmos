@@ -52,7 +52,6 @@ export LF_PROJECT_ROOT:=$(CURDIR)/c/apps/lf-workspace/hello
 export LF_MAIN_TARGET:=$(APP)
 all: tools emulator patmos
 
-
 tools: elf2bin javatools scripttools
 
 # Build tool to transform elf to binary
@@ -196,6 +195,7 @@ test: test_compile test_emu
 test_compile:
 	make clean
 	make emulator
+	make synth
 
 test_emu:
 	testsuite/run.sh
