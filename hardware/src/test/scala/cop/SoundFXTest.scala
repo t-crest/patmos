@@ -2,13 +2,13 @@ package cop.test
 
 import chisel3._
 import chiseltest._
-import org.scalatest.FlatSpec
+import org.scalatest.flatspec.AnyFlatSpec
 
 import cop._
 import ocp._
 import soundbytes.Sounds._
 
-class SoundFXTest extends FlatSpec with ChiselScalatestTester {
+class SoundFXTest extends AnyFlatSpec with ChiselScalatestTester {
 
   behavior of "SoundFX"
 
