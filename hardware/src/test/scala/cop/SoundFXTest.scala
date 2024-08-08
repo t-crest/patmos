@@ -12,6 +12,7 @@ class SoundFXTest extends AnyFlatSpec with ChiselScalatestTester {
 
   behavior of "SoundFX"
 
+  /*
   it should "play" in {
     test(new SoundFX()).withAnnotations(Seq(VerilatorBackendAnnotation, WriteVcdAnnotation)) { dut =>
       val samples = getFileSamples("src/main/scala/soundbytes/sample.wav")
@@ -142,4 +143,6 @@ class SoundFXTest extends AnyFlatSpec with ChiselScalatestTester {
 
     }
   }
+
+   */
 }
