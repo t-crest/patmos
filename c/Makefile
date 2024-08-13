@@ -34,9 +34,7 @@ LDFLAGS-BOOTABLE?= \
 	--defsym _shadow_stack_base=$$(( $(BOOTSPM_BASE) + 0x700 ))\
 	--nostdlib --static -O0 \
 	--defsym __heap_start=end --defsym __heap_end=0x100000 \
-	--section-start .text=0x0 -e _start \
-	--section-start .rodata=0xf0008010 \
-	--section-start .data=$(BOOTSPM_BASE)
+	-T $(BUILDDIR)/../hardware/bootable-link.t
 
 # Flags for compiling normal applications
 # Assuming 2 MB of main memory
