@@ -4,11 +4,14 @@
   <frequency Hz="80000000"/>
 
   <!-- Default is single core -->
+  <!-- there is a build error
+  <CmpDev name="Argo" />
+  -->
   <!--
   <pipeline dual="false" />
   <cores count="4"/>
   <CmpDevs>
-    <CmpDev name="Argo" />
+    <CmpDev name="S4NoC" />
     <CmpDev name="SharedSPM" />
   </CmpDevs>
   -->
