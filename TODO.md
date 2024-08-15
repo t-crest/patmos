@@ -12,9 +12,13 @@
 ## Later
 
  - [ ] elf2bin could be Java/Scala
-    - [ ] include as a extra source path for now (with Scala 2.13 as maven dependency)
-    - [ ] Remove the old S4NOC
-    - [ ] Do the OCP/PipeCon connector
+
+ ## S4NOC
+ - [x] include as a extra source path for now
+   - [ ] with Scala 2.13 as a Maven dependency
+ - [x] Remove the old S4NOC
+ - [x] Do the OCP/PipeCon connector
+ - [ ] Do an example application
 
 ## Reorg Order
 

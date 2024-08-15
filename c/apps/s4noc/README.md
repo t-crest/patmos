@@ -4,7 +4,7 @@ These applications are used for the evaluation section of the following paper:
 
 Martin Schoeberl, Luca Pezzarossa, and Jens Sparso, A Simple Network Interface for a Simple Network-on-Chip, ARCS 2019
 
-*Note that S4NOC has been moved to its own repository and the NI for S4NOC has changed. To run the descibed evaluation use a version of Patmos before August 8 2023*
+*Note that S4NOC has been moved to its own repository and the NI for S4NOC has changed. To run the descibed evaluation use a version of Patmos before August 8 2024.*
 
 ## Stand Alone Evaluation
 
