@@ -114,7 +114,6 @@ $(JAVATOOLSBUILDDIR)/classes/%.class: tools/java/src/%.java
 #	cp $(HWBUILDDIR)/emulator $(HWINSTALLDIR)/bin/patemu
 
 # chisel3/verilator emulator
-CORECNTT:=$(shell lscpu | grep 'Core(s) per socket:')
 emulator:
 	-mkdir -p $(HWBUILDDIR)
 	$(MAKE) -C hardware verilog BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)

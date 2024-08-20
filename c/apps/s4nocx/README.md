@@ -2,9 +2,6 @@
 
 These applications are used to explain the usage of S4NOC with Patmos.
 
-
-## Evaluation with T-CREST
-
 We use the T-CREST multicore to evaluate the S4NOC.
 General build instructions of T-CREST in [Main README](../../../README.md).
 
