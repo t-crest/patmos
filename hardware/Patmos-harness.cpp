@@ -45,6 +45,7 @@ class Emulator
   VerilatedFstC	*c_trace;
   // For Uart:
   bool UART_on;
+  bool UART_idle;
   int baudrate;
   int freq;
   char in_byte;
@@ -79,6 +80,7 @@ public:
 
     //for UART
     UART_on = false;
+    UART_idle = false;
     c->io_UartCmp_rx = 1; // keep UART tx high when idle
     outputTarget = &cout; // default uart print to terminal
 
@@ -111,8 +113,8 @@ public:
     trace = true;
     if (!c_trace){
       c_trace = new VerilatedFstC;
-			c->trace(c_trace, 99);
-			c_trace->open("Patmos.fst");
+      c->trace(c_trace, 99);
+      c_trace->open("Patmos.fst");
     }
   }
 
@@ -183,43 +185,80 @@ public:
     UART_on = true;
   }
 
+  void emu_uart(int uart_in,int uart_out) {
+    static unsigned char rx_buf;
+    static unsigned rx_state;
+    static unsigned char tx_buf;
+    static unsigned tx_state;
+    
+    if (c->Patmos__DOT__UartCmp__DOT__uart__DOT__tx_baud_tick) {
 
-  void emu_uart(int uart_in,int uart_out) {//int uart_in, int uart_out
-    static unsigned baud_counter = 0;
+      // Receive data from Patmos
+      switch(rx_state) {
+        default: //case 0
+          if(c->io_UartCmp_tx == 0)
+            rx_state++;
+          break;
 
-    // Pass on data from UART
-    if (c->Patmos__DOT__UartCmp__DOT__uart__DOT__uartOcpEmu_Cmd == 0x1
-        && (c->Patmos__DOT__UartCmp__DOT__uart__DOT__uartOcpEmu_Addr & 0xff) == 0x04) {
-      unsigned char d = c->Patmos__DOT__UartCmp__DOT__uart__DOT__uartOcpEmu_Data;
-      int w = write(uart_out, &d, 1);
-      if (w != 1) {
-        cerr << "patemu: error: Cannot write UART output" << endl;
-      }
-    }
-
-    // Pass on data to UART
-    bool baud_tick = c->Patmos__DOT__UartCmp__DOT__uart__DOT__tx_baud_tick;
-    if (baud_tick) {
-      baud_counter = (baud_counter + 1) % 10;
-    }
-    if (baud_tick && baud_counter == 0) {
-      struct pollfd pfd;
-      pfd.fd = uart_in;
-      pfd.events = POLLIN;
-      if (poll(&pfd, 1, 0) > 0) {
-        unsigned char d;
-        int r = read(uart_in, &d, 1);
-        if (r != 0) {
-          if (r != 1) {
-            cerr << "patemu: error: Cannot read UART input" << endl;
-          } else {
-            c->Patmos__DOT__UartCmp__DOT__uart__DOT__rx_state = 0x3; // rx_stop_bit
-            c->Patmos__DOT__UartCmp__DOT__uart__DOT__rx_baud_tick = 1;
-            c->Patmos__DOT__UartCmp__DOT__uart__DOT__rxd_reg2 = 1;
-            c->Patmos__DOT__UartCmp__DOT__uart__DOT__rx_buff = d;
-          }
+        case 1 ... 8:
+        {
+          if (c->io_UartCmp_tx == 1)
+            rx_buf |= (1 << (rx_state - 1)); // Set the bit
+          else
+            rx_buf &= ~(1 << (rx_state - 1)); // Clear the bit
+          
+          rx_state++;
+          break;
         }
+
+        case 9:
+          rx_state = 0;
+          int w = write(uart_out, &rx_buf, 1);
+          if (w != 1) {
+            cerr << "patemu: error: Cannot write UART output" << endl;
+          }
+          break;
       }
+      
+      // Send data to Patmos
+      switch(tx_state) {
+        default: //case 0
+          c->io_UartCmp_rx = 1;
+          struct pollfd pfd;
+          pfd.fd = uart_in;
+          pfd.events = POLLIN;
+          if (poll(&pfd, 1, 0) > 0) {
+            unsigned char d;
+            int r = read(uart_in, &tx_buf, 1);
+            if (r == 1) {
+              c->io_UartCmp_rx = 0;
+              tx_state++;
+            }
+            else if(r != 0)
+              cerr << "patemu: error: Cannot read UART input" << endl;
+          }
+          break;
+
+        case 1 ... 8:
+          c->io_UartCmp_rx = ((tx_buf >> (tx_state - 1)) & 1);
+          tx_state++;
+          break;
+
+        case 9:
+          c->io_UartCmp_rx = 1;
+          tx_state = 0;
+          break;
+      }
+      
+      static unsigned idle_cnt = 0;
+      const unsigned idle_cnt_max = 2;
+    
+      if((rx_state != 0) || (tx_state != 0))
+          idle_cnt = 0;
+      else if(idle_cnt < idle_cnt_max)
+        idle_cnt++;
+      
+      UART_idle = idle_cnt >= idle_cnt_max;
     }
   }
 
@@ -944,7 +983,7 @@ int main(int argc, char **argv, char **env)
     }
     emu->emu_extmem();
      // Return to address 0 halts the execution after one more iteration
-    if (halt) {
+    if (halt && (!emu->UART_on || emu->UART_idle)) {
       break;
     }
     #if CORE_COUNT == 1
