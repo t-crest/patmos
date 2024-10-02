@@ -89,9 +89,9 @@ entrypoint_t download(void) {
   unsigned int section_memsize = 0;
   unsigned int section_byte_count = 0;
   unsigned int integer = 0;
-  enum state { STATE_ENTRYPOINT, STATE_SECTION_NUMBER,
+  enum state { STATE_DUMMY, STATE_ENTRYPOINT, STATE_SECTION_NUMBER,
                STATE_SECTION_FILESIZE, STATE_SECTION_OFFSET, STATE_SECTION_MEMSIZE,
-               STATE_SECTION_DATA };
+               STATE_SECTION_DATA, STATE_EXECUTE, STATE_ERROR };
 
   enum state current_state = STATE_ENTRYPOINT;
 
@@ -197,10 +197,14 @@ entrypoint_t download(void) {
         put_byte(calculated_crc);
 
         if (calculated_crc != received_crc) {
+          current_state = STATE_ERROR;
+          LEDS = current_state;
           return NULL;
         }
         if (section_count == section_number) {
           //End of program transmission
+          current_state = STATE_EXECUTE;
+          LEDS = current_state;
           return (volatile int (*)())entrypoint;
         }
 
