@@ -15,8 +15,6 @@ LIBAUDIO=$(BUILDDIR)/libaudio.a
 LIBELF=$(BUILDDIR)/libelf.a
 LIBSD=$(BUILDDIR)/libsd.a
 
-NOCINIT?=cmp/nocinit.c
-
 SHELL=/bin/bash
 #BOOTSPM data is by default in data SPM
 BOOTSPM_BASE?=0x00020000
@@ -69,7 +67,7 @@ $(BUILDDIR)/%.o: %.c Makefile
 	$(CC) $(CFLAGS) -c -o $@ $(filter %.c,$^)
 
 # A target for regular applications
-$(BUILDDIR)/%.elf: %.c $(NOCINIT) $(LIBMP) $(LIBNOC) $(LIBCORETHREAD) $(LIBETH) $(LIBSD) $(LIBAUDIO) $(LIBELF) Makefile
+$(BUILDDIR)/%.elf: %.c $(LIBMP) $(LIBNOC) $(LIBCORETHREAD) $(LIBETH) $(LIBSD) $(LIBAUDIO) $(LIBELF) Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -Wl,-L$(BUILDDIR),-lmp,-lnoc,-lcorethread,-leth,-lelf,-lsd,-laudio
 
@@ -82,29 +80,27 @@ $(BUILDDIR)/%-bootable.o: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS-BOOTABLE) -c -o $@ $(filter %.c,$^)
 
-$(BUILDDIR)/bootable-%.elf: $(BUILDDIR)/%-bootable.o $(LIBETH) $(LIBNOC) $(NOCINIT) Makefile
-	$(LD) $(LDFLAGS-BOOTABLE) -o $@ $(filter %-bootable.o,$^) -L$(BUILDDIR) -leth -lnoc
+$(BUILDDIR)/bootable-%.elf: $(BUILDDIR)/%-bootable.o $(LIBETH) Makefile
+	$(LD) $(LDFLAGS-BOOTABLE) -o $@ $(filter %-bootable.o,$^) -L$(BUILDDIR) -leth
 
 $(BUILDDIR)/bootable-%.s: $(BUILDDIR)/bootable-%.elf Makefile
 	$(OBJDUMP) -dr $(filter %.elf,$^) > $@ 
 
 # A target for applications that use virtual memory
-$(BUILDDIR)/vm-%.elf: %.c $(NOCINIT) $(LIBMP) $(LIBNOC) $(LIBCORETHREAD) $(LIBETH) $(LIBELF) Makefile
+$(BUILDDIR)/vm-%.elf: %.c $(LIBMP) $(LIBNOC) $(LIBCORETHREAD) $(LIBETH) $(LIBELF) Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS-VM) $(LDFLAGS-VM) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc -lsd -lcorethread -leth -lelf
 
 # application-specific additional dependencies
 $(BUILDDIR)/bootable-bootloader.elf: $(BUILDDIR)/bootloader/download-bootable.o $(BUILDDIR)/bootloader/decompress-bootable.o  $(BUILDDIR)/bootloader/ethmac-bootable.o boot.h bootable.h
 
-# touch the nocinit file
-$(NOCINIT):
-	touch $@
-
 # library for network-on-chip
 .PHONY: libnoc
 libnoc: $(LIBNOC)
 $(BUILDDIR)/libnoc/noc.o: libnoc/noc.h libnoc/coreset.h
-$(LIBNOC): $(BUILDDIR)/libnoc/noc.o
+$(BUILDDIR)/libnoc/nocinit.o:
+$(BUILDDIR)/libnoc/nocmaster.o:
+$(LIBNOC): $(BUILDDIR)/libnoc/noc.o $(BUILDDIR)/libnoc/nocinit.o $(BUILDDIR)/libnoc/nocmaster.o
 	ar -sr $@ $^
 
 # library for message passing

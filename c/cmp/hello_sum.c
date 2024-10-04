@@ -9,7 +9,6 @@
 
 */
 
-const int NOC_MASTER = 0;
 #include <string.h>
 #include <machine/spm.h>
 #include <machine/patmos.h>

@@ -6,7 +6,6 @@
     Copyright: DTU, BSD License
 */
 
-const int NOC_MASTER = 0;
 #include <stdio.h>
 #include <machine/patmos.h>
 #include "libnoc/noc.h"

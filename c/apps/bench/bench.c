@@ -16,8 +16,6 @@
 #define NUM_BUF 2
 #define BUF_SIZE 400
 
-// Whatever this contant means, it is needed
-const int NOC_MASTER = 0;
 
 // Shared data in main memory for the return value
 volatile _UNCACHED static int field;

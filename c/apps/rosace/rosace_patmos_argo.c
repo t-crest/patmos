@@ -49,8 +49,6 @@
 
 #define schedtime_t uint64_t
 
-const int NOC_MASTER = 0;
-
 /*
  * Types
  */

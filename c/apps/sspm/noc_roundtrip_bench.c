@@ -9,8 +9,6 @@
 #define MP_CHAN_NUM_BUF 2
 #define CHANNEL_BUFFER_CAPACITY (256)
 
-const int NOC_MASTER = 0;
-
 const int TIMES_TO_SEND = 1000;
 volatile _UNCACHED int send_clock[TIMES_TO_SEND];
 volatile _UNCACHED int recv_clock[TIMES_TO_SEND];

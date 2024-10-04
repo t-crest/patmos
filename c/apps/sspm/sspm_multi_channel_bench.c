@@ -12,8 +12,6 @@
 #define ACTIVE_CORES (1 + 4)			// Number of cores to send to +1 (for the sender)
 #define TIMES (1000)					// The number of messages to send to each core
 
-const int NOC_MASTER = 0;
-
 typedef enum{
 	TRANSMIT,
 	ACKNOWLEDGE

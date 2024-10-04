@@ -21,7 +21,7 @@ LDFLAGS?= \
 
 MAIN?=no_sspm_main_given
 all:
-	patmos-clang $(CFLAGS) $(LDFLAGS) $(MAIN).c atomic.c led.c -I../.. ../../libcorethread/*.c ../../libnoc/*.c ../../libmp/*.c ../../cmp/nocinit.c -o sspm.elf
+	patmos-clang $(CFLAGS) $(LDFLAGS) $(MAIN).c atomic.c led.c -I../.. ../../libcorethread/*.c ../../libnoc/*.c ../../libmp/*.c -o sspm.elf
 
 down:
 	patserdow -v /dev/ttyUSB0 sspm.elf

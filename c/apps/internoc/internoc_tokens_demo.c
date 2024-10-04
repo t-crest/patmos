@@ -1,4 +1,3 @@
-const int NOC_MASTER = 0;
 /**
  * Libraries
  */

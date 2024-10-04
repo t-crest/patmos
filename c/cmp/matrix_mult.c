@@ -3,7 +3,6 @@
  Authors: Evangelia Kasapaki, Wolfgang Puffitsch, Sahar Abbaspour
  Copyright: DTU, BSD License
  */
-const int NOC_MASTER = 0;
 #include <string.h>
 #include <machine/spm.h>
 #include <stdio.h>

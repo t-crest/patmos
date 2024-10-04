@@ -13,8 +13,6 @@
 #define MP_CHAN_NUM_BUF 2
 #define MP_CHAN_BUF_SIZE 40
 
-const int NOC_MASTER = 0;
-
 const int TIMES = 1000;
 int cycles[TIMES];
 

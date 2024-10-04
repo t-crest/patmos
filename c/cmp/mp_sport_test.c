@@ -9,7 +9,6 @@
 	Author: Rasmus Bo Soerensen (rasmus@rbscloud.dk)
 	Copyright: DTU, BSD License
 */
-const int NOC_MASTER = 0;
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>

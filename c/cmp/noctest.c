@@ -7,7 +7,6 @@
 
 */
 
-const int NOC_MASTER = 0;
 #include <machine/spm.h>
 #include "libnoc/noc.h"
 #include "include/patio.h"

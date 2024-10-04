@@ -6,7 +6,6 @@
  *
  */
 
-const int NOC_MASTER = 0;
 #include "libmp/mp.h"
 #include "libcorethread/corethread.h"
 #include "include/debug.h"
