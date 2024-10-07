@@ -4485,21 +4485,71 @@ For example, the DE2-115 configuration cable could show:
 	4-1    09fb:6001  USB-Blaster          Not shared
 \end{verbatim}
 
-In an administrator-mode Powershell, force bind the device to WSL and then attach it:
+In an administrator-mode Powershell, force bind the device to WSL and then attach it (replace X-X with the desired bus id, which in this case is 4-1):
 
 \begin{verbatim}
-	usbipd bind --force -b 4-1
-	usbipd attach -w -b 4-1
+	usbipd bind --force -b X-X
+	usbipd attach -w -b X-X
 \end{verbatim}
 
 WSL now has exclusive access to the device. 
 The device binding should persist even if the device is unplugged and plugged back in.
 However, it does not persist if the machine is turned off (or if WSL is shut down manually.)
 The device attachment does not persist at all. 
-It you want to be able to unplug the cable or turn off the FPGA, use the \texttt{-a} flag.
+If you want to be able to unplug the cable or turn off the FPGA, use the \texttt{-a} flag.
 
 You can see the attached USB device in WSL using the \texttt{lsusb} command.
 You will likely need to setup the FPGA devices as described in \autoref{sec:build:setup:quartus}.
+
+The same procedure can be used to attach usb-to-serial convertor USB device to the WSL. 
+Also, to automate these command, you can use this batch code, and run it as administrator (edit IDs for your machine): 
+
+\begin{verbatim}
+@echo off
+setlocal
+rem Find USB devices with specified IDs
+echo Searching for USB devices with IDs "046d:c52b"...
+for /f "tokens=1,2 delims= " %%A in ('usbipd list ^| findstr 046d:c52b') do (
+    echo Found device: %%A
+    set USB_DEVICE_1=%%A
+)
+echo.
+
+echo Searching for USB devices with IDs "09fb:6001"...
+for /f "tokens=1,2 delims= " %%A in ('usbipd list ^| findstr 09fb:6001') do (
+    echo Found device: %%A
+    set USB_DEVICE_2=%%A
+)
+echo.
+
+rem Bind the USB devices
+if defined USB_DEVICE_1 (
+    echo Binding USB device: %USB_DEVICE_1%
+    usbipd bind --force -b %USB_DEVICE_1%
+    echo.
+)
+
+if defined USB_DEVICE_2 (
+    echo Binding USB device: %USB_DEVICE_2%
+    usbipd bind --force -b %USB_DEVICE_2%
+    echo.
+)
+
+rem Attach USB devices to WSL
+if defined USB_DEVICE_1 (
+    echo Attaching USB device: %USB_DEVICE_1%
+    usbipd attach -w -b %USB_DEVICE_1%
+    echo.
+)
+
+if defined USB_DEVICE_2 (
+    echo Attaching USB device: %USB_DEVICE_2%
+    usbipd attach -w -b %USB_DEVICE_2%
+    echo.
+)
+
+endlocal
+\end{verbatim}
 
 \section{Building Patmos and the Compiler Tool Chain}
 \label{sec:build:compiler}
