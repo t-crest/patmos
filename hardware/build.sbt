@@ -55,3 +55,4 @@ libraryDependencies += "edu.berkeley.cs" %% "chiseltest" % "0.5.5"
 
 // For FIFO buffers
 libraryDependencies += "edu.berkeley.cs" % "ip-contributions" % "0.5.1"
+libraryDependencies += "com.fazecast" % "jSerialComm" % "[2.0.0,3.0.0)"
