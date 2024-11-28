@@ -1,6 +1,6 @@
 name := "Patmos"
 
-scalaVersion := "2.12.12"
+scalaVersion := "2.12.17"
 
 scalacOptions ++= Seq("-Xsource:2.11", "-unchecked", "-deprecation", "-feature", "-language:reflectiveCalls")
 
