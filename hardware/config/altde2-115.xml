@@ -3,8 +3,7 @@
 
   <frequency Hz="80000000"/>
 
-  <!-- Default is single core -->
-  <!--
+  <!-- Default is 4 cores -->
   <pipeline dual="false" />
   <cores count="4"/>
   <CmpDevs>
@@ -12,6 +11,7 @@
     <CmpDev name="S4NoC" />
     <CmpDev name="SharedSPM" />
   </CmpDevs>
+  <!--
   -->
 
   <ExtMem size="2M" DevTypeRef="Sram16" />

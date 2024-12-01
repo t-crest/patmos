@@ -10,7 +10,7 @@ General build instructions of T-CREST in [Main README](../../../README.md).
 Before building the Patmos processor, add the following lines after `<frequency Hz="80000000"/>` in 
 [altde2-115.xml](../../../hardware/config/altde2-115.xml):
 ```
-<cores count="9" />
+<cores count="4" />
 <pipeline dual="false" />
 
 <CmpDevs>
@@ -57,7 +57,7 @@ make app download APP=s4nocx
 This compiles and downloads a simple test for the S4NOC"
 Change `MAIN` to the appropriate test.
 
-Further test programs can be found in the ```c/app/s4nocx``` folder.
+Further test programs can be found in the ```c/app/s4noc``` folder.
 
 
 ### Running out of Heap

@@ -143,9 +143,9 @@
 
 \title{Patmos Reference Handbook}
 
-\author{Martin Schoeberl, Florian Brandner, Stefan Hepp,\\Wolfgang Puffitsch, Daniel Prokesch}
+\author{Martin Schoeberl, Florian Brandner, Stefan Hepp,\\Wolfgang Puffitsch, Daniel Prokesch, Emad Jacob Maroun}
 
-\lowertitleback{Copyright \copyright{} 2014 Technical University of Denmark
+\lowertitleback{Copyright \copyright{} 2024 Technical University of Denmark
   \medskip\\
   \begin{tabular}{lp{.8\textwidth}}
     \raisebox{-12pt}{\includegraphics[height=18pt]{fig/cc_by_sa}} &
@@ -628,6 +628,41 @@ the \code{patmos} directory.
 Figure~\ref{fig:cmp:hello} shows the embedded \emph{Hello World} example
 executing code on two cores and each core blinking its own LED (each core
 is connected to one of the LEDs).
+
+\textbf{FIXME: describe this and have it as example code}
+
+\begin{lstlisting}[float,caption={Multiple cores are represented as pthreads \label{fig:cmp:pthread}}]
+
+#include <stdio.h>
+#include <pthread.h>
+
+// Function to be executed by the thread
+void* thread_function(void* arg) {
+    printf("Hello from the thread!\n");
+    return NULL;
+}
+
+int main() {
+    pthread_t thread;
+
+    // Create a new thread that will run 'thread_function'
+    if (pthread_create(&thread, NULL, thread_function, NULL)) {
+        fprintf(stderr, "Error creating thread\n");
+        return 1;
+    }
+
+    // Wait for the thread to finish
+    if (pthread_join(thread, NULL)) {
+        fprintf(stderr, "Error joining thread\n");
+        return 2;
+    }
+
+    printf("Hello from the main thread!\n");
+    return 0;
+}
+\end{lstlisting}
+
+
 \textbf{FIXME: In the current version this does NOT work anymore as all LEDs are now
 connected to a single core and not distributed to the cores.}
 
