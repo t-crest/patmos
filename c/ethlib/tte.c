@@ -62,7 +62,7 @@ __attribute__((noinline))
 unsigned char tte_wait_for_message(unsigned long long * receive_point, unsigned long long timeout){
 	unsigned char ans = 0;
 	if (timeout == 0){
-        _Pragma("loopbound min 0 max 80") //1us
+        _Pragma("loopbound min 1 max 80") //1us
 		do{
 			continue;
 			*receive_point = *(_iodev_ptr_t)(__PATMOS_TIMER_LOCLK); //to avoid delay error
@@ -70,7 +70,7 @@ unsigned char tte_wait_for_message(unsigned long long * receive_point, unsigned 
 		ans = 1;
 	}else{
 		unsigned long long int start_time = get_cpu_cycles();
-        _Pragma("loopbound min 0 max 80") //1us	
+        _Pragma("loopbound min 1 max 80") //1us	
 		do{
 			continue;
 			*receive_point = *(_iodev_ptr_t)(__PATMOS_TIMER_LOCLK); //to avoid delay error
@@ -467,8 +467,7 @@ void tte_send_data(unsigned char i){
   return;
 }
 
-void tte_clock_tick(void) {
-  exc_prologue();
+static void tte_clock_tick_body() {
   timer_time += (CYCLES_PER_UNIT*sched[schedplace]);
   int i=VLsched[schedplace];
   schedplace++;
@@ -481,11 +480,20 @@ void tte_clock_tick(void) {
   if(VLarray[i].queue[VLarray[i].rmplace]>0){
     tte_send_data(i);
   }
+}
+void tte_clock_tick(void) {
+  exc_prologue();
+  asm volatile(
+	"li $r1 = %[impl_fn];"
+	"callnd $r1;"
+	:
+	: [impl_fn] "i" (tte_clock_tick_body)
+	: "r1"
+  );
   exc_epilogue();
 }
 
-void tte_clock_tick_log(void) {
-  exc_prologue();
+static void tte_clock_tick_log_body(){
   timer_time += (CYCLES_PER_UNIT*sched[schedplace]);
   int i=VLsched[schedplace];
   schedplace++;
@@ -500,5 +508,15 @@ void tte_clock_tick_log(void) {
     send_time_i++;
     tte_send_data(i);
   }
+}
+void tte_clock_tick_log(void) {
+  exc_prologue();
+  asm volatile(
+	"li $r1 = %[impl_fn];"
+	"callnd $r1;" 
+	:
+	: [impl_fn] "i" (tte_clock_tick_log_body)
+	: "r1"
+  ); 
   exc_epilogue();
 }

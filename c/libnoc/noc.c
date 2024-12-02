@@ -537,23 +537,41 @@ void noc_wait_dma(coreset_t receivers) {
   }
 }
 
-void __remote_irq_handler(void)  __attribute__((naked));
-void __remote_irq_handler(void) {
-  exc_prologue();
+void __remote_irq_handler_body(void) {
   //WRITE("IRQ0\n",5);
   int tmp = *(NOC_IRQ_BASE);
   *(NOC_SPM_BASE+(tmp<<2)) = 0;
-  intr_clear_pending(exc_get_source());
+  intr_clear_pending(exc_get_source());	
+}
+void __remote_irq_handler(void)  __attribute__((naked));
+void __remote_irq_handler(void) {
+  exc_prologue();
+  asm volatile(
+	"li $r1 = %[impl_fn];"
+	"callnd $r1;" 
+	:
+	: [impl_fn] "i" (__remote_irq_handler_body)
+	: "r1"
+  ); 
   exc_epilogue();
 }
 
-void __data_recv_handler(void) __attribute__((naked));
-void __data_recv_handler(void) {
-  exc_prologue();
+void __data_recv_handler_body(void) {
   //WRITE("IRQ1\n",5);
   int tmp = *(NOC_IRQ_BASE+1);
   *(NOC_SPM_BASE+(tmp<<2)) = 0;
   intr_clear_pending(exc_get_source());
+}
+void __data_recv_handler(void) __attribute__((naked));
+void __data_recv_handler(void) {
+  exc_prologue();
+  asm volatile(
+	"li $r1 = %[impl_fn];"
+	"callnd $r1;" 
+	:
+	: [impl_fn] "i" (__data_recv_handler_body)
+	: "r1"
+  ); 
   exc_epilogue();
 }
 

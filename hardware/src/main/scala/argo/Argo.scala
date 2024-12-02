@@ -132,5 +132,5 @@ class Argo(nrCores: Int, wrapped: Boolean = false, emulateBB: Boolean = false) e
   ArgoConfig.genConfigVHD("vhdl/argo/config.vhd")
   // Generate schedule
   ArgoConfig.genPoseidonSched("../../local/bin/", "../local/", "argo_platform.xml", "argo_communication.xml", "../local/argo_schedule.xml")
-  ArgoConfig.genNoCInitFile("../../local/bin/", "../local/argo_schedule.xml", "../c/cmp/nocinit.c")
+  ArgoConfig.genNoCInitFile("../../local/bin/", "../local/argo_schedule.xml", "../c/libnoc/nocinit.c")
 }

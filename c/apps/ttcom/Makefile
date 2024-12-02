@@ -6,7 +6,6 @@ all:
 		../../libcorethread/*.c \
 		../../libnoc/*.c \
 		../../libmp/*.c \
-		../../cmp/nocinit.c \
 		-o $(APP).elf $(COPTS)
 
 wcet:
@@ -14,8 +13,7 @@ wcet:
 	   -I ../.. \
 	   ../../libcorethread/*.c \
 	   ../../libnoc/*.c \
-	   ../../libmp/*.c \
-	   ../../cmp/nocinit.c $(COPTS)
+	   ../../libmp/*.c $(COPTS)
 	platin wcet -i $(MAIN).pml -b a.out -e wcetConsumerCompute --report
 
 

@@ -11,8 +11,8 @@ package patmos
 // MS: if util is imported later, Config is confused as chisel3 has an util itself.
 // MS: maybe avoid a utiel package with chisel3? A shame.
 import util._
-
 import chisel3._
+
 import java.io.File
 import chisel3.experimental._
 import chisel3.dontTouch
@@ -265,13 +265,13 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       case "Argo" =>  (0x1C, 5, Module(new argo.Argo(nrCores, wrapped=false, emulateBB=false)))
       case "Hardlock" => (0xE801, IO_DEVICE_ADDR_WIDTH, Module(new cmp.HardlockOCPWrapper(nrCores, () => new cmp.Hardlock(nrCores, 1))))
       case "SharedSPM" => (0xE802, IO_DEVICE_ADDR_WIDTH, Module(new cmp.SharedSPM(nrCores, (nrCores-1)*2*1024)))
-      case "OneWay" => (0xE803, IO_DEVICE_ADDR_WIDTH, Module(new cmp.OneWayOCPWrapper(nrCores)))
+      // case "OneWay" => (0xE803, IO_DEVICE_ADDR_WIDTH, Module(new cmp.OneWayOCPWrapper(nrCores)))
       // removed as it was never used, address is free
       // TODO: remove constants from patmos.h
       // case "TdmArbiter" => (0xE804, IO_DEVICE_ADDR_WIDTH, Module(new cmp.TdmArbiter(nrCores)))
       case "OwnSPM" => (0xE805, IO_DEVICE_ADDR_WIDTH, Module(new cmp.OwnSPM(nrCores, (nrCores-1)*2, 1024)))
       case "SPMPool" => (0xE806, IO_DEVICE_ADDR_WIDTH, Module(new cmp.SPMPool(nrCores, (nrCores-1)*2, 1024)))
-      // case "S4noc" => (0xE807, IO_DEVICE_ADDR_WIDTH, Module(new cmp.S4nocOCPWrapper(nrCores, 4, 4)))
+      case "S4NoC" => (0xE807, IO_DEVICE_ADDR_WIDTH, Module(new cmp.PipeConWrapper(nrCores)))
       case "CASPM" => (0xE808, IO_DEVICE_ADDR_WIDTH, Module(new cmp.CASPM(nrCores, nrCores * 8)))
       case "AsyncLock" => (0xE809, IO_DEVICE_ADDR_WIDTH, Module(new cmp.AsyncLock(nrCores, nrCores * 2)))
       case "UartCmp" => (0xF008, IO_DEVICE_ADDR_WIDTH, Module(new cmp.UartCmp(nrCores,CLOCK_FREQ,UART_BAUD,16)))

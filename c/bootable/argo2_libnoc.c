@@ -5,8 +5,6 @@
 #include "include/patio.h"
 #include "libnoc/noc.h"
 
-const int NOC_MASTER = 0;
-
 #define __IO_CALC_ADDRESS_DYNAMIC(BASE, BANK, OFFSET) \
   ((void _SPM *)(((unsigned char*)BASE) + (BANK) + (OFFSET)))
 

@@ -2,8 +2,6 @@
 #include "libaudio/audio.c"
 
 const int LIM = 1000;
-//master core
-const int NOC_MASTER = 0;
 
 int allocFX(struct AudioFX *FXp, int *FX_HERE, int cpuid, int mode,
     volatile _UNCACHED int *send_chans_conP, volatile _UNCACHED int *recv_chans_conP) {

@@ -20,8 +20,6 @@
 #include "include/debug.h"
 
 
-const int NOC_MASTER = 0;
-
 #define MP_CHAN_SHORTS_AMOUNT 2
 
 #define MP_CHAN_1_ID 1

@@ -3,7 +3,6 @@
 #include <string.h>
 #include <stdarg.h>
 #include <machine/patmos.h>
-const int NOC_MASTER = 0;
 #include "libmp/mp.h"
 #include "libcorethread/corethread.h"
 

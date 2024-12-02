@@ -13,8 +13,6 @@
 #define MP_CHAN_BUF_SIZE 40
 #define CHANNEL_BUFFER_CAPACITY (256)
 
-const int NOC_MASTER = 0;
-
 const int TIMES_TO_WRITE = 1000;
 int start_clock[TIMES_TO_WRITE];
 int end_clock[TIMES_TO_WRITE];

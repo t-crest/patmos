@@ -4,7 +4,6 @@ LIBCORETHREAD=$(BUILDDIR)/libcorethread.a
 LIBNOC=$(PATMOSHOME)/c/libnoc
 LIBMP=$(PATMOSHOME)/c/libmp
 LIBETH=$(PATMOSHOME)/c/ethlib
-NOCINIT?=$(PATMOSHOME)/c/cmp/nocinit.c
 SERIAL?=/dev/ttyUSB0
 
 # Flags for compiling normal applications
@@ -18,16 +17,12 @@ CFLAGS?=-target patmos-unknown-unknown-elf -O2 \
 	-I $(LIBETH) \
 	$(DEFINES)
 
-# touch the nocinit file
-$(NOCINIT):
-	touch $@
-
 # WCET analysis
 
 # running examples
 
 internoc_tokens_demo:
-	patmos-clang $(CFLAGS) $(NOCINIT) $(LIBMP)/*.c $(LIBNOC)/*.c $(LIBETH)/*.c internoc_driver.c internoc_tokens_demo.c -o internoc_demo.elf -L$(BUILDDIR)
+	patmos-clang $(CFLAGS) $(LIBMP)/*.c $(LIBNOC)/*.c $(LIBETH)/*.c internoc_driver.c internoc_tokens_demo.c -o internoc_demo.elf -L$(BUILDDIR)
 
 sim:
 	pasim --cores 9 -b tt_scheduling_demo.elf

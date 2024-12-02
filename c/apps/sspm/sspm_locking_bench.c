@@ -10,8 +10,6 @@
 #include "atomic.h"
 #include "led.h"
 
-const int NOC_MASTER = 0;
-
 const int TIMES = 1000;
 volatile _UNCACHED int ready;
 

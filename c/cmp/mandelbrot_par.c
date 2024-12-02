@@ -40,7 +40,6 @@
 #include <machine/patmos.h>
 #include <machine/spm.h>
 
-const int NOC_MASTER = 0;
 #include "libnoc/noc.h"
 #include "libcorethread/corethread.h"
 #include <machine/patmos.h>

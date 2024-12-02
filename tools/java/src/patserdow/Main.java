@@ -56,9 +56,7 @@ import java.util.concurrent.TimeoutException;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 
-import nl.lxtreme.binutils.elf.Elf;
-import nl.lxtreme.binutils.elf.ElfHeader;
-import nl.lxtreme.binutils.elf.ProgramHeader;
+import nl.lxtreme.binutils.elf.*;
 import jssc.*;
 
 public class Main {
@@ -188,7 +186,14 @@ public class Main {
             final int HEADER_SIZE = 8;
             final int SEGMENT_HEADER_SIZE = 12;
 
-            ProgramHeader [] segments = elf.getProgramHeaders();
+            ProgramHeader [] tmp_segments = elf.getProgramHeaders();
+            ArrayList<ProgramHeader> segments = new ArrayList<ProgramHeader>();
+            for (ProgramHeader segment: tmp_segments) {
+                if(segment.getType() == ProgramHeader.PT_LOAD) {
+                  segments.add(segment);
+                }
+            }
+
             int byte_count = HEADER_SIZE;
             for (ProgramHeader segment: segments) {
                 byte_count += SEGMENT_HEADER_SIZE+segment.getFileSize();
@@ -201,7 +206,7 @@ public class Main {
             ByteBuffer byte_buffer = ByteBuffer.wrap(header_bytes);
             //buffer.order(ByteOrder.BIG_ENDIAN);
             byte_buffer.putInt((int)header.getEntryPoint());
-            byte_buffer.putInt(segments.length);
+            byte_buffer.putInt(segments.size());
 
             ByteArrayInputStream byte_stream = new ByteArrayInputStream(header_bytes);
             //Send number of headers here

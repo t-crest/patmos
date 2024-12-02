@@ -3,7 +3,6 @@
    Author: Luca Pezzarossa (lpez@dtu.dk) Copyright: DTU, BSD License
 */
 
-const int NOC_MASTER = 0;
 #define CORETHREAD_INIT
 
 #include <stdio.h>
