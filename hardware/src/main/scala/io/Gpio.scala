@@ -36,7 +36,9 @@ object Gpio extends DeviceObject {
 class Gpio(bankCount: Int, bankWidth: Int, ioDirection: Boolean = false) extends CoreDevice() {
   // Override
   override val io = IO(new CoreDeviceIO() with patmos.HasPins {
-    override val pins = new Bundle() {
+    val pins: Bundle {
+      val gpios: Vec[UInt]
+    } = new Bundle() {
       val gpios = if (!ioDirection) Output(Vec(bankCount,  UInt(bankWidth.W)))
                   else Input(Vec(bankCount,  UInt(bankWidth.W)))
     }

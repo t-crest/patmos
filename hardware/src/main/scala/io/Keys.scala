@@ -26,7 +26,9 @@ object Keys extends DeviceObject {
 class Keys(keyCount : Int) extends CoreDevice() {
 
   override val io = IO(new CoreDeviceIO() with patmos.HasPins with patmos.HasInterrupts {
-    override val pins = new Bundle() {
+    val pins: Bundle {
+      val key: UInt
+    } = new Bundle() {
       val key = Input(UInt(keyCount.W))
     }
     override val interrupts = Vec(keyCount, Output(Bool()) )

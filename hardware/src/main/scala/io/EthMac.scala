@@ -46,7 +46,37 @@ object EthMac extends DeviceObject {
   }
 
   trait Pins extends patmos.HasPins {
-    override val pins = new Bundle() {
+    val pins: Bundle {
+      // Tx
+      val mtx_clk_pad_i: Bool
+      val mtxd_pad_o: UInt
+      val mtxen_pad_o: UInt
+      val mtxerr_pad_o: UInt
+
+      // Rx
+      val mrx_clk_pad_i: Bool
+      val mrxd_pad_i: UInt
+      val mrxdv_pad_i: UInt
+      val mrxerr_pad_i: UInt
+
+      // Common Tx and Rx
+      val mcoll_pad_i: UInt
+      val mcrs_pad_i: UInt
+
+      // MII Management interface
+      val md_pad_i: UInt
+      val mdc_pad_o: UInt
+      val md_pad_o: UInt
+      val md_padoe_o: UInt
+
+      val int_o: UInt
+
+      // PTP Debug Signals
+      val ptpPPS: UInt
+      val ledPHY: UInt
+      val ledSOF: UInt
+      val ledEOF: UInt
+    } = new Bundle() {
       // Tx
       val mtx_clk_pad_i = Input(Bool()) // Transmit clock (from PHY)
       val mtxd_pad_o = Output(UInt(4.W)) // Transmit niethle (to PHY)

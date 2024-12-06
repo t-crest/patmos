@@ -26,7 +26,14 @@ object I2CInterface extends DeviceObject {
 class I2CInterface(extAddrWidth : Int = 32,
                      dataWidth : Int = 32) extends CoreDevice() {
   override val io = new CoreDeviceIO() with patmos.HasPins {
-    override val pins = new Bundle() {
+    val pins: Bundle {
+      val MCmd: UInt
+      val MAddr: UInt
+      val MData: UInt
+      val MByteEn: UInt
+      val SResp: UInt
+      val SData: UInt
+    } = new Bundle() {
       val MCmd = Output(UInt(3.W))
       val MAddr = Output(UInt(extAddrWidth.W))
       val MData = Output(UInt(dataWidth.W))

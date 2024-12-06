@@ -14,11 +14,6 @@ class OcpIOMasterSignals(addrWidth: Int, dataWidth: Int)
     extends OcpCoreMasterSignals(addrWidth, dataWidth) {
   val RespAccept = UInt(1.W)
 
-  // This does not really clone, but Data.clone doesn't either
-  override def cloneType() = {
-    val res = new OcpIOMasterSignals(addrWidth, dataWidth)
-    res.asInstanceOf[this.type]
-  }
 }
 
 // Slaves include a CmdAccept signal
@@ -26,11 +21,6 @@ class OcpIOSlaveSignals(dataWidth: Int)
     extends OcpSlaveSignals(dataWidth) {
   val CmdAccept = UInt(1.W)
 
-  // This does not really clone, but Data.clone doesn't either
-  override def cloneType() = {
-    val res = new OcpIOSlaveSignals(dataWidth)
-    res.asInstanceOf[this.type]
-  }
 }
 
 // Master port

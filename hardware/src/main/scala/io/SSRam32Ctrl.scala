@@ -60,7 +60,10 @@ class SSRam32Ctrl (
    burstLen : Int = 4
 ) extends BurstDevice(addrBits) {
   override val io = new BurstDeviceIO(addrBits) with patmos.HasPins {
-    override val pins = new Bundle() {
+    val pins: Bundle {
+      val ramOut: RamOutType
+      val ramIn: RamInType
+    } = new Bundle() {
       val ramOut = Output(new RamOutType(addrBits-2))
       val ramIn = Input(new RamInType())
     }

@@ -18,7 +18,7 @@ import ocp._
 
 abstract class CoprocessorObject() {
   // every device object must have methods "create" and "init"
-  def init(params: Map[String, String])
+  def init(params: Map[String, String]): Unit
   def create(params: Map[String, String]) : Coprocessor
 }
 

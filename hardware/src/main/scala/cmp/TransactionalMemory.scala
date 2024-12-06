@@ -40,10 +40,10 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
     }
     when(sharedmemwrfin) {
       // Finished transferring
-      corecur.inc
+      corecur.inc()
     }
   }.otherwise {
-    corecur.inc
+    corecur.inc()
   }
 
   val sIdle::sRead::sPreSharedRead::sSharedRead::sPreCommit::sCommit::Nil = Enum(6)
@@ -133,7 +133,7 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
             bufmemwraddr := bufnxt.value
             bufmemwrdata := ioM.Data
             bufwrs(bufnxt.value) := true.B
-            bufnxt.inc
+            bufnxt.inc()
           }
         }.elsewhen(ioM.Cmd === OcpCmd.RD) {
           when(ioM.Addr(15,2) === 0x3FFF.U) {
@@ -184,7 +184,7 @@ class TransactionalMemory(corecnt: Int, memsize: Int = 128, bufsize: Int = 16, p
         bufmemwraddr := bufnxt.value
         bufmemwrdata := sharedmemrddata
         bufrds(bufnxt.value) := true.B
-        bufnxt.inc
+        bufnxt.inc()
         
         sReg := sIdle
       }

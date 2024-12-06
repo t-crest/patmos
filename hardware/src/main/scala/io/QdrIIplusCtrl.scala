@@ -47,7 +47,15 @@ class QdrIIplusCtrl(ocpAddrWidth   : Int,
                     readWaitCycles : Int = 5) extends BurstDevice(ocpAddrWidth) {
 
   override val io = new BurstDeviceIO(ocpAddrWidth) with patmos.HasPins {
-    override val pins = new Bundle {
+    val pins: Bundle {
+      val addr: UInt
+      val nrps: UInt
+      val nwps: UInt
+      val nbws: Vec[UInt]
+      val din: Vec[UInt]
+      val dout: Vec[UInt]
+      val ndoff: UInt
+    } = new Bundle {
       val addr  = Output(UInt(ramAddrWidth.W))
 
       val nrps  = Output(UInt(1.W))
@@ -223,12 +231,6 @@ class QdrIIplusCtrl(ocpAddrWidth   : Int,
   class Trans(bytesEnaWidth: Int, dataWidth: Int) extends Bundle {
     val byteEna = UInt(bytesEnaWidth.W)
     val data = UInt(dataWidth.W)
-
-    // This does not really clone, but Data.clone doesn't either
-    override def cloneType() = {
-      val res = new Trans(bytesEnaWidth, dataWidth)
-      res.asInstanceOf[this.type]
-    }
   }
 }
 

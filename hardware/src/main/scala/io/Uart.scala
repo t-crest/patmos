@@ -34,7 +34,10 @@ object Uart extends DeviceObject {
 class Uart(clk_freq: Int, baud_rate: Int, fifoDepth: Int) extends CoreDevice() {
 
     override val io = IO(new CoreDeviceIO() with patmos.HasPins {
-      override val pins = new Bundle {
+      val pins: Bundle {
+        val tx: UInt
+        val rx: UInt
+      } = new Bundle {
         val tx = Output(UInt(1.W))
         val rx = Input(UInt(1.W))
       }

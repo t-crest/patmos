@@ -31,7 +31,19 @@ class AvalonMMBridge(extAddrWidth : Int = 32,
                      dataWidth : Int = 32,
                      numIntrs : Int = 1) extends CoreDevice() {
   override val io = new CoreDeviceIO() with patmos.HasPins with patmos.HasInterrupts {
-    override val pins = new Bundle() {
+    val pins: Bundle {
+      val avs_waitrequest: UInt
+      val avs_readdata: UInt
+      val avs_readdatavalid: UInt
+      val avs_burstcount: UInt
+      val avs_writedata: UInt
+      val avs_address: UInt
+      val avs_write: Bool
+      val avs_read: Bool
+      val avs_byteenable: UInt
+      val avs_debugaccess: Bool
+      val avs_intr: UInt
+    } = new Bundle() {
       val avs_waitrequest = Input(UInt(1.W))
       val avs_readdata = Input(UInt(dataWidth.W))
       val avs_readdatavalid = Input(UInt(1.W))

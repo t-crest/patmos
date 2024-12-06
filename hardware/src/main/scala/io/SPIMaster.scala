@@ -39,7 +39,12 @@ object SPIMaster extends DeviceObject {
 class SPIMaster(clkFreq : Int, slaveCount : Int, sclkHz : Int, fifoDepth : Int, wordLen : Int) extends CoreDevice() {
     
     override val io = new CoreDeviceIO() with patmos.HasPins {
-        override val pins = new Bundle() {
+        val pins: Bundle {
+          val sclk: UInt
+          val mosi: UInt
+          val miso: UInt
+          val nSS: UInt
+        } = new Bundle() {
             val sclk = Output(UInt(1.W))
             val mosi = Output(UInt(1.W))
             val miso = Input(UInt(1.W))

@@ -21,7 +21,7 @@ import patmos.Constants._
 // Hacked to now support longs
 object log2Up
 {
-  def apply(in: Long): Int = if(in == 1) 1 else ceil(log(in)/log(2)).toInt
+  def apply(in: Long): Int = if(in == 1) 1 else ceil(log(in.toDouble)/log(2)).toInt
 }
 
 object Utility {
@@ -104,18 +104,18 @@ object Utility {
     }
 
     // use vector to represent ROM
-    VecInit[Bits](arr)
+    VecInit[Bits](arr.toIndexedSeq)
   }
 
   def sizeToStr(size: Long): String = {
     if (size < (1 << 10)) {
-      size + " B"
+      s"$size B"
     } else if (size < (1 << 20)) {
-      (size / (1 << 10)) + " KB"
+      s"${(size / (1 << 10))} KB"
     } else if (size < (1 << 30)) {
-      (size / (1 << 20)) + " MB"
+      s"${(size / (1 << 20))} MB"
     } else {
-      (size / (1 << 30)) + " GB"
+      s"${(size / (1 << 30))} GB"
     }
   }
 

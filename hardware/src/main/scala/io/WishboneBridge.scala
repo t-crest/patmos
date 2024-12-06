@@ -27,7 +27,17 @@ object WishboneBridge extends DeviceObject {
 class WishboneBridge(extAddrWidth : Int = 32,
                      dataWidth : Int = 32) extends CoreDevice() {
   override val io = new CoreDeviceIO() with patmos.HasPins {
-    override val pins = new Bundle() {
+    val pins: Bundle {
+      val wb_addr_o: UInt
+      val wb_data_i: UInt
+      val wb_err_i: Bool
+      val wb_data_o: UInt
+      val wb_we_o: Bool
+      val wb_sel_o: UInt
+      val wb_stb_o: Bool
+      val wb_ack_i: Bool
+      val wb_cyc_o: Bool
+    } = new Bundle() {
       val wb_addr_o = Output(UInt(extAddrWidth.W))
       val wb_data_i = Input(UInt(dataWidth.W))
       val wb_err_i = Input(Bool())

@@ -231,8 +231,8 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   // Forward ports to/from core
   println("Config cmp: ")
 
-  val pinids = scala.collection.mutable.ListMap[String, Int]()
-  val pins = scala.collection.mutable.ListMap[String, Data]()
+  val pinids = scala.collection.mutable.Map[String, Int]()
+  val pins = scala.collection.mutable.Map[String, Data]()
   def registerPins(name: String, _io: Data) = {
     _io match {
       case haspins: HasPins => {

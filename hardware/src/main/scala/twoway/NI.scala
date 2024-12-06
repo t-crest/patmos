@@ -39,7 +39,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   // Write NOC
   val st = Schedule.getSchedule(n, false, nodeIndex)
   val scheduleLength = st._1.length
-  val timeslotToNode = VecInit(st._3.map(_.U)) //Converts scala generated array to ROM
+  val timeslotToNode = VecInit(st._3.toIndexedSeq.map(_.U)) //Converts scala generated array to ROM
   
 
   // TDM counter - same counter is used for both NoCs
@@ -50,7 +50,7 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   // Readback NOC:
   val stback = Schedule.getSchedule(n, false, nodeIndex)
   val scheduleLengthback = st._1.length
-  val readBackValid = VecInit(stback._2.map(_.B))
+  val readBackValid = VecInit(stback._2.toIndexedSeq.map(_.B))
 
 
   // Decode memory request from LOCAL Node - use memory port A
@@ -253,10 +253,10 @@ class NI(n: Int, nodeIndex : Int, size: Int) extends Module {
   readbackValueDelayed := io.memPort.io.portB.rdData
 
   val rbDelayArray = st._5
-  val rbDelayROM = VecInit(rbDelayArray.map(_.S))
+  val rbDelayROM = VecInit(rbDelayArray.toIndexedSeq.map(_.S))
   val nrOfFIFORegs = rbDelayArray.reduceLeft(_ max _) // finds the greates number in the array which corrosponds to the number of registers needed.
   val rbFIFO = RegInit(VecInit(Seq.fill(nrOfFIFORegs)(new SingleChannel()))) // generate the rbFIFO
-  val localValidTable = VecInit(st._6.map(_.B))//used to check wether an insertion should be preformed
+  val localValidTable = VecInit(st._6.toIndexedSeq.map(_.B))//used to check wether an insertion should be preformed
   
 
   // TDM counter - 1 clk cycle delayed, such that the 1 cycle read time is accounded for, one cycle for the router to NI and one unknown...

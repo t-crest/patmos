@@ -30,7 +30,7 @@ class Exceptions extends Module {
 
   val localModeReg = RegInit(false.B)
 
-  def checked(action: => Unit) {
+  def checked(action: => Unit): Unit = {
     when (superMode) (action) .otherwise { io.ocp.S.Resp := OcpResp.ERR }
   }
 

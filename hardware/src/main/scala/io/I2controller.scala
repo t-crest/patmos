@@ -28,7 +28,13 @@ object I2Controller extends DeviceObject {
 
 class I2Controller(sclFreq: Int, respectStretch: Boolean) extends CoreDevice() {
   override val io = new CoreDeviceIO() with patmos.HasPins {
-    override val pins = new Bundle() {
+    val pins: Bundle {
+			val sdaIn: Bool
+			val sdaOut: Bool
+			val sclOut: Bool
+			val sclIn: Bool
+			val i2cEn: Bool
+		} = new Bundle() {
 		 val sdaIn = Input(Bool())
 		 val sdaOut = Output(Bool())
 		 val sclOut = Output(Bool())

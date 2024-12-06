@@ -15,7 +15,7 @@ import patmos.Constants._
 
 abstract class DeviceObject() {
   // every device object must have methods "create" and "init"
-  def init(params: Map[String, String])
+  def init(params: Map[String, String]): Unit
   def create(params: Map[String, String]) : Device
 
   // helper functions for parameter parsing

@@ -25,7 +25,9 @@ object StandaloneRTC extends DeviceObject {
 
 class StandaloneRTC(secondsWidth: Int = 40, nanoWidth: Int = 24, initialTime: BigInt = 0L, timeStep: Int = 25) extends CoreDevice() {
   override val io = new CoreDeviceIO() with patmos.HasPins {
-    override val pins = new Bundle {
+    val pins: Bundle {
+      val hexDisp: Vec[UInt]
+    } = new Bundle {
       val hexDisp = Output(VecInit(Seq.fill(8)(0.U(7.W)))) // MS: this should not be a fill, just a Vec without defaults
     }
   }

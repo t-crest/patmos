@@ -31,11 +31,6 @@ class OcpBurstSlaveSignals(dataWidth : Int)
   val CmdAccept = Input(UInt(1.W))
   val DataAccept = Input(UInt(1.W))
 
-  // This does not really clone, but Data.clone doesn't either
-  override def clone() = {
-    val res = new OcpBurstSlaveSignals(dataWidth)
-    res.asInstanceOf[this.type]
-  }
 }
 
 // Master port
@@ -52,12 +47,6 @@ class OcpBurstSlavePort(val addrWidth : Int, val dataWidth : Int, val burstLen :
   // Clk is implicit in Chisel
   val M = Input(new OcpBurstMasterSignals(addrWidth, dataWidth))
   val S = Output(new OcpBurstSlaveSignals(dataWidth))
-
-  // This does not really clone, but Data.clone doesn't either
-  override def cloneType() = {
-    val res = new OcpBurstSlavePort(addrWidth, dataWidth, burstLen)
-    res.asInstanceOf[this.type]
-  }
 
 }
 

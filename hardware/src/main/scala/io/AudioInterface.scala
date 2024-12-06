@@ -44,7 +44,18 @@ object AudioInterface extends DeviceObject {
 
 class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int, MAXDACBUFFERPOWER: Int, MAXADCBUFFERPOWER: Int) extends CoreDevice() {
   override val io = new CoreDeviceIO() with patmos.HasPins {
-    override val pins = new Bundle() {
+    val pins: Bundle {
+      val dacDat: UInt
+      val dacLrc: UInt
+      val adcDat: UInt
+      val adcLrc: UInt
+      val sdIn: UInt
+      val sdOut: UInt
+      val we: UInt
+      val sclkOut: UInt
+      val xclk: UInt
+      val bclk: UInt
+    } = new Bundle() {
       // Digital Audio Interface
       val dacDat = Output(UInt(1.W))
       val dacLrc = Output(UInt(1.W))

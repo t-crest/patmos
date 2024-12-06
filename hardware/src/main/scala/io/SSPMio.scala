@@ -24,7 +24,18 @@ object SSPMio extends DeviceObject {
 
   // Pins are the external interfaces for Patmos
   trait Pins extends patmos.HasPins {
-    override val pins = new Bundle() {
+    val pins: Bundle {
+      val M: Bundle {
+        val Cmd: UInt
+        val Addr: UInt
+        val Data: UInt
+        val ByteEn: UInt
+      }
+      val S: Bundle {
+        val Data: UInt
+        val Resp: UInt
+      }
+    } = new Bundle() {
       val M = new Bundle() {
         val Cmd    = Output(UInt(3.W))
         val Addr   = Output(UInt(extAddrWidth.W))

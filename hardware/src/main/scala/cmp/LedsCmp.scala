@@ -9,7 +9,9 @@ import patmos.Constants.{ADDR_WIDTH, DATA_WIDTH}
 
 class LedsCmp(nrCores: Int, nrLedPerCore: Int) extends CmpDevice(nrCores) {
   val io = IO(new CmpIO(nrCores) with patmos.HasPins {
-    val pins = new Bundle() {
+    val pins: Bundle {
+      val led: UInt
+    } = new Bundle() {
       val led = Output(UInt((nrCores * nrLedPerCore).W))
     }
   })

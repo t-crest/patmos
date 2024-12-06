@@ -15,57 +15,28 @@ class AxiLiteWriteAddressChannel(addrWidth: Int) extends Bundle {
   val prot = UInt(2.W) // M->S Ignored in our case)
 
 
-  // This does not really clone, but Data.clone doesn't either
-  override def cloneType() = {
-    val res = new AxiLiteWriteAddressChannel(addrWidth)
-    res.asInstanceOf[this.type]
-  }
 }
 
 class AxiLiteWriteDataChannel(dataWidth: Int) extends Bundle {
   val data = UInt(dataWidth.W) // M->S
   val strb = UInt((dataWidth / 8).W) // M->S
 
-
-  // This does not really clone, but Data.clone doesn't either
-  override def cloneType() = {
-    val res = new AxiLiteWriteDataChannel(dataWidth)
-    res.asInstanceOf[this.type]
-  }
 }
 
 class AxiLiteWriteRespChannel() extends Bundle {
   val resp = UInt(2.W) // S->M
-
-  // This does not really clone, but Data.clone doesn't either
-  override def cloneType() = {
-    val res = new AxiLiteWriteRespChannel()
-    res.asInstanceOf[this.type]
-  }
 }
 
 class AxiLiteReadAddressChannel(addrWidth: Int) extends Bundle {
   val addr = UInt(addrWidth.W) // M->S
   val prot = UInt(2.W) // M->S Ignored in our case)
 
-
-  // This does not really clone, but Data.clone doesn't either
-  override def cloneType() = {
-    val res = new AxiLiteReadAddressChannel(addrWidth)
-    res.asInstanceOf[this.type]
-  }
 }
 
 class AxiLiteReadRespChannel(dataWidth: Int) extends Bundle {
   val data = UInt(dataWidth.W) // S->M
   val resp = UInt(2.W) // S->M
 
-
-  // This does not really clone, but Data.clone doesn't either
-  override def cloneType() = {
-    val res = new AxiLiteReadRespChannel(dataWidth)
-    res.asInstanceOf[this.type]
-  }
 }
 
 class AxiLiteMasterPort(addrWidth: Int, dataWidth: Int) extends Bundle {
@@ -75,10 +46,6 @@ class AxiLiteMasterPort(addrWidth: Int, dataWidth: Int) extends Bundle {
   val ar = Decoupled(new AxiLiteReadAddressChannel(addrWidth))
   val r = Flipped(Decoupled(new AxiLiteReadRespChannel(dataWidth)))
 
-  override def cloneType() = {
-    val res = new AxiLiteMasterPort(addrWidth,dataWidth)
-    res.asInstanceOf[this.type]
-  }
 }
 
 class AxiLiteSlavePort(addrWidth: Int, dataWidth: Int) extends Bundle {
@@ -88,8 +55,4 @@ class AxiLiteSlavePort(addrWidth: Int, dataWidth: Int) extends Bundle {
   val ar = Flipped(Decoupled(new AxiLiteReadAddressChannel(addrWidth)))
   val r = Decoupled(new AxiLiteReadRespChannel(dataWidth))
 
-  override def cloneType() = {
-    val res = new AxiLiteSlavePort(addrWidth,dataWidth)
-    res.asInstanceOf[this.type]
-  }
 }

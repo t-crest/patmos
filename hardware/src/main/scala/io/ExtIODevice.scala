@@ -27,7 +27,7 @@ object ExtIODevice extends DeviceObject {
 class ExtIODevice(extAddrWidth : Int = 32,
                 dataWidth : Int = 32) extends CoreDevice() {
     override val io = new CoreDeviceIO() with patmos.HasPins {
-        override val pins = new Bundle() {
+        val pins: Bundle { val ocp: OcpIOMasterPort } = new Bundle() {
             val ocp = new OcpIOMasterPort(extAddrWidth, dataWidth)
         }
     }

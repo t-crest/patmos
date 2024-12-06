@@ -19,7 +19,16 @@ object SDCController extends DeviceObject{
   def create(params: Map[String, String]): SDCController = Module(new SDCController(extAddrWidth))
 
   trait Pins extends patmos.HasPins{
-    override val pins = new Bundle() {
+    val pins: Bundle {
+      // sdcard port
+      val sd_dat_dat: UInt
+      val sd_dat_out: UInt
+      val sd_dat_oe: Bool
+      val sd_cmd_dat: Bool
+      val sd_cmd_out: Bool
+      val sd_cmd_oe: Bool
+      val sd_clk_o_pad: Bool
+    } = new Bundle() {
       // sdcard port
       val sd_dat_dat = Input(UInt(4.W))
       val sd_dat_out = Output(UInt(4.W))

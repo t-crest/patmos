@@ -32,7 +32,9 @@ class SegmentDisplay(displayCount : Int, segmentPolarity: Int) extends CoreDevic
 
     // Override
     override val io = IO(new CoreDeviceIO() with patmos.HasPins {
-      override val pins = new Bundle() {
+      val pins: Bundle {
+        val hexDisp: Vec[UInt]
+      } = new Bundle() {
         val hexDisp = Output(Vec(displayCount, UInt(7.W)))
       }
     })

@@ -9,7 +9,7 @@ import java.io.File
 
 
 object MakeRams{
-	def main(){
+	def main(): Unit = {
 
 		val filename = new File("build/Patmos.v")
 
@@ -20,7 +20,7 @@ object MakeRams{
 		var start = 0
 
 
-		val lines = Source.fromFile(filename).getLines.toArray
+		val lines = Source.fromFile(filename).getLines().toArray
 
 		var stop = lines.length
 
@@ -33,7 +33,7 @@ object MakeRams{
 				
 
 
-				break
+				break()
 			} else {
 				w.println(lines(line))
 			}
@@ -57,7 +57,7 @@ object MakeRams{
 
 
 
-					break
+					break()
 				}
 			} }
 
@@ -75,7 +75,7 @@ object MakeRams{
 
 	}
 
-	def writeRam(w: PrintWriter, width : Int){
+	def writeRam(w: PrintWriter, width : Int): Unit ={
 
 		w.println(s"""
 module TrueDualPortMemory(input clk, input reset,

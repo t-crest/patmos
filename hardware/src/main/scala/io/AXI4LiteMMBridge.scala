@@ -22,7 +22,25 @@ object AXI4LiteMMBridge extends DeviceObject {
 
 class AXI4LiteMMBridge(addrWidth: Int = 32, dataWidth: Int = 32) extends CoreDevice() {
   override val io = IO(new CoreDeviceIO() with patmos.HasPins {
-    override val pins = new Bundle() {
+    val pins: Bundle {
+      val araddr: UInt
+      val arready: Bool
+      val arvalid: Bool
+      val awaddr: UInt
+      val awready: Bool
+      val awvalid: Bool
+      val bready: Bool
+      val bresp: UInt
+      val bvalid: Bool
+      val rdata: UInt
+      val rready: Bool
+      val rresp: UInt
+      val rvalid: Bool
+      val wdata: UInt
+      val wready: Bool
+      val wstrb: UInt
+      val wvalid: Bool
+    } = new Bundle() {
       val araddr = Output(UInt(addrWidth.W))
       val arready = Input(Bool())
       val arvalid = Output(Bool())

@@ -110,7 +110,12 @@ object I2CMaster extends DeviceObject {
 class I2CMaster(clkFreq: Int, bitRate: Int) extends CoreDevice() {
 
   override val io = IO(new CoreDeviceIO() with patmos.HasPins {
-    override val pins = new Bundle {
+    val pins: Bundle {
+      val sdaI: UInt
+      val sdaO: UInt
+      val sclI: UInt
+      val sclO: UInt
+    } = new Bundle {
       val sdaI = Input(UInt(1.W))
       val sdaO = Output(UInt(1.W)) // '0' when low, 'Z' when high
       val sclI = Input(UInt(1.W))

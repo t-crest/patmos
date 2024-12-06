@@ -27,7 +27,9 @@ object ExtIRQ extends DeviceObject {
 class ExtIRQ(IRQCount : Int) extends CoreDevice() {
 
   override val io = new CoreDeviceIO() with patmos.HasPins with patmos.HasInterrupts {
-    override val pins = new Bundle() {
+    val pins: Bundle {
+      val irq: UInt
+    } = new Bundle() {
       val irq = Input(UInt(IRQCount.W))
     }
     override val interrupts = Output(VecInit(Seq.fill(IRQCount)(Bool())))

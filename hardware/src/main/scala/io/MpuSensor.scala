@@ -85,7 +85,12 @@ class MpuSensorBB() extends BlackBox {
 //wrapper
 class MpuSensor() extends CoreDevice() {
       override val io = new CoreDeviceIO() with patmos.HasPins {
-        override val pins = new Bundle() {
+        val pins: Bundle {
+          val scl_out: UInt
+          val sda_out: UInt
+          val sda_in: UInt
+          val we_out: UInt
+        } = new Bundle() {
           // I2C pins
           val scl_out  = Output(UInt(1.W))
           // val sda_inout  = Output(UInt(1.W))  // this is an inout pin

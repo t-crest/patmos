@@ -14,12 +14,6 @@ class OcpNISlaveSignals(dataWidth : Int)
   extends OcpIOSlaveSignals(dataWidth) {
   val Reset_n = UInt(1.W)
   val Flag = UInt(2.W)
-
-  // This does not really clone, but Data.clone doesn't either
-  override def cloneType() = {
-    val res = new OcpNISlaveSignals(dataWidth)
-    res.asInstanceOf[this.type]
-  }
 }
 
 // Master port

@@ -23,7 +23,9 @@ object AauMpu extends DeviceObject {
 class AauMpu() extends CoreDevice() {
   
   override val io = new CoreDeviceIO() with patmos.HasPins {
-    override val pins = new Bundle() {
+    val pins: Bundle {
+      val data: Vec[UInt]
+    } = new Bundle() {
       val data = Vec(10, Input(UInt(32.W)))
     }
   }

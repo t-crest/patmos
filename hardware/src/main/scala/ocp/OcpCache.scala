@@ -21,11 +21,6 @@ class OcpCacheMasterSignals(addrWidth : Int, dataWidth : Int)
   extends OcpCoreMasterSignals(addrWidth, dataWidth) {
   val AddrSpace = UInt(2.W)
 
-  // This does not really clone, but Data.clone doesn't either
-  override def cloneType() = {
-    val res = new OcpCacheMasterSignals(addrWidth, dataWidth)
-    res.asInstanceOf[this.type]
-  }
 }
 
 // Master port

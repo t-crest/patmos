@@ -26,7 +26,24 @@ object DDR3Bridge extends DeviceObject {
 class DDR3Bridge() extends BurstDevice(30) {
   override val io = IO(new BurstDeviceIO(30) with patmos.HasPins
   {
-    override val pins = new Bundle
+    val pins: Bundle {
+      val mem_a: UInt
+      val mem_ba: UInt
+      val mem_ck: Bool
+      val mem_ck_n: Bool
+      val mem_cke: Bool
+      val mem_cs_n: Bool
+      val mem_ras_n: Bool
+      val mem_cas_n: Bool
+      val mem_we_n: Bool
+      val mem_reset_n: Bool
+      val mem_dq: Analog
+      val mem_dqs: Analog
+      val mem_dqs_n: Analog
+      val mem_odt: Bool
+      val mem_dm: UInt
+      val oct_rzqin: Bool
+    } = new Bundle
     {
       val mem_a = Output(UInt(15.W))
       val mem_ba = Output(UInt(3.W))

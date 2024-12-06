@@ -414,8 +414,8 @@ object ScheduleTable {
       "                                                                                                                                                          eel|"
 
   def main(args: Array[String]): Unit = {
-    var cnt = Source.fromFile(args(0)).getLines.length
-    val lines = Source.fromFile(args(0)).getLines
+    var cnt = Source.fromFile(args(0)).getLines().length
+    val lines = Source.fromFile(args(0)).getLines()
     for (l <- lines) {
       val end = if (cnt > 1) " +" else ""
       println("    \"" + l + "l|\"" + end)

@@ -26,7 +26,14 @@ object BRamCtrl extends DeviceObject {
 class BRamCtrl(extAddrWidth : Int = 32,
                      dataWidth : Int = 32) extends CoreDevice() {
   val io = new CoreDeviceIO() with patmos.HasPins {
-    val pins = new Bundle() {
+    val pins: Bundle {
+      val MCmd: UInt
+      val MAddr: UInt
+      val MData: UInt
+      val MByteEn: UInt
+      val SResp: UInt
+      val SData: UInt
+    } = new Bundle() {
       val MCmd = Output(UInt(3.W))
       val MAddr = Output(UInt(extAddrWidth.W))
       val MData = Output(UInt(dataWidth.W))

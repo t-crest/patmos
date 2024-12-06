@@ -62,7 +62,7 @@ class Execute() extends Module {
     val eq = op1 === op2
     val lt = op1s < op2s
     val ult = op1 < op2
-    MuxLookup(func.asUInt, false.B, Array(
+    MuxLookup(func.asUInt, false.B, Seq(
       (CFUNC_EQ,    eq),
       (CFUNC_NEQ,   !eq),
       (CFUNC_LT,    lt),
@@ -73,7 +73,7 @@ class Execute() extends Module {
   }
 
   def pred(func: UInt, op1: Bool, op2: Bool): Bool = {
-    MuxLookup(func.asUInt, false.B, Array(
+    MuxLookup(func.asUInt, false.B, Seq(
       (PFUNC_OR, op1 | op2),
       (PFUNC_AND, op1 & op2),
       (PFUNC_XOR, op1 ^ op2),

@@ -26,7 +26,9 @@ object Leds extends DeviceObject {
 class Leds(ledCount : Int) extends CoreDevice() {
 
   val io = IO(new CoreDeviceIO() with patmos.HasPins {
-    val pins = new Bundle() {
+    val pins: Bundle {
+      val led: UInt
+    } = new Bundle() {
       val led = Output(UInt(ledCount.W))
     }
   })

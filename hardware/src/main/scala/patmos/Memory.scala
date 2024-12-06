@@ -156,7 +156,7 @@ class Memory() extends Module {
   dout := Cat(rdData(3), rdData(2), rdData(1), rdData(0))
 
   // byte read
-  val bval = MuxLookup(memReg.mem.addr(1, 0), rdData(0), Array(
+  val bval = MuxLookup(memReg.mem.addr(1, 0), rdData(0), Seq(
     ("b00".U, rdData(3)),
     ("b01".U, rdData(2)),
     ("b10".U, rdData(1)),

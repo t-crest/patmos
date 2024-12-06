@@ -25,7 +25,7 @@ object FooBar extends DeviceObject {
 
 class FooBar(foo : ..., bar: ...) extends CoreDevice() {
   override val io = new CoreDeviceIO() with patmos.HasPins {
-    override pins =  = new Bundle() {
+    override pins: Bundle { val abs: ??; val xyz: ?? } = new Bundle() {
        val abc = ...
        val xyz = ...
     }

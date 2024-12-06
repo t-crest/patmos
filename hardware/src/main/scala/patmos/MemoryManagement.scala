@@ -37,7 +37,7 @@ class MemoryManagement extends MemoryManagementType {
 
   val masterReg = RegNext(io.ctrl.M)
 
-  def checked(action: => Unit) {
+  def checked(action: => Unit): Unit = {
     when (io.superMode) (action) .otherwise { io.ctrl.S.Resp := OcpResp.ERR }
   }
 

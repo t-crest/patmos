@@ -36,7 +36,21 @@ object SRamCtrl extends DeviceObject {
   }
 
   trait Pins extends patmos.HasPins {
-    override val pins = new Bundle {
+    val pins: Bundle {
+      val ramOut: Bundle {
+        val addr: UInt
+        val doutEna: UInt
+        val dout: UInt
+        val nce: UInt
+        val noe: UInt
+        val nwe: UInt
+        val nlb: UInt
+        val nub: UInt
+      }
+      val ramIn: Bundle {
+        val din: UInt
+      }
+    } = new Bundle {
       val ramOut = Output(new Bundle {
         val addr = UInt(sramAddrWidth.W)
         val doutEna = UInt(1.W)
@@ -260,11 +274,6 @@ class SRamCtrl( ocpAddrWidth    : Int,
     val byteEna = UInt(bytesEnaWidth.W)
     val data = UInt(dataWidth.W)
 
-    // This does not really clone, but Data.clone doesn't either
-    override def cloneType() = {
-      val res = new Trans(bytesEnaWidth, dataWidth)
-      res.asInstanceOf[this.type]
-    }
   }
 }
 

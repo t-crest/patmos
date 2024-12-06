@@ -1,8 +1,8 @@
 name := "Patmos"
 
-scalaVersion := "2.12.17"
+scalaVersion := "2.13.10"
 
-scalacOptions ++= Seq("-Xsource:2.11", "-unchecked", "-deprecation", "-feature", "-language:reflectiveCalls")
+scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-language:reflectiveCalls")
 
 Compile / unmanagedSourceDirectories += baseDirectory.value / "../../soc-comm/src"
 
@@ -48,11 +48,11 @@ scalacOptions ++= Seq(
 */
 
  // Chisel 3.5
-val chiselVersion = "3.5.5"
+val chiselVersion = "3.5.6"
 addCompilerPlugin("edu.berkeley.cs" %% "chisel3-plugin" % chiselVersion cross CrossVersion.full)
 libraryDependencies += "edu.berkeley.cs" %% "chisel3" % chiselVersion
-libraryDependencies += "edu.berkeley.cs" %% "chiseltest" % "0.5.5"
+libraryDependencies += "edu.berkeley.cs" %% "chiseltest" % "0.5.6"
 
 // For FIFO buffers
-libraryDependencies += "edu.berkeley.cs" % "ip-contributions" % "0.5.1"
+libraryDependencies += "edu.berkeley.cs" % "ip-contributions" % "0.5.4"
 libraryDependencies += "com.fazecast" % "jSerialComm" % "[2.0.0,3.0.0)"
