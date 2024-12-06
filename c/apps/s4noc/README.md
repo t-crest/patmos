@@ -5,7 +5,7 @@ These applications are used to explore the usage of S4NOC with Patmos.
 If you are looking for the initial evaluation of the S4NOC, please refer to the [s4noc-2019](../s4noc-2019/README.md) folder.
 
 We use the T-CREST multicore to evaluate the S4NOC.
-General build instructions of T-CREST in [Main README](../../../README.md).
+General build instructions of T-CREST can be found in the [Main README](../../../README.md).
 
 Before building the Patmos processor, add the following lines after `<frequency Hz="80000000"/>` in 
 [altde2-115.xml](../../../hardware/config/altde2-115.xml):
@@ -19,8 +19,9 @@ Before building the Patmos processor, add the following lines after `<frequency 
 ```
 
 with cores count either 4 or 9. Use just 4 for running the emulator.
+This configuration might be default as the writing of this README.
 
-A simple C program for a first test are found at 
+A simple C program for a first test can be found at 
 [hello_s4noc.c](hello_s4noc.c)
 
 ### Evaluation with the Emulator
@@ -31,7 +32,7 @@ make emulator
 ```
 Build the test application with:
 ```bash
-make app APP=s4nocx
+make app APP=s4noc
 ```
 
 Execute with the emulator with:
@@ -52,13 +53,9 @@ make config
 ```
 Afterwards run:
 ```bash
-make app download APP=s4nocx 
+make app download APP=s4noc 
 ```
 This compiles and downloads a simple test for the S4NOC"
-Change `MAIN` to the appropriate test.
-
-Further test programs can be found in the ```c/app/s4noc``` folder.
-
 
 ### Running out of Heap
 

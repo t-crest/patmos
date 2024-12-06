@@ -24,3 +24,25 @@ class PipeConWrapper(nrCores: Int) extends CmpDevice(nrCores) {
     cp.S.Resp := Mux(np.ack, OcpResp.DVA, OcpResp.NULL)
   }
 }
+
+// This was code for the old S4NoC, is this still valid? Difference to above?
+/*
+class S4nocOCPWrapper(nrCores: Int, txFifo: Int, rxFifo: Int) extends CmpDevice(nrCores) {
+
+  val s4noc = Module(new S4noc(nrCores, txFifo, rxFifo))
+
+  for (i <- 0 until nrCores) {
+
+    val resp = Mux(io.cores(i).M.Cmd === OcpCmd.RD || io.cores(i).M.Cmd === OcpCmd.WR,
+      OcpResp.DVA, OcpResp.NULL)
+
+    // addresses are in words
+    s4noc.io.cpuPorts(i).addr := io.cores(i).M.Addr
+    s4noc.io.cpuPorts(i).wrData := io.cores(i).M.Data
+    s4noc.io.cpuPorts(i).wr := io.cores(i).M.Cmd === OcpCmd.WR
+    s4noc.io.cpuPorts(i).rd := io.cores(i).M.Cmd === OcpCmd.RD
+    io.cores(i).S.Data := RegNext(s4noc.io.cpuPorts(i).rdData)
+    io.cores(i).S.Resp := Reg(init = OcpResp.NULL, next = resp)
+  }
+}
+*/
