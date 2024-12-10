@@ -69,7 +69,7 @@ class MemBlock(size : Int, width : Int) extends Module {
 
   } else {
 
-    val mem = SyncReadMem(size, UInt(width.W))
+    val mem = SyncReadMem(size, UInt(width.W), SyncReadMem.ReadFirst)
     // write
     when(io.wrEna.asBool) {
       mem.write(io.wrAddr, io.wrData)
