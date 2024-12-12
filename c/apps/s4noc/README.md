@@ -22,7 +22,7 @@ with cores count either 4 or 9. Use just 4 for running the emulator.
 This configuration might be default as the writing of this README.
 
 A simple C program for a first test can be found at 
-[hello_s4noc.c](hello_s4noc.c)
+[hello_noc.c](hello_noc.c)
 
 ### Evaluation with the Emulator
 
