@@ -70,10 +70,10 @@ int main() {
     while (status == 0) {
         status = (*s4noc_status) & 0x02;
     }
-    // Read the source
-    int source = *s4noc_source;
     // Read the value
     int value = *s4noc_data;
+    // Read the source
+    int source = *s4noc_source;
     printf("Received: %d from core %d\n", value, source);
 
     // Wait for the thread to finish
