@@ -31,6 +31,7 @@ void* thread_function(void* arg) {
     // However, a send to a not ready channel will block till ready
     // So polling is optional
     while (status == 0) {
+        // Do some useful work here
         status = (*s4noc_status) & 0x01;
     }
     printf("Core 1 sending 42 to core 0\n");
@@ -68,6 +69,7 @@ int main() {
     // However, a read from a not ready channel will block till a value is there
     // Polling for ready is optional
     while (status == 0) {
+        // Do some useful work here
         status = (*s4noc_status) & 0x02;
     }
     // Read the value
