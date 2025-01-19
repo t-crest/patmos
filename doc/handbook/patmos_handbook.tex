@@ -4510,50 +4510,16 @@ The same procedure can be used to attach usb-to-serial convertor USB device to t
 Also, to automate these command, you can use this batch code, and run it as administrator (edit IDs for your machine): 
 
 \begin{verbatim}
-@echo off
-setlocal
-rem Find USB devices with specified IDs
-echo Searching for USB devices with IDs "046d:c52b"...
-for /f "tokens=1,2 delims= " %%A in ('usbipd list ^| findstr 046d:c52b') do (
-    echo Found device: %%A
-    set USB_DEVICE_1=%%A
-)
-echo.
-
-echo Searching for USB devices with IDs "09fb:6001"...
-for /f "tokens=1,2 delims= " %%A in ('usbipd list ^| findstr 09fb:6001') do (
-    echo Found device: %%A
-    set USB_DEVICE_2=%%A
-)
-echo.
-
-rem Bind the USB devices
-if defined USB_DEVICE_1 (
-    echo Binding USB device: %USB_DEVICE_1%
-    usbipd bind --force -b %USB_DEVICE_1%
-    echo.
-)
-
-if defined USB_DEVICE_2 (
-    echo Binding USB device: %USB_DEVICE_2%
-    usbipd bind --force -b %USB_DEVICE_2%
-    echo.
-)
-
-rem Attach USB devices to WSL
-if defined USB_DEVICE_1 (
-    echo Attaching USB device: %USB_DEVICE_1%
-    usbipd attach -w -b %USB_DEVICE_1%
-    echo.
-)
-
-if defined USB_DEVICE_2 (
-    echo Attaching USB device: %USB_DEVICE_2%
-    usbipd attach -w -b %USB_DEVICE_2%
-    echo.
-)
-
-endlocal
+  @echo off
+  setlocal
+  set USB_DEVICE_1="1a86:7523"
+  set USB_DEVICE_2="09fb:6001"
+  usbipd list
+  usbipd bind --force --hardware-id %USB_DEVICE_1%
+  usbipd bind --force --hardware-id %USB_DEVICE_2%
+  usbipd attach --wsl --hardware-id %USB_DEVICE_1%
+  usbipd attach --wsl --hardware-id %USB_DEVICE_2%
+  endlocal
 \end{verbatim}
 
 \section{Building Patmos and the Compiler Tool Chain}
