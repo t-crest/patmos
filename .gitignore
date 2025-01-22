@@ -98,6 +98,7 @@ doc/**/*.synctex.gz
 # Ignore Aegean generated files
 hardware/emulator_config.h
 hardware/vhdl/argo/config.vhd
+hardware/project/build.properties
 c/cmp/nocinit.c
 emulator.h
 emul_api.h

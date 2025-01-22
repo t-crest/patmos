@@ -163,6 +163,8 @@ app:
 
 .PRECIOUS: $(BUILDDIR)/%.elf
 
+pasim: 
+	pasim $(BUILDDIR)/$(APP).elf
 # Compile an lf app that lives in the lf-workspace folder
 lf-app:
 	-rm -rf $(LF_PROJECT_ROOT)/bin
