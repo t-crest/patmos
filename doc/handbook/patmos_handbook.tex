@@ -4425,7 +4425,7 @@ First install the Mac compiler (Xcode) and the command line tools.
 For the build of Patmos and the compiler we need to install:
 
 \begin{verbatim}
-brew install cmake boost libelf sbt doxygen expect svn
+brew install cmake boost libelf sbt doxygen expect svn texinfo
 \end{verbatim}
 
 For WCET analysis install
@@ -4526,12 +4526,11 @@ Also, to automate these command, you can use this batch code, and run it as admi
 \label{sec:build:compiler}
 
 We assume that the T-CREST project will live in \code{\$HOME/t-crest}.
-Before building Patmos, add the Patmos tool chain binaries to your path (e.g., in your \code{.bashrc} or
-\code{.profile}):\footnote{The path needs to be absolute. LLVM cannot handle
-a path relative to the home folder \textasciitilde{}, e.g., \code{\textasciitilde{}/t-crest/local/bin}.}
+Before building the compiler and Patmos, add the  tool chain binaries to
+your path (e.g., in your \code{.bashrc} or \code{.profile}):
 
 \begin{verbatim}
-$ echo "export PATH=\$PATH:\$HOME/t-crest/local/bin" >> ~/.profile
+export PATH=$PATH:$HOME/t-crest/local/bin
 \end{verbatim}
 
 A complete logout from Ubuntu might be needed to take effect (just closing
@@ -4561,6 +4560,13 @@ This script (\code{build.sh}) will checkout several other repositories (the comp
 and the Patmos source) and
 builds the compiler and the Patmos simulator.
 Therefore, take a cup of coffee and find some nice reading.
+
+If you want to save some time, you can install the prebuilt compiler with:
+
+\begin{verbatim}
+$ ./misc/build.sh -q
+\end{verbatim}
+
 
 Hint: The build script isn't optimized for multiple cores.
 Some parts of the Patmos tool chain -- Like the compiler -- are very well suited for running on multiple cores.
