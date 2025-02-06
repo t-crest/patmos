@@ -163,8 +163,18 @@ app:
 
 .PRECIOUS: $(BUILDDIR)/%.elf
 
+app-wcet:
+	make wcet -C c/apps/$(APP)
+
+app-clean:
+	make clean -C c/apps/$(APP)
+
 pasim: 
 	pasim $(BUILDDIR)/$(APP).elf
+
+patemu: 
+	patemu $(BUILDDIR)/$(APP).elf
+	
 # Compile an lf app that lives in the lf-workspace folder
 lf-app:
 	-rm -rf $(LF_PROJECT_ROOT)/bin
