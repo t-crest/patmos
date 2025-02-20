@@ -12,7 +12,6 @@
  * S4NOC:
   * 8: write receiver, read sender
 */
-#ifdef BENCH_NOC
 
 #include <stdio.h>
 #include <pthread.h>
@@ -84,5 +83,3 @@ int main() {
     }
     return 0;
 }
-
-#endif

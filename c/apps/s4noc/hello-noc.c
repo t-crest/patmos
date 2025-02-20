@@ -12,7 +12,6 @@
  * S4NOC:
   * 8: write receiver, read sender
 */
-#ifdef HELLO_NOC
 
 #include <stdio.h>
 #include <pthread.h>
@@ -87,4 +86,3 @@ int main() {
     return 0;
 }
 
-#endif

@@ -37,7 +37,7 @@ make app APP=s4noc
 
 Execute with the emulator with:
 ```bash
-patemu tmp/s4nocx.elf
+patemu tmp/s4noc.elf
 ```
 
 ### Evaluation with the FPGA
