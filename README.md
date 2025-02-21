@@ -6,7 +6,7 @@ Patmos is the processor for the T-CREST project.
 See also: http://www.t-crest.org/ and http://patmos.compute.dtu.dk/
 
 The Patmos [Reference Handbook](http://patmos.compute.dtu.dk/patmos_handbook.pdf)
-contains build instructions in Section 5.
+contains build instructions in Section 6.
 
 For questions and discussions use the GitHub discussion area of Patmos at:
 https://github.com/t-crest/patmos/discussions
