@@ -36,7 +36,7 @@ installed on a Ubuntu Linux:
 
 ```
 sudo apt-get install git openjdk-11-jdk gitk cmake make g++ texinfo flex bison \
-  subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby-full \
+  subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby-full chrpath\
   liblpsolve55-dev zlib1g-dev gtkwave gtkterm scala autoconf libfl2 expect verilator curl
 ```
 
