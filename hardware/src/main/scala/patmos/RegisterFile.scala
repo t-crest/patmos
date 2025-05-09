@@ -12,7 +12,7 @@ import chisel3.util._
 
 import Constants._
 
-class RegisterFile() extends Module {
+class RegisterFile(debug: Boolean = false) extends Module {
   val io = IO(new RegFileIO())
 
   // Using Mem (instead of Vec) leads to smaller HW for single-issue config
@@ -55,13 +55,14 @@ class RegisterFile() extends Module {
     }
   }
 
-  // Signal for debugging register values - Chisel3: wierdly gave errors in chisel3 as it was used for debugging it has been commented out
-  /*val rfDebug = Vec(REG_COUNT, Reg(UInt(DATA_WIDTH.W)))
-  for(i <- 0 until REG_COUNT) {
-    rfDebug(i) := rf(i.U)
-    // Keep signal alive
-    //if(Driver.isVCD){
-    //debug(rfDebug(i)) does nothing in chisel3 (no proning in frontend of chisel3 anyway)
-    //}
-  }*/
+  
+  // Signal for debugging register values
+  val rfDebug =
+    if(debug) {
+      val _rfDebug = Wire(Vec(REG_COUNT, UInt(DATA_WIDTH.W)))
+      for(i <- 0 until REG_COUNT) {
+        _rfDebug(i) := rf(i.U)
+      }
+      Some(_rfDebug)
+    } else None
 }

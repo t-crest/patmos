@@ -43,12 +43,7 @@
 #include "include/patio.h"
 #include "include/bootable.h"
 
-#define DELAY 1000*1
-
-//#define DEBUG
-//#define HEAVY_DEBUG
-
-//#define data ((_UNCACHED int *)0x00000080)
+#define DELAY 10*1
 
 int main(void)
 {
@@ -75,8 +70,12 @@ int main(void)
       boot_info->master.status = STATUS_BOOT;
     }
 
-    // download application
-    boot_info->master.entrypoint = download();
+    if(ENVINFO_PLATFORM == PLATFORM_EMULATOR)
+      boot_info->master.entrypoint = (entrypoint_t)ENVINFO_ENTRYPOINT;
+
+    // if entrypoint wasn't set by patemu, download application
+    if(boot_info->master.entrypoint == NULL)
+      boot_info->master.entrypoint = download();
   }
   else {
     boot_info->slave[get_cpuid()].status = STATUS_NULL;
@@ -158,6 +157,10 @@ int main(void)
       }
     }
 
+    // signal emulator exit
+    ENVINFO_EXITCODE = retval;
+    while(ENVINFO_PLATFORM == PLATFORM_EMULATOR) { }
+
     // Print exit magic and return code
     WRITECHAR('\0');
     WRITECHAR('x');
@@ -182,8 +185,7 @@ int main(void)
     
     boot_info->slave[get_cpuid()].status = STATUS_NULL;
   }
-  
-  
+
   // clear caches and loop back
   inval_dcache();
   inval_mcache();

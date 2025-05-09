@@ -16,6 +16,7 @@ import chisel3._
 import java.io.File
 import chisel3.experimental._
 import chisel3.dontTouch
+import chisel3.util.experimental._
 import chisel3.VecInit
 import chisel3.WireDefault
 import Constants._
@@ -31,7 +32,7 @@ import scala.collection.mutable
 /**
  * Module for one Patmos core.
  */
-class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
+class PatmosCore(binFile: String, nr: Int, cnt: Int, debug: Boolean = false) extends Module {
 
   val io = IO(new Bundle() with HasSuperMode with HasPerfCounter with HasInterrupts {
     override val superMode = Output(Bool())
@@ -61,7 +62,7 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
     }
 
   val fetch = Module(new Fetch(binFile))
-  val decode = Module(new Decode())
+  val decode = Module(new Decode(debug))
   val execute = Module(new Execute())
   val memory = Module(new Memory())
   val writeback = Module(new WriteBack())
@@ -216,7 +217,7 @@ final class PatmosBundle(elts: (String, Data)*) extends Record {
 /**
  * The main (top-level) component of Patmos.
  */
-class Patmos(configFile: String, binFile: String, datFile: String) extends Module {
+class Patmos(configFile: String, binFile: String, datFile: String, genEmu: Boolean = false) extends Module {
   Config.loadConfig(configFile)
   Config.minPcWidth = util.log2Up((new File(binFile)).length.toInt / 4)
   Config.datFile = datFile
@@ -226,7 +227,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   println("Config core count: " + nrCores)
 
   // Instantiate cores
-  val cores = (0 until nrCores).map(i => Module(new PatmosCore(binFile, i, nrCores)))
+  val cores = (0 until nrCores).map(i => Module(new PatmosCore(binFile, i, nrCores, genEmu)))
 
   // Forward ports to/from core
   println("Config cmp: ")
@@ -255,6 +256,9 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       case _ =>
     }}
 
+  var envinfoOpt = None: Option[cmp.EnvInfo]
+  var uartcmpOpt = None: Option[cmp.UartCmp]
+  
   val IO_DEVICE_ADDR_WIDTH = 16
 
   case class Device(name: String, io: Data, addr: Int, addrWidth: Int)
@@ -265,6 +269,11 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       case "Argo" =>  (0x1C, 5, Module(new argo.Argo(nrCores, wrapped=false, emulateBB=false)))
       case "Hardlock" => (0xE801, IO_DEVICE_ADDR_WIDTH, Module(new cmp.HardlockOCPWrapper(nrCores, () => new cmp.Hardlock(nrCores, 1))))
       case "SharedSPM" => (0xE802, IO_DEVICE_ADDR_WIDTH, Module(new cmp.SharedSPM(nrCores, (nrCores-1)*2*1024)))
+      case "EnvInfo" => {
+        val envinfo = Module(new cmp.EnvInfo(nrCores))
+        envinfoOpt = Some(envinfo)
+        (0xE803, IO_DEVICE_ADDR_WIDTH, envinfo)
+      }
       // case "OneWay" => (0xE803, IO_DEVICE_ADDR_WIDTH, Module(new cmp.OneWayOCPWrapper(nrCores)))
       // removed as it was never used, address is free
       // TODO: remove constants from patmos.h
@@ -274,7 +283,11 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       case "S4NoC" => (0xE807, IO_DEVICE_ADDR_WIDTH, Module(new cmp.PipeConWrapper(nrCores)))
       case "CASPM" => (0xE808, IO_DEVICE_ADDR_WIDTH, Module(new cmp.CASPM(nrCores, nrCores * 8)))
       case "AsyncLock" => (0xE809, IO_DEVICE_ADDR_WIDTH, Module(new cmp.AsyncLock(nrCores, nrCores * 2)))
-      case "UartCmp" => (0xF008, IO_DEVICE_ADDR_WIDTH, Module(new cmp.UartCmp(nrCores,CLOCK_FREQ,UART_BAUD,16)))
+      case "UartCmp" => {
+        val uartcmp = Module(new cmp.UartCmp(nrCores,CLOCK_FREQ,UART_BAUD,16))
+        uartcmpOpt = Some(uartcmp)
+        (0xF008, IO_DEVICE_ADDR_WIDTH, uartcmp)
+      }
       case "TwoWay" => (0xE80B, IO_DEVICE_ADDR_WIDTH, Module(new cmp.TwoWayOCPWrapper(nrCores, 1024)))
       case "TransactionalMemory" => (0xE80C, IO_DEVICE_ADDR_WIDTH, Module(new cmp.TransactionalMemory(nrCores, 512)))
       case "LedsCmp" => (0xE80D, IO_DEVICE_ADDR_WIDTH, Module(new cmp.LedsCmp(nrCores, 1)))
@@ -510,19 +523,79 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
         case "Unspecified" => attach(devicepin.asInstanceOf[Analog], patmospin.asInstanceOf[Analog])
     }
   }
-
+  
   // Print out the configuration
-   Utility.printConfig(configFile)
+  Utility.printConfig(configFile)
+  
+  if (genEmu) {
+
+    envinfoOpt match {
+      case Some(envinfo) => 
+      {
+        val envinfoIO = IO(new Bundle
+        {
+          val platform = Input(envinfo.platform.cloneType)
+          val entrypoint = Input(envinfo.entrypoint.cloneType)
+          val exit = Output(envinfo.exitReg.cloneType)
+          val exitcode = Output(envinfo.exitcodeReg.cloneType)
+        })
+        envinfoIO.suggestName("envinfo")
+        envinfoIO.exit := 0.U
+        envinfoIO.exitcode := 0.U
+        BoringUtils.bore(envinfoIO.platform, Seq(envinfo.platform))
+        BoringUtils.bore(envinfoIO.entrypoint, Seq(envinfo.entrypoint))
+        BoringUtils.bore(envinfo.exitReg, Seq(envinfoIO.exit))
+        BoringUtils.bore(envinfo.exitcodeReg, Seq(envinfoIO.exitcode))
+      }
+      case None =>
+    }
+
+    uartcmpOpt match {
+      case Some(uartcmp) => 
+      {
+        val uartcmpIO = IO(new Bundle
+        {
+          val tx_baud_tick = Output(uartcmp.uart.tx_baud_tick.cloneType)
+        })
+        uartcmpIO.suggestName("uartcmp")
+        uartcmpIO.tx_baud_tick := false.B
+        BoringUtils.bore(uartcmp.uart.tx_baud_tick, Seq(uartcmpIO.tx_baud_tick))
+      }
+      case None =>
+    }
+
+    val core0IO = IO(new Bundle
+    {
+      val enable = Output(cores(0).enableReg.cloneType)
+      val pcNext = Output(cores(0).fetch.pcNext.cloneType)
+      val relBaseNext = Output(cores(0).fetch.relBaseNext.cloneType)
+      val rf = Output(cores(0).decode.rf.rfDebug.get.cloneType)
+    })
+    core0IO.suggestName("core0")
+    core0IO.enable := false.B
+    BoringUtils.bore(cores(0).enableReg, Seq(core0IO.enable))
+    core0IO.pcNext := 0.U
+    BoringUtils.bore(cores(0).fetch.pcNext, Seq(core0IO.pcNext))
+    core0IO.relBaseNext := 0.U
+    BoringUtils.bore(cores(0).fetch.relBaseNext, Seq(core0IO.relBaseNext))
+
+    for (i <- (0 until core0IO.rf.length)) {
+      core0IO.rf(i) := 0.U
+      BoringUtils.bore(cores(0).decode.rf.rfDebug.get(i), Seq(core0IO.rf(i)))
+    }
+  }
 }
 
 object PatmosMain extends App {
 
-  val chiselArgs = args.slice(3, args.length)
+  val chiselArgs = args.slice(4, args.length)
   val configFile = args(0)
   val binFile = args(1)
   val datFile = args(2)
-	  
-  new java.io.File("build/").mkdirs // build dir is created
+  val genEmu = args(3).toBoolean
+
+  val buildDir = scala.util.Properties.envOrElse("HWBUILDDIR", "build" ) + "/"
+  new java.io.File(buildDir).mkdirs // build dir is created
   Config.loadConfig(configFile)
-  (new chisel3.stage.ChiselStage).emitVerilog(new Patmos(configFile, binFile, datFile), chiselArgs)
+  (new chisel3.stage.ChiselStage).emitVerilog(new Patmos(configFile, binFile, datFile, genEmu), chiselArgs)
 }

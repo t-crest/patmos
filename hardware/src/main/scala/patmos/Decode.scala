@@ -12,12 +12,12 @@ import chisel3.util._
 
 import Constants._
 
-class Decode() extends Module {
+class Decode(debug: Boolean = false) extends Module {
   val io = IO(new DecodeIO())
 
 
 
-  val rf = Module(new RegisterFile())
+  val rf = Module(new RegisterFile(debug))
   // register file is connected with unregistered instruction word
   rf.io.rfRead.rsAddr(0) := io.fedec.instr_a(16, 12)
   rf.io.rfRead.rsAddr(1) := io.fedec.instr_a(11, 7)

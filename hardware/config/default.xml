@@ -6,6 +6,7 @@
   <cores count="1" />
   <CmpDevs>
     <CmpDev name="Hardlock" />
+    <CmpDev name="EnvInfo" />
     <CmpDev name="UartCmp">
       <!-- Not implemented yet --> 
        <!--<params> 

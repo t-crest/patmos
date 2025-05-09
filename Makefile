@@ -45,6 +45,7 @@ CTOOLSBUILDDIR?=$(CURDIR)/tools/c/build
 JAVATOOLSBUILDDIR?=$(CURDIR)/tools/java/build
 SCRIPTSBUILDDIR?=$(CURDIR)/tools/scripts/build
 HWBUILDDIR?=$(CURDIR)/hardware/build
+HWEMUBUILDDIR?=$(CURDIR)/hardware/buildemu
 # Where to install tools
 INSTALLDIR?=$(CURDIR)/../local
 HWINSTALLDIR?=$(INSTALLDIR)
@@ -106,19 +107,11 @@ $(JAVATOOLSBUILDDIR)/classes/%.class: tools/java/src/%.java
 	javac -classpath tools/lib/java-binutils-0.1.0.jar:tools/lib/jssc.jar \
 		-sourcepath tools/java/src -d $(JAVATOOLSBUILDDIR)/classes $<
 
-# Build the Chisel emulator
-#emulator: OLD
-#	-mkdir -p $(HWBUILDDIR)
-#	$(MAKE) -C hardware BOOTBUILDROOT=$(CURDIR) BOOTBUILDDIR=$(BUILDDIR) BOOTAPP=$(BOOTAPP) BOOTBIN=$(BUILDDIR)/$(BOOTAPP).bin BOARD=$(BOARD) emulator
-#	-mkdir -p $(HWINSTALLDIR)/bin
-#	cp $(HWBUILDDIR)/emulator $(HWINSTALLDIR)/bin/patemu
-
-# chisel3/verilator emulator
+emulator: export HWBUILDDIR = $(HWEMUBUILDDIR)
 emulator:
 	-mkdir -p $(HWBUILDDIR)
-	$(MAKE) -C hardware verilog BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
-	-cd $(HWBUILDDIR) && verilator --cc ../harnessConfig.vlt Patmos.v --top-module Patmos +define+TOP_TYPE=VPatmos --threads 1 -CFLAGS "-I /opt/homebrew/include/libelf -I /opt/homebrew/include -Wno-undefined-bool-conversion -O1 -DTOP_TYPE=VPatmos -DVL_USER_FINISH -include VPatmos.h" -Wno-MULTIDRIVEN -Mdir $(HWBUILDDIR) --exe ../Patmos-harness.cpp -LDFLAGS "-L /opt/homebrew/lib -lelf" --trace-fst
-	-cd $(HWBUILDDIR) && make -j -f VPatmos.mk
+	$(MAKE) -C hardware verilog BOOTAPP=$(BOOTAPP) BOARD=$(BOARD) GENEMU=true
+	-cd $(HWBUILDDIR) && verilator --cc --exe --build -LDFLAGS "-L /opt/homebrew/lib -lelf" -CFLAGS "-I /opt/homebrew/include/libelf -I /opt/homebrew/include -Wno-undefined-bool-conversion -O3" --top-module Patmos -Mdir $(HWBUILDDIR) --trace-fst -j 0 Patmos.v ../Patmos-harness.cpp
 	-cp $(HWBUILDDIR)/VPatmos $(HWBUILDDIR)/emulator
 	-mkdir -p $(HWINSTALLDIR)/bin
 	cp $(HWBUILDDIR)/VPatmos $(HWINSTALLDIR)/bin/patemu
@@ -272,7 +265,7 @@ fpgaexec: $(BUILDDIR)/$(APP).elf
 CLEANEXTENSIONS=rbf rpt sof pin summary ttf qdf dat wlf done qws
 
 mostlyclean:
-	-rm -rf $(CTOOLSBUILDDIR) $(BUILDDIR) $(HWBUILDDIR)
+	-rm -rf $(CTOOLSBUILDDIR) $(BUILDDIR) $(HWBUILDDIR) $(HWEMUBUILDDIR)
 	-rm -rf $(JAVATOOLSBUILDDIR)/classes
 	-rm -rf hardware/target
 	-rm $(HWINSTALLDIR)/bin/patemu
@@ -282,6 +275,7 @@ clean: mostlyclean
 #	-rm -rf $(INSTALLDIR)/lib
 	-rm -rf $(JAVATOOLSBUILDDIR)/lib
 	-rm -rf $(HWBUILDDIR)
+	-rm -rf $(HWEMUBUILDDIR)
 	-rm -rf $(CURDIR)/hardware/emulator_config.h
 	for ext in $(CLEANEXTENSIONS); do \
 		find `ls` -name \*.$$ext -print -exec rm -r -f {} \; ; \

@@ -4,6 +4,7 @@ hardware/project/project/target/*
 hardware/project/target
 hardware/target
 hardware/build
+hardware/buildemu
 hardware/generated
 hardware/.idea/
 hardware/modelsim/work/

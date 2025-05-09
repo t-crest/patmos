@@ -32,7 +32,8 @@ endif
 SRC=$(shell find src -name '*.scala')
 
 # main class for Patmos
-MAIN=patmos.PatmosMain
+PATMOSMAIN?=patmos.PatmosMain
+GENEMU?=false
 
 # main classes for core, memory controller and arbiter
 COREMAIN=patmos.PatmosCoreMain
@@ -71,19 +72,6 @@ EXT_SLOT_SIZE?=5
 # build the C++ version
 emulator:
 	$(MAKE) -C .. emulator BOOTBAPP=$(BOOTAPP)
-#emulator: $(HWBUILDDIR)/emulator
-
-#$(HWBUILDDIR)/emulator: emulator.cpp $(HWBUILDDIR)/Patmos.cpp $(HWBUILDDIR)/emulator_config.h
-#	$(CXX) $(CXXFLAGS) $(INC_EXTRA) -I $(HWBUILDDIR) -o $@ $(filter %.cpp,$^) -lelf
-
-#$(HWBUILDDIR)/Patmos.cpp $(HWBUILDDIR)/emulator_config.h: $(CGEN)
-#	if [ x`cat $(CGEN)` != x"$(CONFIGFILE)+$(BOOTBIN)+$(BOOTDAT)" ]; then \
-#		rm $(CGEN); $(MAKE) $(CGEN); \
-#	fi
-
-#$(CGEN): $(BOOTBIN) $(BOOTDAT) $(SRC)
-#	$(SBT) "runMain $(MAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --vcd --targetDir $(HWBUILDDIR) --cse --backend c"
-#	echo $(CONFIGFILE)+$(BOOTBIN)+$(BOOTDAT) > $(CGEN)
 
 # run emulator
 test: emulator
@@ -110,7 +98,7 @@ $(HWBUILDDIR)/$(HWMODULEPREFIX)Patmos.v: $(VGEN)
 	fi
 
 $(VGEN): $(BOOTBIN) $(BOOTDAT) $(SRC)
-	$(SBT) "runMain $(MAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --target-dir $(HWBUILDDIR) $(HWMODULEPREFIXOPT)"
+	$(SBT) "runMain $(PATMOSMAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) $(GENEMU) --target-dir $(HWBUILDDIR) $(HWMODULEPREFIXOPT)"
 	echo $(CONFIGFILE)+$(BOOTBIN)+$(BOOTDAT)+$(HWMODULEPREFIX) > $(VGEN)
 
 $(HWBUILDDIR)/$(HWMODULEPREFIX)PatmosCore.v: $(VGENCORE)

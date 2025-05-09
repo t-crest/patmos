@@ -53,13 +53,25 @@
 #define __PATMOS_TIMER_BASE     PATMOS_IO_TIMER
 #define __PATMOS_UART_BASE      PATMOS_IO_UART
 #define __PATMOS_LEDS_BASE      PATMOS_IO_LED
+#ifndef PATMOS_IO_ENVINFO
+#define PATMOS_IO_ENVINFO       0xe8030000
+#endif
+#define __PATMOS_ENVINFO_BASE   PATMOS_IO_ENVINFO
 
 #define TIMER_CLK_LOW *((volatile _IODEV int *) (__PATMOS_TIMER_BASE + 0x4))
 #define TIMER_US_LOW *((volatile _IODEV int *) (__PATMOS_TIMER_BASE + 0xc))
 
 #define UART_STATUS *((volatile _IODEV int *) (__PATMOS_UART_BASE + 0x0))
 #define UART_DATA   *((volatile _IODEV int *) (__PATMOS_UART_BASE + 0x4))
+
 #define LEDS        *((volatile _IODEV int *) (__PATMOS_LEDS_BASE))
+
+#define ENVINFO_PLATFORM *((volatile _IODEV int *) (__PATMOS_ENVINFO_BASE + 0x0))
+#define ENVINFO_ENTRYPOINT *((volatile _IODEV int *) (__PATMOS_ENVINFO_BASE + 0x4))
+#define ENVINFO_EXITCODE *((volatile _IODEV int *) (__PATMOS_ENVINFO_BASE + 0x8))
+
+#define PLATFORM_HARDWARE 0
+#define PLATFORM_EMULATOR 1
 
 #define MEM         ((volatile _UNCACHED int *) 0x0)
 #define SPM         ((volatile _SPM int *) 0x0)
