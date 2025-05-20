@@ -7,11 +7,11 @@
   <pipeline dual="false" />
   <cores count="4"/>
   <CmpDevs>
+    <CmpDev name="Argo" />
     <CmpDev name="S4NoC" />
+    <CmpDev name="SharedSPM" />
   </CmpDevs>
   <!--
-    <CmpDev name="Argo" />
-    <CmpDev name="SharedSPM" />
   -->
 
   <ExtMem size="2M" DevTypeRef="Sram16" />
