@@ -464,7 +464,7 @@ void emu_extmem() {}
   {
     static unsigned int baseReg = 0;
     printf("0x%08x - 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
-      ((baseReg + c->core0_pcNext) * 4 - c->core0_relBaseNext * 4),
+      ((baseReg + c->core0_pcNext - c->core0_relBaseNext) * 4),
       c->core0_rf_0,
       c->core0_rf_1,
       c->core0_rf_2,
@@ -498,6 +498,8 @@ void emu_extmem() {}
       c->core0_rf_30,
       c->core0_rf_31
     );
+    
+    baseReg = c->core0_callRetBaseNext;
   }
 
 };

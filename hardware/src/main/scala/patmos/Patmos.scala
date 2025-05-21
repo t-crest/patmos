@@ -569,6 +569,7 @@ class Patmos(configFile: String, binFile: String, datFile: String, genEmu: Boole
       val enable = Output(cores(0).enableReg.cloneType)
       val pcNext = Output(cores(0).fetch.pcNext.cloneType)
       val relBaseNext = Output(cores(0).fetch.relBaseNext.cloneType)
+      val callRetBaseNext = Output(UInt(DATA_WIDTH.W))
       val rf = Output(cores(0).decode.rf.rfDebug.get.cloneType)
     })
     core0IO.suggestName("core0")
@@ -578,6 +579,11 @@ class Patmos(configFile: String, binFile: String, datFile: String, genEmu: Boole
     BoringUtils.bore(cores(0).fetch.pcNext, Seq(core0IO.pcNext))
     core0IO.relBaseNext := 0.U
     BoringUtils.bore(cores(0).fetch.relBaseNext, Seq(core0IO.relBaseNext))
+    core0IO.callRetBaseNext := 0.U
+    cores(0).icache match {
+      case _icache: ICache  => BoringUtils.bore(_icache.repl.callRetBaseNext, Seq(core0IO.callRetBaseNext))
+      case mcache: MCache  => BoringUtils.bore(mcache.repl.callRetBaseNext, Seq(core0IO.callRetBaseNext))
+    }
 
     for (i <- (0 until core0IO.rf.length)) {
       core0IO.rf(i) := 0.U

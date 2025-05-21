@@ -45,7 +45,7 @@ CTOOLSBUILDDIR?=$(CURDIR)/tools/c/build
 JAVATOOLSBUILDDIR?=$(CURDIR)/tools/java/build
 SCRIPTSBUILDDIR?=$(CURDIR)/tools/scripts/build
 HWBUILDDIR?=$(CURDIR)/hardware/build
-HWEMUBUILDDIR?=$(CURDIR)/hardware/buildemu
+HWEMUBUILDDIR?=$(HWBUILDDIR)emu
 # Where to install tools
 INSTALLDIR?=$(CURDIR)/../local
 HWINSTALLDIR?=$(INSTALLDIR)
@@ -107,11 +107,11 @@ $(JAVATOOLSBUILDDIR)/classes/%.class: tools/java/src/%.java
 	javac -classpath tools/lib/java-binutils-0.1.0.jar:tools/lib/jssc.jar \
 		-sourcepath tools/java/src -d $(JAVATOOLSBUILDDIR)/classes $<
 
-emulator: export HWBUILDDIR = $(HWEMUBUILDDIR)
+emulator: export HWBUILDDIR := $(HWEMUBUILDDIR)
 emulator:
 	-mkdir -p $(HWBUILDDIR)
 	$(MAKE) -C hardware verilog BOOTAPP=$(BOOTAPP) BOARD=$(BOARD) GENEMU=true
-	-cd $(HWBUILDDIR) && verilator --cc --exe --build -LDFLAGS "-L /opt/homebrew/lib -lelf" -CFLAGS "-I /opt/homebrew/include/libelf -I /opt/homebrew/include -Wno-undefined-bool-conversion -O3" --top-module Patmos -Mdir $(HWBUILDDIR) --trace-fst -j 0 Patmos.v ../Patmos-harness.cpp
+	-cd $(HWBUILDDIR) && verilator --cc --exe --build -LDFLAGS "-L /opt/homebrew/lib -lelf" -CFLAGS "-I /opt/homebrew/include/libelf -I /opt/homebrew/include -Wno-undefined-bool-conversion -O3" --top-module Patmos -Mdir $(HWBUILDDIR) --trace-fst -j 0 -Wno-MULTIDRIVEN Patmos.v ../Patmos-harness.cpp
 	-cp $(HWBUILDDIR)/VPatmos $(HWBUILDDIR)/emulator
 	-mkdir -p $(HWINSTALLDIR)/bin
 	cp $(HWBUILDDIR)/VPatmos $(HWINSTALLDIR)/bin/patemu
