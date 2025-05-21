@@ -66,9 +66,10 @@
 
 #define LEDS        *((volatile _IODEV int *) (__PATMOS_LEDS_BASE))
 
-#define ENVINFO_PLATFORM *((volatile _IODEV int *) (__PATMOS_ENVINFO_BASE + 0x0))
+#define ENVINFO_PLATFORM   *((volatile _IODEV int *) (__PATMOS_ENVINFO_BASE + 0x0))
 #define ENVINFO_ENTRYPOINT *((volatile _IODEV int *) (__PATMOS_ENVINFO_BASE + 0x4))
-#define ENVINFO_EXITCODE *((volatile _IODEV int *) (__PATMOS_ENVINFO_BASE + 0x8))
+#define ENVINFO_EXIT       *((volatile _IODEV int *) (__PATMOS_ENVINFO_BASE + 0x8))
+#define ENVINFO_EXITCODE   *((volatile _IODEV int *) (__PATMOS_ENVINFO_BASE + 0xC))
 
 #define PLATFORM_HARDWARE 0
 #define PLATFORM_EMULATOR 1

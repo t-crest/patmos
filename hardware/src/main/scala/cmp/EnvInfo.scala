@@ -37,10 +37,8 @@ class EnvInfo(coreCnt: Int) extends CmpDevice(coreCnt) {
     
     when(MReg.Cmd === OcpCmd.WR) {
       switch(MReg.Addr(5,2)) {
-        is("b0010".U) {
-          exitReg := true.B
-          exitcodeReg := MReg.Data
-        }
+        is("b0010".U) { exitReg := MReg.Data(0) }
+        is("b0011".U) { exitcodeReg := MReg.Data }
       }
     }
     

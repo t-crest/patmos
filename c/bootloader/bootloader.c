@@ -157,8 +157,9 @@ int main(void)
       }
     }
 
-    // signal emulator exit
+    // if running in emulator, signal exit and hang until emulator exits
     ENVINFO_EXITCODE = retval;
+    ENVINFO_EXIT = 1;
     while(ENVINFO_PLATFORM == PLATFORM_EMULATOR) { }
 
     // Print exit magic and return code
