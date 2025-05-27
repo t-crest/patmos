@@ -36,7 +36,7 @@ using namespace std;
 
 class Emulator
 {
-  unsigned long m_tickcount;
+  vluint64_t m_tickcount;
   public: VPatmos *c;
   VerilatedFstC	*c_trace;
   // For Uart:
