@@ -19,19 +19,16 @@ typedef struct {
 #if WCET
 __attribute__((noinline))
 #endif
-void dspFilter(DataType* input, DataType* output, int size) {
+void Clipper(DataType* input, DataType* output, int size) {
     #pragma loopbound min SIGNAL_SIZE max SIGNAL_SIZE
     for (int i = 0; i < size; i++) {
-        if (input[i] > 15) 
-        {
+        if (input[i] > 15) {
             output[i] = 15;
         } 
-        else if (input[i] < -15) 
-        {
+        else if (input[i] < -15) {
             output[i] = -15;
         } 
-        else
-        {
+        else {
             output[i] = input[i];
         }
     }
@@ -59,7 +56,7 @@ void windowSY(int winSize, DataType* input, int inputSize, DataType output[][MAX
 #if WCET
 __attribute__((noinline))
 #endif
-void dspSMA(int n, DataType* input, DataType* output, int size) {
+void SMA(int n, DataType* input, DataType* output, int size) {
     DataType window[MAX_OUTPUT_SIZE][MAX_WINDOW_SIZE];
     int windowSize;
 
@@ -93,7 +90,7 @@ int isqrt(int n) {
 #if WCET
 __attribute__((noinline))
 #endif
-void dspRMS(int n, DataType* input, DataType* output, int size) {
+void RMS(int n, DataType* input, DataType* output, int size) {
     DataType window[MAX_OUTPUT_SIZE][MAX_WINDOW_SIZE];
     int windowSize;
 
@@ -111,7 +108,7 @@ void dspRMS(int n, DataType* input, DataType* output, int size) {
 #if WCET
 __attribute__((noinline))
 #endif
-void dspGain(DataType gain, DataType* input, DataType* output, int size) {
+void Gain(DataType gain, DataType* input, DataType* output, int size) {
     #pragma loopbound min SIGNAL_SIZE max SIGNAL_SIZE
     for (int i = 0; i < size; i++) {
         output[i] = (input[i] * gain) / 10;
@@ -121,7 +118,7 @@ void dspGain(DataType gain, DataType* input, DataType* output, int size) {
 #if WCET
 __attribute__((noinline))
 #endif
-void dspMonitor(DataType* input, level_t output[], int size) {
+void Monitor(DataType* input, level_t output[], int size) {
     #pragma loopbound min SIGNAL_SIZE max SIGNAL_SIZE
     for (int i = 0; i < size; i++) {
         if (input[i] > 30) {
@@ -137,7 +134,7 @@ void dspMonitor(DataType* input, level_t output[], int size) {
 #if WCET
 __attribute__((noinline))
 #endif
-void dspTag(DataType* input, level_t monitor[], tagged_item output[], int size) {
+void Tag(DataType* input, level_t monitor[], tagged_item output[], int size) {
     #pragma loopbound min SIGNAL_SIZE max SIGNAL_SIZE
     for (int i = 0; i < size; i++) {
         output[i].value = input[i];
@@ -173,19 +170,19 @@ char *printLevel(level_t level) {
 #if WCET
 __attribute__((noinline))
 #endif
-void dspAudio(DataType gain, int n, DataType* input, int size, tagged_item output[], int* outputSize) {
-    DataType filtered[SIGNAL_SIZE];
+void Audio(DataType gain, int n, DataType* input, int size, tagged_item output[], int* outputSize) {
+    DataType clipped[SIGNAL_SIZE];
     DataType smoothed[MAX_OUTPUT_SIZE];
     DataType rms[MAX_OUTPUT_SIZE];
     DataType amplified[MAX_OUTPUT_SIZE];
     level_t monitored[MAX_OUTPUT_SIZE];
     printArray("input", input, size);
-    dspFilter(input, filtered, size); printArray("clipped",filtered, size);
-    dspSMA(n, filtered, smoothed, size); printArray("smoothed", smoothed, size);
-    dspRMS(n, smoothed, rms, size - n + 1); printArray("rms", rms, size);
-    dspGain(gain, rms, amplified, size - n + 1); printArray("gained", amplified, size);
-    dspMonitor(amplified, monitored, size - n + 1);
-    dspTag(amplified, monitored, output, size - n + 1);
+    Clipper(input, clipped, size); printArray("clipped", clipped, size);
+    SMA(n, clipped, smoothed, size); printArray("smoothed", smoothed, size);
+    RMS(n, smoothed, rms, size - n + 1); printArray("rms", rms, size);
+    Gain(gain, rms, amplified, size - n + 1); printArray("gained", amplified, size);
+    Monitor(amplified, monitored, size - n + 1);
+    Tag(amplified, monitored, output, size - n + 1);
 
     *outputSize = size - n + 1;
 }
@@ -198,7 +195,7 @@ int main() {
     DataType gain = 25; 
     int winSize = 4; //max is 4
 
-    dspAudio(gain, winSize, input, SIGNAL_SIZE, output, &outputSize);
+    Audio(gain, winSize, input, SIGNAL_SIZE, output, &outputSize);
 #if !WCET
     for (int i = 0; i < outputSize; i++) {
         printf("Value: %i.%i, Label: %s\n", output[i].value/10, output[i].value%10, printLevel(output[i].label));
