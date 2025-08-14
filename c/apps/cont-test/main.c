@@ -17,7 +17,9 @@ void core3(){
 	#include "accesses_3.txt.c"	
 }
 
-void* test_fns[4] = {(void*)core0, (void*)core1, (void*)core2, (void*)core3};
+#define CORES 4
+
+void* test_fns[CORES] = {(void*)core0, (void*)core1, (void*)core2, (void*)core3};
 
 volatile int core_timing[CORES];
 volatile _UNCACHED int core_status[CORES]; // 0: start, 1: ready, 2: done
@@ -79,7 +81,7 @@ int main() {
 	}
 	start = 0;
 	
-	for(int i = 1; i<CORES; i++) {
+	for(int i = 1; i<CORES_RUNNING; i++) {
 		corethread_create(i, &run_core, test_fns[i]);
 	}
 	
@@ -87,7 +89,7 @@ int main() {
 	int wait;
 	do {
 		wait = 0;
-		for(int i = 1; i<CORES; i++) {
+		for(int i = 1; i<CORES_RUNNING; i++) {
 			wait |= core_status[i] != 1; 
 		}
 	} while(wait);
@@ -100,7 +102,7 @@ int main() {
 	// Wait on other cores to finish
 	do {
 		wait = 0;
-		for(int i = 1; i<CORES; i++) {
+		for(int i = 1; i<CORES_RUNNING; i++) {
 			wait |= core_status[i] != 2; 
 		}
 	} while(wait);
