@@ -68,6 +68,9 @@ abstract class Config {
   case class SCacheConfig(size: Int)
   val SCache: SCacheConfig
 
+  case class L2CacheConfig(size: Int, ways: Int, bytesPerBlock: Int, repl: String)
+  val L2Cache: L2CacheConfig
+
   case class SPMConfig(size: Int)
   val ISPM: SPMConfig
   val DSPM: SPMConfig
@@ -227,6 +230,20 @@ object Config {
                                      hasParent, defaultConf.DCache.repl),
                          getBooleanAttr(node, "DCache", "@writeThrough",
                                         hasParent, defaultConf.DCache.writeThrough))
+
+      val L2Cache = if ((node \ "L2Cache").isEmpty) {
+        new L2CacheConfig(0, 0, 0, "")
+      } else {
+        new L2CacheConfig(getSizeAttr(node, "L2Cache", "@size",
+          hasParent, defaultConf.L2Cache.size),
+          getIntAttr(node, "L2Cache", "@ways",
+            hasParent, defaultConf.L2Cache.ways),
+          getIntAttr(node, "L2Cache", "@bytesPerBlock",
+            hasParent, defaultConf.L2Cache.bytesPerBlock),
+          getTextAttr(node, "L2Cache", "@repl",
+            hasParent, defaultConf.L2Cache.repl))
+      }
+
 
       val SCache =
         new SCacheConfig(getSizeAttr(node, "SCache", "@size",
@@ -403,6 +420,7 @@ object Config {
     val SCache = new SCacheConfig(0)
     val ISPM = new SPMConfig(0)
     val DSPM = new SPMConfig(0)
+    val L2Cache = new L2CacheConfig(0, 0, 0, "")
     val ExtMem = new ExtMemConfig(0,new DeviceConfig("","", Map(), -1, List[Int]()))
     val Devs = List[DeviceConfig]()
     val Coprocessors = List[CoprocessorConfig]()

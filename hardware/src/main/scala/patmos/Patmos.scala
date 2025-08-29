@@ -25,6 +25,8 @@ import datacache._
 import ocp.{OcpCoreSlavePort, _}
 import argo._
 import cop._
+import caches.hardware.pipelined._
+import caches.hardware.reppol._
 
 import scala.collection.immutable.Stream.Empty
 import scala.collection.mutable
@@ -463,51 +465,164 @@ class Patmos(configFile: String, binFile: String, datFile: String, genEmu: Boole
   // Connect memory controller
   val ramConf = config.ExtMem.ram
   val ramCtrl = Config.createDevice(ramConf).asInstanceOf[BurstDevice]
-  
+
+  val l2CacheConf = config.L2Cache
 
   registerPins(ramConf.name, ramCtrl.io)
 
   // TODO: fix memory arbiter to have configurable memory timing.
   // E.g., it does not work with on-chip main memory.
   if (cores.length + memAccessCount == 1) {
-    ramCtrl.io.ocp.M <> cores(0).io.memPort.M
-    cores(0).io.memPort.S <> ramCtrl.io.ocp.S
-    ramCtrl.io.superMode <> cores(0).io.superMode
-  } else {
-    
-    // memAccessCount stores the totale number of required memory access ports
-    val memarbiterCount = if(memAccessCount > 0) memAccessCount + nrCores else nrCores
+    if (l2CacheConf.size > 0) {
+      println("\n Using L2 cache for single core configuration \n")
 
-    val memarbiter =
-      if(ramCtrl.isInstanceOf[DDR3Bridge] || ramCtrl.isInstanceOf[OCRamCtrl] || config.roundRobinArbiter) {
-        Module(new ocp.Arbiter(memarbiterCount, ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
-      } else {
-        Module(new ocp.TdmArbiterWrapper(memarbiterCount, ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
+      val l2Size = l2CacheConf.size
+      val nWays = l2CacheConf.ways
+      val nCores = cores.length
+      val bytesPerBlock = l2CacheConf.bytesPerBlock
+
+      val l2nSets = l2Size / (nWays * bytesPerBlock)
+
+      val repPolGen = l2CacheConf.repl match {
+        case "plru" => () => new BitPlruReplacementPolicy(nWays, l2nSets, nCores)
+        case "cont" => () => new ContentionReplacementPolicy(nWays, l2nSets, nCores, () => new BitPlruReplacementPolicy(nWays, l2nSets, nCores))
+        case _ => throw new Error("Unknown L2 cache replacement policy: " + l2CacheConf.repl)
       }
-      
-    var arbiterEntry = 0
-    for (i <- cores.indices) {
-      memarbiter.io.master(arbiterEntry).M <> cores(i).io.memPort.M
-      cores(i).io.memPort.S <> memarbiter.io.master(arbiterEntry).S
 
-      arbiterEntry = arbiterEntry +1
-      
-      for(j <- 0 until COP_COUNT) {
-        val copConf = config.Coprocessors(j)
-        val id = copConf.CoprocessorID;
+      val l2CacheGen = () => new SharedPipelinedCache(
+        sizeInBytes = l2Size,
+        nWays = nWays,
+        nCores = nCores,
+        reqIdWidth = 1,
+        addressWidth = EXTMEM_ADDR_WIDTH,
+        bytesPerBlock = bytesPerBlock,
+        bytesPerSubBlock = (DATA_WIDTH / 8) * BURST_LENGTH,
+        memBeatSize = DATA_WIDTH / 8,
+        memBurstLen = BURST_LENGTH,
+        l2RepPolicy = repPolGen
+      )
 
-        if(copConf.requiresMemoryAccess) {
-          // as memory access is required object is actually of CoprocessorMemory
-          val copMem = cops(i)(id).asInstanceOf[CoprocessorMemoryAccess]
-          memarbiter.io.master(arbiterEntry).M <> copMem.io.memPort.M
-          copMem.io.memPort.S <> memarbiter.io.master(arbiterEntry).S
-          arbiterEntry = arbiterEntry +1
-        }
-    
-      }
+      val l2Cache = Module(new OcpCacheWrapperMultiCore(
+        nCores = nCores,
+        addrWidth = EXTMEM_ADDR_WIDTH,
+        coreDataWidth = DATA_WIDTH,
+        coreBurstLen = BURST_LENGTH,
+        memDataWidth = DATA_WIDTH,
+        memBurstLen = BURST_LENGTH,
+        l2Cache = l2CacheGen
+      ))
+
+      // TODO: Need to connect these
+      l2Cache.io.scheduler.M.Cmd := OcpCmd.IDLE // OCP cmd === OcpCmd.RD || OcpCmd.WR
+      l2Cache.io.scheduler.M.Addr := DontCare // OCP addr
+      l2Cache.io.scheduler.M.Data := DontCare // OCP data
+      l2Cache.io.scheduler.M.ByteEn := DontCare
+
+      // Connect the core to the l2 cache
+      l2Cache.io.core(0).M <> cores(0).io.memPort.M
+      cores(0).io.memPort.S <> l2Cache.io.core(0).S
+
+      // Connection between l2 cache and the memory controller
+      ramCtrl.io.ocp.M <> l2Cache.io.mem.M
+      l2Cache.io.mem.S <> ramCtrl.io.ocp.S
+      ramCtrl.io.superMode <> cores(0).io.superMode
+    } else {
+      ramCtrl.io.ocp.M <> cores(0).io.memPort.M
+      cores(0).io.memPort.S <> ramCtrl.io.ocp.S
+      ramCtrl.io.superMode <> cores(0).io.superMode
     }
-    ramCtrl.io.ocp.M <> memarbiter.io.slave.M
-    memarbiter.io.slave.S <> ramCtrl.io.ocp.S
+  } else {
+    if (l2CacheConf.size > 0) {
+      println("\n Using L2 cache for single core configuration \n")
+
+      val l2Size = l2CacheConf.size
+      val nWays = l2CacheConf.ways
+      val nCores = cores.length
+      val bytesPerBlock = l2CacheConf.bytesPerBlock
+
+      val l2nSets = l2Size / (nWays * bytesPerBlock)
+
+      val repPolGen = l2CacheConf.repl match {
+        case "plru" => () => new BitPlruReplacementPolicy(nWays, l2nSets, nCores)
+        case "cont" => () => new ContentionReplacementPolicy(nWays, l2nSets, nCores, () => new BitPlruReplacementPolicy(nWays, l2nSets, nCores))
+        case _ => throw new Error("Unknown L2 cache replacement policy: " + l2CacheConf.repl)
+      }
+
+      val l2CacheGen = () => new SharedPipelinedCache(
+        sizeInBytes = l2Size,
+        nWays = nWays,
+        nCores = nCores,
+        reqIdWidth = 1,
+        addressWidth = EXTMEM_ADDR_WIDTH,
+        bytesPerBlock = bytesPerBlock,
+        bytesPerSubBlock = (DATA_WIDTH / 8) * BURST_LENGTH,
+        memBeatSize = DATA_WIDTH / 8,
+        memBurstLen = BURST_LENGTH,
+        l2RepPolicy = repPolGen
+      )
+
+      val l2Cache = Module(new OcpCacheWrapperMultiCore(
+        nCores = nCores,
+        addrWidth = EXTMEM_ADDR_WIDTH,
+        coreDataWidth = DATA_WIDTH,
+        coreBurstLen = BURST_LENGTH,
+        memDataWidth = DATA_WIDTH,
+        memBurstLen = BURST_LENGTH,
+        l2Cache = l2CacheGen
+      ))
+
+      // TODO: Need to connect these
+      l2Cache.io.scheduler.M.Cmd := OcpCmd.IDLE // OCP cmd === OcpCmd.RD || OcpCmd.WR
+      l2Cache.io.scheduler.M.Addr := DontCare // OCP addr
+      l2Cache.io.scheduler.M.Data := DontCare // OCP data
+      l2Cache.io.scheduler.M.ByteEn := DontCare
+
+      // Connect all the cores to the l2 cache
+      for (i <- cores.indices) {
+        l2Cache.io.core(i).M <> cores(i).io.memPort.M
+        cores(i).io.memPort.S <> l2Cache.io.core(i).S
+      }
+
+      // Connection between l2 cache and the memory controller
+      ramCtrl.io.ocp.M <> l2Cache.io.mem.M
+      l2Cache.io.mem.S <> ramCtrl.io.ocp.S
+    } else {
+      // memAccessCount stores the totale number of required memory access ports
+      val memarbiterCount = if(memAccessCount > 0) memAccessCount + nrCores else nrCores
+
+      val memarbiter =
+        if(ramCtrl.isInstanceOf[DDR3Bridge] || ramCtrl.isInstanceOf[OCRamCtrl] || config.roundRobinArbiter) {
+          Module(new ocp.Arbiter(memarbiterCount, ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
+        } else {
+          Module(new ocp.TdmArbiterWrapper(memarbiterCount, ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
+        }
+
+      var arbiterEntry = 0
+      for (i <- cores.indices) {
+        memarbiter.io.master(arbiterEntry).M <> cores(i).io.memPort.M
+        cores(i).io.memPort.S <> memarbiter.io.master(arbiterEntry).S
+
+        arbiterEntry = arbiterEntry +1
+
+        for(j <- 0 until COP_COUNT) {
+          val copConf = config.Coprocessors(j)
+          val id = copConf.CoprocessorID;
+
+          if(copConf.requiresMemoryAccess) {
+            // as memory access is required object is actually of CoprocessorMemory
+            val copMem = cops(i)(id).asInstanceOf[CoprocessorMemoryAccess]
+            memarbiter.io.master(arbiterEntry).M <> copMem.io.memPort.M
+            copMem.io.memPort.S <> memarbiter.io.master(arbiterEntry).S
+            arbiterEntry = arbiterEntry +1
+          }
+
+        }
+      }
+
+      ramCtrl.io.ocp.M <> memarbiter.io.slave.M
+      memarbiter.io.slave.S <> ramCtrl.io.ocp.S
+    }
+
     ramCtrl.io.superMode := false.B
   }
 

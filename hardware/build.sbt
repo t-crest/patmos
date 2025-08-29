@@ -1,3 +1,4 @@
+
 name := "Patmos"
 
 scalaVersion := "2.13.10"
@@ -56,3 +57,4 @@ libraryDependencies += "edu.berkeley.cs" %% "chiseltest" % "0.5.6"
 // For FIFO buffers
 libraryDependencies += "edu.berkeley.cs" % "ip-contributions" % "0.5.4"
 libraryDependencies += "com.fazecast" % "jSerialComm" % "[2.0.0,3.0.0)"
+libraryDependencies += "l2-cache" %% "l2-cache" % "0.1.0-SNAPSHOT"
