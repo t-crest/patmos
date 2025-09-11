@@ -12,8 +12,8 @@ NOTES ON STUFF MISSING FROM THE OLD EMULATOR
 
 //OTHER INTEMEDIATE HARDCODE
 
-
-
+// Solves a compile issue with verilator versions <5
+double sc_time_stamp() { return 0; }
 
 #include <fstream>
 #include <iostream>
