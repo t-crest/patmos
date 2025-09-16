@@ -1,7 +1,7 @@
 
 TEST_SETTINGS_FILE="testing_settings.h"
 RESULT_FILE="cont-test-results.csv"
-REPEAT=10
+REPEAT=200
 
 # Prepare output file
 echo "config,core0,core1,core2,core3" > $RESULT_FILE
@@ -67,4 +67,9 @@ run_benchmark
 echo "#define CORES_RUNNING 4" > $TEST_SETTINGS_FILE
 echo "#define CONTENTION_LIMIT 2000" >> $TEST_SETTINGS_FILE
 CONFIG_NAME="patmos-cont-4-2k"
+run_benchmark
+
+echo "#define CORES_RUNNING 4" > $TEST_SETTINGS_FILE
+echo "#define CONTENTION_LIMIT 4000" >> $TEST_SETTINGS_FILE
+CONFIG_NAME="patmos-cont-4-4k"
 run_benchmark
