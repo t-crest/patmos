@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <machine/patmos.h>
 #include "../../libcorethread/corethread.h"
-#include "testing_settings.h"
+#include "testing_settings.h" // Should define 'CORES_RUNNING' and 'CONTENTION_LIMIT'
 
 
 void core0(){
@@ -56,12 +56,12 @@ void run_core(void *arg) {
 	
 	int core_id = get_cpuid();
 	int start, end;
-
-	// Set contention limit of the first core
-	if(core_id == 0) {
-		*sch_io_ptr = 100;
-	}
 	
+	// Set contention limit of the first core
+	if(CONTENTION_LIMIT && core_id == 0) {
+		*sch_io_ptr = CONTENTION_LIMIT;
+	}
+
 	core_status[core_id] = 1;
 	while(!start){} // wait until the main core issues the start command
 		
@@ -79,7 +79,7 @@ void run_core(void *arg) {
 	core_status[core_id] = 2;
 
 	// Once the first core is done unset it's contention limit
-	if(core_id == 0) {
+	if(CONTENTION_LIMIT && core_id == 0) {
 		int cnt_limit;
 		cnt_limit = *sch_io_ptr;
 	}
@@ -123,5 +123,6 @@ int main() {
 	} while(wait && (currentCC < maxCCs));
 	
 	printf("%d,%d,%d,%d\n", core_timing[0], core_timing[1], core_timing[2], core_timing[3]);
+
 }
 
