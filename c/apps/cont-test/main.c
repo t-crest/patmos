@@ -110,7 +110,7 @@ int main() {
 	
 	run_core(core0);
 	
-	int maxCCs = 100000;
+	int maxCCs = 1000000;
 	int currentCC = 0;
 	// Wait on other cores to finish
 	do {
