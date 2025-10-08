@@ -1,10 +1,18 @@
-
 TEST_SETTINGS_FILE="testing_settings.h"
 RESULT_FILE="cont-test-results.csv"
 REPEAT=200
+FPGA=false
+
+while [[ "$#" -gt 0 ]]; do
+  case $1 in
+    --fpga) FPGA=true ;;
+    *) echo "Unknown option: $1"; exit 1 ;;
+  esac
+  shift
+done
 
 # Prepare output file
-echo "config,core0,core1,core2,core3" > $RESULT_FILE
+echo "config,core0,core1,core2,core3,status" > $RESULT_FILE
 
 function run_benchmark {
 	COUNTER=0
@@ -14,20 +22,33 @@ function run_benchmark {
 		make
 		
 		cd ../../..
-		# Run on FPGA
-		#output=$(make APP=cont-test config download)
-		# Run on emulator
-		output=$(timeout --kill-after=5s 30s patemu tmp/cont-test.elf)
-		
-		if [ $? -eq 124 ]; then
+
+		if [ "$FPGA" = true ]; then
+			# Run on FPGA
+			# NOTE: The timeout utility doesnt work with the make target that well
+			echo "Running on FPGA..."
+			output=$(make APP=cont-test config download)
+			exit_code=$?
+		else
+			# Run on emulator
+			echo "Running on emulator..."
+			output=$(timeout --kill-after=5s 60s patemu tmp/cont-test.elf)
+			exit_code=$?
+		fi
+
+
+		if [ $exit_code -eq 124 ]; then
 			echo "Timeout"
 			# Timed out, just show zeros
 			RESULT_LINE="0,0,0,0"
+			STATUS="T"
 		else
 			# Output last line (results) to file
 			RESULT_LINE=$(echo "$output" | tail -n 1) 
+			STATUS="S"
 		fi
-		echo "$CONFIG_NAME,$RESULT_LINE" >> "c/apps/cont-test/$RESULT_FILE"
+
+		echo "$CONFIG_NAME,$RESULT_LINE,$STATUS" >> "c/apps/cont-test/$RESULT_FILE"
 		COUNTER=$(( $COUNTER + 1 ))
 		
 		cd c/apps/cont-test

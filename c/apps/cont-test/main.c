@@ -120,7 +120,7 @@ int main() {
 		}
 
 		currentCC++;
-	} while(wait && (currentCC < maxCCs));
+	} while(wait /*&& (currentCC < maxCCs)*/);
 	
 	printf("%d,%d,%d,%d\n", core_timing[0], core_timing[1], core_timing[2], core_timing[3]);
 
