@@ -110,7 +110,7 @@ int main() {
 	
 	run_core(core0);
 	
-	int maxCCs = 1000000;
+	int maxCCs = 1300000;
 	int currentCC = 0;
 	// Wait on other cores to finish
 	do {
@@ -124,5 +124,6 @@ int main() {
 	
 	printf("%d,%d,%d,%d\n", core_timing[0], core_timing[1], core_timing[2], core_timing[3]);
 
+  	return 0;
 }
 

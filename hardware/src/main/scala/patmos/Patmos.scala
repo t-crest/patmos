@@ -307,18 +307,17 @@ class Patmos(configFile: String, binFile: String, datFile: String, genEmu: Boole
   // Create an instance of a l2 cache
   val l2CacheConf = config.L2Cache
 
-  val l2Cache = if (HAS_L2) {
+  val l2Cache = Option.when(HAS_L2) {
     val l2Size = l2CacheConf.size
     val nWays = l2CacheConf.ways
     val nCores = cores.length
     val bytesPerBlock = l2CacheConf.bytesPerBlock
-
     val l2nSets = l2Size / (nWays * bytesPerBlock)
 
     val repPolGen = l2CacheConf.repl match {
       case "plru" => () => new BitPlruReplacementPolicy(nWays, l2nSets, nCores)
-      case "cont" => () => new ContentionReplacementPolicy(nWays, l2nSets, nCores, () => new BitPlruReplacementPolicy(nWays, l2nSets, nCores), enablePrecedentEvents = true, enableWbEvents = true, enableMissInMiss = true)
-      case "time" => () => new TimeoutReplacementPolicy(nWays, l2nSets, nCores, () => new BitPlruReplacementPolicy(nWays, l2nSets, nCores))
+      case "cont" => () => new ContentionReplacementPolicy(nWays, l2nSets, nCores, BasePolicies.BIT_PLRU, enablePrecedentEvents = true, enableWbEvents = true, enableMissInMiss = true)
+      case "time" => () => new TimeoutReplacementPolicy(nWays, l2nSets, nCores, BasePolicies.BIT_PLRU)
       case _ => throw new Error("Unknown L2 cache replacement policy: " + l2CacheConf.repl)
     }
 
@@ -335,19 +334,15 @@ class Patmos(configFile: String, binFile: String, datFile: String, genEmu: Boole
       l2RepPolicy = repPolGen
     )
 
-    Some(
-      Module(new OcpCacheWrapper(
-        nCores = cores.length,
-        addrWidth = ADDR_WIDTH,
-        coreDataWidth = DATA_WIDTH,
-        coreBurstLen = BURST_LENGTH,
-        memDataWidth = DATA_WIDTH,
-        memBurstLen = BURST_LENGTH,
-        l2Cache = l2CacheGen
-      ))
-    )
-  } else {
-    None
+    Module(new OcpCacheWrapper(
+      nCores = cores.length,
+      addrWidth = ADDR_WIDTH,
+      coreDataWidth = DATA_WIDTH,
+      coreBurstLen = BURST_LENGTH,
+      memDataWidth = DATA_WIDTH,
+      memBurstLen = BURST_LENGTH,
+      l2Cache = l2CacheGen
+    ))
   }
 
   for (i <- 0 until nrCores) {
@@ -392,11 +387,13 @@ class Patmos(configFile: String, binFile: String, datFile: String, genEmu: Boole
     val cpuInfoDev = (CPUINFO_OFFSET, cpuinfo.io.asInstanceOf[Bundle], cpuinfo.getClass.getSimpleName)
     val exceptionUnitDev = (EXC_IO_OFFSET, cores(i).io.excInOut, "ExceptionUnit")
     val mmuDev = (MMU_IO_OFFSET, cores(i).io.mmuInOut, "MMU") // only included if HAS_MMU
+    val l2SchedDev = (L2_SCHED_OFFSET, l2Cache.map(_.io.scheduler.asInstanceOf[Bundle]).getOrElse(new Bundle {}), l2Cache.map(_.getClass.getSimpleName).getOrElse(""))
 
-    val allDevs = if (HAS_MMU) {
-      cpuInfoDev :: exceptionUnitDev :: mmuDev :: configDevs
-    } else {
-      cpuInfoDev :: exceptionUnitDev :: configDevs
+    val allDevs = (HAS_MMU, HAS_L2, i) match {
+      case (true, false, _) => cpuInfoDev :: exceptionUnitDev :: mmuDev :: configDevs
+      case (true, true, 0) => cpuInfoDev :: exceptionUnitDev :: mmuDev :: l2SchedDev :: configDevs
+      case (false, true, 0) => cpuInfoDev :: exceptionUnitDev :: l2SchedDev :: configDevs
+      case (_, _, _) => cpuInfoDev :: exceptionUnitDev :: configDevs
     }
 
     val singledevios = allDevs.map { case (offset, io, name) =>
@@ -476,46 +473,6 @@ class Patmos(configFile: String, binFile: String, datFile: String, genEmu: Boole
       registerPins(dev.name, _io)
     }
 
-    val getL2SchedDev = () =>
-      if (HAS_L2 && i == 0) {
-        Some(Device(l2Cache.get.getClass.getSimpleName, l2Cache.get.io.scheduler.asInstanceOf[Bundle], (0XF0 << 8 ) + L2_SCHED_OFFSET, IO_DEVICE_ADDR_WIDTH))
-      } else {
-        None
-      }
-
-    // Connect the L2 cache scheduler port to the first core
-    val l2SchedDev = getL2SchedDev()
-    var l2SchedOcp: Option[caches.hardware.ocp.OcpCoreSlavePort] = None
-    if (l2SchedDev.isDefined) {
-      val l2schedDevVal = l2SchedDev.get
-      val _io = getIO(l2schedDevVal.io, 0)
-
-      val ocp = _io match {
-        case __io: caches.hardware.ocp.OcpCoreSlavePort => __io
-      }
-
-      val sel = cores(i).io.memInOut.M.Addr(ADDR_WIDTH-1, ADDR_WIDTH-l2schedDevVal.addrWidth) === l2schedDevVal.addr.U
-      ocp.M := cores(i).io.memInOut.M
-      ocp.M.Cmd := OcpCmd.IDLE
-
-      when(sel) {
-        ocp.M.Cmd := cores(i).io.memInOut.M.Cmd
-        validdev := true.B
-      }
-
-      val selReg = RegInit(false.B)
-      when(cores(i).io.memInOut.M.Cmd =/= OcpCmd.IDLE) {
-        selReg := sel
-      }
-
-      when(selReg) {
-        cores(i).io.memInOut.S.Data := ocp.S.Data
-      }
-
-      registerPins(l2schedDevVal.name, _io)
-      l2SchedOcp = Some(ocp)
-    }
-
     // Register for error response
     val errRespReg = RegInit(OcpResp.NULL)
     when(cores(i).io.memInOut.M.Cmd =/= OcpCmd.IDLE && !validdev) {
@@ -523,17 +480,7 @@ class Patmos(configFile: String, binFile: String, datFile: String, genEmu: Boole
     }
 
     // Merge responses
-    val getDeviosResps = (_devios: List[Device]) =>
-      if (l2SchedDev.isDefined) {
-        val _devResps = _devios.map(e => getSlavePort(getIO(e.io, i)).S.Resp)
-        _devResps :+ l2SchedOcp.get.S.Resp
-      } else {
-        _devios.map(e => getSlavePort(getIO(e.io, i)).S.Resp)
-      }
-
-    val deviosResps = getDeviosResps(devios)
-
-    cores(i).io.memInOut.S.Resp := errRespReg | deviosResps.fold(OcpResp.NULL)(_|_)
+    cores(i).io.memInOut.S.Resp := errRespReg | devios.map(e => getSlavePort(getIO(e.io, i)).S.Resp).fold(OcpResp.NULL)(_|_)
 
     // Instantiate coprocessors
     for (k <- (0 until COP_COUNT)) {
