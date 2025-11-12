@@ -20,9 +20,9 @@ object MemBridge extends DeviceObject {
 class MemBridge(ocpAddrWidth : Int = 32,
                 extAddrWidth : Int = 32,
                 dataWidth : Int = 32) extends BurstDevice(ocpAddrWidth) {
-    override val io = new BurstDeviceIO(ocpAddrWidth) with patmos.HasPins {
+    override val io = IO(new BurstDeviceIO(ocpAddrWidth) with patmos.HasPins {
         val pins: OcpBurstMasterPort = new OcpBurstMasterPort(extAddrWidth, dataWidth, 4)
-    }
+    })
 
     // Ok, this might not work
     // Wire straight through and hope for the best
