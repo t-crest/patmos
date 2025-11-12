@@ -69,7 +69,7 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int, debug: Boolean = false) ext
   val memory = Module(new Memory())
   val writeback = Module(new WriteBack())
   val exc = Module(new Exceptions())
-
+  
   val dcache = Module(new DataCache())
 
   //connect icache
@@ -260,7 +260,7 @@ class Patmos(configFile: String, binFile: String, datFile: String, genEmu: Boole
 
   var envinfoOpt = None: Option[cmp.EnvInfo]
   var uartcmpOpt = None: Option[cmp.UartCmp]
-
+  
   val IO_DEVICE_ADDR_WIDTH = 16
 
   case class Device(name: String, io: Data, addr: Int, addrWidth: Int)
@@ -300,9 +300,6 @@ class Patmos(configFile: String, binFile: String, datFile: String, genEmu: Boole
 
     Device(dev.getClass.getSimpleName, dev.io, off, width)
   })
-
-  val cops = Array.ofDim[Coprocessor](nrCores,COP_COUNT)
-  var memAccessCount = 0
 
   // Create an instance of a l2 cache
   val l2CacheConf = config.L2Cache
@@ -345,6 +342,9 @@ class Patmos(configFile: String, binFile: String, datFile: String, genEmu: Boole
     ))
   }
 
+  val cops = Array.ofDim[Coprocessor](nrCores,COP_COUNT)
+  var memAccessCount = 0
+
   for (i <- 0 until nrCores) {
 
     println(s"Config core $i:")
@@ -362,25 +362,25 @@ class Patmos(configFile: String, binFile: String, datFile: String, genEmu: Boole
       .filter(e => e.allcores || e.core == i)
       .map(e => (e,Config.createDevice(e).asInstanceOf[CoreDevice]))
       .map { case (conf,dev) =>
-        dev.io match {
-          case io: HasSuperMode => io.superMode := cores(i).io.superMode
-          case _ =>
-        }
-        dev.io match {
-          case io: HasPerfCounter => io.perf := cores(i).io.perf
-          case _ =>
-        }
-        dev.io match {
-          case io: HasInterrupts => {
-            if (io.interrupts.length != conf.intrs.length) {
-              throw new Error("Inconsistent interrupt counts for IO device "+name)
-            }
-            for (j <- conf.intrs.indices) {
-              cores(i).io.interrupts(conf.intrs(j)) := io.interrupts(j)
-            }
+          dev.io match {
+            case io: HasSuperMode => io.superMode := cores(i).io.superMode
+            case _ =>
           }
-          case _ =>
-        }
+          dev.io match {
+            case io: HasPerfCounter => io.perf := cores(i).io.perf
+            case _ =>
+          }
+          dev.io match {
+            case io: HasInterrupts => {
+              if (io.interrupts.length != conf.intrs.length) {
+                throw new Error("Inconsistent interrupt counts for IO device "+name)
+              }
+              for (j <- conf.intrs.indices) {
+                cores(i).io.interrupts(conf.intrs(j)) := io.interrupts(j)
+              }
+            }
+            case _ =>
+          }
         (conf.offset, dev.io.asInstanceOf[Bundle], conf.ref) // (offset, io, name)
       }
 
@@ -439,8 +439,8 @@ class Patmos(configFile: String, binFile: String, datFile: String, genEmu: Boole
       val ocp = getSlavePort(_io)
 
       val sel = cores(i).io.memInOut.M.Addr(ADDR_WIDTH-1, ADDR_WIDTH-dev.addrWidth) === dev.addr.U &&
-        (if(dev.name == "spm") !cores(i).io.memInOut.M.Addr(ISPM_ONE_BIT)
-        else true.B)
+        (if(dev.name == "spm") !cores(i).io.memInOut.M.Addr(ISPM_ONE_BIT) 
+         else true.B)
       ocp.M := cores(i).io.memInOut.M
       ocp.M.Cmd := OcpCmd.IDLE
       when(sel) {
@@ -482,6 +482,7 @@ class Patmos(configFile: String, binFile: String, datFile: String, genEmu: Boole
     // Merge responses
     cores(i).io.memInOut.S.Resp := errRespReg | devios.map(e => getSlavePort(getIO(e.io, i)).S.Resp).fold(OcpResp.NULL)(_|_)
 
+
     // Instantiate coprocessors
     for (k <- (0 until COP_COUNT)) {
       val copConf = config.Coprocessors(k)
@@ -493,20 +494,21 @@ class Patmos(configFile: String, binFile: String, datFile: String, genEmu: Boole
         cores(i).io.copInOut(k).copPatmos <> copMem.io.copOut
         memAccessCount = memAccessCount + 1;
         cops(i)(id) = copMem
-
+        
       } else {
         val copNoMem = Config.createCoprocessor(copConf).asInstanceOf[BaseCoprocessor]
         copNoMem.io.copIn <> cores(i).io.copInOut(k).patmosCop
         cores(i).io.copInOut(k).copPatmos <> copNoMem.io.copOut
         cops(i)(id) = copNoMem
       }
-
+      
     }
   }
 
   // Connect memory controller
   val ramConf = config.ExtMem.ram
   val ramCtrl = Config.createDevice(ramConf).asInstanceOf[BurstDevice]
+  
 
   registerPins(ramConf.name, ramCtrl.io)
 
@@ -589,19 +591,19 @@ class Patmos(configFile: String, binFile: String, datFile: String, genEmu: Boole
   for((pinid, devicepin) <- pins) {
     val patmospin = io.elements(pinid)
     DataMirror.specifiedDirectionOf(devicepin).toString match {
-      case "Input" => devicepin := patmospin
-      case "Output" => patmospin := devicepin
-      case "Unspecified" => attach(devicepin.asInstanceOf[Analog], patmospin.asInstanceOf[Analog])
+        case "Input" => devicepin := patmospin
+        case "Output" => patmospin := devicepin
+        case "Unspecified" => attach(devicepin.asInstanceOf[Analog], patmospin.asInstanceOf[Analog])
     }
   }
-
+  
   // Print out the configuration
   Utility.printConfig(configFile)
-
+  
   if (genEmu) {
 
     envinfoOpt match {
-      case Some(envinfo) =>
+      case Some(envinfo) => 
       {
         val envinfoIO = IO(new Bundle
         {
@@ -622,7 +624,7 @@ class Patmos(configFile: String, binFile: String, datFile: String, genEmu: Boole
     }
 
     uartcmpOpt match {
-      case Some(uartcmp) =>
+      case Some(uartcmp) => 
       {
         val uartcmpIO = IO(new Bundle
         {

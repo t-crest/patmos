@@ -85,13 +85,13 @@ object Constants {
   // Memory management unit
   val HAS_MMU = Config.getConfig.mmu
   val MMU_IO_OFFSET = 7
+  
+  // L2 cache
+  val HAS_L2 = Config.getConfig.L2Cache.include
+  val L2_SCHED_OFFSET = 11
 
   // CPU Info unit
   val CPUINFO_OFFSET = 0
-
-  // L2 Cache
-  val HAS_L2 = Config.getConfig.L2Cache.include
-  val L2_SCHED_OFFSET = 11
 
   // The PC counts in words. 30 bits are enough for the 4 GB address space.
   // We might cut that down to what we actually really support (16 MB)
@@ -194,12 +194,12 @@ object Constants {
   def SPEC_SH     = "b0011".U(4.W)
   def SPEC_SS     = "b0101".U(4.W)
   def SPEC_ST     = "b0110".U(4.W)
-
+ 
   def SPEC_SRB    = "b0111".U(4.W)
   def SPEC_SRO    = "b1000".U(4.W)
   def SPEC_SXB    = "b1001".U(4.W)
   def SPEC_SXO    = "b1010".U(4.W)
-
+ 
   def STC_SRES    = "b0000".U(4.W)
   def STC_SENS    = "b0100".U(4.W)
   def STC_SFREE   = "b1000".U(4.W)

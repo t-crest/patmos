@@ -14,7 +14,6 @@
   <!--
   -->
 
-  <L2Cache size="64k" ways="8" bytesPerBlock="64" repl="cont" />
   <ExtMem size="2M" DevTypeRef="Sram16" />
   <!-- <ExtMem size="128k" DevTypeRef="OCRam" /> -->
 

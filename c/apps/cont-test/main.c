@@ -110,17 +110,13 @@ int main() {
 	
 	run_core(core0);
 	
-	int maxCCs = 1300000;
-	int currentCC = 0;
 	// Wait on other cores to finish
 	do {
 		wait = 0;
 		for(int i = 1; i<CORES_RUNNING; i++) {
 			wait |= core_status[i] != 2; 
 		}
-
-		currentCC++;
-	} while(wait /*&& (currentCC < maxCCs)*/);
+	} while(wait);
 	
 	printf("%d,%d,%d,%d\n", core_timing[0], core_timing[1], core_timing[2], core_timing[3]);
 

@@ -94,9 +94,9 @@ object Config {
   private def parseSize(text: String): Int = {
     val regex = """(\d+)([KMG]?)""".r
     val suffixMult = Map("" -> (1 << 0),
-      "K" -> (1 << 10),
-      "M" -> (1 << 20),
-      "G" -> (1 << 30))
+                         "K" -> (1 << 10),
+                         "M" -> (1 << 20),
+                         "G" -> (1 << 30))
     val regex(num, suffix) = text.toUpperCase
     num.toInt * suffixMult.getOrElse(suffix, 0)
   }
@@ -104,9 +104,9 @@ object Config {
   private def parseSizeLong(text: String): Long = {
     val regex = """(\d+)([KMG]?)""".r
     val suffixMult = Map("" -> (1 << 0),
-      "K" -> (1 << 10),
-      "M" -> (1 << 20),
-      "G" -> (1 << 30))
+               "K" -> (1 << 10),
+               "M" -> (1 << 20),
+               "G" -> (1 << 30))
     val regex(num, suffix) = text.toUpperCase
     num.toLong * suffixMult.getOrElse(suffix, 0)
   }
@@ -190,46 +190,50 @@ object Config {
       val description = (node \ "description").text
 
       val frequency = getIntAttr(node, "frequency", "@Hz",
-        hasParent, defaultConf.frequency)
+                                 hasParent, defaultConf.frequency)
 
       val dual = getBooleanAttr(node, "pipeline", "@dual",
-        hasParent, defaultConf.pipeCount > 1)
+                                hasParent, defaultConf.pipeCount > 1)
       val pipeCount = if (dual) 2 else 1
 
       val coreCount = getIntAttr(node, "cores", "@count",
-        hasParent, defaultConf.coreCount)
+                                 hasParent, defaultConf.coreCount)
 
-      val cmpDevices = ((node \ "CmpDevs") \ "CmpDev").map(e => (e \ "@name").text).toSet ++
+      val cmpDevices = ((node \ "CmpDevs") \ "CmpDev").map(e => (e \ "@name").text).toSet ++ 
         defaultConf.cmpDevices
 
       val burstLength  = getIntAttr(node, "bus", "@burstLength",
-        hasParent, defaultConf.burstLength)
+                                    hasParent, defaultConf.burstLength)
       val writeCombine = getBooleanAttr(node, "bus", "@writeCombine",
-        hasParent, defaultConf.writeCombine)
+                                        hasParent, defaultConf.writeCombine)
       val mmu = getBooleanAttr(node, "bus", "@mmu",
-        hasParent, defaultConf.mmu)
+                               hasParent, defaultConf.mmu)
       val roundRobinArbiter = getBooleanAttr(node, "bus", "@roundRobinArbiter",
-        hasParent, defaultConf.roundRobinArbiter)
+                               hasParent, defaultConf.roundRobinArbiter)
 
       val ICache =
         new ICacheConfig(getTextAttr(node, "ICache", "@type",
-          hasParent, defaultConf.ICache.typ),
-          getSizeAttr(node, "ICache", "@size",
-            hasParent, defaultConf.ICache.size),
-          getIntAttr(node,  "ICache", "@assoc",
-            hasParent, defaultConf.ICache.assoc),
-          getTextAttr(node, "ICache", "@repl",
-            hasParent, defaultConf.ICache.repl))
+                                     hasParent, defaultConf.ICache.typ),
+                         getSizeAttr(node, "ICache", "@size",
+                                     hasParent, defaultConf.ICache.size),
+                         getIntAttr(node,  "ICache", "@assoc",
+                                    hasParent, defaultConf.ICache.assoc),
+                         getTextAttr(node, "ICache", "@repl",
+                                     hasParent, defaultConf.ICache.repl))
 
       val DCache =
         new DCacheConfig(getSizeAttr(node, "DCache", "@size",
-          hasParent, defaultConf.DCache.size),
-          getIntAttr(node,  "DCache", "@assoc",
-            hasParent, defaultConf.DCache.assoc),
-          getTextAttr(node, "DCache", "@repl",
-            hasParent, defaultConf.DCache.repl),
-          getBooleanAttr(node, "DCache", "@writeThrough",
-            hasParent, defaultConf.DCache.writeThrough))
+                                     hasParent, defaultConf.DCache.size),
+                         getIntAttr(node,  "DCache", "@assoc",
+                                    hasParent, defaultConf.DCache.assoc),
+                         getTextAttr(node, "DCache", "@repl",
+                                     hasParent, defaultConf.DCache.repl),
+                         getBooleanAttr(node, "DCache", "@writeThrough",
+                                        hasParent, defaultConf.DCache.writeThrough))
+
+      val SCache =
+        new SCacheConfig(getSizeAttr(node, "SCache", "@size",
+                                     hasParent, defaultConf.SCache.size))
 
       val L2Cache = if ((node \ "L2Cache").isEmpty) {
         L2CacheConfig(include = false, 0, 0, 0, "")
@@ -245,43 +249,39 @@ object Config {
             hasParent, defaultConf.L2Cache.repl))
       }
 
-      val SCache =
-        new SCacheConfig(getSizeAttr(node, "SCache", "@size",
-          hasParent, defaultConf.SCache.size))
-
       val ISPM =
         new SPMConfig(getSizeAttr(node, "ISPM", "@size",
-          hasParent, defaultConf.ISPM.size))
+                                  hasParent, defaultConf.ISPM.size))
       val DSPM =
         new SPMConfig(getSizeAttr(node, "DSPM", "@size",
-          hasParent, defaultConf.DSPM.size))
+                                  hasParent, defaultConf.DSPM.size))
 
       val DevList = ((node \ "Devs") \ "Dev")
 
       val ExtMemNode = find(node, "ExtMem")
       var ExtMemDev = new DeviceConfig("","", Map(), -1, List[Int]())
-      var ExtMemAddrWidth = ""
+      var ExtMemAddrWidth = "" 
       if (!(ExtMemNode \ "@DevTypeRef").isEmpty){
-        ExtMemDev = devFromXML(ExtMemNode,DevList,false)
-
+                ExtMemDev = devFromXML(ExtMemNode,DevList,false)
+        
         for ((key, v) <- ExtMemDev.params){
           if (key.substring(key.length() - 9) == "AddrWidth"){
             ExtMemAddrWidth = v
           }
-        }
+        } 
       }
-
+      
       val UartDev = DevList.filter(d => (d \ "@DevType").text == "Uart")
       val UartParams = (UartDev \ "params")
       val UartParamsMap = if (UartParams.isEmpty) {
-        Map[String,String]()
-      } else {
-        Map((UartParams \ "param").map(p => find(p, "@name").text ->
-          find(p, "@value").text) : _*)
+          Map[String,String]()
+        } else {
+          Map((UartParams \ "param").map(p => find(p, "@name").text ->
+                                              find(p, "@value").text) : _*)
       }
 
       val ExtMem = new ExtMemConfig(parseSizeLong(find(ExtMemNode, "@size").text),
-        ExtMemDev)
+                                    ExtMemDev)
 
       val DevNodes = ((node \ "IOs") \ "IO")
       val Devs : List[Config#DeviceConfig] =
@@ -297,7 +297,7 @@ object Config {
       // Emit defines for emulator
       val buildDir = scala.util.Properties.envOrElse("HWBUILDDIR", "build" ) + "/"
       new java.io.File(buildDir).mkdirs // build dir is created
-      val file_config = new File(buildDir + "emulator_config.h")
+      val file_config = new File(buildDir + "emulator_config.h") 
       val emuConfig = new PrintWriter(file_config)
       emuConfig.write("#define CORE_COUNT "+coreCount+"\n")
       emuConfig.write("#define ICACHE_"+ICache.typ.toUpperCase+"\n")
@@ -308,12 +308,12 @@ object Config {
       emuConfig.write("#define BAUDRATE " + ConstantsForConf.UART_BAUD.toString + "\n") //TODO take baud from configuration .XML
       emuConfig.write("#define FREQ "+ frequency +"\n")
       emuConfig.close();
-
-
+      
+      
       val CopList = ((node \ "Coprocessors") \ "Coprocessor")
       val Coprocessors : List[Config#CoprocessorConfig] =  CopList.map(copFromXML(_, CopList)).toList ++ defaultConf.Coprocessors
       val coprocessorCount = Coprocessors.size
-
+      
       private def devFromXML(node: scala.xml.Node, devs: scala.xml.NodeSeq,
                              needOffset: Boolean = true): DeviceConfig = {
         val key = find(node, "@DevTypeRef").text
@@ -328,7 +328,7 @@ object Config {
           Map[String,String]()
         } else {
           Map((paramsNode \ "param").map(p => find(p, "@name").text ->
-            find(p, "@value").text) : _*)
+                                              find(p, "@value").text) : _*)
         }
         val offset = if (needOffset) {
           find(node, "@offset").text.toInt
@@ -343,19 +343,19 @@ object Config {
         }
         val coreNode = (node \ "@core")
         val core = if(coreNode.isEmpty) 0 else coreNode.text.toInt
-
+        
         val allcoresNode = (node \ "@allcores")
         val allcores = if(allcoresNode.isEmpty) false else allcoresNode.text.toBoolean
 
         println("IO device "+key+": entity "+name+
-          ", offset "+offset+", params "+params+
-          (if(!intrs.isEmpty) ", interrupts: "+intrs else "")+
-          ", " + (if(allcores) "all cores" else "core "+core))
+                         ", offset "+offset+", params "+params+
+                         (if(!intrs.isEmpty) ", interrupts: "+intrs else "")+
+                         ", " + (if(allcores) "all cores" else "core "+core))
         new DeviceConfig(key, name, params, offset, intrs, core, allcores)
       }
 
       private def copFromXML(node: scala.xml.Node, copList: scala.xml.NodeSeq): CoprocessorConfig = {
-
+        
         val key = find(node, "@CoprocessorID").text
         val devListFiltered = (copList.filter(d => (d \ "@CoprocessorID").text == key))
         if (devListFiltered.isEmpty) {
@@ -365,7 +365,7 @@ object Config {
         val cop = devListFiltered(0)
         val name = find(cop, "@Name").text
         val id = find(cop, "@CoprocessorID").text.toInt
-
+        
         val memAccessStr = (node \ "@requiresMemoryAccess").text
         val memAccess = if (memAccessStr.isEmpty) {
           false
@@ -393,7 +393,7 @@ object Config {
           Map((paramsNode \ "param").map(p => find(p, "@name").text ->
             find(p, "@value").text) : _*)
         }
-
+        
         println("Coprocessor:" +name +",ID:"+id+", requires Memory Access:"+memAccess + (if (isBlackBox) ", Coprocessor is BlackBox, External Path "+externalPath else ""))
         new CoprocessorConfig(name, params, id, memAccess, isBlackBox, externalPath)
       }
@@ -418,9 +418,9 @@ object Config {
     val ICache = new ICacheConfig("", 0, 0, "")
     val DCache = new DCacheConfig(0, 0, "", true)
     val SCache = new SCacheConfig(0)
+    val L2Cache = new L2CacheConfig(include = false, 0, 0, 0, "")
     val ISPM = new SPMConfig(0)
     val DSPM = new SPMConfig(0)
-    val L2Cache = new L2CacheConfig(include = false, 0, 0, 0, "")
     val ExtMem = new ExtMemConfig(0,new DeviceConfig("","", Map(), -1, List[Int]()))
     val Devs = List[DeviceConfig]()
     val Coprocessors = List[CoprocessorConfig]()
