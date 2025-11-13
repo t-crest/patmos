@@ -86,6 +86,10 @@ object Constants {
   val HAS_MMU = Config.getConfig.mmu
   val MMU_IO_OFFSET = 7
   
+  // L2 cache
+  val HAS_L2 = Config.getConfig.L2Cache.include
+  val L2_SCHED_OFFSET = 11
+
   // CPU Info unit
   val CPUINFO_OFFSET = 0
 

@@ -68,6 +68,9 @@ abstract class Config {
   case class SCacheConfig(size: Int)
   val SCache: SCacheConfig
 
+  case class L2CacheConfig(include: Boolean, size: Int, ways: Int, bytesPerBlock: Int, repl: String)
+  val L2Cache: L2CacheConfig
+
   case class SPMConfig(size: Int)
   val ISPM: SPMConfig
   val DSPM: SPMConfig
@@ -231,6 +234,20 @@ object Config {
       val SCache =
         new SCacheConfig(getSizeAttr(node, "SCache", "@size",
                                      hasParent, defaultConf.SCache.size))
+
+      val L2Cache = if ((node \ "L2Cache").isEmpty) {
+        L2CacheConfig(include = false, 0, 0, 0, "")
+      } else {
+        L2CacheConfig(include = true,
+          getSizeAttr(node, "L2Cache", "@size",
+            hasParent, defaultConf.L2Cache.size),
+          getIntAttr(node, "L2Cache", "@ways",
+            hasParent, defaultConf.L2Cache.ways),
+          getIntAttr(node, "L2Cache", "@bytesPerBlock",
+            hasParent, defaultConf.L2Cache.bytesPerBlock),
+          getTextAttr(node, "L2Cache", "@repl",
+            hasParent, defaultConf.L2Cache.repl))
+      }
 
       val ISPM =
         new SPMConfig(getSizeAttr(node, "ISPM", "@size",
@@ -401,6 +418,7 @@ object Config {
     val ICache = new ICacheConfig("", 0, 0, "")
     val DCache = new DCacheConfig(0, 0, "", true)
     val SCache = new SCacheConfig(0)
+    val L2Cache = new L2CacheConfig(include = false, 0, 0, 0, "")
     val ISPM = new SPMConfig(0)
     val DSPM = new SPMConfig(0)
     val ExtMem = new ExtMemConfig(0,new DeviceConfig("","", Map(), -1, List[Int]()))

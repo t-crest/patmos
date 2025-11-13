@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <machine/patmos.h>
 #include "../../libcorethread/corethread.h"
-#include "testing_settings.h"
+#include "testing_settings.h" // Should define 'CORES_RUNNING' and 'CONTENTION_LIMIT'
 
 
 void core0(){
@@ -24,6 +24,7 @@ void* test_fns[CORES] = {(void*)core0, (void*)core1, (void*)core2, (void*)core3}
 volatile int core_timing[CORES];
 volatile _UNCACHED int core_status[CORES]; // 0: start, 1: ready, 2: done
 volatile _UNCACHED int start = 0;
+volatile _IODEV int *sch_io_ptr = (volatile _IODEV int *) 0xf00b0000;
 
 static inline unsigned long long get_cpu_cycles2(void) {
   unsigned clo, chi;
@@ -56,6 +57,11 @@ void run_core(void *arg) {
 	int core_id = get_cpuid();
 	int start, end;
 	
+	// Set contention limit of the first core
+	if(CONTENTION_LIMIT && core_id == 0) {
+		*sch_io_ptr = CONTENTION_LIMIT;
+	}
+
 	core_status[core_id] = 1;
 	while(!start){} // wait until the main core issues the start command
 		
@@ -71,6 +77,12 @@ void run_core(void *arg) {
 		
 	core_timing[core_id] = end - start;
 	core_status[core_id] = 2;
+
+	// Once the first core is done unset it's contention limit
+	if(CONTENTION_LIMIT && core_id == 0) {
+		int cnt_limit;
+		cnt_limit = *sch_io_ptr;
+	}
 }
 
 int main() {
@@ -93,8 +105,7 @@ int main() {
 			wait |= core_status[i] != 1; 
 		}
 	} while(wait);
-	
-	
+
 	start = 1;
 	
 	run_core(core0);
@@ -108,5 +119,7 @@ int main() {
 	} while(wait);
 	
 	printf("%d,%d,%d,%d\n", core_timing[0], core_timing[1], core_timing[2], core_timing[3]);
+
+  	return 0;
 }
 

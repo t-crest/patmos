@@ -25,6 +25,8 @@ import datacache._
 import ocp.{OcpCoreSlavePort, _}
 import argo._
 import cop._
+import caches.hardware.pipelined._
+import caches.hardware.reppol._
 
 import scala.collection.immutable.Stream.Empty
 import scala.collection.mutable
@@ -299,6 +301,47 @@ class Patmos(configFile: String, binFile: String, datFile: String, genEmu: Boole
     Device(dev.getClass.getSimpleName, dev.io, off, width)
   })
 
+  // Create an instance of a l2 cache
+  val l2CacheConf = config.L2Cache
+
+  val l2Cache = Option.when(HAS_L2) {
+    val l2Size = l2CacheConf.size
+    val nWays = l2CacheConf.ways
+    val nCores = cores.length
+    val bytesPerBlock = l2CacheConf.bytesPerBlock
+    val l2nSets = l2Size / (nWays * bytesPerBlock)
+
+    val repPolGen = l2CacheConf.repl match {
+      case "plru" => () => new BitPlruReplacementPolicy(nWays, l2nSets, nCores)
+      case "cont" => () => new ContentionReplacementPolicy(nWays, l2nSets, nCores, BasePolicies.BIT_PLRU, enablePrecedentEvents = true, enableWbEvents = true, enableMissInMiss = true)
+      case "time" => () => new TimeoutReplacementPolicy(nWays, l2nSets, nCores, BasePolicies.BIT_PLRU)
+      case _ => throw new Error("Unknown L2 cache replacement policy: " + l2CacheConf.repl)
+    }
+
+    val l2CacheGen = () => new SharedPipelinedCache(
+      sizeInBytes = l2Size,
+      nWays = nWays,
+      nCores = nCores,
+      reqIdWidth = 1,
+      addressWidth = ADDR_WIDTH,
+      bytesPerBlock = bytesPerBlock,
+      bytesPerSubBlock = (DATA_WIDTH / 8) * BURST_LENGTH,
+      memBeatSize = DATA_WIDTH / 8,
+      memBurstLen = BURST_LENGTH,
+      l2RepPolicy = repPolGen
+    )
+
+    Module(new OcpCacheWrapper(
+      nCores = cores.length,
+      addrWidth = ADDR_WIDTH,
+      coreDataWidth = DATA_WIDTH,
+      coreBurstLen = BURST_LENGTH,
+      memDataWidth = DATA_WIDTH,
+      memBurstLen = BURST_LENGTH,
+      l2Cache = l2CacheGen
+    ))
+  }
+
   val cops = Array.ofDim[Coprocessor](nrCores,COP_COUNT)
   var memAccessCount = 0
 
@@ -344,11 +387,13 @@ class Patmos(configFile: String, binFile: String, datFile: String, genEmu: Boole
     val cpuInfoDev = (CPUINFO_OFFSET, cpuinfo.io.asInstanceOf[Bundle], cpuinfo.getClass.getSimpleName)
     val exceptionUnitDev = (EXC_IO_OFFSET, cores(i).io.excInOut, "ExceptionUnit")
     val mmuDev = (MMU_IO_OFFSET, cores(i).io.mmuInOut, "MMU") // only included if HAS_MMU
+    val l2SchedDev = (L2_SCHED_OFFSET, l2Cache.map(_.io.scheduler.asInstanceOf[Bundle]).getOrElse(new Bundle {}), l2Cache.map(_.getClass.getSimpleName).getOrElse(""))
 
-    val allDevs = if (HAS_MMU) {
-      cpuInfoDev :: exceptionUnitDev :: mmuDev :: configDevs
-    } else {
-      cpuInfoDev :: exceptionUnitDev :: configDevs
+    val allDevs = (HAS_MMU, HAS_L2, i) match {
+      case (true, false, _) => cpuInfoDev :: exceptionUnitDev :: mmuDev :: configDevs
+      case (true, true, 0) => cpuInfoDev :: exceptionUnitDev :: mmuDev :: l2SchedDev :: configDevs
+      case (false, true, 0) => cpuInfoDev :: exceptionUnitDev :: l2SchedDev :: configDevs
+      case (_, _, _) => cpuInfoDev :: exceptionUnitDev :: configDevs
     }
 
     val singledevios = allDevs.map { case (offset, io, name) =>
@@ -470,44 +515,72 @@ class Patmos(configFile: String, binFile: String, datFile: String, genEmu: Boole
   // TODO: fix memory arbiter to have configurable memory timing.
   // E.g., it does not work with on-chip main memory.
   if (cores.length + memAccessCount == 1) {
-    ramCtrl.io.ocp.M <> cores(0).io.memPort.M
-    cores(0).io.memPort.S <> ramCtrl.io.ocp.S
-    ramCtrl.io.superMode <> cores(0).io.superMode
-  } else {
-    
-    // memAccessCount stores the totale number of required memory access ports
-    val memarbiterCount = if(memAccessCount > 0) memAccessCount + nrCores else nrCores
+    if (HAS_L2) {
+      val l2CacheIO = l2Cache.get.io
 
-    val memarbiter =
-      if(ramCtrl.isInstanceOf[DDR3Bridge] || ramCtrl.isInstanceOf[OCRamCtrl] || config.roundRobinArbiter) {
-        Module(new ocp.Arbiter(memarbiterCount, ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
-      } else {
-        Module(new ocp.TdmArbiterWrapper(memarbiterCount, ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
-      }
-      
-    var arbiterEntry = 0
-    for (i <- cores.indices) {
-      memarbiter.io.master(arbiterEntry).M <> cores(i).io.memPort.M
-      cores(i).io.memPort.S <> memarbiter.io.master(arbiterEntry).S
+      // Connect the core to the l2 cache
+      l2CacheIO.cores(0).M <> cores(0).io.memPort.M
+      cores(0).io.memPort.S <> l2CacheIO.cores(0).S
 
-      arbiterEntry = arbiterEntry +1
-      
-      for(j <- 0 until COP_COUNT) {
-        val copConf = config.Coprocessors(j)
-        val id = copConf.CoprocessorID;
-
-        if(copConf.requiresMemoryAccess) {
-          // as memory access is required object is actually of CoprocessorMemory
-          val copMem = cops(i)(id).asInstanceOf[CoprocessorMemoryAccess]
-          memarbiter.io.master(arbiterEntry).M <> copMem.io.memPort.M
-          copMem.io.memPort.S <> memarbiter.io.master(arbiterEntry).S
-          arbiterEntry = arbiterEntry +1
-        }
-    
-      }
+      // Connection between l2 cache and the memory controller
+      ramCtrl.io.ocp.M <> l2CacheIO.mem.M
+      l2CacheIO.mem.S <> ramCtrl.io.ocp.S
+      ramCtrl.io.superMode <> cores(0).io.superMode
+    } else {
+      ramCtrl.io.ocp.M <> cores(0).io.memPort.M
+      cores(0).io.memPort.S <> ramCtrl.io.ocp.S
+      ramCtrl.io.superMode <> cores(0).io.superMode
     }
-    ramCtrl.io.ocp.M <> memarbiter.io.slave.M
-    memarbiter.io.slave.S <> ramCtrl.io.ocp.S
+  } else {
+    if (HAS_L2) {
+      val l2CacheIO = l2Cache.get.io
+
+      // Connect all the cores to the l2 cache
+      for (i <- cores.indices) {
+        l2CacheIO.cores(i).M <> cores(i).io.memPort.M
+        cores(i).io.memPort.S <> l2CacheIO.cores(i).S
+      }
+
+      // Connection between l2 cache and the memory controller
+      ramCtrl.io.ocp.M <> l2CacheIO.mem.M
+      l2CacheIO.mem.S <> ramCtrl.io.ocp.S
+    } else {
+      // memAccessCount stores the totale number of required memory access ports
+      val memarbiterCount = if(memAccessCount > 0) memAccessCount + nrCores else nrCores
+
+      val memarbiter =
+        if(ramCtrl.isInstanceOf[DDR3Bridge] || ramCtrl.isInstanceOf[OCRamCtrl] || config.roundRobinArbiter) {
+          Module(new ocp.Arbiter(memarbiterCount, ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
+        } else {
+          Module(new ocp.TdmArbiterWrapper(memarbiterCount, ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
+        }
+
+      var arbiterEntry = 0
+      for (i <- cores.indices) {
+        memarbiter.io.master(arbiterEntry).M <> cores(i).io.memPort.M
+        cores(i).io.memPort.S <> memarbiter.io.master(arbiterEntry).S
+
+        arbiterEntry = arbiterEntry +1
+
+        for(j <- 0 until COP_COUNT) {
+          val copConf = config.Coprocessors(j)
+          val id = copConf.CoprocessorID;
+
+          if(copConf.requiresMemoryAccess) {
+            // as memory access is required object is actually of CoprocessorMemory
+            val copMem = cops(i)(id).asInstanceOf[CoprocessorMemoryAccess]
+            memarbiter.io.master(arbiterEntry).M <> copMem.io.memPort.M
+            copMem.io.memPort.S <> memarbiter.io.master(arbiterEntry).S
+            arbiterEntry = arbiterEntry +1
+          }
+
+        }
+      }
+
+      ramCtrl.io.ocp.M <> memarbiter.io.slave.M
+      memarbiter.io.slave.S <> ramCtrl.io.ocp.S
+    }
+
     ramCtrl.io.superMode := false.B
   }
 

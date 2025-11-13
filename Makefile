@@ -198,7 +198,7 @@ isasim: $(BUILDDIR)/$(BOOTAPP).bin
 
 # C simulation of the Chisel version of Patmos
 hwsim:
-	$(MAKE) -C hardware test BOOTBUILDROOT=$(CURDIR) BOOTAPP=$(BOOTAPP)
+	$(MAKE) -C hardware test BOOTBUILDROOT=$(CURDIR) BOOTAPP=$(BOOTAPP) HWBUILDDIR=$(HWEMUBUILDDIR)
 
 # Testing
 test: test_compile test_emu
