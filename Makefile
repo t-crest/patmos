@@ -13,6 +13,14 @@ BOOTAPP?=bootable-bootloader
 # Application to be downloaded
 APP?=hello_puts
 
+# Download retry configuration
+DOWNLOAD_MAX_ATTEMPTS?=10
+DOWNLOAD_RETRY_SLEEP?=3
+
+# Config retry configuration
+CONFIG_MAX_ATTEMPTS?=10
+CONFIG_RETRY_SLEEP?=3
+
 # Altera FPGA configuration cables
 #BLASTER_TYPE=ByteBlasterMV
 #BLASTER_TYPE=Arrow-USB-Blaster
@@ -229,7 +237,43 @@ ifeq ($(VENDOR),XilinxVivado)
 	vivado -mode batch -source hardware/vivado/$(BOARD)/config.tcl
 endif
 ifeq ($(VENDOR),Altera)
-	$(INSTALLDIR)/bin/config_altera -b $(BLASTER_TYPE) hardware/quartus/$(BOARD)/patmos.sof
+	@/bin/sh -c ' \
+		attempt=1; \
+		max_attempts=$(CONFIG_MAX_ATTEMPTS); \
+		retry_sleep=$(CONFIG_RETRY_SLEEP); \
+		while [ $$attempt -le $$max_attempts ]; do \
+			output=$$($(INSTALLDIR)/bin/config_altera -b $(BLASTER_TYPE) hardware/quartus/$(BOARD)/patmos.sof 2>&1); \
+			rc=$$?; \
+			if echo "$$output" | grep -q "Error (213013)"; then \
+				echo "Programming cable not detected (error 213013)"; \
+				if [ "$$(uname -s)" != "Darwin" ]; then \
+					echo "We need to reload the vhci_hcd module by running \"sudo modprobe vhci_hcd\". Please enter your password if prompted."; \
+					sudo modprobe vhci_hcd; \
+				else \
+					echo "Note: macOS does not support modprobe. Check USB connection manually."; \
+				fi; \
+				if [ $$attempt -lt $$max_attempts ]; then \
+					echo "Retrying config (attempt $$attempt/$$max_attempts)..."; \
+					sleep $$retry_sleep; \
+				fi; \
+				attempt=$$((attempt + 1)); \
+				continue; \
+			fi; \
+			if [ $$rc -eq 3 ]; then \
+				echo "config_altera failed with JTAG error (exit code 3)"; \
+				echo "Killing jtagd and retrying by running \"sudo killall -9 jtagd\". Please enter your password if prompted."; \
+				sudo killall -9 jtagd; \
+				if [ $$attempt -lt $$max_attempts ]; then \
+					echo "Config failed (attempt $$attempt/$$max_attempts), retrying in $$retry_sleep seconds..."; \
+					sleep $$retry_sleep; \
+				fi; \
+				attempt=$$((attempt + 1)); \
+				continue; \
+			fi; \
+			exit $$rc; \
+		done; \
+		echo "Config failed after $$max_attempts attempts"; \
+		exit 1'
 endif
 
 gen:
@@ -257,8 +301,36 @@ ifeq ($(VENDOR),Altera)
 endif
 
 download: $(BUILDDIR)/$(APP).elf
-	$(INSTALLDIR)/bin/patserdow -v $(COM_PORT) $<
-
+	@/bin/sh -c ' \
+		trap "exit 130" INT; \
+		attempt=1; \
+		max_attempts=$(DOWNLOAD_MAX_ATTEMPTS); \
+		retry_sleep=$(DOWNLOAD_RETRY_SLEEP); \
+		while [ $$attempt -le $$max_attempts ]; do \
+			if [ $$attempt -gt 1 ]; then \
+				echo "Resetting serial port..."; \
+				if [ "$(shell uname -s)" = "Darwin" ]; then \
+					sty_flag=-f; \
+				else \
+					sty_flag=-F; \
+				fi; \
+				stty $$sty_flag $(COM_PORT) 115200 raw -echo 2>/dev/null || true; \
+				sleep 1; \
+			fi; \
+			$(INSTALLDIR)/bin/patserdow -v $(COM_PORT) $<; \
+			rc=$$?; \
+			if [ $$rc -eq 0 ]; then \
+				exit 0; \
+			fi; \
+			if [ $$attempt -lt $$max_attempts ]; then \
+				echo "Download failed (attempt $$attempt/$$max_attempts), retrying in $$retry_sleep seconds..."; \
+				sleep $$retry_sleep; \
+			fi; \
+			attempt=$$((attempt + 1)); \
+		done; \
+		echo "Download failed after $$max_attempts attempts"; \
+		exit 255'
+		
 fpgaexec: $(BUILDDIR)/$(APP).elf
 	$(INSTALLDIR)/bin/patserdow $(COM_PORT) $<
 
