@@ -11,7 +11,7 @@ import s4noc._
 class PipeConWrapper(nrCores: Int) extends CmpDevice(nrCores) {
   val io = IO(new CmpIO(nrCores))
 
-  val s4noc = Module(new S4NoCTop(Config(nrCores, BubbleType(8), BubbleType(2), BubbleType(8), 32)))
+  val s4noc = Module(new S4NoCTop(Config(nrCores, RegType(8), RegType(2), RegType(8), 32)))
   for (i <- 0 until nrCores) {
     val np = s4noc.io.cpuPorts(i)
     val cp = io.cores(i)
