@@ -4,14 +4,14 @@
   <frequency Hz="80000000"/>
 
   <!-- Default is single core -->
-  <!--
+  
   <pipeline dual="false" />
   <cores count="4"/>
   <CmpDevs>
     <CmpDev name="Argo" />
     <CmpDev name="SharedSPM" />
   </CmpDevs>
-  -->
+ 
 
   <ExtMem size="2M" DevTypeRef="Sram16" />
   <!-- <ExtMem size="128k" DevTypeRef="OCRam" /> -->

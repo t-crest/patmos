@@ -12,7 +12,7 @@ import chisel3.util._
 
 import Constants._
 
-class RegisterFile() extends Module {
+class RegisterFile(debug: Boolean = false) extends Module {
   val io = IO(new RegFileIO())
 
   // Using Mem (instead of Vec) leads to smaller HW for single-issue config

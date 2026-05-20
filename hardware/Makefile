@@ -32,7 +32,8 @@ endif
 SRC=$(shell find src -name '*.scala')
 
 # main class for Patmos
-MAIN=patmos.PatmosMain
+PATMOSMAIN?=patmos.PatmosMain
+GENEMU?=false
 
 # main classes for core, memory controller and arbiter
 COREMAIN=patmos.PatmosCoreMain
@@ -110,7 +111,7 @@ $(HWBUILDDIR)/$(HWMODULEPREFIX)Patmos.v: $(VGEN)
 	fi
 
 $(VGEN): $(BOOTBIN) $(BOOTDAT) $(SRC)
-	$(SBT) "runMain $(MAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --target-dir $(HWBUILDDIR) $(HWMODULEPREFIXOPT)"
+	$(SBT) "runMain $(PATMOSMAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) $(GENEMU) --target-dir $(HWBUILDDIR) $(HWMODULEPREFIXOPT)"
 	echo $(CONFIGFILE)+$(BOOTBIN)+$(BOOTDAT)+$(HWMODULEPREFIX) > $(VGEN)
 
 $(HWBUILDDIR)/$(HWMODULEPREFIX)PatmosCore.v: $(VGENCORE)

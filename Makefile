@@ -45,6 +45,7 @@ CTOOLSBUILDDIR?=$(CURDIR)/tools/c/build
 JAVATOOLSBUILDDIR?=$(CURDIR)/tools/java/build
 SCRIPTSBUILDDIR?=$(CURDIR)/tools/scripts/build
 HWBUILDDIR?=$(CURDIR)/hardware/build
+HWEMUBUILDDIR?=$(CURDIR)/hardware/buildemu
 # Where to install tools
 INSTALLDIR?=$(CURDIR)/../local
 HWINSTALLDIR?=$(INSTALLDIR)
@@ -108,12 +109,11 @@ $(JAVATOOLSBUILDDIR)/classes/%.class: tools/java/src/%.java
 #	cp $(HWBUILDDIR)/emulator $(HWINSTALLDIR)/bin/patemu
 
 # chisel3/verilator emulator
-CORECNTT:=$(shell lscpu | grep 'Core(s) per socket:')
+emulator: export HWBUILDDIR = $(HWEMUBUILDDIR)
 emulator:
 	-mkdir -p $(HWBUILDDIR)
-	$(MAKE) -C hardware verilog BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
-	-cd $(HWBUILDDIR) && verilator --cc ../harnessConfig.vlt Patmos.v --top-module Patmos +define+TOP_TYPE=VPatmos --threads 1 -CFLAGS "-Wno-undefined-bool-conversion -O1 -DTOP_TYPE=VPatmos -DVL_USER_FINISH -include VPatmos.h" -Wno-MULTIDRIVEN -Mdir $(HWBUILDDIR) --exe ../Patmos-harness.cpp -LDFLAGS -lelf --trace-fst
-	-cd $(HWBUILDDIR) && make -j -f VPatmos.mk
+	$(MAKE) -C hardware verilog BOOTAPP=$(BOOTAPP) BOARD=$(BOARD) GENEMU=true
+	-cd $(HWBUILDDIR) && verilator --cc --exe --build -LDFLAGS "-L /opt/homebrew/lib -lelf" -CFLAGS "-I /opt/homebrew/include/libelf -I /opt/homebrew/include -Wno-undefined-bool-conversion -O3" --top-module Patmos -Mdir $(HWBUILDDIR) --trace-fst -j 0 -Wno-MULTIDRIVEN Patmos.v ../Patmos-harness.cpp
 	-cp $(HWBUILDDIR)/VPatmos $(HWBUILDDIR)/emulator
 	-mkdir -p $(HWINSTALLDIR)/bin
 	cp $(HWBUILDDIR)/VPatmos $(HWINSTALLDIR)/bin/patemu

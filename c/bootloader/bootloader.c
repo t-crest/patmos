@@ -43,7 +43,7 @@
 #include "include/patio.h"
 #include "include/bootable.h"
 
-#define DELAY 1000*1
+#define DELAY 10*1
 
 //#define DEBUG
 //#define HEAVY_DEBUG

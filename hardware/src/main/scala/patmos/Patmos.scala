@@ -31,7 +31,7 @@ import scala.collection.mutable
 /**
  * Module for one Patmos core.
  */
-class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
+class PatmosCore(binFile: String, nr: Int, cnt: Int, genEmu: Boolean = false) extends Module {
 
   val io = IO(new Bundle() with HasSuperMode with HasPerfCounter with HasInterrupts {
     override val superMode = Output(Bool())
@@ -61,7 +61,7 @@ class PatmosCore(binFile: String, nr: Int, cnt: Int) extends Module {
     }
 
   val fetch = Module(new Fetch(binFile))
-  val decode = Module(new Decode())
+  val decode = Module(new Decode(genEmu))
   val execute = Module(new Execute())
   val memory = Module(new Memory())
   val writeback = Module(new WriteBack())
@@ -216,7 +216,7 @@ final class PatmosBundle(elts: (String, Data)*) extends Record {
 /**
  * The main (top-level) component of Patmos.
  */
-class Patmos(configFile: String, binFile: String, datFile: String) extends Module {
+class Patmos(configFile: String, binFile: String, datFile: String, genEmu: Boolean = false) extends Module {
   Config.loadConfig(configFile)
   Config.minPcWidth = util.log2Up((new File(binFile)).length.toInt / 4)
   Config.datFile = datFile
@@ -226,7 +226,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   println("Config core count: " + nrCores)
 
   // Instantiate cores
-  val cores = (0 until nrCores).map(i => Module(new PatmosCore(binFile, i, nrCores)))
+  val cores = (0 until nrCores).map(i => Module(new PatmosCore(binFile, i, nrCores, genEmu)))
 
   // Forward ports to/from core
   println("Config cmp: ")
@@ -259,6 +259,8 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
   case class Device(name: String, io: Data, addr: Int, addrWidth: Int)
 
+  var uartcmpOpt = None: Option[cmp.UartCmp]
+
   val cmpdevios = config.cmpDevices.map(device => {
     println(s"CMP device: $device")
     val (off, width, dev) = device match {
@@ -274,7 +276,11 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       // case "S4noc" => (0xE807, IO_DEVICE_ADDR_WIDTH, Module(new cmp.S4nocOCPWrapper(nrCores, 4, 4)))
       case "CASPM" => (0xE808, IO_DEVICE_ADDR_WIDTH, Module(new cmp.CASPM(nrCores, nrCores * 8)))
       case "AsyncLock" => (0xE809, IO_DEVICE_ADDR_WIDTH, Module(new cmp.AsyncLock(nrCores, nrCores * 2)))
-      case "UartCmp" => (0xF008, IO_DEVICE_ADDR_WIDTH, Module(new cmp.UartCmp(nrCores,CLOCK_FREQ,UART_BAUD,16)))
+      case "UartCmp" => {
+        val uartcmp = Module(new cmp.UartCmp(nrCores,CLOCK_FREQ,UART_BAUD,16))
+        uartcmpOpt = Some(uartcmp)
+        (0xF008, IO_DEVICE_ADDR_WIDTH, uartcmp)
+      }
       case "TwoWay" => (0xE80B, IO_DEVICE_ADDR_WIDTH, Module(new cmp.TwoWayOCPWrapper(nrCores, 1024)))
       case "TransactionalMemory" => (0xE80C, IO_DEVICE_ADDR_WIDTH, Module(new cmp.TransactionalMemory(nrCores, 512)))
       case "LedsCmp" => (0xE80D, IO_DEVICE_ADDR_WIDTH, Module(new cmp.LedsCmp(nrCores, 1)))
@@ -512,17 +518,23 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   }
 
   // Print out the configuration
-   Utility.printConfig(configFile)
+  Utility.printConfig(configFile)
+
+  if (genEmu) {
+    // Reserve exports for emulator debug signals
+    // (not currently used, but available for future expansion)
+  }
 }
 
 object PatmosMain extends App {
 
-  val chiselArgs = args.slice(3, args.length)
+  val chiselArgs = args.slice(4, args.length)
   val configFile = args(0)
   val binFile = args(1)
   val datFile = args(2)
+  val genEmu = if(args.length > 3) args(3).toBoolean else false
 	  
   new java.io.File("build/").mkdirs // build dir is created
   Config.loadConfig(configFile)
-  (new chisel3.stage.ChiselStage).emitVerilog(new Patmos(configFile, binFile, datFile), chiselArgs)
+  (new chisel3.stage.ChiselStage).emitVerilog(new Patmos(configFile, binFile, datFile, genEmu), chiselArgs)
 }
