@@ -6,6 +6,7 @@ hardware/target
 hardware/build
 hardware/buildemu
 hardware/generated
+hardware/network.svg
 hardware/.idea/
 hardware/modelsim/work/
 hardware/quartus/**/incremental_db
