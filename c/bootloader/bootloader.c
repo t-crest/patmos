@@ -75,8 +75,12 @@ int main(void)
       boot_info->master.status = STATUS_BOOT;
     }
 
-    // download application
-    boot_info->master.entrypoint = download();
+    if(ENVINFO_PLATFORM == PLATFORM_EMULATOR)
+      boot_info->master.entrypoint = (entrypoint_t)ENVINFO_ENTRYPOINT;
+
+    // if entrypoint wasn't set by patemu, download application
+    if(boot_info->master.entrypoint == NULL)
+      boot_info->master.entrypoint = download();
   }
   else {
     boot_info->slave[get_cpuid()].status = STATUS_NULL;
@@ -157,6 +161,11 @@ int main(void)
         }
       }
     }
+    
+    // if running in emulator, signal exit and hang until emulator exits
+    ENVINFO_EXITCODE = retval;
+    ENVINFO_EXIT = 1;
+    while(ENVINFO_PLATFORM == PLATFORM_EMULATOR) { }
 
     // Print exit magic and return code
     WRITECHAR('\0');

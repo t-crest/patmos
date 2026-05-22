@@ -113,7 +113,8 @@ emulator: export HWBUILDDIR = $(HWEMUBUILDDIR)
 emulator:
 	-mkdir -p $(HWBUILDDIR)
 	$(MAKE) -C hardware verilog BOOTAPP=$(BOOTAPP) BOARD=$(BOARD) GENEMU=true
-	-cd $(HWBUILDDIR) && verilator --cc --exe --build -LDFLAGS "-L /opt/homebrew/lib -lelf" -CFLAGS "-I /opt/homebrew/include/libelf -I /opt/homebrew/include -Wno-undefined-bool-conversion -O3" --top-module Patmos -Mdir $(HWBUILDDIR) --trace-fst -j 0 -Wno-MULTIDRIVEN Patmos.v ../Patmos-harness.cpp
+	-cd $(HWBUILDDIR) && verilator --cc --exe -LDFLAGS "-L /opt/homebrew/lib -lelf" -CFLAGS "-I /opt/homebrew/include/libelf -I /opt/homebrew/include -Wno-undefined-bool-conversion -O3" --top-module Patmos -Mdir $(HWBUILDDIR) --trace-fst -Wno-MULTIDRIVEN Patmos.v ../Patmos-harness.cpp
+	-cd $(HWBUILDDIR) && make -j -f VPatmos.mk
 	-cp $(HWBUILDDIR)/VPatmos $(HWBUILDDIR)/emulator
 	-mkdir -p $(HWINSTALLDIR)/bin
 	cp $(HWBUILDDIR)/VPatmos $(HWINSTALLDIR)/bin/patemu
@@ -158,6 +159,18 @@ app:
 
 .PRECIOUS: $(BUILDDIR)/%.elf
 
+app-wcet:
+	make wcet -C c/apps/$(APP)
+
+app-clean:
+	make clean -C c/apps/$(APP)
+
+pasim: 
+	pasim $(BUILDDIR)/$(APP).elf
+
+patemu: 
+	patemu $(BUILDDIR)/$(APP).elf
+	
 # Compile an lf app that lives in the lf-workspace folder
 lf-app:
 	-rm -rf $(LF_PROJECT_ROOT)/bin
@@ -187,7 +200,7 @@ isasim: $(BUILDDIR)/$(BOOTAPP).bin
 
 # C simulation of the Chisel version of Patmos
 hwsim:
-	$(MAKE) -C hardware test BOOTBUILDROOT=$(CURDIR) BOOTAPP=$(BOOTAPP)
+	$(MAKE) -C hardware test BOOTBUILDROOT=$(CURDIR) BOOTAPP=$(BOOTAPP) HWBUILDDIR=$(HWEMUBUILDDIR)
 
 # Testing
 test: test_compile test_emu
@@ -265,6 +278,7 @@ clean: mostlyclean
 #	-rm -rf $(INSTALLDIR)/lib
 	-rm -rf $(JAVATOOLSBUILDDIR)/lib
 	-rm -rf $(HWBUILDDIR)
+	-rm -rf $(HWEMUBUILDDIR)
 	-rm -rf $(CURDIR)/hardware/emulator_config.h
 	for ext in $(CLEANEXTENSIONS); do \
 		find `ls` -name \*.$$ext -print -exec rm -r -f {} \; ; \

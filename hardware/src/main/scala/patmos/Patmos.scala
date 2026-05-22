@@ -15,6 +15,7 @@ import util._
 import chisel3._
 import java.io.File
 import chisel3.experimental._
+import chisel3.util.experimental._
 import chisel3.dontTouch
 import chisel3.VecInit
 import chisel3.WireDefault
@@ -255,6 +256,8 @@ class Patmos(configFile: String, binFile: String, datFile: String, genEmu: Boole
       case _ =>
     }}
 
+  var envinfoOpt = None: Option[cmp.EnvInfo]
+
   val IO_DEVICE_ADDR_WIDTH = 16
 
   case class Device(name: String, io: Data, addr: Int, addrWidth: Int)
@@ -267,6 +270,11 @@ class Patmos(configFile: String, binFile: String, datFile: String, genEmu: Boole
       case "Argo" =>  (0x1C, 5, Module(new argo.Argo(nrCores, wrapped=false, emulateBB=false)))
       case "Hardlock" => (0xE801, IO_DEVICE_ADDR_WIDTH, Module(new cmp.HardlockOCPWrapper(nrCores, () => new cmp.Hardlock(nrCores, 1))))
       case "SharedSPM" => (0xE802, IO_DEVICE_ADDR_WIDTH, Module(new cmp.SharedSPM(nrCores, (nrCores-1)*2*1024)))
+      case "EnvInfo" => {
+        val envinfo = Module(new cmp.EnvInfo(nrCores))
+        envinfoOpt = Some(envinfo)
+        (0xE803, IO_DEVICE_ADDR_WIDTH, envinfo)
+      }
       case "OneWay" => (0xE803, IO_DEVICE_ADDR_WIDTH, Module(new cmp.OneWayOCPWrapper(nrCores)))
       // removed as it was never used, address is free
       // TODO: remove constants from patmos.h
@@ -520,9 +528,28 @@ class Patmos(configFile: String, binFile: String, datFile: String, genEmu: Boole
   // Print out the configuration
   Utility.printConfig(configFile)
 
-  if (genEmu) {
-    // Reserve exports for emulator debug signals
-    // (not currently used, but available for future expansion)
+if (genEmu) {
+
+    envinfoOpt match {
+      case Some(envinfo) => 
+      {
+        val envinfoIO = IO(new Bundle
+        {
+          val platform = Input(envinfo.platform.cloneType)
+          val entrypoint = Input(envinfo.entrypoint.cloneType)
+          val exit = Output(envinfo.exitReg.cloneType)
+          val exitcode = Output(envinfo.exitcodeReg.cloneType)
+        })
+        envinfoIO.suggestName("envinfo")
+        envinfoIO.exit := 0.U
+        envinfoIO.exitcode := 0.U
+        BoringUtils.bore(envinfoIO.platform, Seq(envinfo.platform))
+        BoringUtils.bore(envinfoIO.entrypoint, Seq(envinfo.entrypoint))
+        BoringUtils.bore(envinfo.exitReg, Seq(envinfoIO.exit))
+        BoringUtils.bore(envinfo.exitcodeReg, Seq(envinfoIO.exitcode))
+      }
+      case None =>
+    }
   }
 }
 
@@ -534,7 +561,8 @@ object PatmosMain extends App {
   val datFile = args(2)
   val genEmu = if(args.length > 3) args(3).toBoolean else false
 	  
-  new java.io.File("build/").mkdirs // build dir is created
+  val buildDir = scala.util.Properties.envOrElse("HWBUILDDIR", "build" ) + "/"
+  new java.io.File(buildDir).mkdirs // build dir is created
   Config.loadConfig(configFile)
   (new chisel3.stage.ChiselStage).emitVerilog(new Patmos(configFile, binFile, datFile, genEmu), chiselArgs)
 }

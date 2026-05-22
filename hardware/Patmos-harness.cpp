@@ -722,28 +722,101 @@ int main(int argc, char **argv, char **env)
     if (halt && (!emu->UART_on || emu->UART_idle)) {
       break;
     }
-    #if CORE_COUNT == 1
-    if (reg_print && emu->c->__PVT__Patmos__DOT__cores_0->__PVT__enableReg) {
-      emu->print_state();
-    }
+    for (int core = 0; core < CORE_COUNT; ++core) {
+        VPatmos_PatmosCore *coreptr = nullptr;
 
-    if ((emu->c->__PVT__Patmos__DOT__cores_0->__PVT__memory__DOT__memReg_mem_brcf == 1
-         || emu->c->__PVT__Patmos__DOT__cores_0->__PVT__memory__DOT__memReg_mem_ret == 1)
-        && emu->c->__PVT__Patmos__DOT__cores_0->__PVT__icache__DOT__ctrl__DOT__callRetBaseReg == 0) {
-      halt = true;
-    }
-    #endif
+        if (core == 0)
+            coreptr = emu->c->__PVT__Patmos__DOT__cores_0;
+
     #if CORE_COUNT > 1
-    if (reg_print && emu->c->__PVT__Patmos__DOT__cores_0->__PVT__enableReg) {
-      emu->print_state();
-    }
-
-    if ((emu->c->__PVT__Patmos__DOT__cores_0->__PVT__memory__DOT__memReg_mem_brcf == 1
-         || emu->c->__PVT__Patmos__DOT__cores_0->__PVT__memory__DOT__memReg_mem_ret == 1)
-        && emu->c->__PVT__Patmos__DOT__cores_0->__PVT__icache__DOT__ctrl__DOT__callRetBaseReg == 0) {
-      halt = true;
-    }
+        else if (core == 1)
+            coreptr = emu->c->__PVT__Patmos__DOT__cores_1;
     #endif
+
+    #if CORE_COUNT > 2
+        else if (core == 2)
+            coreptr = emu->c->__PVT__Patmos__DOT__cores_2;
+    #endif
+
+    #if CORE_COUNT > 3
+        else if (core == 3)
+            coreptr = emu->c->__PVT__Patmos__DOT__cores_3;
+    #endif
+
+    #if CORE_COUNT > 4
+        else if (core == 4)
+            coreptr = emu->c->__PVT__Patmos__DOT__cores_4;
+    #endif
+
+    #if CORE_COUNT > 5
+        else if (core == 5)
+            coreptr = emu->c->__PVT__Patmos__DOT__cores_5;
+    #endif
+
+    #if CORE_COUNT > 6
+        else if (core == 6)
+            coreptr = emu->c->__PVT__Patmos__DOT__cores_6;
+    #endif
+
+    #if CORE_COUNT > 7
+        else if (core == 7)
+            coreptr = emu->c->__PVT__Patmos__DOT__cores_7;
+    #endif
+
+    #if CORE_COUNT > 8
+        else if (core == 8)
+            coreptr = emu->c->__PVT__Patmos__DOT__cores_8;
+    #endif
+
+    #if CORE_COUNT > 9
+        else if (core == 9)
+            coreptr = emu->c->__PVT__Patmos__DOT__cores_9;
+    #endif
+
+    #if CORE_COUNT > 10
+        else if (core == 10)
+            coreptr = emu->c->__PVT__Patmos__DOT__cores_10;
+    #endif
+
+    #if CORE_COUNT > 11
+        else if (core == 11)
+            coreptr = emu->c->__PVT__Patmos__DOT__cores_11;
+    #endif
+
+    #if CORE_COUNT > 12
+        else if (core == 12)
+            coreptr = emu->c->__PVT__Patmos__DOT__cores_12;
+    #endif
+
+    #if CORE_COUNT > 13
+        else if (core == 13)
+            coreptr = emu->c->__PVT__Patmos__DOT__cores_13;
+    #endif
+
+    #if CORE_COUNT > 14
+        else if (core == 14)
+            coreptr = emu->c->__PVT__Patmos__DOT__cores_14;
+    #endif
+
+    #if CORE_COUNT > 15
+        else if (core == 15)
+            coreptr = emu->c->__PVT__Patmos__DOT__cores_15;
+    #endif
+
+        if (!coreptr)
+            continue;
+
+            if (reg_print && coreptr->__PVT__enableReg) {
+              emu->print_state();
+            }
+        if ((coreptr->__PVT__memory__DOT__memReg_mem_brcf == 1 ||
+            coreptr->__PVT__memory__DOT__memReg_mem_ret == 1) &&
+            coreptr->__PVT__icache__DOT__ctrl__DOT__callRetBaseReg == 0) {
+            halt = true;
+              printf("Core %d is halting\n", core);
+            break;
+        }
+    }
   }
 
   emu->stopTrace();
