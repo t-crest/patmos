@@ -109,12 +109,29 @@ $(JAVATOOLSBUILDDIR)/classes/%.class: tools/java/src/%.java
 #	cp $(HWBUILDDIR)/emulator $(HWINSTALLDIR)/bin/patemu
 
 # chisel3/verilator emulator
-emulator: export HWBUILDDIR = $(HWEMUBUILDDIR)
+HWBUILDDIR := $(HWEMUBUILDDIR)
+
+# libelf paths differ between macOS (Homebrew) and Linux
+ifeq ($(shell uname),Darwin)
+  LIBELF_CFLAGS = -I/opt/homebrew/include/libelf -I/opt/homebrew/include
+  LIBELF_LDFLAGS = -L/opt/homebrew/lib -lelf
+else
+  LIBELF_CFLAGS =
+  LIBELF_LDFLAGS = -lelf
+endif
+
 emulator:
 	-mkdir -p $(HWBUILDDIR)
 	$(MAKE) -C hardware verilog BOOTAPP=$(BOOTAPP) BOARD=$(BOARD) GENEMU=true
-	-cd $(HWBUILDDIR) && verilator --cc --exe -LDFLAGS "-L /opt/homebrew/lib -lelf" -CFLAGS "-I /opt/homebrew/include/libelf -I /opt/homebrew/include -Wno-undefined-bool-conversion -O3" --top-module Patmos -Mdir $(HWBUILDDIR) --trace-fst -Wno-MULTIDRIVEN Patmos.v ../Patmos-harness.cpp
-	-cd $(HWBUILDDIR) && make -j -f VPatmos.mk
+	-cd $(HWBUILDDIR) && verilator --cc --exe \
+		-LDFLAGS "$(LIBELF_LDFLAGS)" \
+		-CFLAGS "$(LIBELF_CFLAGS) -Wno-undefined-bool-conversion -O3" \
+		--top-module Patmos \
+		-Mdir . \
+		--trace-fst \
+		-Wno-MULTIDRIVEN \
+		Patmos.v ../Patmos-harness.cpp
+	$(MAKE) -C $(HWBUILDDIR) -j -f VPatmos.mk
 	-cp $(HWBUILDDIR)/VPatmos $(HWBUILDDIR)/emulator
 	-mkdir -p $(HWINSTALLDIR)/bin
 	cp $(HWBUILDDIR)/VPatmos $(HWINSTALLDIR)/bin/patemu
