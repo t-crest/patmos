@@ -26,6 +26,9 @@ NOTES ON STUFF MISSING FROM THE OLD EMULATOR
 #include "VPatmos.h"
 #include "verilated.h"
 #include "VPatmos___024root.h"
+#if CORE_COUNT > 1
+#include "VPatmos_PatmosCore.h"
+#endif
 #if VM_TRACE
 #include "verilated_fst_c.h"
 #endif
@@ -39,30 +42,39 @@ typedef uint64_t val_t;
 #define ICACHE_METHOD_ONLY(x)
 #endif
 
+#if CORE_COUNT > 1
+#define CORE_FIELD_IMPL(root, n, field) \
+  ((root)->__PVT__Patmos__DOT__cores_##n)->__PVT__##field
+#else
+#define CORE_FIELD_IMPL(root, n, field) \
+  (root)->Patmos__DOT__cores_##n##__DOT__##field
+#endif
+#define CORE_FIELD(root, n, field) CORE_FIELD_IMPL(root, n, field)
+
 #define INIT_CORE_ICACHE(root, n, entry) do { \
   val_t base = (entry) >> 2; \
   if ((entry) >= 0x20000) { \
     ICACHE_METHOD_ONLY( \
-      (root)->Patmos__DOT__cores_##n##__DOT__fetch__DOT__pcReg = -1; \
-      (root)->Patmos__DOT__cores_##n##__DOT__fetch__DOT__pc_next = -1; \
-      (root)->Patmos__DOT__cores_##n##__DOT__icache__DOT__repl__DOT__hitReg = 0; \
-      (root)->Patmos__DOT__cores_##n##__DOT__icache__DOT__repl__DOT__hitNext = 0; \
+      CORE_FIELD(root, n, fetch__DOT__pcReg) = -1; \
+      CORE_FIELD(root, n, fetch__DOT__pc_next) = -1; \
+      CORE_FIELD(root, n, icache__DOT__repl__DOT__hitReg) = 0; \
+      CORE_FIELD(root, n, icache__DOT__repl__DOT__hitNext) = 0; \
     ) \
-    (root)->Patmos__DOT__cores_##n##__DOT__fetch__DOT__relBaseReg = 0; \
-    (root)->Patmos__DOT__cores_##n##__DOT__fetch__DOT__relocReg = base - 1; \
-    (root)->Patmos__DOT__cores_##n##__DOT__fetch__DOT__selCache = 1; \
-    (root)->Patmos__DOT__cores_##n##__DOT__icache__DOT__repl__DOT__selCacheReg = 1; \
+    CORE_FIELD(root, n, fetch__DOT__relBaseReg) = 0; \
+    CORE_FIELD(root, n, fetch__DOT__relocReg) = base - 1; \
+    CORE_FIELD(root, n, fetch__DOT__selCache) = 1; \
+    CORE_FIELD(root, n, icache__DOT__repl__DOT__selCacheReg) = 1; \
   } else { \
-    (root)->Patmos__DOT__cores_##n##__DOT__fetch__DOT__pcReg = (((entry) - 0x10000) >> 2) - 1; \
-    (root)->Patmos__DOT__cores_##n##__DOT__fetch__DOT__relBaseReg = ((entry) - 0x10000) >> 2; \
-    (root)->Patmos__DOT__cores_##n##__DOT__fetch__DOT__relocReg = 0x10000 >> 2; \
-    (root)->Patmos__DOT__cores_##n##__DOT__fetch__DOT__selSpm = 1; \
-    (root)->Patmos__DOT__cores_##n##__DOT__icache__DOT__repl__DOT__selSpmReg = 1; \
+    CORE_FIELD(root, n, fetch__DOT__pcReg) = (((entry) - 0x10000) >> 2) - 1; \
+    CORE_FIELD(root, n, fetch__DOT__relBaseReg) = ((entry) - 0x10000) >> 2; \
+    CORE_FIELD(root, n, fetch__DOT__relocReg) = 0x10000 >> 2; \
+    CORE_FIELD(root, n, fetch__DOT__selSpm) = 1; \
+    CORE_FIELD(root, n, icache__DOT__repl__DOT__selSpmReg) = 1; \
   } \
-  (root)->Patmos__DOT__cores_##n##__DOT__icache__DOT__repl__DOT__callRetBaseReg = base; \
+  CORE_FIELD(root, n, icache__DOT__repl__DOT__callRetBaseReg) = base; \
   ICACHE_METHOD_ONLY( \
-    (root)->Patmos__DOT__cores_##n##__DOT__icache__DOT__ctrl__DOT__callRetBaseNext = base; \
-    (root)->Patmos__DOT__cores_##n##__DOT__icache__DOT__ctrl__DOT__callRetBaseReg = base; \
+    CORE_FIELD(root, n, icache__DOT__ctrl__DOT__callRetBaseNext) = base; \
+    CORE_FIELD(root, n, icache__DOT__ctrl__DOT__callRetBaseReg) = base; \
   ) \
 } while (0)
 
@@ -123,54 +135,55 @@ static void init_core_icache(VPatmos___024root *root, val_t entry)
 #endif
 }
 
+#if CORE_COUNT > 1
 static bool core_enable_reg(VPatmos___024root *root, int core)
 {
   switch (core) {
-    case 0: return root->Patmos__DOT__cores_0__DOT__enableReg;
+    case 0: return (root->__PVT__Patmos__DOT__cores_0)->__PVT__enableReg;
 #if CORE_COUNT > 1
-    case 1: return root->Patmos__DOT__cores_1__DOT__enableReg;
+    case 1: return (root->__PVT__Patmos__DOT__cores_1)->__PVT__enableReg;
 #endif
 #if CORE_COUNT > 2
-    case 2: return root->Patmos__DOT__cores_2__DOT__enableReg;
+    case 2: return (root->__PVT__Patmos__DOT__cores_2)->__PVT__enableReg;
 #endif
 #if CORE_COUNT > 3
-    case 3: return root->Patmos__DOT__cores_3__DOT__enableReg;
+    case 3: return (root->__PVT__Patmos__DOT__cores_3)->__PVT__enableReg;
 #endif
 #if CORE_COUNT > 4
-    case 4: return root->Patmos__DOT__cores_4__DOT__enableReg;
+    case 4: return (root->__PVT__Patmos__DOT__cores_4)->__PVT__enableReg;
 #endif
 #if CORE_COUNT > 5
-    case 5: return root->Patmos__DOT__cores_5__DOT__enableReg;
+    case 5: return (root->__PVT__Patmos__DOT__cores_5)->__PVT__enableReg;
 #endif
 #if CORE_COUNT > 6
-    case 6: return root->Patmos__DOT__cores_6__DOT__enableReg;
+    case 6: return (root->__PVT__Patmos__DOT__cores_6)->__PVT__enableReg;
 #endif
 #if CORE_COUNT > 7
-    case 7: return root->Patmos__DOT__cores_7__DOT__enableReg;
+    case 7: return (root->__PVT__Patmos__DOT__cores_7)->__PVT__enableReg;
 #endif
 #if CORE_COUNT > 8
-    case 8: return root->Patmos__DOT__cores_8__DOT__enableReg;
+    case 8: return (root->__PVT__Patmos__DOT__cores_8)->__PVT__enableReg;
 #endif
 #if CORE_COUNT > 9
-    case 9: return root->Patmos__DOT__cores_9__DOT__enableReg;
+    case 9: return (root->__PVT__Patmos__DOT__cores_9)->__PVT__enableReg;
 #endif
 #if CORE_COUNT > 10
-    case 10: return root->Patmos__DOT__cores_10__DOT__enableReg;
+    case 10: return (root->__PVT__Patmos__DOT__cores_10)->__PVT__enableReg;
 #endif
 #if CORE_COUNT > 11
-    case 11: return root->Patmos__DOT__cores_11__DOT__enableReg;
+    case 11: return (root->__PVT__Patmos__DOT__cores_11)->__PVT__enableReg;
 #endif
 #if CORE_COUNT > 12
-    case 12: return root->Patmos__DOT__cores_12__DOT__enableReg;
+    case 12: return (root->__PVT__Patmos__DOT__cores_12)->__PVT__enableReg;
 #endif
 #if CORE_COUNT > 13
-    case 13: return root->Patmos__DOT__cores_13__DOT__enableReg;
+    case 13: return (root->__PVT__Patmos__DOT__cores_13)->__PVT__enableReg;
 #endif
 #if CORE_COUNT > 14
-    case 14: return root->Patmos__DOT__cores_14__DOT__enableReg;
+    case 14: return (root->__PVT__Patmos__DOT__cores_14)->__PVT__enableReg;
 #endif
 #if CORE_COUNT > 15
-    case 15: return root->Patmos__DOT__cores_15__DOT__enableReg;
+    case 15: return (root->__PVT__Patmos__DOT__cores_15)->__PVT__enableReg;
 #endif
     default: return false;
   }
@@ -180,102 +193,116 @@ static bool core_should_halt(VPatmos___024root *root, int core)
 {
   switch (core) {
     case 0:
-      return (root->Patmos__DOT__cores_0__DOT__memory__DOT__memReg_mem_brcf == 1 ||
-              root->Patmos__DOT__cores_0__DOT__memory__DOT__memReg_mem_ret == 1) &&
-             root->Patmos__DOT__cores_0__DOT__icache__DOT__ctrl__DOT__callRetBaseReg == 0;
+      return ((root->__PVT__Patmos__DOT__cores_0)->__PVT__memory__DOT__memReg_mem_brcf == 1 ||
+              (root->__PVT__Patmos__DOT__cores_0)->__PVT__memory__DOT__memReg_mem_ret == 1) &&
+             (root->__PVT__Patmos__DOT__cores_0)->__PVT__icache__DOT__ctrl__DOT__callRetBaseReg == 0;
 #if CORE_COUNT > 1
     case 1:
-      return (root->Patmos__DOT__cores_1__DOT__memory__DOT__memReg_mem_brcf == 1 ||
-              root->Patmos__DOT__cores_1__DOT__memory__DOT__memReg_mem_ret == 1) &&
-             root->Patmos__DOT__cores_1__DOT__icache__DOT__ctrl__DOT__callRetBaseReg == 0;
+      return ((root->__PVT__Patmos__DOT__cores_1)->__PVT__memory__DOT__memReg_mem_brcf == 1 ||
+              (root->__PVT__Patmos__DOT__cores_1)->__PVT__memory__DOT__memReg_mem_ret == 1) &&
+             (root->__PVT__Patmos__DOT__cores_1)->__PVT__icache__DOT__ctrl__DOT__callRetBaseReg == 0;
 #endif
 #if CORE_COUNT > 2
     case 2:
-      return (root->Patmos__DOT__cores_2__DOT__memory__DOT__memReg_mem_brcf == 1 ||
-              root->Patmos__DOT__cores_2__DOT__memory__DOT__memReg_mem_ret == 1) &&
-             root->Patmos__DOT__cores_2__DOT__icache__DOT__ctrl__DOT__callRetBaseReg == 0;
+      return ((root->__PVT__Patmos__DOT__cores_2)->__PVT__memory__DOT__memReg_mem_brcf == 1 ||
+              (root->__PVT__Patmos__DOT__cores_2)->__PVT__memory__DOT__memReg_mem_ret == 1) &&
+             (root->__PVT__Patmos__DOT__cores_2)->__PVT__icache__DOT__ctrl__DOT__callRetBaseReg == 0;
 #endif
 #if CORE_COUNT > 3
     case 3:
-      return (root->Patmos__DOT__cores_3__DOT__memory__DOT__memReg_mem_brcf == 1 ||
-              root->Patmos__DOT__cores_3__DOT__memory__DOT__memReg_mem_ret == 1) &&
-             root->Patmos__DOT__cores_3__DOT__icache__DOT__ctrl__DOT__callRetBaseReg == 0;
+      return ((root->__PVT__Patmos__DOT__cores_3)->__PVT__memory__DOT__memReg_mem_brcf == 1 ||
+              (root->__PVT__Patmos__DOT__cores_3)->__PVT__memory__DOT__memReg_mem_ret == 1) &&
+             (root->__PVT__Patmos__DOT__cores_3)->__PVT__icache__DOT__ctrl__DOT__callRetBaseReg == 0;
 #endif
 #if CORE_COUNT > 4
     case 4:
-      return (root->Patmos__DOT__cores_4__DOT__memory__DOT__memReg_mem_brcf == 1 ||
-              root->Patmos__DOT__cores_4__DOT__memory__DOT__memReg_mem_ret == 1) &&
-             root->Patmos__DOT__cores_4__DOT__icache__DOT__ctrl__DOT__callRetBaseReg == 0;
+      return ((root->__PVT__Patmos__DOT__cores_4)->__PVT__memory__DOT__memReg_mem_brcf == 1 ||
+              (root->__PVT__Patmos__DOT__cores_4)->__PVT__memory__DOT__memReg_mem_ret == 1) &&
+             (root->__PVT__Patmos__DOT__cores_4)->__PVT__icache__DOT__ctrl__DOT__callRetBaseReg == 0;
 #endif
 #if CORE_COUNT > 5
     case 5:
-      return (root->Patmos__DOT__cores_5__DOT__memory__DOT__memReg_mem_brcf == 1 ||
-              root->Patmos__DOT__cores_5__DOT__memory__DOT__memReg_mem_ret == 1) &&
-             root->Patmos__DOT__cores_5__DOT__icache__DOT__ctrl__DOT__callRetBaseReg == 0;
+      return ((root->__PVT__Patmos__DOT__cores_5)->__PVT__memory__DOT__memReg_mem_brcf == 1 ||
+              (root->__PVT__Patmos__DOT__cores_5)->__PVT__memory__DOT__memReg_mem_ret == 1) &&
+             (root->__PVT__Patmos__DOT__cores_5)->__PVT__icache__DOT__ctrl__DOT__callRetBaseReg == 0;
 #endif
 #if CORE_COUNT > 6
     case 6:
-      return (root->Patmos__DOT__cores_6__DOT__memory__DOT__memReg_mem_brcf == 1 ||
-              root->Patmos__DOT__cores_6__DOT__memory__DOT__memReg_mem_ret == 1) &&
-             root->Patmos__DOT__cores_6__DOT__icache__DOT__ctrl__DOT__callRetBaseReg == 0;
+      return ((root->__PVT__Patmos__DOT__cores_6)->__PVT__memory__DOT__memReg_mem_brcf == 1 ||
+              (root->__PVT__Patmos__DOT__cores_6)->__PVT__memory__DOT__memReg_mem_ret == 1) &&
+             (root->__PVT__Patmos__DOT__cores_6)->__PVT__icache__DOT__ctrl__DOT__callRetBaseReg == 0;
 #endif
 #if CORE_COUNT > 7
     case 7:
-      return (root->Patmos__DOT__cores_7__DOT__memory__DOT__memReg_mem_brcf == 1 ||
-              root->Patmos__DOT__cores_7__DOT__memory__DOT__memReg_mem_ret == 1) &&
-             root->Patmos__DOT__cores_7__DOT__icache__DOT__ctrl__DOT__callRetBaseReg == 0;
+      return ((root->__PVT__Patmos__DOT__cores_7)->__PVT__memory__DOT__memReg_mem_brcf == 1 ||
+              (root->__PVT__Patmos__DOT__cores_7)->__PVT__memory__DOT__memReg_mem_ret == 1) &&
+             (root->__PVT__Patmos__DOT__cores_7)->__PVT__icache__DOT__ctrl__DOT__callRetBaseReg == 0;
 #endif
 #if CORE_COUNT > 8
     case 8:
-      return (root->Patmos__DOT__cores_8__DOT__memory__DOT__memReg_mem_brcf == 1 ||
-              root->Patmos__DOT__cores_8__DOT__memory__DOT__memReg_mem_ret == 1) &&
-             root->Patmos__DOT__cores_8__DOT__icache__DOT__ctrl__DOT__callRetBaseReg == 0;
+      return ((root->__PVT__Patmos__DOT__cores_8)->__PVT__memory__DOT__memReg_mem_brcf == 1 ||
+              (root->__PVT__Patmos__DOT__cores_8)->__PVT__memory__DOT__memReg_mem_ret == 1) &&
+             (root->__PVT__Patmos__DOT__cores_8)->__PVT__icache__DOT__ctrl__DOT__callRetBaseReg == 0;
 #endif
 #if CORE_COUNT > 9
     case 9:
-      return (root->Patmos__DOT__cores_9__DOT__memory__DOT__memReg_mem_brcf == 1 ||
-              root->Patmos__DOT__cores_9__DOT__memory__DOT__memReg_mem_ret == 1) &&
-             root->Patmos__DOT__cores_9__DOT__icache__DOT__ctrl__DOT__callRetBaseReg == 0;
+      return ((root->__PVT__Patmos__DOT__cores_9)->__PVT__memory__DOT__memReg_mem_brcf == 1 ||
+              (root->__PVT__Patmos__DOT__cores_9)->__PVT__memory__DOT__memReg_mem_ret == 1) &&
+             (root->__PVT__Patmos__DOT__cores_9)->__PVT__icache__DOT__ctrl__DOT__callRetBaseReg == 0;
 #endif
 #if CORE_COUNT > 10
     case 10:
-      return (root->Patmos__DOT__cores_10__DOT__memory__DOT__memReg_mem_brcf == 1 ||
-              root->Patmos__DOT__cores_10__DOT__memory__DOT__memReg_mem_ret == 1) &&
-             root->Patmos__DOT__cores_10__DOT__icache__DOT__ctrl__DOT__callRetBaseReg == 0;
+      return ((root->__PVT__Patmos__DOT__cores_10)->__PVT__memory__DOT__memReg_mem_brcf == 1 ||
+              (root->__PVT__Patmos__DOT__cores_10)->__PVT__memory__DOT__memReg_mem_ret == 1) &&
+             (root->__PVT__Patmos__DOT__cores_10)->__PVT__icache__DOT__ctrl__DOT__callRetBaseReg == 0;
 #endif
 #if CORE_COUNT > 11
     case 11:
-      return (root->Patmos__DOT__cores_11__DOT__memory__DOT__memReg_mem_brcf == 1 ||
-              root->Patmos__DOT__cores_11__DOT__memory__DOT__memReg_mem_ret == 1) &&
-             root->Patmos__DOT__cores_11__DOT__icache__DOT__ctrl__DOT__callRetBaseReg == 0;
+      return ((root->__PVT__Patmos__DOT__cores_11)->__PVT__memory__DOT__memReg_mem_brcf == 1 ||
+              (root->__PVT__Patmos__DOT__cores_11)->__PVT__memory__DOT__memReg_mem_ret == 1) &&
+             (root->__PVT__Patmos__DOT__cores_11)->__PVT__icache__DOT__ctrl__DOT__callRetBaseReg == 0;
 #endif
 #if CORE_COUNT > 12
     case 12:
-      return (root->Patmos__DOT__cores_12__DOT__memory__DOT__memReg_mem_brcf == 1 ||
-              root->Patmos__DOT__cores_12__DOT__memory__DOT__memReg_mem_ret == 1) &&
-             root->Patmos__DOT__cores_12__DOT__icache__DOT__ctrl__DOT__callRetBaseReg == 0;
+      return ((root->__PVT__Patmos__DOT__cores_12)->__PVT__memory__DOT__memReg_mem_brcf == 1 ||
+              (root->__PVT__Patmos__DOT__cores_12)->__PVT__memory__DOT__memReg_mem_ret == 1) &&
+             (root->__PVT__Patmos__DOT__cores_12)->__PVT__icache__DOT__ctrl__DOT__callRetBaseReg == 0;
 #endif
 #if CORE_COUNT > 13
     case 13:
-      return (root->Patmos__DOT__cores_13__DOT__memory__DOT__memReg_mem_brcf == 1 ||
-              root->Patmos__DOT__cores_13__DOT__memory__DOT__memReg_mem_ret == 1) &&
-             root->Patmos__DOT__cores_13__DOT__icache__DOT__ctrl__DOT__callRetBaseReg == 0;
+      return ((root->__PVT__Patmos__DOT__cores_13)->__PVT__memory__DOT__memReg_mem_brcf == 1 ||
+              (root->__PVT__Patmos__DOT__cores_13)->__PVT__memory__DOT__memReg_mem_ret == 1) &&
+             (root->__PVT__Patmos__DOT__cores_13)->__PVT__icache__DOT__ctrl__DOT__callRetBaseReg == 0;
 #endif
 #if CORE_COUNT > 14
     case 14:
-      return (root->Patmos__DOT__cores_14__DOT__memory__DOT__memReg_mem_brcf == 1 ||
-              root->Patmos__DOT__cores_14__DOT__memory__DOT__memReg_mem_ret == 1) &&
-             root->Patmos__DOT__cores_14__DOT__icache__DOT__ctrl__DOT__callRetBaseReg == 0;
+      return ((root->__PVT__Patmos__DOT__cores_14)->__PVT__memory__DOT__memReg_mem_brcf == 1 ||
+              (root->__PVT__Patmos__DOT__cores_14)->__PVT__memory__DOT__memReg_mem_ret == 1) &&
+             (root->__PVT__Patmos__DOT__cores_14)->__PVT__icache__DOT__ctrl__DOT__callRetBaseReg == 0;
 #endif
 #if CORE_COUNT > 15
     case 15:
-      return (root->Patmos__DOT__cores_15__DOT__memory__DOT__memReg_mem_brcf == 1 ||
-              root->Patmos__DOT__cores_15__DOT__memory__DOT__memReg_mem_ret == 1) &&
-             root->Patmos__DOT__cores_15__DOT__icache__DOT__ctrl__DOT__callRetBaseReg == 0;
+      return ((root->__PVT__Patmos__DOT__cores_15)->__PVT__memory__DOT__memReg_mem_brcf == 1 ||
+              (root->__PVT__Patmos__DOT__cores_15)->__PVT__memory__DOT__memReg_mem_ret == 1) &&
+             (root->__PVT__Patmos__DOT__cores_15)->__PVT__icache__DOT__ctrl__DOT__callRetBaseReg == 0;
 #endif
     default: return false;
   }
 }
+#else
+static bool core_enable_reg(VPatmos___024root *root, int core)
+{
+  return core == 0 && root->Patmos__DOT__cores_0__DOT__enableReg;
+}
+
+static bool core_should_halt(VPatmos___024root *root, int core)
+{
+  return core == 0 &&
+         (root->Patmos__DOT__cores_0__DOT__memory__DOT__memReg_mem_brcf == 1 ||
+          root->Patmos__DOT__cores_0__DOT__memory__DOT__memReg_mem_ret == 1) &&
+         root->Patmos__DOT__cores_0__DOT__icache__DOT__ctrl__DOT__callRetBaseReg == 0;
+}
+#endif
 
 using namespace std;
 
@@ -731,19 +758,19 @@ void emu_extmem() {}
   {
     static unsigned int baseReg = 0;
     #if CORE_COUNT == 1
-    *outputTarget << (c->rootp->Patmos__DOT__cores_0__DOT__fetch__DOT__pc_next * 4) << " - ";
+    *outputTarget << (CORE_FIELD(c->rootp, 0, fetch__DOT__pc_next) * 4) << " - ";
     baseReg = 0;
 
     for (unsigned i = 0; i < 32; i++) {
-      *outputTarget << c->rootp->Patmos__DOT__cores_0__DOT__decode__DOT__rf__DOT__rf[i] << " ";
+      *outputTarget << CORE_FIELD(c->rootp, 0, decode__DOT__rf__DOT__rf)[i] << " ";
     }
     #endif
     #if CORE_COUNT > 1
-      *outputTarget << (c->rootp->Patmos__DOT__cores_0__DOT__fetch__DOT__pc_next * 4) << " - ";
+      *outputTarget << (CORE_FIELD(c->rootp, 0, fetch__DOT__pc_next) * 4) << " - ";
     baseReg = 0;
 
     for (unsigned i = 0; i < 32; i++) {
-      *outputTarget << c->rootp->Patmos__DOT__cores_0__DOT__decode__DOT__rf__DOT__rf[i] << " ";
+      *outputTarget << CORE_FIELD(c->rootp, 0, decode__DOT__rf__DOT__rf)[i] << " ";
     }
     #endif
 

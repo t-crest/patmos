@@ -122,7 +122,7 @@ endif
 
 emulator:
 	-mkdir -p $(HWBUILDDIR)
-	$(MAKE) -C hardware verilog BOOTAPP=$(BOOTAPP) BOARD=$(BOARD) GENEMU=true
+	$(MAKE) -C hardware HWBUILDDIR=$(HWBUILDDIR) verilog BOOTAPP=$(BOOTAPP) BOARD=$(BOARD) GENEMU=true
 	-cd $(HWBUILDDIR) && verilator --cc --exe \
 		-LDFLAGS "$(LIBELF_LDFLAGS)" \
 		-CFLAGS "$(LIBELF_CFLAGS) -Wno-undefined-bool-conversion -O3" \
