@@ -315,6 +315,9 @@ class Patmos(configFile: String, binFile: String, datFile: String, genEmu: Boole
       case "plru" => () => new BitPlruReplacementPolicy(nWays, l2nSets, nCores)
       case "cont" => () => new ContentionReplacementPolicy(nWays, l2nSets, nCores, BasePolicies.BIT_PLRU, enablePrecedentEvents = true, enableWbEvents = true, enableMissInMiss = true)
       case "time" => () => new TimeoutReplacementPolicy(nWays, l2nSets, nCores, BasePolicies.BIT_PLRU)
+      case "lc" => () => new LeastCriticalReplacementPolicy(nWays, l2nSets, nCores, BasePolicies.BIT_PLRU)
+      case "lcr" => () => new LeastCriticalReplacementPolicy(nWays, l2nSets, nCores, BasePolicies.BIT_PLRU, rejectNonCritical = true)
+      case "part" => () => new CriticalWayPartitionReplacementPolicy(nWays, l2nSets, nCores)
       case _ => throw new Error("Unknown L2 cache replacement policy: " + l2CacheConf.repl)
     }
 

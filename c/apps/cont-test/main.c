@@ -55,27 +55,23 @@ void run_core(void *arg) {
 	void (*core_fn)() = arg;
 	
 	int core_id = get_cpuid();
-	int start, end;
-	
-	// Set contention limit of the first core
-	if(CONTENTION_LIMIT && core_id == 0) {
-		*sch_io_ptr = CONTENTION_LIMIT;
-	}
+	// Must not be called 'start': a local of that name would hide the global start flag waited on below
+	int start_cycles, end_cycles;
 
 	core_status[core_id] = 1;
 	while(!start){} // wait until the main core issues the start command
 		
 	asm volatile ("nop;" : : : "memory");
-	start = get_cpu_cycles2();
+	start_cycles = get_cpu_cycles2();
 	asm volatile ("nop;" : : : "memory");
 	
 	core_fn();
 	
 	asm volatile ("nop;" : : : "memory");
-	end = get_cpu_cycles2();
+	end_cycles = get_cpu_cycles2();
 	asm volatile ("nop;" : : : "memory");
 		
-	core_timing[core_id] = end - start;
+	core_timing[core_id] = end_cycles - start_cycles;
 	core_status[core_id] = 2;
 
 	// Once the first core is done unset it's contention limit
@@ -105,6 +101,11 @@ int main() {
 			wait |= core_status[i] != 1; 
 		}
 	} while(wait);
+
+	// Set the contention limit of the first core, which runs main, before the cores are started
+	if(CONTENTION_LIMIT) {
+		*sch_io_ptr = CONTENTION_LIMIT;
+	}
 
 	start = 1;
 	
